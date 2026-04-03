@@ -10,6 +10,7 @@ import 'order_query_service.dart';
 import 'product_catalog_controller.dart';
 import 'product_detail_screen.dart';
 import 'product_query_service.dart';
+import 'widgets/skeleton_box.dart';
 
 Future<void> showGlobalSearch(BuildContext context) async {
   final isEnglish = AppSettingsScope.of(context).locale.languageCode == 'en';
@@ -193,69 +194,165 @@ class _GlobalSearchDelegate extends SearchDelegate<void> {
         if (items.isEmpty) {
           return const _SearchEmptyState();
         }
-        return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-          itemCount: items.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 8),
-          itemBuilder: (context, index) {
-            final item = items[index];
-            final isOrder = item.type == UnifiedSearchResultType.order;
-            final trailingLabel = isOrder
-                ? _texts.orderItemLabel
-                : _texts.productItemLabel;
+        return Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 880),
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              itemCount: items.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
+              itemBuilder: (context, index) {
+                final item = items[index];
+                final isOrder = item.type == UnifiedSearchResultType.order;
+                final trailingLabel = isOrder
+                    ? _texts.orderItemLabel
+                    : _texts.productItemLabel;
+                final colors = Theme.of(context).colorScheme;
+                final titleStyle = Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700);
+                final subtitleStyle = Theme.of(context).textTheme.bodyMedium
+                    ?.copyWith(color: colors.onSurfaceVariant, height: 1.35);
+                final trailingChip = Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colors.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    trailingLabel,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                );
+                final leadingIcon = Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color:
+                        (isOrder
+                                ? colors.primaryContainer
+                                : colors.secondaryContainer)
+                            .withValues(alpha: 0.82),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    isOrder
+                        ? Icons.receipt_long_outlined
+                        : Icons.inventory_2_outlined,
+                    color: isOrder ? colors.primary : colors.secondary,
+                  ),
+                );
 
-            return Card(
-              elevation: 0,
-              child: ListTile(
-                leading: Icon(
-                  isOrder
-                      ? Icons.receipt_long_outlined
-                      : Icons.inventory_2_outlined,
-                ),
-                title: Text(
-                  item.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                subtitle: Text(
-                  item.subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                trailing: Text(
-                  trailingLabel,
-                  style: Theme.of(context).textTheme.labelMedium,
-                ),
-                onTap: () {
-                  final selectedItem = item;
-                  _debounceTimer?.cancel();
-                  close(context, null);
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (!launchContext.mounted) {
-                      return;
-                    }
-                    if (selectedItem.type == UnifiedSearchResultType.order) {
-                      Navigator.of(launchContext).push(
-                        MaterialPageRoute(
-                          builder: (_) => OrderDetailScreen(
-                            orderId: selectedItem.order!.id,
-                          ),
-                        ),
-                      );
-                    } else {
-                      Navigator.of(launchContext).push(
-                        MaterialPageRoute(
-                          builder: (_) => ProductDetailScreen(
-                            product: selectedItem.product!,
-                          ),
-                        ),
-                      );
-                    }
-                  });
-                },
-              ),
-            );
-          },
+                return RepaintBoundary(
+                  child: Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      side: BorderSide(
+                        color: colors.outlineVariant.withValues(alpha: 0.72),
+                      ),
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(18),
+                      onTap: () {
+                        final selectedItem = item;
+                        _debounceTimer?.cancel();
+                        close(context, null);
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (!launchContext.mounted) {
+                            return;
+                          }
+                          if (selectedItem.type ==
+                              UnifiedSearchResultType.order) {
+                            Navigator.of(launchContext).push(
+                              MaterialPageRoute(
+                                builder: (_) => OrderDetailScreen(
+                                  orderId: selectedItem.order!.id,
+                                ),
+                              ),
+                            );
+                          } else {
+                            Navigator.of(launchContext).push(
+                              MaterialPageRoute(
+                                builder: (_) => ProductDetailScreen(
+                                  product: selectedItem.product!,
+                                ),
+                              ),
+                            );
+                          }
+                        });
+                      },
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isCompactRow = constraints.maxWidth < 560;
+                          final details = Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: titleStyle,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                item.subtitle,
+                                maxLines: isCompactRow ? 3 : 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: subtitleStyle,
+                              ),
+                            ],
+                          );
+
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                            child: isCompactRow
+                                ? Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          leadingIcon,
+                                          const SizedBox(width: 14),
+                                          Expanded(child: details),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 12),
+                                      trailingChip,
+                                    ],
+                                  )
+                                : Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      leadingIcon,
+                                      const SizedBox(width: 14),
+                                      Expanded(child: details),
+                                      const SizedBox(width: 12),
+                                      trailingChip,
+                                    ],
+                                  ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
         );
       },
     );
@@ -271,23 +368,19 @@ class _SearchHintState extends StatelessWidget {
       isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
     );
     final colors = Theme.of(context).colorScheme;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.search, size: 54, color: colors.onSurfaceVariant),
-            const SizedBox(height: 12),
-            Text(
-              texts.hintMessage,
-              textAlign: TextAlign.center,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
-            ),
-          ],
-        ),
+    return _SearchStatePanel(
+      icon: Icons.search_rounded,
+      iconColor: colors.primary,
+      title: texts.hintTitle,
+      message: texts.hintMessage,
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        alignment: WrapAlignment.center,
+        children: [
+          _SearchContextChip(label: texts.orderItemLabel),
+          _SearchContextChip(label: texts.productItemLabel),
+        ],
       ),
     );
   }
@@ -302,22 +395,12 @@ class _SearchEmptyState extends StatelessWidget {
       isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
     );
     final colors = Theme.of(context).colorScheme;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.search_off_outlined, size: 54, color: colors.error),
-            const SizedBox(height: 12),
-            Text(
-              texts.emptyMessage,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ],
-        ),
-      ),
+    return _SearchStatePanel(
+      icon: Icons.search_off_rounded,
+      iconColor: colors.error,
+      title: texts.emptyTitle,
+      message: texts.emptyMessage,
+      child: _SearchContextChip(label: texts.refineHint),
     );
   }
 }
@@ -329,27 +412,31 @@ class _SearchLoadingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(
-              width: 28,
-              height: 28,
-              child: CircularProgressIndicator(strokeWidth: 2.5),
+    return RepaintBoundary(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const _SearchLoadingCard(),
+                const SizedBox(height: 12),
+                const _SearchLoadingCard(),
+                const SizedBox(height: 12),
+                const _SearchLoadingCard(),
+                const SizedBox(height: 16),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -363,22 +450,158 @@ class _SearchErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _GlobalSearchTexts(
+      isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+    );
     final colors = Theme.of(context).colorScheme;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.search_off_outlined, size: 54, color: colors.error),
-            const SizedBox(height: 12),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium,
+    return _SearchStatePanel(
+      icon: Icons.error_outline_rounded,
+      iconColor: colors.error,
+      title: texts.errorTitle,
+      message: message,
+      child: OutlinedButton.icon(
+        onPressed: () => showGlobalSearch(context),
+        icon: const Icon(Icons.refresh_rounded, size: 18),
+        label: Text(texts.retryLabel),
+      ),
+    );
+  }
+}
+
+class _SearchStatePanel extends StatelessWidget {
+  const _SearchStatePanel({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.message,
+    this.child,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String message;
+  final Widget? child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return RepaintBoundary(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                color: colors.surfaceContainer,
+                border: Border.all(
+                  color: colors.outlineVariant.withValues(alpha: 0.78),
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: iconColor.withValues(alpha: 0.14),
+                    ),
+                    child: Icon(icon, size: 30, color: iconColor),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    message,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: colors.onSurfaceVariant,
+                      height: 1.45,
+                    ),
+                  ),
+                  if (child != null) ...[const SizedBox(height: 18), child!],
+                ],
+              ),
             ),
-          ],
+          ),
         ),
+      ),
+    );
+  }
+}
+
+class _SearchContextChip extends StatelessWidget {
+  const _SearchContextChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
+      ),
+      child: Text(
+        label,
+        style: Theme.of(
+          context,
+        ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+}
+
+class _SearchLoadingCard extends StatelessWidget {
+  const _SearchLoadingCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: Theme.of(context).colorScheme.surfaceContainer,
+      ),
+      child: const Row(
+        children: [
+          SkeletonBox(
+            width: 42,
+            height: 42,
+            borderRadius: BorderRadius.all(Radius.circular(14)),
+          ),
+          SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SkeletonBox(
+                  width: double.infinity,
+                  height: 14,
+                  borderRadius: BorderRadius.all(Radius.circular(10)),
+                ),
+                SizedBox(height: 8),
+                SkeletonBox(
+                  width: 180,
+                  height: 14,
+                  borderRadius: BorderRadius.all(Radius.circular(10)),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -393,21 +616,31 @@ class _GlobalSearchTexts {
       isEnglish ? 'Global search' : 'Tìm kiếm toàn cục';
   String get searchFieldLabel => isEnglish
       ? 'Search products, order IDs, or customer names...'
-      : 'Tìm sản phẩm, mã đơn, tên khách...';
+      : 'Tìm sản phẩm, mã đơn hoặc tên khách...';
   String get clearQueryTooltip => isEnglish ? 'Clear keyword' : 'Xóa từ khóa';
   String get closeSearchTooltip => isEnglish ? 'Close search' : 'Đóng tìm kiếm';
   String get orderItemLabel => isEnglish ? 'Order' : 'Đơn hàng';
   String get productItemLabel => isEnglish ? 'Product' : 'Sản phẩm';
+  String get hintTitle =>
+      isEnglish ? 'Search the dealer hub' : 'Tìm nhanh trong Dealer Hub';
   String get hintMessage => isEnglish
       ? 'Enter a keyword to quickly find orders and products.'
       : 'Nhập từ khóa để tìm nhanh đơn hàng và sản phẩm.';
+  String get emptyTitle =>
+      isEnglish ? 'No matching results' : 'Không có kết quả phù hợp';
   String get emptyMessage => isEnglish
       ? 'No matching results found.'
-      : 'Không tìm thấy kết quả phù hợp.';
+      : 'Chưa tìm thấy kết quả phù hợp.';
+  String get refineHint => isEnglish
+      ? 'Try a SKU, order ID, or customer name'
+      : 'Hãy thử mã SKU, mã đơn hoặc tên khách';
   String get loadingMessage => isEnglish
       ? 'Searching across products and orders...'
       : 'Đang tìm trên sản phẩm và đơn hàng...';
   String get searchFailedMessage => isEnglish
       ? 'Unable to complete the search right now.'
       : 'Chưa thể hoàn tất tìm kiếm lúc này.';
+  String get errorTitle =>
+      isEnglish ? 'Search is unavailable' : 'Tìm kiếm tạm thời không khả dụng';
+  String get retryLabel => isEnglish ? 'Retry' : 'Thử lại';
 }

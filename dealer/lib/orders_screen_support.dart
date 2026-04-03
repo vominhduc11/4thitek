@@ -2,6 +2,68 @@
 
 part of 'orders_screen.dart';
 
+class _OrderCardSkeleton extends StatelessWidget {
+  const _OrderCardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+        ),
+      ),
+      child: const Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SkeletonBox(width: 120, height: 16),
+                      SizedBox(height: 6),
+                      SkeletonBox(width: double.infinity, height: 14),
+                      SizedBox(height: 4),
+                      SkeletonBox(width: 80, height: 12),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 12),
+                SkeletonBox(
+                  width: 72,
+                  height: 26,
+                  borderRadius: BorderRadius.all(Radius.circular(20)),
+                ),
+              ],
+            ),
+            SizedBox(height: 12),
+            SkeletonBox(width: 100, height: 20),
+            SizedBox(height: 6),
+            SkeletonBox(width: 60, height: 13),
+            SizedBox(height: 6),
+            SkeletonBox(width: 140, height: 13),
+            SizedBox(height: 8),
+            SkeletonBox(
+              width: 90,
+              height: 24,
+              borderRadius: BorderRadius.all(Radius.circular(12)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _OrdersLayoutConfig {
   const _OrdersLayoutConfig({
     required this.isCompact,

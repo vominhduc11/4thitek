@@ -622,84 +622,99 @@ class _InventoryScreenState extends State<InventoryScreen> {
         final sheetScheme = Theme.of(sheetContext).colorScheme;
         return SafeArea(
           top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(20),
-                bottom: Radius.circular(18),
-              ),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: sheetScheme.surface.withValues(alpha: 0.95),
-                    boxShadow: [
-                      BoxShadow(
-                        color: sheetScheme.shadow.withValues(alpha: 0.14),
-                        blurRadius: 20,
-                        offset: Offset(0, -4),
-                      ),
-                    ],
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 24,
-                              height: 24,
-                              decoration: BoxDecoration(
-                                color: sheetScheme.primaryContainer,
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: Icon(
-                                Icons.flash_on_rounded,
-                                size: 14,
-                                color: sheetScheme.onPrimaryContainer,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              texts.quickActionsLabel,
-                              style: Theme.of(context).textTheme.titleSmall
-                                  ?.copyWith(
-                                    color: sheetScheme.onSurface,
-                                    fontWeight: FontWeight.w800,
-                                  ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                child: RepaintBoundary(
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
+                      bottom: Radius.circular(18),
+                    ),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: sheetScheme.surface.withValues(alpha: 0.95),
+                          boxShadow: [
+                            BoxShadow(
+                              color: sheetScheme.shadow.withValues(alpha: 0.14),
+                              blurRadius: 20,
+                              offset: Offset(0, -4),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          texts.quickActionsSubtitle,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: sheetScheme.onSurfaceVariant),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+                          child: SingleChildScrollView(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 24,
+                                      height: 24,
+                                      decoration: BoxDecoration(
+                                        color: sheetScheme.primaryContainer,
+                                        borderRadius: BorderRadius.circular(
+                                          999,
+                                        ),
+                                      ),
+                                      child: Icon(
+                                        Icons.flash_on_rounded,
+                                        size: 14,
+                                        color: sheetScheme.onPrimaryContainer,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      texts.quickActionsLabel,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleSmall
+                                          ?.copyWith(
+                                            color: sheetScheme.onSurface,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  texts.quickActionsSubtitle,
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: sheetScheme.onSurfaceVariant,
+                                      ),
+                                ),
+                                const SizedBox(height: 14),
+                                _QuickActionSheetItem(
+                                  icon: Icons.local_shipping_outlined,
+                                  title: texts.exportAction,
+                                  subtitle: texts.exportSubtitle,
+                                  tone: _QuickActionTone.primary,
+                                  onTap: () => onSelect('export'),
+                                ),
+                                const SizedBox(height: 8),
+                                const SizedBox(height: 12),
+                                const Divider(height: 1, thickness: 1),
+                                const SizedBox(height: 12),
+                                _QuickActionSheetItem(
+                                  icon: Icons.qr_code_scanner_outlined,
+                                  title: texts.scanQrBarcodeAction,
+                                  subtitle: texts.scanQrBarcodeSubtitle,
+                                  tone: _QuickActionTone.secondary,
+                                  onTap: () => onSelect('scan'),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                        const SizedBox(height: 14),
-                        _QuickActionSheetItem(
-                          icon: Icons.local_shipping_outlined,
-                          title: texts.exportAction,
-                          subtitle: texts.exportSubtitle,
-                          tone: _QuickActionTone.primary,
-                          onTap: () => onSelect('export'),
-                        ),
-                        const SizedBox(height: 8),
-                        const SizedBox(height: 12),
-                        const Divider(height: 1, thickness: 1),
-                        const SizedBox(height: 12),
-                        _QuickActionSheetItem(
-                          icon: Icons.qr_code_scanner_outlined,
-                          title: texts.scanQrBarcodeAction,
-                          subtitle: texts.scanQrBarcodeSubtitle,
-                          tone: _QuickActionTone.secondary,
-                          onTap: () => onSelect('scan'),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -1112,28 +1127,21 @@ class _InventoryProductTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final texts = _inventoryTexts(context);
     final colorScheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     late final String status;
     late final Color statusColor;
     late final IconData statusIcon;
     switch (item.stockStatus) {
       case InventoryStockStatus.inStock:
         status = texts.inStockStatus;
-        statusColor = isDark
-            ? const Color(0xFF4ADE80)
-            : const Color(0xFF166534);
+        statusColor = const Color(0xFF4ADE80);
         statusIcon = Icons.check_circle_outline;
       case InventoryStockStatus.lowStock:
         status = texts.lowStockStatus;
-        statusColor = isDark
-            ? const Color(0xFFFBBF24)
-            : const Color(0xFF9A3412);
+        statusColor = const Color(0xFFFBBF24);
         statusIcon = Icons.warning_amber_rounded;
       case InventoryStockStatus.outOfStock:
         status = texts.outOfStockStatus;
-        statusColor = isDark
-            ? const Color(0xFFFCA5A5)
-            : const Color(0xFFB91C1C);
+        statusColor = const Color(0xFFFCA5A5);
         statusIcon = Icons.remove_circle_outline;
     }
 
@@ -1479,12 +1487,14 @@ class _SkeletonBoxState extends State<_SkeletonBox>
         final pulse =
             Color.lerp(baseColor, highlightColor, _controller.value) ??
             baseColor;
-        return Container(
-          width: widget.width,
-          height: widget.height,
-          decoration: BoxDecoration(
-            color: pulse,
-            borderRadius: BorderRadius.circular(widget.radius),
+        return RepaintBoundary(
+          child: Container(
+            width: widget.width,
+            height: widget.height,
+            decoration: BoxDecoration(
+              color: pulse,
+              borderRadius: BorderRadius.circular(widget.radius),
+            ),
           ),
         );
       },
@@ -1509,32 +1519,17 @@ class _InventoryErrorView extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 52),
-            const SizedBox(height: 10),
-            Text(
-              message ?? texts.loadInventoryErrorMessage,
-              textAlign: TextAlign.center,
-            ),
-            if (details != null && details!.trim().isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                details!,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: onRetry,
-              style: ElevatedButton.styleFrom(minimumSize: const Size(128, 46)),
-              child: Text(texts.retryAction),
-            ),
-          ],
+        child: _InventoryStateCard(
+          icon: Icons.sync_problem_outlined,
+          title: message ?? texts.loadInventoryErrorMessage,
+          description: details,
+          tone: _InventoryStateTone.error,
+          action: ElevatedButton.icon(
+            onPressed: onRetry,
+            style: ElevatedButton.styleFrom(minimumSize: const Size(132, 46)),
+            icon: const Icon(Icons.refresh_outlined),
+            label: Text(texts.retryAction),
+          ),
         ),
       ),
     );
@@ -1552,33 +1547,21 @@ class _InventoryEmptyView extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.inventory_2_outlined, size: 64),
-            const SizedBox(height: 12),
-            Text(
-              texts.emptyInventoryTitle,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        child: _InventoryStateCard(
+          icon: Icons.inventory_2_outlined,
+          title: texts.emptyInventoryTitle,
+          description: texts.emptyInventorySubtitle,
+          tone: _InventoryStateTone.info,
+          action: Semantics(
+            button: true,
+            label: texts.importStockAction,
+            child: ElevatedButton.icon(
+              onPressed: onImport,
+              style: ElevatedButton.styleFrom(minimumSize: const Size(132, 46)),
+              icon: const Icon(Icons.playlist_add_check_circle_outlined),
+              label: Text(texts.importStockAction),
             ),
-            const SizedBox(height: 8),
-            Text(texts.emptyInventorySubtitle, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            Semantics(
-              button: true,
-              label: texts.importStockAction,
-              child: ElevatedButton.icon(
-                onPressed: onImport,
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(132, 46),
-                ),
-                icon: const Icon(Icons.playlist_add_check_circle_outlined),
-                label: Text(texts.importStockAction),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -1596,18 +1579,92 @@ class _InventoryFilteredEmptyView extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 30),
       child: Center(
+        child: _InventoryStateCard(
+          icon: Icons.filter_alt_off_outlined,
+          title: texts.filteredEmptyMessage,
+          tone: _InventoryStateTone.neutral,
+          action: TextButton(
+            onPressed: onClear,
+            style: TextButton.styleFrom(minimumSize: const Size(116, 48)),
+            child: Text(texts.clearFiltersAction),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+enum _InventoryStateTone { info, error, neutral }
+
+class _InventoryStateCard extends StatelessWidget {
+  const _InventoryStateCard({
+    required this.icon,
+    required this.title,
+    required this.tone,
+    this.description,
+    this.action,
+  });
+
+  final IconData icon;
+  final String title;
+  final _InventoryStateTone tone;
+  final String? description;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final isError = tone == _InventoryStateTone.error;
+    final isInfo = tone == _InventoryStateTone.info;
+    final background = isError
+        ? colors.errorContainer.withValues(alpha: 0.42)
+        : isInfo
+        ? colors.primaryContainer.withValues(alpha: 0.32)
+        : colors.surfaceContainerHighest.withValues(alpha: 0.45);
+    final borderColor = isError
+        ? colors.error.withValues(alpha: 0.28)
+        : isInfo
+        ? colors.primary.withValues(alpha: 0.22)
+        : colors.outlineVariant.withValues(alpha: 0.72);
+    final iconColor = isError
+        ? colors.error
+        : isInfo
+        ? colors.primary
+        : colors.onSurfaceVariant;
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 420),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: borderColor),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.filter_alt_off_outlined, size: 44),
-            const SizedBox(height: 10),
-            Text(texts.filteredEmptyMessage, textAlign: TextAlign.center),
-            const SizedBox(height: 10),
-            TextButton(
-              onPressed: onClear,
-              style: TextButton.styleFrom(minimumSize: const Size(116, 48)),
-              child: Text(texts.clearFiltersAction),
+            Icon(icon, size: 42, color: iconColor),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
             ),
+            if (description != null && description!.trim().isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                description!,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colors.onSurfaceVariant,
+                  height: 1.4,
+                ),
+              ),
+            ],
+            if (action != null) ...[const SizedBox(height: 14), action!],
           ],
         ),
       ),
@@ -1627,9 +1684,9 @@ class _InventoryTexts {
       return 'Inventory is synced from dealer-owned serials in the backend inventory.';
     }
     if (warrantySyncAt != null) {
-      return 'Kho dang dong bo truc tiep tu serial thuoc dealer. Lan dong bo serial gan nhat: $warrantySyncAt.';
+      return 'Kho đang đồng bộ trực tiếp từ serial thuộc dealer. Lần đồng bộ serial gần nhất: $warrantySyncAt.';
     }
-    return 'Kho dang dong bo truc tiep tu serial thuoc dealer tren backend.';
+    return 'Kho đang đồng bộ trực tiếp từ serial thuộc dealer trên backend.';
   }
 
   String get screenTitle => isEnglish ? 'Inventory' : 'Kho';
@@ -1645,7 +1702,7 @@ class _InventoryTexts {
       case InventorySortOption.name:
         return isEnglish ? 'Sort: Name' : 'Sắp xếp: Tên';
       case InventorySortOption.quantity:
-        return isEnglish ? 'Sort: Ready stock' : 'Sap xep: San sang';
+        return isEnglish ? 'Sort: Ready stock' : 'Sắp xếp: Sẵn sàng';
       case InventorySortOption.importedDate:
         return isEnglish ? 'Sort: Imported date' : 'Sắp xếp: Ngày nhập';
     }
@@ -1656,19 +1713,19 @@ class _InventoryTexts {
   String get totalProductsHelperText =>
       isEnglish ? 'Tracked SKUs' : 'SKU đang theo dõi';
   String get totalInventoryLabel =>
-      isEnglish ? 'Ready inventory' : 'Ton kho san sang';
+      isEnglish ? 'Ready inventory' : 'Tồn kho sẵn sàng';
   String get totalInventoryHelperText =>
-      isEnglish ? 'Ready serials' : 'Serial san sang';
+      isEnglish ? 'Ready serials' : 'Serial sẵn sàng';
   String get lowStockSummaryLabel => isEnglish ? 'Low stock' : 'Sắp hết hàng';
   String get lowStockSummaryHelperText =>
       isEnglish ? 'Needs replenishment soon' : 'Cần nhập thêm sớm';
   String get filterAllLabel => isEnglish ? 'All' : 'Tất cả';
-  String get filterInStockLabel => isEnglish ? 'Ready' : 'San sang';
+  String get filterInStockLabel => isEnglish ? 'Ready' : 'Sẵn sàng';
   String get filterLowStockLabel => isEnglish ? 'Low stock' : 'Sắp hết';
   String get filterOutOfStockLabel => isEnglish ? 'Out of stock' : 'Hết hàng';
   String get sortByNameOption => isEnglish ? 'By name' : 'Theo tên';
   String get sortByQuantityOption =>
-      isEnglish ? 'By ready quantity' : 'Theo so luong san sang';
+      isEnglish ? 'By ready quantity' : 'Theo số lượng sẵn sàng';
   String get sortByImportedDateOption =>
       isEnglish ? 'By imported date' : 'Theo ngày nhập';
   String get openSortMenuSemantic =>
@@ -1698,7 +1755,7 @@ class _InventoryTexts {
       : 'Tra cứu serial bằng camera';
   String get invalidScannedCodeMessage =>
       isEnglish ? 'The scanned code is not valid.' : 'Mã quét không hợp lệ.';
-  String get inStockStatus => isEnglish ? 'Ready' : 'San sang';
+  String get inStockStatus => isEnglish ? 'Ready' : 'Sẵn sàng';
   String get lowStockStatus => isEnglish ? 'Low stock' : 'Sắp hết';
   String get outOfStockStatus => isEnglish ? 'Out of stock' : 'Hết hàng';
   String productTileSemantic(
@@ -1708,16 +1765,16 @@ class _InventoryTexts {
     String status,
   ) => isEnglish
       ? '$name, SKU $sku, ready $quantity, status $status'
-      : '$name, SKU $sku, san sang $quantity, trang thai $status';
+      : '$name, SKU $sku, sẵn sàng $quantity, trạng thái $status';
   String productImageLabel(String productName) => isEnglish
       ? 'Product image for $productName'
       : 'Ảnh sản phẩm $productName';
-  String get stockLabelPrefix => isEnglish ? 'Ready: ' : 'San sang: ';
+  String get stockLabelPrefix => isEnglish ? 'Ready: ' : 'Sẵn sàng: ';
   String warrantyCountLabel(int count) =>
-      isEnglish ? 'Warranty: $count' : 'Bao hanh: $count';
+      isEnglish ? 'Warranty: $count' : 'Bảo hành: $count';
   String issueCountLabel(int count) => isEnglish
       ? 'Issue / unavailable: $count'
-      : 'Loi / khong kha dung: $count';
+      : 'Lỗi / không khả dụng: $count';
   String latestImportedLabel(String dateLabel) =>
       isEnglish ? 'Latest import: $dateLabel' : 'Nhập gần nhất: $dateLabel';
   String get loadInventoryErrorMessage => isEnglish

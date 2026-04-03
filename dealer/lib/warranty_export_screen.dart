@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -43,7 +43,6 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
   bool _didStartInitialSync = false;
   bool _isInitialSyncing = true;
   bool _isSubmitting = false;
-  bool _didApplyPrefill = false;
   bool _isEnglish = false;
   String? _initialSyncWarning;
 
@@ -90,7 +89,6 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
     if (!mounted) {
       return;
     }
-    _didApplyPrefill = true;
     final prefilled = widget.prefilledSerial?.trim();
     if (prefilled != null && prefilled.isNotEmpty) {
       final normalized = warrantyController.normalizeSerial(prefilled);
@@ -313,9 +311,14 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
   Widget build(BuildContext context) {
     final texts = _texts;
     if (_isInitialSyncing) {
-      return Scaffold(
-        appBar: AppBar(title: BrandAppBarTitle(texts.screenTitle)),
-        body: const Center(child: CircularProgressIndicator()),
+      return _ExportStateScaffold(
+        title: texts.screenTitle,
+        icon: Icons.sync_outlined,
+        headline: _isEnglish ? 'Preparing export data' : 'Đang chuẩn bị dữ liệu xuất kho',
+        message: _isEnglish
+            ? 'Please wait while the latest order and warranty inventory are prepared.'
+            : 'Vui lòng chờ trong lúc hệ thống chuẩn bị dữ liệu đơn hàng và kho bảo hành mới nhất.',
+        isLoading: true,
       );
     }
     final warrantyController = WarrantyScope.of(context);
@@ -776,6 +779,81 @@ class _WarrantyExportTexts {
       ? 'There are no serials in the cart yet.'
       : 'Chưa có serial nào trong giỏ';
 }
+class _ExportStateScaffold extends StatelessWidget {
+  const _ExportStateScaffold({
+    required this.title,
+    required this.icon,
+    required this.headline,
+    required this.message,
+    this.isLoading = false,
+  });
+
+  final String title;
+  final IconData icon;
+  final String headline;
+  final String message;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Scaffold(
+      appBar: AppBar(title: BrandAppBarTitle(title)),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: colors.primaryContainer.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: colors.primary.withValues(alpha: 0.22),
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (isLoading)
+                    SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.6,
+                        color: colors.primary,
+                      ),
+                    )
+                  else
+                    Icon(icon, size: 42, color: colors.primary),
+                  const SizedBox(height: 14),
+                  Text(
+                    headline,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    message,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: colors.onSurfaceVariant,
+                      height: 1.45,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class _ExportSectionCard extends StatelessWidget {
   const _ExportSectionCard({required this.title, required this.child});
@@ -817,3 +895,4 @@ class _ExportSectionCard extends StatelessWidget {
     );
   }
 }
+

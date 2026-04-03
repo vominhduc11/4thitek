@@ -257,7 +257,7 @@ abstract class AppLocalizations {
   /// No description provided for @accountMenuPreferencesSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Switch theme mode and language preferences.'**
+  /// **'Manage language and app preferences.'**
   String get accountMenuPreferencesSubtitle;
 
   /// No description provided for @accountLogoutAction.

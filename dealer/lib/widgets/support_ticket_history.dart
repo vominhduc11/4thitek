@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../support_service.dart';
+import 'skeleton_box.dart';
 
 class SupportTicketHistory extends StatelessWidget {
   const SupportTicketHistory({
@@ -27,50 +28,40 @@ class SupportTicketHistory extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final texts = _SupportHistoryTexts(isEnglish: isEnglish);
+    final colors = Theme.of(context).colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (errorMessage != null) ...[
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              color: Theme.of(
-                context,
-              ).colorScheme.errorContainer.withValues(alpha: 0.45),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  errorMessage!,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                if (onRetry != null) ...[
-                  const SizedBox(height: 10),
-                  OutlinedButton(
-                    onPressed: onRetry,
-                    child: Text(texts.retryLabel),
-                  ),
-                ],
-              ],
-            ),
+          _HistoryStateCard(
+            icon: Icons.error_outline_rounded,
+            title: texts.errorTitle,
+            message: errorMessage!,
+            foregroundColor: colors.onErrorContainer,
+            backgroundColor: colors.errorContainer.withValues(alpha: 0.62),
+            onAction: onRetry,
+            actionLabel: onRetry == null ? null : texts.retryLabel,
           ),
           const SizedBox(height: 12),
         ],
         if (isLoading && items.isEmpty)
-          const Center(child: CircularProgressIndicator())
+          const Column(
+            children: [
+              _HistorySkeletonCard(),
+              SizedBox(height: 12),
+              _HistorySkeletonCard(),
+            ],
+          )
         else if (items.isEmpty)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          _HistoryStateCard(
+            icon: Icons.support_agent_outlined,
+            title: texts.emptyTitle,
+            message: texts.emptyMessage,
+            foregroundColor: colors.onSurface,
+            backgroundColor: colors.surfaceContainerHighest.withValues(
+              alpha: 0.6,
             ),
-            child: Text(texts.emptyMessage),
           )
         else
           Column(
@@ -85,10 +76,20 @@ class SupportTicketHistory extends StatelessWidget {
                   child: OutlinedButton(
                     onPressed: isLoadingMore ? null : onLoadMore,
                     child: isLoadingMore
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(texts.loadingMoreLabel),
+                            ],
                           )
                         : Text(texts.loadMoreLabel),
                   ),
@@ -108,19 +109,16 @@ class _HistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: Theme.of(
-            context,
-          ).colorScheme.outlineVariant.withValues(alpha: 0.45),
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
         ),
-        color: Theme.of(
-          context,
-        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,9 +128,9 @@ class _HistoryCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   item.subject,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
               _StatusChip(status: item.status, texts: texts),
@@ -141,20 +139,26 @@ class _HistoryCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             '${texts.ticketLabel}: ${item.ticketCode}',
-            style: Theme.of(context).textTheme.bodySmall,
+            style: theme.textTheme.bodySmall,
           ),
           const SizedBox(height: 6),
-          Text(item.message),
+          Text(
+            item.message,
+            style: theme.textTheme.bodyMedium?.copyWith(height: 1.45),
+          ),
           if (item.adminReply != null && item.adminReply!.isNotEmpty) ...[
             const SizedBox(height: 10),
             Text(
               texts.adminReplyLabel,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700),
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
             const SizedBox(height: 4),
-            Text(item.adminReply!),
+            Text(
+              item.adminReply!,
+              style: theme.textTheme.bodyMedium?.copyWith(height: 1.45),
+            ),
           ],
           const SizedBox(height: 12),
           Wrap(
@@ -189,6 +193,136 @@ class _HistoryCard extends StatelessWidget {
     final hour = value.hour.toString().padLeft(2, '0');
     final minute = value.minute.toString().padLeft(2, '0');
     return '$day/$month/${value.year} $hour:$minute';
+  }
+}
+
+class _HistoryStateCard extends StatelessWidget {
+  const _HistoryStateCard({
+    required this.icon,
+    required this.title,
+    required this.message,
+    required this.foregroundColor,
+    required this.backgroundColor,
+    this.onAction,
+    this.actionLabel,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+  final Color foregroundColor;
+  final Color backgroundColor;
+  final Future<void> Function()? onAction;
+  final String? actionLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        color: backgroundColor,
+        border: Border.all(
+          color: foregroundColor.withValues(alpha: 0.14),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 20, color: foregroundColor),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  title,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: foregroundColor,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: foregroundColor.withValues(alpha: 0.9),
+              height: 1.45,
+            ),
+          ),
+          if (onAction != null && actionLabel != null) ...[
+            const SizedBox(height: 14),
+            OutlinedButton.icon(
+              onPressed: onAction,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: Text(actionLabel!),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _HistorySkeletonCard extends StatelessWidget {
+  const _HistorySkeletonCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.45,
+        ),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: SkeletonBox(
+                  width: double.infinity,
+                  height: 16,
+                  borderRadius: BorderRadius.all(Radius.circular(10)),
+                ),
+              ),
+              SizedBox(width: 12),
+              SkeletonBox(
+                width: 88,
+                height: 28,
+                borderRadius: BorderRadius.all(Radius.circular(999)),
+              ),
+            ],
+          ),
+          SizedBox(height: 12),
+          SkeletonBox(
+            width: 120,
+            height: 14,
+            borderRadius: BorderRadius.all(Radius.circular(10)),
+          ),
+          SizedBox(height: 10),
+          SkeletonBox(
+            width: double.infinity,
+            height: 14,
+            borderRadius: BorderRadius.all(Radius.circular(10)),
+          ),
+          SizedBox(height: 8),
+          SkeletonBox(
+            width: 220,
+            height: 14,
+            borderRadius: BorderRadius.all(Radius.circular(10)),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -227,12 +361,12 @@ class _StatusChip extends StatelessWidget {
     Color foreground;
     switch (status) {
       case 'RESOLVED':
-        background = Colors.green.withValues(alpha: 0.16);
-        foreground = Colors.green.shade700;
+        background = const Color(0xFF163624);
+        foreground = const Color(0xFF71E2A0);
         break;
       case 'IN_PROGRESS':
-        background = Colors.orange.withValues(alpha: 0.16);
-        foreground = Colors.orange.shade800;
+        background = const Color(0xFF3A2C11);
+        foreground = const Color(0xFFFFC361);
         break;
       case 'CLOSED':
         background = scheme.surface;
@@ -267,9 +401,15 @@ class _SupportHistoryTexts {
 
   final bool isEnglish;
 
-  String get emptyMessage =>
-      isEnglish ? 'No support requests yet.' : 'Chưa có yêu cầu hỗ trợ nào.';
+  String get errorTitle =>
+      isEnglish ? 'Unable to load history' : 'Không tải được lịch sử';
+  String get emptyTitle =>
+      isEnglish ? 'No support requests yet' : 'Chưa có yêu cầu hỗ trợ';
+  String get emptyMessage => isEnglish
+      ? 'Your recent support requests will appear here.'
+      : 'Các yêu cầu hỗ trợ gần đây sẽ xuất hiện tại đây.';
   String get loadMoreLabel => isEnglish ? 'Load more' : 'Xem thêm';
+  String get loadingMoreLabel => isEnglish ? 'Loading...' : 'Đang tải...';
   String get retryLabel => isEnglish ? 'Retry' : 'Thử lại';
   String get ticketLabel => isEnglish ? 'Ticket' : 'Mã';
   String get adminReplyLabel => isEnglish ? 'Admin reply' : 'Phản hồi';

@@ -25,7 +25,8 @@ void main() {
     expect(find.text('Preferences'), findsOneWidget);
     expect(find.text('Language'), findsOneWidget);
     expect(find.text('Vietnamese'), findsOneWidget);
-    expect(find.text('English'), findsOneWidget);
+    expect(find.text('English'), findsWidgets);
+    expect(find.text('Dark (fixed)'), findsWidgets);
   });
 
   testWidgets('App preferences screen renders Vietnamese language options', (
@@ -42,9 +43,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Giao diện và ngôn ngữ'), findsOneWidget);
+    expect(find.text('Thiết lập ứng dụng'), findsOneWidget);
     expect(find.text('Ngôn ngữ'), findsOneWidget);
-    expect(find.text('Tiếng Việt'), findsOneWidget);
-    expect(find.text('Tiếng Anh'), findsOneWidget);
+    expect(find.text('Tiếng Việt'), findsWidgets);
+    expect(find.text('Tiếng Anh'), findsWidgets);
+    expect(find.text('Tối (cố định)'), findsWidgets);
   });
 }

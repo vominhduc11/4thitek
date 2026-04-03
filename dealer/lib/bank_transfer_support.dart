@@ -35,10 +35,7 @@ class BankTransferInstructions {
 
 enum BankTransferErrorCode { unauthenticated, invalidPayload, unavailable }
 
-String bankTransferLoadErrorMessage(
-  Object error, {
-  required bool isEnglish,
-}) {
+String bankTransferLoadErrorMessage(Object error, {required bool isEnglish}) {
   if (error is BankTransferException) {
     switch (error.code) {
       case BankTransferErrorCode.unauthenticated:
@@ -136,10 +133,7 @@ class BankTransferService {
 }
 
 class BankTransferException implements Exception {
-  const BankTransferException(
-    this.message, {
-    this.code,
-  });
+  const BankTransferException(this.message, {this.code});
 
   const BankTransferException.unauthenticated()
     : this('', code: BankTransferErrorCode.unauthenticated);
@@ -381,40 +375,59 @@ class _BankTransferInfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final texts = _bankTransferTexts(context);
-    final borderColor = Theme.of(context).colorScheme.outlineVariant;
+    final colors = Theme.of(context).colorScheme;
+    final borderColor = colors.outlineVariant;
+    final copyButton = IconButton(
+      visualDensity: VisualDensity.compact,
+      padding: const EdgeInsets.all(10),
+      constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+      onPressed: onCopy,
+      icon: const Icon(Icons.copy, size: 18),
+      tooltip: texts.copyTooltip,
+    );
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: borderColor),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final shouldStack = constraints.maxWidth < 360;
+          final info = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(value, style: Theme.of(context).textTheme.bodyMedium),
+            ],
+          );
+
+          if (shouldStack) {
+            return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(value, style: Theme.of(context).textTheme.bodyMedium),
+                info,
+                const SizedBox(height: 8),
+                Align(alignment: Alignment.centerRight, child: copyButton),
               ],
-            ),
-          ),
-          IconButton(
-            visualDensity: VisualDensity.compact,
-            padding: const EdgeInsets.all(10),
-            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-            onPressed: onCopy,
-            icon: const Icon(Icons.copy, size: 18),
-            tooltip: texts.copyTooltip,
-          ),
-        ],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: info),
+              copyButton,
+            ],
+          );
+        },
       ),
     );
   }

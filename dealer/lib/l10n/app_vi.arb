@@ -26,7 +26,7 @@
   "accountMenuWarrantyTitle": "Trung tâm bảo hành",
   "accountMenuWarrantySubtitle": "Xử lý serial, kích hoạt bảo hành và xem kho serial.",
   "accountMenuPreferencesTitle": "Giao diện và ngôn ngữ",
-  "accountMenuPreferencesSubtitle": "Chuyển chế độ giao diện và ngôn ngữ sử dụng.",
+  "accountMenuPreferencesSubtitle": "Quản lý ngôn ngữ và thiết lập ứng dụng.",
   "accountLogoutAction": "Đăng xuất",
   "accountEditProfileAction": "Sửa hồ sơ",
   "accountVersionLabel": "Phiên bản {version}",

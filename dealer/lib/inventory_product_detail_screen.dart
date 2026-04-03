@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -113,6 +113,7 @@ class _InventoryProductDetailScreenState
   Widget build(BuildContext context) {
     final texts = _inventoryProductDetailTexts(context);
     final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final warrantyController = WarrantyScope.of(context);
     final orderIdSet = widget.orderIds.toSet();
     final productSku = widget.product.sku.trim();
@@ -148,7 +149,8 @@ class _InventoryProductDetailScreenState
     final filtered = serials
         .where((record) {
           final status = serialStatuses[record.serial]!;
-          if (_filter == InventorySerialFilter.ready && !_isReadyStatus(status)) {
+          if (_filter == InventorySerialFilter.ready &&
+              !_isReadyStatus(status)) {
             return false;
           }
           if (_filter == InventorySerialFilter.warranty &&
@@ -168,9 +170,238 @@ class _InventoryProductDetailScreenState
         .take(_visibleSerialCount)
         .toList(growable: false);
     final hasMoreSerials = visibleSerials.length < _filteredSerialCount;
-    final isTablet =
-        MediaQuery.sizeOf(context).shortestSide >= AppBreakpoints.phone;
-    final maxWidth = isTablet ? 1040.0 : double.infinity;
+    final mediaSize = MediaQuery.sizeOf(context);
+    final isTablet = mediaSize.shortestSide >= AppBreakpoints.phone;
+    final isWideLayout = mediaSize.width >= 960;
+    final maxWidth = isWideLayout
+        ? 1120.0
+        : (isTablet ? 1040.0 : double.infinity);
+
+    Widget buildMetricsGrid() {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final columns = constraints.maxWidth >= 860 ? 4 : 2;
+          const spacing = 8.0;
+          final tileWidth =
+              (constraints.maxWidth - spacing * (columns - 1)) / columns;
+          final metrics = <Widget>[
+            _InventoryMetric(
+              label: texts.readyMetricLabel,
+              value: '$readyCount',
+              color: colorScheme.primary,
+              icon: Icons.inventory_2_outlined,
+            ),
+            _InventoryMetric(
+              label: texts.importedMetricLabel,
+              value: '$importedCount',
+              color: colorScheme.secondary,
+              icon: Icons.south_west_rounded,
+            ),
+            _InventoryMetric(
+              label: texts.warrantyMetricLabel,
+              value: '$warrantyCount',
+              color: colorScheme.tertiary,
+              icon: Icons.verified_outlined,
+            ),
+            _InventoryMetric(
+              label: texts.issueMetricLabel,
+              value: '$issueCount',
+              color: colorScheme.error,
+              icon: Icons.report_problem_outlined,
+            ),
+          ];
+
+          return Wrap(
+            spacing: spacing,
+            runSpacing: spacing,
+            children: [
+              for (final metric in metrics)
+                SizedBox(width: tileWidth, child: metric),
+            ],
+          );
+        },
+      );
+    }
+
+    final Widget productSummary = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Semantics(
+              image: true,
+              label: texts.productImageLabel(widget.product.name),
+              child: ExcludeSemantics(
+                child: ProductImage(
+                  product: widget.product,
+                  width: 72,
+                  height: 72,
+                  borderRadius: BorderRadius.circular(14),
+                  fit: BoxFit.cover,
+                  iconSize: 20,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.product.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.titleMedium?.copyWith(
+                      color: colorScheme.onSurface,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      height: 1.2,
+                    ),
+                  ),
+                  if (productSku.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'SKU: $productSku',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 11.5,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 4),
+                  Text(
+                    texts.latestImportedLabel(
+                      formatDateTime(widget.latestImportedAt),
+                    ),
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        if (widget.product.description.trim().isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            widget.product.description.trim(),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+              fontSize: 12.5,
+              height: 1.35,
+            ),
+          ),
+        ],
+      ],
+    );
+
+    final Widget actionButtons = Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        Semantics(
+          button: true,
+          enabled: canExport,
+          label: texts.exportAction,
+          child: ElevatedButton.icon(
+            onPressed: canExport
+                ? () {
+                    Navigator.of(this.context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const WarrantyExportScreen(),
+                      ),
+                    );
+                  }
+                : null,
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(120, 48),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              textStyle: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            icon: const Icon(Icons.local_shipping_outlined),
+            label: Text(texts.exportAction),
+          ),
+        ),
+        OutlinedButton.icon(
+          onPressed: () {
+            unawaited(_handleScanSerialForProduct(warrantyController));
+          },
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size(120, 48),
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            foregroundColor: colorScheme.onSurfaceVariant,
+            side: BorderSide(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.9),
+            ),
+            backgroundColor: colorScheme.surfaceContainerHighest.withValues(
+              alpha: 0.4,
+            ),
+            textStyle: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          icon: const Icon(Icons.qr_code_scanner_outlined),
+          label: Text(texts.scanQrAction),
+        ),
+      ],
+    );
+
+    final Widget summaryCard = RepaintBoundary(
+      child: Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(
+            color: Theme.of(
+              context,
+            ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final useWideSummary = constraints.maxWidth >= 900;
+              final Widget sidePanel = Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  buildMetricsGrid(),
+                  const SizedBox(height: _detailSectionSpacingLarge),
+                  actionButtons,
+                ],
+              );
+
+              if (useWideSummary) {
+                final sidePanelWidth = constraints.maxWidth >= 1040
+                    ? 340.0
+                    : 312.0;
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: productSummary),
+                    const SizedBox(width: _detailSectionSpacingLarge),
+                    SizedBox(width: sidePanelWidth, child: sidePanel),
+                  ],
+                );
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  productSummary,
+                  const SizedBox(height: 12),
+                  sidePanel,
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
 
     return Scaffold(
       appBar: AppBar(title: BrandAppBarTitle(texts.screenTitle)),
@@ -185,208 +416,8 @@ class _InventoryProductDetailScreenState
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
               children: [
-                Card(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    side: BorderSide(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.outlineVariant.withValues(alpha: 0.6),
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(14),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Semantics(
-                              image: true,
-                              label: texts.productImageLabel(
-                                widget.product.name,
-                              ),
-                              child: ExcludeSemantics(
-                                child: ProductImage(
-                                  product: widget.product,
-                                  width: 72,
-                                  height: 72,
-                                  borderRadius: BorderRadius.circular(14),
-                                  fit: BoxFit.cover,
-                                  iconSize: 20,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    widget.product.name,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium
-                                        ?.copyWith(
-                                          color: colorScheme.onSurface,
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w800,
-                                          height: 1.2,
-                                        ),
-                                  ),
-                                  if (productSku.isNotEmpty) ...[
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'SKU: $productSku',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(
-                                            color: colorScheme.onSurfaceVariant,
-                                            fontSize: 11.5,
-                                            height: 1.3,
-                                          ),
-                                    ),
-                                  ],
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    texts.latestImportedLabel(
-                                      formatDateTime(widget.latestImportedAt),
-                                    ),
-                                    style: Theme.of(context).textTheme.bodySmall
-                                        ?.copyWith(
-                                          color: colorScheme.onSurfaceVariant,
-                                          fontSize: 12,
-                                        ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (widget.product.description.trim().isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            widget.product.description.trim(),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                  fontSize: 12.5,
-                                  height: 1.35,
-                                ),
-                          ),
-                        ],
-                        const SizedBox(height: 12),
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            final columns = constraints.maxWidth >= 860 ? 4 : 2;
-                            const spacing = 8.0;
-                            final tileWidth =
-                                (constraints.maxWidth -
-                                    spacing * (columns - 1)) /
-                                columns;
-                            final metrics = <Widget>[
-                              _InventoryMetric(
-                                label: texts.readyMetricLabel,
-                                value: '$readyCount',
-                                color: colorScheme.primary,
-                                icon: Icons.inventory_2_outlined,
-                              ),
-                              _InventoryMetric(
-                                label: texts.importedMetricLabel,
-                                value: '$importedCount',
-                                color: colorScheme.secondary,
-                                icon: Icons.south_west_rounded,
-                              ),
-                              _InventoryMetric(
-                                label: texts.warrantyMetricLabel,
-                                value: '$warrantyCount',
-                                color: colorScheme.tertiary,
-                                icon: Icons.verified_outlined,
-                              ),
-                              _InventoryMetric(
-                                label: texts.issueMetricLabel,
-                                value: '$issueCount',
-                                color: colorScheme.error,
-                                icon: Icons.report_problem_outlined,
-                              ),
-                            ];
-                            return Wrap(
-                              spacing: spacing,
-                              runSpacing: spacing,
-                              children: [
-                                for (final metric in metrics)
-                                  SizedBox(width: tileWidth, child: metric),
-                              ],
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                summaryCard,
                 const SizedBox(height: _detailSectionSpacingLarge),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    Semantics(
-                      button: true,
-                      enabled: canExport,
-                      label: texts.exportAction,
-                      child: ElevatedButton.icon(
-                        onPressed: canExport
-                            ? () {
-                                Navigator.of(this.context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        const WarrantyExportScreen(),
-                                  ),
-                                );
-                              }
-                            : null,
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: const Size(120, 48),
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
-                          textStyle: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        icon: const Icon(Icons.local_shipping_outlined),
-                        label: Text(texts.exportAction),
-                      ),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        unawaited(
-                          _handleScanSerialForProduct(warrantyController),
-                        );
-                      },
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(120, 48),
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        foregroundColor: colorScheme.onSurfaceVariant,
-                        side: BorderSide(
-                          color: colorScheme.outlineVariant.withValues(
-                            alpha: 0.9,
-                          ),
-                        ),
-                        backgroundColor: colorScheme.surfaceContainerHighest
-                            .withValues(alpha: 0.4),
-                        textStyle: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      icon: const Icon(Icons.qr_code_scanner_outlined),
-                      label: Text(texts.scanQrAction),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: _detailSectionSpacing),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -415,9 +446,17 @@ class _InventoryProductDetailScreenState
                 ),
                 const SizedBox(height: _detailSectionSpacing),
                 if (serials.isEmpty)
-                  _SerialEmptyStateCard(message: texts.noSerialsMessage)
+                  _SerialEmptyStateCard(
+                    icon: Icons.inventory_2_outlined,
+                    message: texts.noSerialsMessage,
+                  )
                 else if (filtered.isEmpty)
-                  _SerialEmptyStateCard(message: texts.filterEmptyMessage)
+                  _SerialEmptyStateCard(
+                    icon: Icons.filter_alt_off_outlined,
+                    message: texts.filterEmptyMessage,
+                    actionLabel: texts.clearFilterAction,
+                    onAction: () => _setFilter(InventorySerialFilter.all),
+                  )
                 else
                   ...visibleSerials.map((record) {
                     final status = serialStatuses[record.serial]!;
@@ -425,18 +464,20 @@ class _InventoryProductDetailScreenState
                       padding: const EdgeInsets.only(
                         bottom: _detailItemSpacing,
                       ),
-                      child: _SerialTile(
-                        record: record,
-                        status: status,
-                        onOpenOrder: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  OrderDetailScreen(orderId: record.orderId),
-                            ),
-                          );
-                        },
-                        onCopy: () => _copySerial(record.serial),
+                      child: RepaintBoundary(
+                        child: _SerialTile(
+                          record: record,
+                          status: status,
+                          onOpenOrder: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    OrderDetailScreen(orderId: record.orderId),
+                              ),
+                            );
+                          },
+                          onCopy: () => _copySerial(record.serial),
+                        ),
                       ),
                     );
                   }),
@@ -531,9 +572,17 @@ class _InventoryProductDetailScreenState
 }
 
 class _SerialEmptyStateCard extends StatelessWidget {
-  const _SerialEmptyStateCard({required this.message});
+  const _SerialEmptyStateCard({
+    required this.message,
+    required this.icon,
+    this.actionLabel,
+    this.onAction,
+  });
 
   final String message;
+  final IconData icon;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
@@ -548,12 +597,27 @@ class _SerialEmptyStateCard extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
-        child: Text(
-          message,
-          textAlign: TextAlign.center,
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: colorScheme.primary, size: 24),
+            const SizedBox(height: 10),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            if (actionLabel != null && onAction != null) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: onAction,
+                icon: const Icon(Icons.restart_alt_rounded),
+                label: Text(actionLabel!),
+              ),
+            ],
+          ],
         ),
       ),
     );
@@ -675,33 +739,20 @@ class _SerialTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final texts = _inventoryProductDetailTexts(context);
     final colorScheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final color = switch (status) {
       ImportedSerialStatus.available ||
-      ImportedSerialStatus.assigned => isDark
-          ? const Color(0xFF4ADE80)
-          : const Color(0xFF15803D),
-      ImportedSerialStatus.warranty => isDark
-          ? const Color(0xFFFBBF24)
-          : const Color(0xFFB45309),
-      ImportedSerialStatus.inspecting => isDark
-          ? const Color(0xFFFDE68A)
-          : const Color(0xFFC2410C),
+      ImportedSerialStatus.assigned => const Color(0xFF4ADE80),
+      ImportedSerialStatus.warranty => const Color(0xFFFBBF24),
+      ImportedSerialStatus.inspecting => const Color(0xFFFDE68A),
       ImportedSerialStatus.defective ||
-      ImportedSerialStatus.returned => isDark
-          ? const Color(0xFFFCA5A5)
-          : const Color(0xFFB91C1C),
-      ImportedSerialStatus.scrapped => isDark
-          ? const Color(0xFFCBD5E1)
-          : const Color(0xFF475569),
+      ImportedSerialStatus.returned => const Color(0xFFFCA5A5),
+      ImportedSerialStatus.scrapped => const Color(0xFFCBD5E1),
       ImportedSerialStatus.reserved ||
-      ImportedSerialStatus.unknown => isDark
-          ? const Color(0xFF93C5FD)
-          : const Color(0xFF1D4ED8),
+      ImportedSerialStatus.unknown => const Color(0xFF93C5FD),
     };
     final statusLabel = switch (status) {
-      ImportedSerialStatus.available || ImportedSerialStatus.assigned =>
-        texts.readyStatusLabel,
+      ImportedSerialStatus.available ||
+      ImportedSerialStatus.assigned => texts.readyStatusLabel,
       ImportedSerialStatus.warranty => texts.warrantyStatusLabel,
       ImportedSerialStatus.inspecting => texts.inspectingStatusLabel,
       ImportedSerialStatus.defective => texts.defectiveStatusLabel,
@@ -823,55 +874,54 @@ class _InventoryProductDetailTexts {
 
   final bool isEnglish;
 
-  String get screenTitle => isEnglish ? 'Inventory details' : 'Chi tiet kho';
+  String get screenTitle => isEnglish ? 'Inventory details' : 'Chi tiết kho';
   String filterAllLabel(int count) =>
-      isEnglish ? 'All ($count)' : 'Tat ca ($count)';
+      isEnglish ? 'All ($count)' : 'Tất cả ($count)';
   String filterReadyLabel(int count) =>
-      isEnglish ? 'Ready ($count)' : 'San sang ($count)';
+      isEnglish ? 'Ready ($count)' : 'Sẵn sàng ($count)';
   String filterWarrantyLabel(int count) =>
-      isEnglish ? 'Warranty ($count)' : 'Bao hanh ($count)';
+      isEnglish ? 'Warranty ($count)' : 'Bảo hành ($count)';
   String filterIssueLabel(int count) =>
-      isEnglish ? 'Needs attention ($count)' : 'Can xu ly ($count)';
+      isEnglish ? 'Needs attention ($count)' : 'Cần xử lý ($count)';
   String productImageLabel(String productName) => isEnglish
       ? 'Product image for $productName'
-      : 'Anh san pham $productName';
+      : 'Ảnh sản phẩm $productName';
   String latestImportedLabel(String dateTimeLabel) => isEnglish
       ? 'Latest import: $dateTimeLabel'
-      : 'Nhap gan nhat: $dateTimeLabel';
-  String get readyMetricLabel => isEnglish ? 'Ready' : 'San sang';
-  String get importedMetricLabel => isEnglish ? 'Imported' : 'Da nhap';
-  String get warrantyMetricLabel => isEnglish ? 'Warranty' : 'Bao hanh';
-  String get issueMetricLabel => isEnglish ? 'Needs attention' : 'Can xu ly';
-  String get exportAction => isEnglish ? 'Export stock' : 'Xuat hang';
-  String get scanQrAction => isEnglish ? 'Scan QR' : 'Quet QR';
+      : 'Nhập gần nhất: $dateTimeLabel';
+  String get readyMetricLabel => isEnglish ? 'Ready' : 'Sẵn sàng';
+  String get importedMetricLabel => isEnglish ? 'Imported' : 'Đã nhập';
+  String get warrantyMetricLabel => isEnglish ? 'Warranty' : 'Bảo hành';
+  String get issueMetricLabel => isEnglish ? 'Needs attention' : 'Cần xử lý';
+  String get exportAction => isEnglish ? 'Export stock' : 'Xuất hàng';
+  String get scanQrAction => isEnglish ? 'Scan QR' : 'Quét QR';
   String get noSerialsMessage => isEnglish
       ? 'This product does not have any serials yet.'
-      : 'San pham nay chua co danh sach serial.';
+      : 'Sản phẩm này chưa có danh sách serial.';
   String get filterEmptyMessage => isEnglish
       ? 'No serial matches the selected filter.'
-      : 'Khong co serial phu hop bo loc.';
+      : 'Không có serial phù hợp bộ lọc.';
+  String get clearFilterAction => isEnglish ? 'Clear filter' : 'Xóa bộ lọc';
   String get invalidScannedCodeMessage =>
-      isEnglish ? 'The scanned code is not valid.' : 'Ma quet khong hop le.';
+      isEnglish ? 'The scanned code is not valid.' : 'Mã quét không hợp lệ.';
   String copiedSerialMessage(String serial) =>
-      isEnglish ? 'Copied serial $serial.' : 'Da sao chep serial $serial.';
-  String get readyStatusLabel => isEnglish ? 'Ready' : 'San sang';
+      isEnglish ? 'Copied serial $serial.' : 'Đã sao chép serial $serial.';
+  String get readyStatusLabel => isEnglish ? 'Ready' : 'Sẵn sàng';
   String get warrantyStatusLabel =>
-      isEnglish ? 'Under warranty' : 'Dang bao hanh';
+      isEnglish ? 'Under warranty' : 'Đang bảo hành';
   String get inspectingStatusLabel =>
-      isEnglish ? 'Inspecting' : 'Dang kiem dinh';
-  String get defectiveStatusLabel => isEnglish ? 'Defective' : 'Loi';
-  String get returnedStatusLabel => isEnglish ? 'Returned' : 'Tra ve';
-  String get scrappedStatusLabel =>
-      isEnglish ? 'Scrapped' : 'Da loai bo';
-  String get reservedStatusLabel => isEnglish ? 'Reserved' : 'Da giu cho';
+      isEnglish ? 'Inspecting' : 'Đang kiểm định';
+  String get defectiveStatusLabel => isEnglish ? 'Defective' : 'Lỗi';
+  String get returnedStatusLabel => isEnglish ? 'Returned' : 'Trả về';
+  String get scrappedStatusLabel => isEnglish ? 'Scrapped' : 'Đã loại bỏ';
+  String get reservedStatusLabel => isEnglish ? 'Reserved' : 'Đã giữ chỗ';
   String get unknownStatusLabel =>
-      isEnglish ? 'Unknown status' : 'Trang thai khong xac dinh';
+      isEnglish ? 'Unknown status' : 'Trạng thái không xác định';
   String importedAtLabel(String dateTimeLabel) =>
-      isEnglish ? 'Imported: $dateTimeLabel' : 'Nhap: $dateTimeLabel';
+      isEnglish ? 'Imported: $dateTimeLabel' : 'Nhập: $dateTimeLabel';
   String orderLinkLabel(String orderId) =>
-      isEnglish ? 'Order $orderId' : 'Don $orderId';
+      isEnglish ? 'Order $orderId' : 'Đơn $orderId';
   String get serialOptionsTooltip =>
-      isEnglish ? 'Serial options' : 'Tuy chon serial';
-  String get copySerialAction =>
-      isEnglish ? 'Copy serial' : 'Sao chep serial';
+      isEnglish ? 'Serial options' : 'Tùy chọn serial';
+  String get copySerialAction => isEnglish ? 'Copy serial' : 'Sao chép serial';
 }

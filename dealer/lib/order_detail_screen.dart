@@ -63,49 +63,59 @@ class OrderDetailScreen extends StatelessWidget {
       requestFocus: true,
       builder: (dialogContext) {
         final colors = Theme.of(context).colorScheme;
-        return AlertDialog(
-          title: Text(texts.confirmCancelTitle),
-          content: _buildConfirmationSummary(
-            context,
-            order,
-            texts,
-            footerMessage: texts.irreversibleWarning,
-            footerColor: colors.error,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(texts.noAction),
+        return RepaintBoundary(
+          child: AlertDialog(
+            scrollable: true,
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 20,
             ),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: colors.errorContainer,
-                foregroundColor: colors.onErrorContainer,
+            title: Text(texts.confirmCancelTitle),
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: _buildConfirmationSummary(
+                context,
+                order,
+                texts,
+                footerMessage: texts.irreversibleWarning,
+                footerColor: colors.error,
               ),
-              onPressed: () async {
-                Navigator.of(dialogContext).pop();
-                final orderController = OrderScope.of(context);
-                final success = await orderController.updateOrderStatus(
-                  order.id,
-                  OrderStatus.cancelled,
-                );
-                if (!context.mounted || success) {
-                  return;
-                }
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      orderControllerErrorMessage(
-                        orderController.lastActionMessage,
-                        isEnglish: texts.isEnglish,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: Text(texts.noAction),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: colors.errorContainer,
+                  foregroundColor: colors.onErrorContainer,
+                ),
+                onPressed: () async {
+                  Navigator.of(dialogContext).pop();
+                  final orderController = OrderScope.of(context);
+                  final success = await orderController.updateOrderStatus(
+                    order.id,
+                    OrderStatus.cancelled,
+                  );
+                  if (!context.mounted || success) {
+                    return;
+                  }
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        orderControllerErrorMessage(
+                          orderController.lastActionMessage,
+                          isEnglish: texts.isEnglish,
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
-              child: Text(texts.cancelOrderAction),
-            ),
-          ],
+                  );
+                },
+                child: Text(texts.cancelOrderAction),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -273,135 +283,145 @@ class OrderDetailScreen extends StatelessWidget {
         return StatefulBuilder(
           builder: (_, setDialogState) {
             return AlertDialog(
+              scrollable: true,
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 20,
+              ),
               title: Text(texts.recordPaymentTitle),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    texts.outstandingOrderSummary(
-                      order.id,
-                      formatVnd(order.outstandingAmount),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: amountController,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: InputDecoration(
-                      labelText: texts.amountLabel,
-                      hintText: texts.amountHint(
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      texts.outstandingOrderSummary(
+                        order.id,
                         formatVnd(order.outstandingAmount),
                       ),
-                      errorText: errorText,
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    initialValue: selectedChannel,
-                    decoration: InputDecoration(
-                      labelText: texts.paymentChannelLabel,
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: amountController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: InputDecoration(
+                        labelText: texts.amountLabel,
+                        hintText: texts.amountHint(
+                          formatVnd(order.outstandingAmount),
+                        ),
+                        errorText: errorText,
+                      ),
                     ),
-                    items: channels
-                        .map(
-                          (channel) => DropdownMenuItem(
-                            value: channel,
-                            child: Text(texts.paymentChannelDisplay(channel)),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      if (value == null) {
-                        return;
-                      }
-                      setDialogState(() => selectedChannel = value);
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: isSubmitting || isUploadingProof
-                        ? null
-                        : () async {
-                            final picked = await ImagePicker().pickImage(
-                              source: ImageSource.gallery,
-                            );
-                            if (picked == null) {
-                              return;
-                            }
-                            setDialogState(() {
-                              errorText = null;
-                              isUploadingProof = true;
-                              pickedFileName = picked.name;
-                            });
-                            try {
-                              final storedFileName = await uploadService
-                                  .uploadXFile(
-                                    file: picked,
-                                    category: 'payment-proofs',
-                                  )
-                                  .then((value) => value.fileName);
-                              if (!context.mounted) {
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedChannel,
+                      decoration: InputDecoration(
+                        labelText: texts.paymentChannelLabel,
+                      ),
+                      items: channels
+                          .map(
+                            (channel) => DropdownMenuItem(
+                              value: channel,
+                              child: Text(texts.paymentChannelDisplay(channel)),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        if (value == null) {
+                          return;
+                        }
+                        setDialogState(() => selectedChannel = value);
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: isSubmitting || isUploadingProof
+                          ? null
+                          : () async {
+                              final picked = await ImagePicker().pickImage(
+                                source: ImageSource.gallery,
+                              );
+                              if (picked == null || !dialogContext.mounted) {
                                 return;
                               }
+                              final messenger = ScaffoldMessenger.of(context);
+                              messenger.hideCurrentSnackBar();
                               setDialogState(() {
-                                proofController.text = storedFileName;
+                                errorText = null;
+                                isUploadingProof = true;
+                                pickedFileName = picked.name;
                               });
-                              ScaffoldMessenger.of(context)
-                                ..hideCurrentSnackBar()
-                                ..showSnackBar(
+                              try {
+                                final storedFileName = await uploadService
+                                    .uploadXFile(
+                                      file: picked,
+                                      category: 'payment-proofs',
+                                    )
+                                    .then((value) => value.fileName);
+                                if (!context.mounted) {
+                                  return;
+                                }
+                                setDialogState(() {
+                                  proofController.text = storedFileName;
+                                });
+                                ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
                                       texts.proofAttachedSuccess(picked.name),
                                     ),
                                   ),
                                 );
-                            } catch (error) {
-                              if (!context.mounted) {
-                                return;
-                              }
-                              ScaffoldMessenger.of(context)
-                                ..hideCurrentSnackBar()
-                                ..showSnackBar(
+                              } catch (error) {
+                                if (!context.mounted) {
+                                  return;
+                                }
+                                ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
                                       texts.proofUploadFailed(error),
                                     ),
                                   ),
                                 );
-                            } finally {
-                              if (dialogContext.mounted) {
-                                setDialogState(() => isUploadingProof = false);
+                              } finally {
+                                if (dialogContext.mounted) {
+                                  setDialogState(
+                                    () => isUploadingProof = false,
+                                  );
+                                }
                               }
-                            }
-                          },
-                    icon: isUploadingProof
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2.2),
-                          )
-                        : const Icon(Icons.attach_file_outlined, size: 18),
-                    label: Text(
-                      isUploadingProof
-                          ? texts.attachingProofLabel
-                          : (pickedFileName ?? texts.attachProofButton),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (proofRequired) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      texts.proofRequiredHint(
-                        formatVnd(_OrderDetailTexts.proofRequiredThreshold),
-                      ),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.error,
-                        fontWeight: FontWeight.w600,
+                            },
+                      icon: isUploadingProof
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.2,
+                              ),
+                            )
+                          : const Icon(Icons.attach_file_outlined, size: 18),
+                      label: Text(
+                        isUploadingProof
+                            ? texts.attachingProofLabel
+                            : (pickedFileName ?? texts.attachProofButton),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    if (proofRequired) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        texts.proofRequiredHint(
+                          formatVnd(_OrderDetailTexts.proofRequiredThreshold),
+                        ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.error,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
               actions: [
                 TextButton(
@@ -434,8 +454,8 @@ class OrderDetailScreen extends StatelessWidget {
                           if (proofRequired &&
                               proofController.text.trim().isEmpty) {
                             setDialogState(() {
-                              errorText =
-                                  texts.proofRequiredForLargeOutstandingMessage(
+                              errorText = texts
+                                  .proofRequiredForLargeOutstandingMessage(
                                     formatVnd(
                                       _OrderDetailTexts.proofRequiredThreshold,
                                     ),
@@ -600,7 +620,58 @@ class OrderDetailScreen extends StatelessWidget {
     if (order == null) {
       return Scaffold(
         appBar: AppBar(title: BrandAppBarTitle(texts.screenTitle)),
-        body: Center(child: Text(texts.orderNotFoundMessage)),
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: SectionCard(
+                title: texts.screenTitle,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: colors.primaryContainer.withValues(alpha: 0.65),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Icon(
+                        Icons.receipt_long_outlined,
+                        color: colors.onPrimaryContainer,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      texts.orderNotFoundMessage,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      texts.orderNotFoundDescription,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: colors.onSurfaceVariant,
+                        height: 1.45,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    OutlinedButton.icon(
+                      onPressed: () => Navigator.of(context).maybePop(),
+                      icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                      label: Text(texts.backAction),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
       );
     }
 
@@ -907,6 +978,9 @@ class _OrderDetailTexts {
   String get screenTitle => isEnglish ? 'Order details' : 'Chi tiết đơn hàng';
   String get orderNotFoundMessage =>
       isEnglish ? 'Order not found.' : 'Không tìm thấy đơn hàng.';
+  String get orderNotFoundDescription => isEnglish
+      ? 'This order may have been removed or is no longer available in the current session.'
+      : 'Đơn hàng này có thể đã bị xóa hoặc không còn khả dụng trong phiên làm việc hiện tại.';
   String get updateOrderStatusFailedMessage => isEnglish
       ? 'Unable to update the order status. Please try again.'
       : 'Không thể cập nhật trạng thái đơn hàng. Vui lòng thử lại.';
@@ -939,7 +1013,7 @@ class _OrderDetailTexts {
       : 'Không thể mở ứng dụng bản đồ.';
   String get reorderNoneAddedMessage => isEnglish
       ? 'No products were added to the cart because they are out of stock.'
-      : 'Không có sản phẩm nào được thêm vào giỏ (hết hàng).';
+      : 'Không có sản phẩm nào được thêm vào giỏ vì đã hết hàng.';
   String get reorderAllAddedMessage => isEnglish
       ? 'All products were added to the cart.'
       : 'Đã thêm tất cả sản phẩm vào giỏ hàng.';
@@ -968,6 +1042,7 @@ class _OrderDetailTexts {
   String get attachingProofLabel =>
       isEnglish ? 'Uploading proof...' : 'Đang tải chứng từ...';
   String get closeAction => isEnglish ? 'Close' : 'Đóng';
+  String get backAction => isEnglish ? 'Back' : 'Quay lại';
   String get invalidAmountMessage =>
       isEnglish ? 'Invalid amount.' : 'Số tiền không hợp lệ.';
   String get amountExceedsDebtMessage => isEnglish
@@ -979,8 +1054,7 @@ class _OrderDetailTexts {
   String proofRequiredHint(String threshold) => isEnglish
       ? 'Proof is required for orders with outstanding amount from $threshold.'
       : 'Bắt buộc đính kèm chứng từ khi đơn còn nợ từ $threshold.';
-  String proofRequiredForLargeOutstandingMessage(String threshold) =>
-      isEnglish
+  String proofRequiredForLargeOutstandingMessage(String threshold) => isEnglish
       ? 'Attach payment proof before recording this payment. Required from $threshold outstanding.'
       : 'Vui lòng đính kèm chứng từ trước khi ghi nhận thanh toán. Áp dụng khi còn nợ từ $threshold.';
   String proofAttachedSuccess(String fileName) => isEnglish
@@ -1039,9 +1113,9 @@ class _OrderDetailTexts {
   String orderStatusLabel(OrderStatus status) {
     switch (status) {
       case OrderStatus.pending:
-        return isEnglish ? 'Pending' : '\u0043h\u1EDD x\u1EED l\u00FD';
+        return isEnglish ? 'Pending' : 'Chờ xử lý';
       case OrderStatus.confirmed:
-        return isEnglish ? 'Confirmed' : '\u0110\u00E3 x\u00E1c nh\u1EADn';
+        return isEnglish ? 'Confirmed' : 'Đã xác nhận';
       case OrderStatus.shipping:
         return isEnglish ? 'Shipping' : 'Đang giao';
       case OrderStatus.completed:
@@ -1346,9 +1420,8 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final texts = _orderDetailTexts(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final background = _backgroundForStatus(status, isDark: isDark);
-    final textColor = _textForStatus(status, isDark: isDark);
+    final background = _backgroundForStatus(status);
+    final textColor = _textForStatus(status);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -1376,9 +1449,8 @@ class _PaymentStatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final texts = _orderDetailTexts(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final background = _paymentStatusBackground(paymentStatus, isDark: isDark);
-    final textColor = _paymentStatusTextColor(paymentStatus, isDark: isDark);
+    final background = _paymentStatusBackground(paymentStatus);
+    final textColor = _paymentStatusTextColor(paymentStatus);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -1398,125 +1470,63 @@ class _PaymentStatusChip extends StatelessWidget {
   }
 }
 
-Color _backgroundForStatus(OrderStatus status, {required bool isDark}) {
-  if (isDark) {
-    switch (status) {
-      case OrderStatus.pending:
-        return const Color(0xFF4C3B16);
-      case OrderStatus.confirmed:
-        return const Color(0xFF1E3150);
-      case OrderStatus.shipping:
-        return const Color(0xFF154052);
-      case OrderStatus.completed:
-        return const Color(0xFF1A3F2D);
-      case OrderStatus.cancelled:
-        return const Color(0xFF2A3642);
-    }
-  }
+Color _backgroundForStatus(OrderStatus status) {
   switch (status) {
     case OrderStatus.pending:
-      return const Color(0xFFFFF6DB);
+      return const Color(0xFF4C3B16);
     case OrderStatus.confirmed:
-      return const Color(0xFFEAF2FF);
+      return const Color(0xFF1E3150);
     case OrderStatus.shipping:
-      return const Color(0xFFE0F2FE);
+      return const Color(0xFF154052);
     case OrderStatus.completed:
-      return const Color(0xFFE8F8EF);
+      return const Color(0xFF1A3F2D);
     case OrderStatus.cancelled:
-      return const Color(0xFFF1F5F9);
+      return const Color(0xFF2A3642);
   }
 }
 
-Color _textForStatus(OrderStatus status, {required bool isDark}) {
-  if (isDark) {
-    switch (status) {
-      case OrderStatus.pending:
-        return const Color(0xFFF4D18A);
-      case OrderStatus.confirmed:
-        return const Color(0xFF93C5FD);
-      case OrderStatus.shipping:
-        return const Color(0xFF7DD3FC);
-      case OrderStatus.completed:
-        return const Color(0xFF86EFAC);
-      case OrderStatus.cancelled:
-        return const Color(0xFFCBD5E1);
-    }
-  }
+Color _textForStatus(OrderStatus status) {
   switch (status) {
     case OrderStatus.pending:
-      return const Color(0xFF8A5A00);
+      return const Color(0xFFF4D18A);
     case OrderStatus.confirmed:
-      return const Color(0xFF1A4FA3);
+      return const Color(0xFF93C5FD);
     case OrderStatus.shipping:
-      return const Color(0xFF0C4A6E);
+      return const Color(0xFF7DD3FC);
     case OrderStatus.completed:
-      return const Color(0xFF1D7A3A);
+      return const Color(0xFF86EFAC);
     case OrderStatus.cancelled:
-      return const Color(0xFF64748B);
+      return const Color(0xFFCBD5E1);
   }
 }
 
-Color _paymentStatusBackground(
-  OrderPaymentStatus status, {
-  required bool isDark,
-}) {
-  if (isDark) {
-    switch (status) {
-      case OrderPaymentStatus.cancelled:
-        return const Color(0xFF3B1F26);
-      case OrderPaymentStatus.failed:
-        return const Color(0xFF3B1F26);
-      case OrderPaymentStatus.pending:
-        return const Color(0xFF4A1E24);
-      case OrderPaymentStatus.paid:
-        return const Color(0xFF1A3F2D);
-      case OrderPaymentStatus.debtRecorded:
-        return const Color(0xFF4C3B16);
-    }
-  }
+Color _paymentStatusBackground(OrderPaymentStatus status) {
   switch (status) {
     case OrderPaymentStatus.cancelled:
-      return const Color(0xFFFDE7EC);
+      return const Color(0xFF3B1F26);
     case OrderPaymentStatus.failed:
-      return const Color(0xFFFDE7EC);
+      return const Color(0xFF3B1F26);
     case OrderPaymentStatus.pending:
-      return const Color(0xFFFEECEE);
+      return const Color(0xFF4A1E24);
     case OrderPaymentStatus.paid:
-      return const Color(0xFFE8F8EF);
+      return const Color(0xFF1A3F2D);
     case OrderPaymentStatus.debtRecorded:
-      return const Color(0xFFFFF6DB);
+      return const Color(0xFF4C3B16);
   }
 }
 
-Color _paymentStatusTextColor(
-  OrderPaymentStatus status, {
-  required bool isDark,
-}) {
-  if (isDark) {
-    switch (status) {
-      case OrderPaymentStatus.cancelled:
-        return const Color(0xFFFDA4AF);
-      case OrderPaymentStatus.failed:
-        return const Color(0xFFFDA4AF);
-      case OrderPaymentStatus.pending:
-        return const Color(0xFFFDA4AF);
-      case OrderPaymentStatus.paid:
-        return const Color(0xFF86EFAC);
-      case OrderPaymentStatus.debtRecorded:
-        return const Color(0xFFF4D18A);
-    }
-  }
+Color _paymentStatusTextColor(OrderPaymentStatus status) {
   switch (status) {
     case OrderPaymentStatus.cancelled:
-      return const Color(0xFFB42318);
+      return const Color(0xFFFDA4AF);
     case OrderPaymentStatus.failed:
-      return const Color(0xFFB42318);
+      return const Color(0xFFFDA4AF);
     case OrderPaymentStatus.pending:
-      return const Color(0xFFB42318);
+      return const Color(0xFFFDA4AF);
     case OrderPaymentStatus.paid:
-      return const Color(0xFF1D7A3A);
+      return const Color(0xFF86EFAC);
     case OrderPaymentStatus.debtRecorded:
-      return const Color(0xFF8A5A00);
+      return const Color(0xFFF4D18A);
   }
 }
 

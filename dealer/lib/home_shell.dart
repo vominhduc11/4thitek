@@ -1,3 +1,5 @@
+import 'dart:ui' show lerpDouble;
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -53,25 +55,82 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
       traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
       requestFocus: true,
       builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(l10n.welcomeTitle),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(l10n.welcomeStepProducts),
-              const SizedBox(height: 6),
-              Text(l10n.welcomeStepOrders),
-              const SizedBox(height: 6),
-              Text(l10n.welcomeStepSearch),
+        final colors = Theme.of(dialogContext).colorScheme;
+        final isEnglish =
+            Localizations.localeOf(dialogContext).languageCode == 'en';
+        return RepaintBoundary(
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
+            ),
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 20,
+            ),
+            titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+            contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+            actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            title: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: colors.primaryContainer.withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(
+                    Icons.dashboard_customize_outlined,
+                    color: colors.onPrimaryContainer,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(child: Text(l10n.welcomeTitle)),
+              ],
+            ),
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isEnglish
+                          ? 'Dealer Hub is tuned for the daily workflow of active dealers.'
+                          : 'Dealer Hub được tối ưu cho luồng tác vụ hằng ngày của đại lý.',
+                      style: Theme.of(dialogContext).textTheme.bodyMedium
+                          ?.copyWith(
+                            color: colors.onSurfaceVariant,
+                            height: 1.45,
+                          ),
+                    ),
+                    const SizedBox(height: 16),
+                    _OnboardingStepTile(
+                      icon: Icons.shopping_bag_outlined,
+                      message: l10n.welcomeStepProducts,
+                    ),
+                    const SizedBox(height: 10),
+                    _OnboardingStepTile(
+                      icon: Icons.receipt_long_outlined,
+                      message: l10n.welcomeStepOrders,
+                    ),
+                    const SizedBox(height: 10),
+                    _OnboardingStepTile(
+                      icon: Icons.search_rounded,
+                      message: l10n.welcomeStepSearch,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: Text(l10n.getStarted),
+              ),
             ],
           ),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(l10n.getStarted),
-            ),
-          ],
         );
       },
     );
@@ -140,42 +199,135 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
         final isDesktop = constraints.maxWidth >= AppBreakpoints.desktop;
         final useExtendedRail =
             constraints.maxWidth >= AppBreakpoints.railExtended;
+        final isEnglish = Localizations.localeOf(context).languageCode == 'en';
         if (isDesktop) {
+          final colors = Theme.of(context).colorScheme;
           return Scaffold(
             body: Row(
               children: [
                 SafeArea(
-                  child: NavigationRail(
-                    selectedIndex: safeIndex,
-                    useIndicator: true,
-                    leading: Padding(
-                      padding: const EdgeInsets.fromLTRB(8, 6, 8, 18),
-                      child: useExtendedRail
-                          ? const BrandLogoWordmark(height: 26)
-                          : const BrandLogoIcon(size: 30),
-                    ),
-                    labelType: useExtendedRail
-                        ? NavigationRailLabelType.none
-                        : NavigationRailLabelType.all,
-                    minWidth: 84,
-                    minExtendedWidth: 220,
-                    extended: useExtendedRail,
-                    onDestinationSelected: _switchToTab,
-                    destinations: tabs
-                        .map(
-                          (tab) => NavigationRailDestination(
-                            icon: Icon(tab.icon),
-                            selectedIcon: Icon(
-                              tab.activeIcon,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                            label: Text(tab.label),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 12, 0, 12),
+                    child: Container(
+                      width: useExtendedRail ? 244 : 96,
+                      decoration: BoxDecoration(
+                        color: colors.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(
+                          color: colors.outlineVariant.withValues(alpha: 0.52),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 18, 16, 12),
+                            child: useExtendedRail
+                                ? Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const BrandLogoWordmark(height: 28),
+                                      const SizedBox(height: 10),
+                                      Text(
+                                        isEnglish
+                                            ? 'Dealer control surface'
+                                            : 'Không gian điều phối đại lý',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelMedium
+                                            ?.copyWith(
+                                              color: colors.onSurfaceVariant,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                      ),
+                                    ],
+                                  )
+                                : const Center(child: BrandLogoIcon(size: 34)),
                           ),
-                        )
-                        .toList(),
+                          Expanded(
+                            child: NavigationRail(
+                              backgroundColor: Colors.transparent,
+                              selectedIndex: safeIndex,
+                              useIndicator: true,
+                              indicatorShape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                              labelType: useExtendedRail
+                                  ? NavigationRailLabelType.none
+                                  : NavigationRailLabelType.all,
+                              minWidth: 84,
+                              minExtendedWidth: 220,
+                              extended: useExtendedRail,
+                              groupAlignment: -0.78,
+                              onDestinationSelected: _switchToTab,
+                              destinations: tabs
+                                  .map(
+                                    (tab) => NavigationRailDestination(
+                                      icon: Icon(tab.icon),
+                                      selectedIcon: Icon(
+                                        tab.activeIcon,
+                                        color: colors.primary,
+                                      ),
+                                      label: Text(tab.label),
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
+                          ),
+                          Padding(
+                            padding: EdgeInsets.fromLTRB(
+                              useExtendedRail ? 16 : 10,
+                              8,
+                              useExtendedRail ? 16 : 10,
+                              16,
+                            ),
+                            child: Container(
+                              width: double.infinity,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: useExtendedRail ? 12 : 8,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: colors.primaryContainer.withValues(
+                                  alpha: 0.42,
+                                ),
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: useExtendedRail
+                                    ? MainAxisAlignment.start
+                                    : MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.route_outlined,
+                                    size: 18,
+                                    color: colors.primary,
+                                  ),
+                                  if (useExtendedRail) ...[
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        isEnglish
+                                            ? 'SCS Dealer Hub'
+                                            : 'Trung tâm Dealer SCS',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelLarge
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-                const VerticalDivider(width: 1),
                 Expanded(child: shellBody),
               ],
             ),
@@ -184,18 +336,16 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
 
         return Scaffold(
           body: shellBody,
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: safeIndex,
-            onDestinationSelected: _switchToTab,
-            destinations: tabs
-                .map(
-                  (tab) => NavigationDestination(
-                    icon: Icon(tab.icon),
-                    selectedIcon: Icon(tab.activeIcon),
-                    label: tab.label,
-                  ),
-                )
-                .toList(),
+          bottomNavigationBar: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+              child: _MobileBottomNavigationBar(
+                tabs: tabs,
+                currentIndex: safeIndex,
+                onDestinationSelected: _switchToTab,
+              ),
+            ),
           ),
         );
       },
@@ -215,4 +365,163 @@ class _TabItem {
   final IconData icon;
   final IconData activeIcon;
   final Widget widget;
+}
+
+class _OnboardingStepTile extends StatelessWidget {
+  const _OnboardingStepTile({required this.icon, required this.message});
+
+  final IconData icon;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: colors.outlineVariant.withValues(alpha: 0.46),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: colors.primaryContainer.withValues(alpha: 0.74),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, size: 18, color: colors.onPrimaryContainer),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Text(message)),
+        ],
+      ),
+    );
+  }
+}
+
+class _MobileBottomNavigationBar extends StatelessWidget {
+  const _MobileBottomNavigationBar({
+    required this.tabs,
+    required this.currentIndex,
+    required this.onDestinationSelected,
+  });
+
+  final List<_TabItem> tabs;
+  final int currentIndex;
+  final ValueChanged<int> onDestinationSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerLow.withValues(alpha: 0.98),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: colors.outlineVariant.withValues(alpha: 0.56),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.14),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            for (var index = 0; index < tabs.length; index++)
+              _MobileBottomNavItem(
+                tab: tabs[index],
+                isSelected: index == currentIndex,
+                onTap: () => onDestinationSelected(index),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MobileBottomNavItem extends StatelessWidget {
+  const _MobileBottomNavItem({
+    required this.tab,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final _TabItem tab;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final icon = isSelected ? tab.activeIcon : tab.icon;
+
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: tab.label,
+      child: SizedBox(
+        width: 52,
+        height: 50,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: onTap,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              padding: EdgeInsets.symmetric(
+                horizontal: isSelected ? 8 : 0,
+                vertical: 8,
+              ),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? colors.primaryContainer.withValues(alpha: 0.94)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Center(
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween<double>(end: isSelected ? 1 : 0),
+                  duration: const Duration(milliseconds: 240),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, value, child) {
+                    final iconSize = lerpDouble(21, 27, value)!;
+                    final iconColor = Color.lerp(
+                      colors.onSurfaceVariant,
+                      colors.onPrimaryContainer,
+                      value,
+                    )!;
+                    return Transform.translate(
+                      offset: Offset(0, -1 * value),
+                      child: Icon(
+                        icon,
+                        size: iconSize,
+                        color: iconColor,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

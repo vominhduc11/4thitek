@@ -35,9 +35,331 @@ const _overviewCompactBreakpoint = 480.0;
 const _donutStackBreakpoint = 600.0;
 const _compactDebtRowBreakpoint = 420.0;
 const _maxDashboardContentWidth = 1280.0;
+const _dashboardCardRadius = 20.0;
+const _dashboardCardPadding = 18.0;
+const _dashboardSectionSpacing = 16.0;
+const _dashboardCompactSpacing = 12.0;
+const _dashboardGridSpacing = 12.0;
 
 Color _dashboardMutedText(BuildContext context) =>
     Theme.of(context).colorScheme.onSurfaceVariant;
+
+ShapeBorder _dashboardCardShape(
+  BuildContext context, {
+  double radius = _dashboardCardRadius,
+  Color? borderColor,
+  double borderWidth = 1,
+}) {
+  return RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(radius),
+    side: BorderSide(
+      color:
+          borderColor ??
+          Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.6),
+      width: borderWidth,
+    ),
+  );
+}
+
+class _DashboardSurfaceCard extends StatelessWidget {
+  const _DashboardSurfaceCard({
+    required this.child,
+    this.color,
+    this.padding = const EdgeInsets.all(_dashboardCardPadding),
+    this.borderColor,
+  });
+
+  final Widget child;
+  final Color? color;
+  final EdgeInsetsGeometry padding;
+  final Color? borderColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      color: color,
+      shape: _dashboardCardShape(context, borderColor: borderColor),
+      child: Padding(padding: padding, child: child),
+    );
+  }
+}
+
+class _DashboardCardHeader extends StatelessWidget {
+  const _DashboardCardHeader({
+    required this.title,
+    this.subtitle,
+    this.trailing,
+  });
+
+  final String title;
+  final String? subtitle;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final subtitle = this.subtitle;
+    final titleBlock = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        if (subtitle != null && subtitle.trim().isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: _dashboardMutedText(context),
+              height: 1.45,
+            ),
+          ),
+        ],
+      ],
+    );
+
+    if (trailing == null) {
+      return titleBlock;
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final stackTrailing = constraints.maxWidth < 420;
+        if (stackTrailing) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [titleBlock, const SizedBox(height: 12), trailing!],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: titleBlock),
+            const SizedBox(width: 12),
+            trailing!,
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _DashboardStatBadge extends StatelessWidget {
+  const _DashboardStatBadge({
+    required this.icon,
+    required this.label,
+    this.backgroundColor,
+    this.foregroundColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color? backgroundColor;
+  final Color? foregroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final background = backgroundColor ?? theme.colorScheme.surfaceContainerLow;
+    final foreground = foregroundColor ?? theme.colorScheme.onSurface;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.85),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: foreground),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: foreground,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DashboardPeriodHeaderCard extends StatelessWidget {
+  const _DashboardPeriodHeaderCard({
+    required this.periodContextLabel,
+    required this.filterLabel,
+    required this.compactPeriodLabel,
+    required this.summary,
+    required this.previousLabel,
+    required this.nextLabel,
+    required this.onPreviousPeriod,
+    required this.onOpenTimeFilter,
+    required this.onNextPeriod,
+    this.warningMessage,
+  });
+
+  final String periodContextLabel;
+  final String filterLabel;
+  final String compactPeriodLabel;
+  final String summary;
+  final String previousLabel;
+  final String nextLabel;
+  final VoidCallback onPreviousPeriod;
+  final VoidCallback onOpenTimeFilter;
+  final VoidCallback? onNextPeriod;
+  final String? warningMessage;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final hasWarning =
+        warningMessage != null && warningMessage!.trim().isNotEmpty;
+
+    return _DashboardSurfaceCard(
+      color: hasWarning
+          ? colorScheme.errorContainer.withValues(alpha: 0.26)
+          : colorScheme.surfaceContainerLow,
+      borderColor: hasWarning
+          ? colorScheme.error.withValues(alpha: 0.35)
+          : colorScheme.outlineVariant.withValues(alpha: 0.85),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _DashboardStatBadge(
+                icon: Icons.calendar_month_outlined,
+                label: filterLabel,
+                backgroundColor: colorScheme.surface,
+              ),
+              _DashboardStatBadge(
+                icon: hasWarning
+                    ? Icons.sync_problem_outlined
+                    : Icons.cloud_done_outlined,
+                label: hasWarning ? warningMessage!.trim() : summary,
+                backgroundColor: hasWarning
+                    ? colorScheme.errorContainer.withValues(alpha: 0.4)
+                    : colorScheme.surface,
+                foregroundColor: hasWarning
+                    ? colorScheme.onErrorContainer
+                    : colorScheme.onSurface,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            periodContextLabel,
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              height: 1.1,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            summary,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: _dashboardMutedText(context),
+              height: 1.45,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 14),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final compactControls = constraints.maxWidth < 560;
+              final stackControls = constraints.maxWidth < 440;
+              final previousButton = compactControls
+                  ? OutlinedButton(
+                      onPressed: onPreviousPeriod,
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 50),
+                      ),
+                      child: const Icon(Icons.chevron_left_rounded),
+                    )
+                  : OutlinedButton.icon(
+                      onPressed: onPreviousPeriod,
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 50),
+                      ),
+                      icon: const Icon(Icons.chevron_left_rounded),
+                      label: Text(previousLabel),
+                    );
+              final filterButton = FilledButton.tonalIcon(
+                onPressed: onOpenTimeFilter,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 50),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                ),
+                icon: const Icon(Icons.tune_rounded, size: 18),
+                label: Text(compactPeriodLabel),
+              );
+              final nextButton = compactControls
+                  ? OutlinedButton(
+                      onPressed: onNextPeriod,
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 50),
+                      ),
+                      child: const Icon(Icons.chevron_right_rounded),
+                    )
+                  : OutlinedButton.icon(
+                      onPressed: onNextPeriod,
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 50),
+                      ),
+                      icon: const Icon(Icons.chevron_right_rounded),
+                      label: Text(nextLabel),
+                    );
+
+              if (stackControls) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(child: previousButton),
+                        const SizedBox(width: 8),
+                        Expanded(child: nextButton),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    filterButton,
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  Expanded(child: previousButton),
+                  const SizedBox(width: 8),
+                  Expanded(flex: compactControls ? 2 : 3, child: filterButton),
+                  const SizedBox(width: 8),
+                  Expanded(child: nextButton),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 enum _DashboardTimeFilter { month, quarter }
 
@@ -62,7 +384,7 @@ class _DashboardTexts {
   }
 
   String warrantyRangeLabel(int dayCount) =>
-      isEnglish ? '$dayCount days' : '$dayCount ng\u00E0y';
+      isEnglish ? '$dayCount days' : '$dayCount ngày';
 
   String get loadErrorMessage => isEnglish
       ? 'Unable to load dashboard data. Please try again.'
@@ -175,9 +497,9 @@ class _DashboardTexts {
   String orderStatusLabel(OrderStatus status) {
     switch (status) {
       case OrderStatus.pending:
-        return isEnglish ? 'Pending' : '\u0043h\u1EDD x\u1EED l\u00FD';
+        return isEnglish ? 'Pending' : 'Chờ xử lý';
       case OrderStatus.confirmed:
-        return isEnglish ? 'Confirmed' : '\u0110\u00E3 x\u00E1c nh\u1EADn';
+        return isEnglish ? 'Confirmed' : 'Đã xác nhận';
       case OrderStatus.shipping:
         return isEnglish ? 'Shipping' : 'Đang giao';
       case OrderStatus.completed:
@@ -372,6 +694,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<WarrantyActivationRecord>? _lastSnapshotActivations;
   _DashboardTimeFilter? _lastSnapshotFilter;
   DateTime? _lastSnapshotPeriod;
+  List<_DashboardLowStockItem>? _cachedLowStockProducts;
+  List<Order>? _lastLowStockOrders;
+  List<WarrantyActivationRecord>? _lastLowStockActivations;
 
   @override
   void initState() {
@@ -435,6 +760,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _lastSnapshotActivations = null;
       _lastSnapshotFilter = null;
       _lastSnapshotPeriod = null;
+      _cachedLowStockProducts = null;
+      _lastLowStockOrders = null;
+      _lastLowStockActivations = null;
       _syncWarningMessage = warningMessage;
       _loadState = shouldShowError
           ? _DashboardLoadState.error
@@ -517,10 +845,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
     final orderController = OrderScope.of(context);
     final warrantyCtrl = WarrantyScope.of(context);
-    final lowStockProducts = _buildLowStockProducts(
-      orderController: orderController,
-      warrantyController: warrantyCtrl,
-    );
+    final snapshotOrdersForLowStock = orderController.orders;
+    final snapshotActivationsForLowStock = warrantyCtrl.activations;
+    if (_cachedLowStockProducts == null ||
+        !identical(_lastLowStockOrders, snapshotOrdersForLowStock) ||
+        !identical(_lastLowStockActivations, snapshotActivationsForLowStock)) {
+      _lastLowStockOrders = snapshotOrdersForLowStock;
+      _lastLowStockActivations = snapshotActivationsForLowStock;
+      _cachedLowStockProducts = _buildLowStockProducts(
+        orderController: orderController,
+        warrantyController: warrantyCtrl,
+      );
+    }
+    final lowStockProducts = _cachedLowStockProducts!;
     final now = DateTime.now();
     final snapshotOrders = orderController.orders;
     final snapshotActivations = warrantyCtrl.activations;
@@ -563,53 +900,73 @@ class _DashboardScreenState extends State<DashboardScreen> {
         0;
     final periodUnitLabel = snapshot.periodUnitLabel;
     final dashboardLoadErrorMessage = texts.loadErrorMessage;
+    final syncSummary = texts.dashboardSourceSummary(
+      orderController.lastRemoteSyncAt == null
+          ? null
+          : formatDateTime(orderController.lastRemoteSyncAt!),
+      warrantyCtrl.lastRemoteSyncAt == null
+          ? null
+          : formatDateTime(warrantyCtrl.lastRemoteSyncAt!),
+    );
     final primaryTrackingCards = <Widget>[
       FadeSlideIn(
         delay: const Duration(milliseconds: 110),
-        child: _OrderStatusDistributionCard(
-          orders: periodOrders,
-          onCreateOrder: _openCreateOrderFlow,
+        child: RepaintBoundary(
+          child: _RevenueChartCard(
+            data: monthlyRevenue,
+            focusMonth: periodAnchor.month,
+            displayYear: periodAnchor.year,
+            onCreateOrder: _openCreateOrderFlow,
+          ),
         ),
       ),
       FadeSlideIn(
         delay: const Duration(milliseconds: 115),
-        child: _RevenueChartCard(
-          data: monthlyRevenue,
-          focusMonth: periodAnchor.month,
-          displayYear: periodAnchor.year,
-          onCreateOrder: _openCreateOrderFlow,
+        child: RepaintBoundary(
+          child: _OrderStatusDistributionCard(
+            orders: periodOrders,
+            onCreateOrder: _openCreateOrderFlow,
+          ),
         ),
       ),
       FadeSlideIn(
         delay: const Duration(milliseconds: 120),
-        child: _AgingDebtCard(
-          buckets: _buildDebtBuckets(snapshotOrders, now: now, texts: texts),
-          onViewAll: _openDebtTracking,
+        child: RepaintBoundary(
+          child: _AgingDebtCard(
+            buckets: _buildDebtBuckets(snapshotOrders, now: now, texts: texts),
+            onViewAll: _openDebtTracking,
+          ),
         ),
       ),
     ];
     final secondaryTrackingCards = <Widget>[
       FadeSlideIn(
         delay: const Duration(milliseconds: 125),
-        child: _LowStockPanel(
-          products: lowStockProducts,
-          onOpenInventory: _openInventoryScreen,
-          onOpenLowStockInventory: _openLowStockInventoryScreen,
+        child: RepaintBoundary(
+          child: _LowStockPanel(
+            products: lowStockProducts,
+            onOpenInventory: _openInventoryScreen,
+            onOpenLowStockInventory: _openLowStockInventoryScreen,
+          ),
         ),
       ),
       FadeSlideIn(
         delay: const Duration(milliseconds: 130),
-        child: _ActivationTrendCard(
-          data: activationSeries,
-          windowDays: activationWindowDays,
+        child: RepaintBoundary(
+          child: _ActivationTrendCard(
+            data: activationSeries,
+            windowDays: activationWindowDays,
+          ),
         ),
       ),
       FadeSlideIn(
         delay: const Duration(milliseconds: 135),
-        child: _WarrantyStatusDonutCard(
-          activations: warrantyActivationSeries,
-          ranges: warrantyRanges,
-          initialRange: warrantyRanges.last,
+        child: RepaintBoundary(
+          child: _WarrantyStatusDonutCard(
+            activations: warrantyActivationSeries,
+            ranges: warrantyRanges,
+            initialRange: warrantyRanges.last,
+          ),
         ),
       ),
     ];
@@ -617,14 +974,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final screenSize = MediaQuery.sizeOf(context);
     final screenWidth = screenSize.width;
     final isMobile = screenWidth < _mobileBreakpoint;
-    final isNarrowAppBar = screenWidth < 430;
     final canMoveNextPeriod = _dashboardCanMoveToNextPeriod(
       periodAnchor,
       _timeFilter,
       now,
     );
-    final horizontalPadding = isMobile ? 16.0 : 20.0;
+    final horizontalPadding = screenWidth >= _desktopBreakpoint
+        ? 24.0
+        : isMobile
+        ? 16.0
+        : 20.0;
     final listBottomPadding = 24.0;
+    final sectionSpacing = isMobile
+        ? _dashboardCompactSpacing
+        : _dashboardSectionSpacing;
+    final timeFilterLabel = _timeFilter == _DashboardTimeFilter.month
+        ? texts.filterByMonthLabel
+        : texts.filterByQuarterLabel;
 
     final Widget content;
     if (_loadState == _DashboardLoadState.loading) {
@@ -647,53 +1013,63 @@ class _DashboardScreenState extends State<DashboardScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: EdgeInsets.fromLTRB(
             horizontalPadding,
-            16,
+            sectionSpacing,
             horizontalPadding,
             listBottomPadding,
           ),
           children: [
             FadeSlideIn(
-              child: _DashboardSyncBanner(
-                summary: texts.dashboardSourceSummary(
-                  orderController.lastRemoteSyncAt == null
-                      ? null
-                      : formatDateTime(orderController.lastRemoteSyncAt!),
-                  warrantyCtrl.lastRemoteSyncAt == null
-                      ? null
-                      : formatDateTime(warrantyCtrl.lastRemoteSyncAt!),
+              child: RepaintBoundary(
+                child: _DashboardPeriodHeaderCard(
+                  periodContextLabel: periodContextLabel,
+                  filterLabel: timeFilterLabel,
+                  compactPeriodLabel: _periodCompactLabelFor(
+                    periodAnchor,
+                    _timeFilter,
+                  ),
+                  summary: syncSummary,
+                  previousLabel: texts.previousPeriodLabel,
+                  nextLabel: texts.nextPeriodLabel,
+                  onPreviousPeriod: _moveToPreviousPeriod,
+                  onOpenTimeFilter: _openTimeFilterSheet,
+                  onNextPeriod: canMoveNextPeriod ? _moveToNextPeriod : null,
+                  warningMessage: _syncWarningMessage,
                 ),
-                warningMessage: _syncWarningMessage,
               ),
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: sectionSpacing),
             FadeSlideIn(
-              child: _OverviewCard(
-                totalDebt: totalOutstandingDebt,
-                periodRevenue: periodRevenue,
-                periodOrders: periodOrderCount,
-                periodCompletedOrders: periodCompletedOrderCount,
-                periodUnitLabel: periodUnitLabel,
-                contextLabel: periodContextLabel,
-                texts: texts,
+              child: RepaintBoundary(
+                child: _OverviewCard(
+                  totalDebt: totalOutstandingDebt,
+                  periodRevenue: periodRevenue,
+                  periodOrders: periodOrderCount,
+                  periodCompletedOrders: periodCompletedOrderCount,
+                  periodUnitLabel: periodUnitLabel,
+                  contextLabel: periodContextLabel,
+                  texts: texts,
+                ),
               ),
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: sectionSpacing),
             FadeSlideIn(
               delay: const Duration(milliseconds: 70),
-              child: _DashboardQuickActionsCard(
-                onCreateOrder: _openCreateOrderFlow,
-                onOpenDebtTracking: _openDebtTracking,
-                onOpenInventory: _openInventoryScreen,
-                onOpenWarrantyHub: _openWarrantyHub,
-                title: texts.quickActionsTitle,
-                subtitle: texts.quickActionsSubtitle,
-                createOrderLabel: texts.createOrderLabel,
-                debtLabel: texts.debtLabel,
-                inventoryLabel: texts.inventoryLabel,
-                warrantyLabel: texts.warrantyLabel,
+              child: RepaintBoundary(
+                child: _DashboardQuickActionsCard(
+                  onCreateOrder: _openCreateOrderFlow,
+                  onOpenDebtTracking: _openDebtTracking,
+                  onOpenInventory: _openInventoryScreen,
+                  onOpenWarrantyHub: _openWarrantyHub,
+                  title: texts.quickActionsTitle,
+                  subtitle: texts.quickActionsSubtitle,
+                  createOrderLabel: texts.createOrderLabel,
+                  debtLabel: texts.debtLabel,
+                  inventoryLabel: texts.inventoryLabel,
+                  warrantyLabel: texts.warrantyLabel,
+                ),
               ),
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: sectionSpacing),
             FadeSlideIn(
               delay: const Duration(milliseconds: 95),
               child: _SectionTitle(title: texts.trackingSectionTitle),
@@ -702,7 +1078,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             if (isMobile) ...[
               ...primaryTrackingCards.map(
                 (card) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(
+                    bottom: _dashboardCompactSpacing,
+                  ),
                   child: card,
                 ),
               ),
@@ -720,10 +1098,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ? 2
                       : 1;
                   final childWidth =
-                      (constraints.maxWidth - (cols - 1) * 12) / cols;
+                      (constraints.maxWidth -
+                          (cols - 1) * _dashboardGridSpacing) /
+                      cols;
                   return Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
+                    spacing: _dashboardGridSpacing,
+                    runSpacing: _dashboardGridSpacing,
                     children: [
                       ...primaryTrackingCards.map(
                         (card) => SizedBox(width: childWidth, child: card),
@@ -735,7 +1115,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   );
                 },
               ),
-            const SizedBox(height: 12),
+            SizedBox(height: sectionSpacing),
             FadeSlideIn(
               delay: const Duration(milliseconds: 140),
               child: LayoutBuilder(
@@ -746,7 +1126,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     style: TextButton.styleFrom(
                       minimumSize: const Size(48, 48),
                       visualDensity: VisualDensity.compact,
-                      foregroundColor: const Color(0xFF1D4ED8),
+                      foregroundColor: Theme.of(context).colorScheme.primary,
                     ),
                     icon: const Icon(Icons.open_in_new_rounded, size: 16),
                     label: Text(texts.viewAllAction),
@@ -789,15 +1169,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 onCtaPressed: _openCreateOrderFlow,
               )
             else
-              ...periodOrders.take(5).map((order) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _RecentOrderCard(
-                    order: order,
-                    onTap: () => _openOrderDetail(order.id),
-                  ),
-                );
-              }),
+              ...periodOrders
+                  .take(5)
+                  .toList(growable: false)
+                  .asMap()
+                  .entries
+                  .map((entry) {
+                    final index = entry.key;
+                    final order = entry.value;
+                    final shouldAnimate = index < 4;
+                    return FadeSlideIn(
+                      animate: shouldAnimate,
+                      delay: shouldAnimate
+                          ? Duration(milliseconds: 170 + 30 * index)
+                          : Duration.zero,
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          bottom: index == math.min(periodOrders.length, 5) - 1
+                              ? 0
+                              : 10,
+                        ),
+                        child: RepaintBoundary(
+                          child: _RecentOrderCard(
+                            order: order,
+                            onTap: () => _openOrderDetail(order.id),
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
           ],
         ),
       );
@@ -807,40 +1207,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: BrandAppBarTitle(texts.appBarTitle, logoSize: 30, logoGap: 4),
         actions: [
-          if (!isNarrowAppBar)
-            Tooltip(
-              message: texts.previousPeriodTooltip,
-              child: IconButton(
-                onPressed: _moveToPreviousPeriod,
-                icon: const Icon(Icons.chevron_left_rounded),
-              ),
-            ),
-          if (isNarrowAppBar)
-            Tooltip(
-              message: texts.timeFilterTooltip,
-              child: IconButton(
-                tooltip: texts.timeFilterTooltip,
-                onPressed: _openTimeFilterSheet,
-                icon: const Icon(Icons.calendar_month_outlined),
-              ),
-            )
-          else
-            Tooltip(
-              message: texts.timeFilterTooltip,
-              child: TextButton.icon(
-                onPressed: _openTimeFilterSheet,
-                icon: const Icon(Icons.calendar_month_outlined, size: 18),
-                label: Text(_periodCompactLabelFor(periodAnchor, _timeFilter)),
-              ),
-            ),
-          if (!isNarrowAppBar)
-            Tooltip(
-              message: texts.nextPeriodTooltip,
-              child: IconButton(
-                onPressed: canMoveNextPeriod ? _moveToNextPeriod : null,
-                icon: const Icon(Icons.chevron_right_rounded),
-              ),
-            ),
           const GlobalSearchIconButton(),
           NotificationIconButton(
             count: unreadNotificationCount,
@@ -851,33 +1217,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             },
           ),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(38),
-          child: SizedBox(
-            height: 38,
-            child: ListView(
-              key: const PageStorageKey<String>('dashboard-header-summary'),
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              children: [
-                _HeaderSummaryChip(
-                  icon: Icons.calendar_today_outlined,
-                  label: periodContextLabel,
-                ),
-                const SizedBox(width: 8),
-                _HeaderSummaryChip(
-                  icon: Icons.payments_outlined,
-                  label: texts.revenueChipLabel(periodRevenue),
-                ),
-                const SizedBox(width: 8),
-                _HeaderSummaryChip(
-                  icon: Icons.receipt_long_outlined,
-                  label: texts.orderCountChipLabel(periodOrderCount),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
       body: Center(
         child: ConstrainedBox(
@@ -966,8 +1305,6 @@ class _DashboardQuickActionsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isCompact = MediaQuery.sizeOf(context).width < _mobileBreakpoint;
     final actions = <Widget>[
       _DashboardQuickActionButton(
         icon: Icons.add_shopping_cart_outlined,
@@ -992,46 +1329,44 @@ class _DashboardQuickActionsCard extends StatelessWidget {
       ),
     ];
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: BorderSide(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              subtitle,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                height: 1.45,
-              ),
-            ),
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: actions
-                  .map(
-                    (action) =>
-                        SizedBox(width: isCompact ? 148 : 170, child: action),
-                  )
-                  .toList(growable: false),
-            ),
-          ],
-        ),
+    return _DashboardSurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _DashboardCardHeader(title: title, subtitle: subtitle),
+          const SizedBox(height: 14),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final maxWidth = constraints.maxWidth;
+              final columns = maxWidth >= 1080
+                  ? 4
+                  : maxWidth >= 640
+                  ? 2
+                  : maxWidth >= 360
+                  ? 2
+                  : 1;
+              final regularWidth = columns == 1
+                  ? maxWidth
+                  : (maxWidth - (columns - 1) * _dashboardGridSpacing) /
+                        columns;
+              final primaryFullWidth = columns == 2 && maxWidth < 640;
+
+              return Wrap(
+                spacing: _dashboardGridSpacing,
+                runSpacing: _dashboardGridSpacing,
+                children: [
+                  for (var i = 0; i < actions.length; i++)
+                    SizedBox(
+                      width: i == 0 && primaryFullWidth
+                          ? maxWidth
+                          : regularWidth,
+                      child: actions[i],
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -1053,42 +1388,83 @@ class _DashboardQuickActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final style = isPrimary
-        ? ElevatedButton.styleFrom(
-            minimumSize: const Size(0, 48),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          )
-        : OutlinedButton.styleFrom(
-            minimumSize: const Size(0, 48),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          );
+    final colorScheme = theme.colorScheme;
+    final backgroundColor = isPrimary
+        ? colorScheme.primary
+        : colorScheme.surfaceContainerLow;
+    final foregroundColor = isPrimary
+        ? colorScheme.onPrimary
+        : colorScheme.onSurface;
+    final iconBackgroundColor = isPrimary
+        ? Colors.white.withValues(alpha: 0.16)
+        : colorScheme.primaryContainer;
+    final iconColor = isPrimary ? colorScheme.onPrimary : colorScheme.primary;
+    final borderColor = isPrimary
+        ? colorScheme.primary.withValues(alpha: 0.85)
+        : colorScheme.outlineVariant.withValues(alpha: 0.8);
 
-    final child = Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 18),
-        const SizedBox(width: 8),
-        Flexible(
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.labelLarge?.copyWith(
-              fontWeight: FontWeight.w700,
+    return Semantics(
+      button: true,
+      label: label,
+      child: Material(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(16),
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: borderColor),
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 92),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: iconBackgroundColor,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          alignment: Alignment.center,
+                          child: Icon(icon, size: 20, color: iconColor),
+                        ),
+                        const Spacer(),
+                        Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 18,
+                          color: foregroundColor.withValues(
+                            alpha: isPrimary ? 0.88 : 0.52,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      label,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: foregroundColor,
+                        fontWeight: FontWeight.w800,
+                        height: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
-      ],
+      ),
     );
-
-    return isPrimary
-        ? ElevatedButton(onPressed: onPressed, style: style, child: child)
-        : OutlinedButton(onPressed: onPressed, style: style, child: child);
   }
 }
 
@@ -1106,20 +1482,14 @@ class _DashboardExpandableInsights extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: BorderSide(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
-        ),
-      ),
+    return _DashboardSurfaceCard(
+      padding: EdgeInsets.zero,
       child: Theme(
         data: theme.copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
           key: const PageStorageKey<String>('dashboard-mobile-insights'),
-          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          tilePadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+          childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
           title: Text(
             title,
             style: theme.textTheme.titleSmall?.copyWith(
@@ -1167,7 +1537,8 @@ class _OverviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final revenueAccent = cs.primary;
     final debtAccent = cs.error;
     final orderAccent = cs.secondary;
@@ -1181,34 +1552,35 @@ class _OverviewCard extends StatelessWidget {
     );
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [Color(0xFF1D4ED8), Color(0xFF2563EB)],
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             texts.overviewTitle,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            style: theme.textTheme.titleMedium?.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             texts.overviewContext(contextLabel),
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            style: theme.textTheme.bodyMedium?.copyWith(
               color: const Color(0xF2FFFFFF),
               fontWeight: FontWeight.w500,
+              height: 1.35,
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           _OverviewMetricTile(
             icon: Icons.payments_rounded,
             accentColor: revenueAccent,
@@ -1216,10 +1588,9 @@ class _OverviewCard extends StatelessWidget {
             value: _formatCompactVnd(periodRevenue),
             isPrimary: true,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           LayoutBuilder(
             builder: (context, constraints) {
-              final compact = constraints.maxWidth < _overviewCompactBreakpoint;
               final debtCard = _OverviewMetricTile(
                 icon: Icons.account_balance_wallet_rounded,
                 accentColor: debtAccent,
@@ -1241,26 +1612,34 @@ class _OverviewCard extends StatelessWidget {
                 value: '$completionRate%',
                 isPrimary: false,
               );
+              final cards = [debtCard, orderCard, completionRateCard];
+              final compact = constraints.maxWidth < 360;
+              final useTwoColumns =
+                  constraints.maxWidth >= 360 &&
+                  constraints.maxWidth < _overviewCompactBreakpoint;
+              final itemWidth = useTwoColumns
+                  ? (constraints.maxWidth - _dashboardGridSpacing) / 2
+                  : constraints.maxWidth >= 720
+                  ? (constraints.maxWidth - (_dashboardGridSpacing * 2)) / 3
+                  : constraints.maxWidth;
 
               if (compact) {
                 return Column(
                   children: [
-                    debtCard,
-                    const SizedBox(height: 10),
-                    orderCard,
-                    const SizedBox(height: 10),
-                    completionRateCard,
+                    for (var i = 0; i < cards.length; i++) ...[
+                      if (i > 0) const SizedBox(height: 10),
+                      cards[i],
+                    ],
                   ],
                 );
               }
 
-              return Row(
+              return Wrap(
+                spacing: _dashboardGridSpacing,
+                runSpacing: _dashboardGridSpacing,
                 children: [
-                  Expanded(child: debtCard),
-                  const SizedBox(width: 10),
-                  Expanded(child: orderCard),
-                  const SizedBox(width: 10),
-                  Expanded(child: completionRateCard),
+                  for (final card in cards)
+                    SizedBox(width: itemWidth, child: card),
                 ],
               );
             },
@@ -1456,378 +1835,349 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
         .clamp(240.0, 340.0)
         .toDouble();
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: Theme.of(
-            context,
-          ).colorScheme.outlineVariant.withValues(alpha: 0.6),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              isEnglish
-                  ? 'Monthly purchase value ($displayYear)'
-                  : 'Gi\u00e1 tr\u1ecb nh\u1eadp h\u00e0ng theo th\u00e1ng ($displayYear)',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+    return _DashboardSurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _DashboardCardHeader(
+            title: isEnglish
+                ? 'Monthly purchase value ($displayYear)'
+                : 'Gi\u00e1 tr\u1ecb nh\u1eadp h\u00e0ng theo th\u00e1ng ($displayYear)',
+            subtitle: hasAnyData ? subtitle : null,
+          ),
+          if (hasAnyData) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                _InsightChip(
+                  label: isEnglish ? 'Year total' : 'T\u1ed5ng n\u0103m',
+                  value: _formatCompactVnd(yearlyTotal),
+                  valueColor: const Color(0xFF1E3A8A),
+                ),
+                _InsightChip(
+                  label: isEnglish ? 'Selected month' : 'Th\u00e1ng ch\u1ecdn',
+                  value: _formatCompactVnd(focusMonthValue),
+                  valueColor: const Color(0xFF1E3A8A),
+                ),
+                _InsightChip(
+                  label: isEnglish
+                      ? 'Vs previous month'
+                      : 'So v\u1edbi th\u00e1ng tr\u01b0\u1edbc',
+                  value: monthChangeText,
+                  valueColor: monthChangeColor,
+                ),
+              ],
             ),
-            if (hasAnyData) ...[
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: _dashboardMutedText(context),
+          ],
+          if (showMissingMonthNote) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: colorScheme.primary.withValues(alpha: 0.3),
                 ),
               ),
-            ],
-            if (hasAnyData) ...[
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 6,
+              child: Row(
                 children: [
-                  _InsightChip(
-                    label: isEnglish ? 'Year total' : 'T\u1ed5ng n\u0103m',
-                    value: _formatCompactVnd(yearlyTotal),
-                    valueColor: const Color(0xFF1E3A8A),
+                  Icon(
+                    Icons.info_outline_rounded,
+                    size: 15,
+                    color: colorScheme.onPrimaryContainer,
                   ),
-                  _InsightChip(
-                    label: isEnglish
-                        ? 'Selected month'
-                        : 'Th\u00e1ng ch\u1ecdn',
-                    value: _formatCompactVnd(focusMonthValue),
-                    valueColor: const Color(0xFF1E3A8A),
-                  ),
-                  _InsightChip(
-                    label: isEnglish
-                        ? 'Vs previous month'
-                        : 'So v\u1edbi th\u00e1ng tr\u01b0\u1edbc',
-                    value: monthChangeText,
-                    valueColor: monthChangeColor,
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      isEnglish
+                          ? 'Showing all 12 months. $zeroValueMonthCount months without data are displayed as 0.'
+                          : 'Hiển thị đủ 12 tháng, $zeroValueMonthCount tháng chưa có dữ liệu đang được hiển thị là 0.',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colorScheme.onPrimaryContainer,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ],
               ),
-            ],
-            if (showMissingMonthNote) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: colorScheme.primary.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline_rounded,
-                      size: 15,
-                      color: colorScheme.onPrimaryContainer,
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        isEnglish
-                            ? 'Showing all 12 months. $zeroValueMonthCount months without data are displayed as 0.'
-                            : 'Hiển thị đủ 12 tháng, $zeroValueMonthCount tháng chưa có dữ liệu đang được hiển thị là 0.',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: colorScheme.onPrimaryContainer,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          if (!hasAnyData)
+            Container(
+              width: double.infinity,
+              constraints: const BoxConstraints(minHeight: 220),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: theme.colorScheme.outlineVariant),
               ),
-            ],
-            const SizedBox(height: 12),
-            if (!hasAnyData)
-              Container(
-                width: double.infinity,
-                constraints: const BoxConstraints(minHeight: 220),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: theme.colorScheme.outlineVariant),
-                ),
-                alignment: Alignment.center,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.bar_chart_rounded,
-                        color: theme.colorScheme.onPrimaryContainer,
-                        size: 20,
-                      ),
+              alignment: Alignment.center,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      isEnglish
-                          ? 'No purchase orders have been recorded in $displayYear yet.'
-                          : 'Bạn chưa có đơn nhập nào trong năm $displayYear.',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: theme.colorScheme.onSurface,
-                        fontWeight: FontWeight.w700,
-                      ),
-                      textAlign: TextAlign.center,
+                    child: Icon(
+                      Icons.bar_chart_rounded,
+                      color: theme.colorScheme.onPrimaryContainer,
+                      size: 20,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      isEnglish
-                          ? 'Create a new order to start tracking monthly purchase value.'
-                          : 'Hãy tạo đơn hàng mới để bắt đầu theo dõi giá trị nhập theo tháng.',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: _dashboardMutedText(context),
-                        fontWeight: FontWeight.w500,
-                      ),
-                      textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    isEnglish
+                        ? 'No purchase orders have been recorded in $displayYear yet.'
+                        : 'Bạn chưa có đơn nhập nào trong năm $displayYear.',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: theme.colorScheme.onSurface,
+                      fontWeight: FontWeight.w700,
                     ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: 220,
-                      child: Semantics(
-                        button: true,
-                        label: isEnglish
-                            ? 'Create a new order to track monthly purchase value'
-                            : 'Tạo đơn hàng mới để theo dõi giá trị nhập hàng theo tháng',
-                        child: FilledButton.icon(
-                          onPressed: widget.onCreateOrder,
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size(220, 48),
-                          ),
-                          icon: const Icon(
-                            Icons.add_shopping_cart_outlined,
-                            size: 18,
-                          ),
-                          label: Text(texts.createOrderAction),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    isEnglish
+                        ? 'Create a new order to start tracking monthly purchase value.'
+                        : 'Hãy tạo đơn hàng mới để bắt đầu theo dõi giá trị nhập theo tháng.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: _dashboardMutedText(context),
+                      fontWeight: FontWeight.w500,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: 220,
+                    child: Semantics(
+                      button: true,
+                      label: isEnglish
+                          ? 'Create a new order to track monthly purchase value'
+                          : 'Tạo đơn hàng mới để theo dõi giá trị nhập hàng theo tháng',
+                      child: FilledButton.icon(
+                        onPressed: widget.onCreateOrder,
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(220, 48),
                         ),
+                        icon: const Icon(
+                          Icons.add_shopping_cart_outlined,
+                          size: 18,
+                        ),
+                        label: Text(texts.createOrderAction),
                       ),
                     ),
-                  ],
-                ),
-              )
-            else
-              SizedBox(
-                height: chartHeight,
-                child: BarChart(
-                  BarChartData(
-                    alignment: BarChartAlignment.spaceAround,
-                    minY: 0,
-                    maxY: topY,
-                    barTouchData: BarTouchData(
-                      enabled: true,
-                      handleBuiltInTouches: enableHoverTooltip,
-                      touchCallback: (event, response) {
-                        if (enableHoverTooltip) {
-                          return;
+                  ),
+                ],
+              ),
+            )
+          else
+            SizedBox(
+              height: chartHeight,
+              child: BarChart(
+                BarChartData(
+                  alignment: BarChartAlignment.spaceAround,
+                  minY: 0,
+                  maxY: topY,
+                  barTouchData: BarTouchData(
+                    enabled: true,
+                    handleBuiltInTouches: enableHoverTooltip,
+                    touchCallback: (event, response) {
+                      if (enableHoverTooltip) {
+                        return;
+                      }
+                      if (event is! FlTapUpEvent) {
+                        return;
+                      }
+                      final touchedIdx = response?.spot?.touchedBarGroupIndex;
+                      if (touchedIdx == null ||
+                          touchedIdx < 0 ||
+                          touchedIdx >= chartData.length ||
+                          chartData[touchedIdx].value <= 0) {
+                        setState(() => _selectedBarGroupIndex = null);
+                        return;
+                      }
+                      setState(() {
+                        _selectedBarGroupIndex =
+                            _selectedBarGroupIndex == touchedIdx
+                            ? null
+                            : touchedIdx;
+                      });
+                    },
+                    touchTooltipData: BarTouchTooltipData(
+                      tooltipRoundedRadius: 10,
+                      tooltipPadding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      tooltipMargin: 8,
+                      fitInsideHorizontally: true,
+                      fitInsideVertically: true,
+                      getTooltipColor: (_) => const Color(0xFF0F172A),
+                      getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                        if (groupIndex < 0 || groupIndex >= chartData.length) {
+                          return null;
                         }
-                        if (event is! FlTapUpEvent) {
-                          return;
-                        }
-                        final touchedIdx = response?.spot?.touchedBarGroupIndex;
-                        if (touchedIdx == null ||
-                            touchedIdx < 0 ||
-                            touchedIdx >= chartData.length ||
-                            chartData[touchedIdx].value <= 0) {
-                          setState(() => _selectedBarGroupIndex = null);
-                          return;
-                        }
-                        setState(() {
-                          _selectedBarGroupIndex =
-                              _selectedBarGroupIndex == touchedIdx
-                              ? null
-                              : touchedIdx;
-                        });
+                        final item = chartData[groupIndex];
+                        return BarTooltipItem(
+                          '${item.label}/$displayYear\n${formatVnd(item.value)}',
+                          const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          ),
+                        );
                       },
-                      touchTooltipData: BarTouchTooltipData(
-                        tooltipRoundedRadius: 10,
-                        tooltipPadding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 8,
-                        ),
-                        tooltipMargin: 8,
-                        fitInsideHorizontally: true,
-                        fitInsideVertically: true,
-                        getTooltipColor: (_) => const Color(0xFF0F172A),
-                        getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                          if (groupIndex < 0 ||
-                              groupIndex >= chartData.length) {
-                            return null;
+                    ),
+                  ),
+                  gridData: FlGridData(
+                    show: true,
+                    drawVerticalLine: false,
+                    horizontalInterval: yInterval,
+                    getDrawingHorizontalLine: (value) => FlLine(
+                      color: const Color(0xFFCBD5E1).withValues(alpha: 0.35),
+                      strokeWidth: 1,
+                    ),
+                  ),
+                  borderData: FlBorderData(show: false),
+                  titlesData: FlTitlesData(
+                    topTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: showValueLabels,
+                        reservedSize: 40,
+                        interval: 1,
+                        getTitlesWidget: (value, meta) {
+                          final idx = value.toInt();
+                          if (value != idx.toDouble() ||
+                              idx < 0 ||
+                              idx >= chartData.length) {
+                            return const SizedBox.shrink();
                           }
-                          final item = chartData[groupIndex];
-                          return BarTooltipItem(
-                            '${item.label}/$displayYear\n${formatVnd(item.value)}',
-                            const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12,
+                          final amount = chartData[idx].value;
+                          if (amount <= 0) {
+                            return const SizedBox.shrink();
+                          }
+                          return SideTitleWidget(
+                            axisSide: meta.axisSide,
+                            child: Text(
+                              '${_formatCompactValue(amount / 1000000)}M ₫',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: const Color(0xFF334155),
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           );
                         },
                       ),
                     ),
-                    gridData: FlGridData(
-                      show: true,
-                      drawVerticalLine: false,
-                      horizontalInterval: yInterval,
-                      getDrawingHorizontalLine: (value) => FlLine(
-                        color: const Color(0xFFCBD5E1).withValues(alpha: 0.35),
-                        strokeWidth: 1,
-                      ),
+                    rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
                     ),
-                    borderData: FlBorderData(show: false),
-                    titlesData: FlTitlesData(
-                      topTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: showValueLabels,
-                          reservedSize: 40,
-                          interval: 1,
-                          getTitlesWidget: (value, meta) {
-                            final idx = value.toInt();
-                            if (value != idx.toDouble() ||
-                                idx < 0 ||
-                                idx >= chartData.length) {
-                              return const SizedBox.shrink();
-                            }
-                            final amount = chartData[idx].value;
-                            if (amount <= 0) {
-                              return const SizedBox.shrink();
-                            }
-                            return SideTitleWidget(
-                              axisSide: meta.axisSide,
-                              child: Text(
-                                '${_formatCompactValue(amount / 1000000)}M ₫',
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: const Color(0xFF334155),
-                                  fontWeight: FontWeight.w700,
-                                ),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 54,
+                        interval: yInterval,
+                        getTitlesWidget: (value, meta) {
+                          if (value <= 0) {
+                            return const SizedBox.shrink();
+                          }
+                          return SideTitleWidget(
+                            axisSide: meta.axisSide,
+                            child: Text(
+                              '${_formatCompactValue(value / 1000000)}M ₫',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: _dashboardMutedText(context),
+                                fontWeight: FontWeight.w600,
                               ),
-                            );
-                          },
-                        ),
-                      ),
-                      rightTitles: const AxisTitles(
-                        sideTitles: SideTitles(showTitles: false),
-                      ),
-                      leftTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 54,
-                          interval: yInterval,
-                          getTitlesWidget: (value, meta) {
-                            if (value <= 0) {
-                              return const SizedBox.shrink();
-                            }
-                            return SideTitleWidget(
-                              axisSide: meta.axisSide,
-                              child: Text(
-                                '${_formatCompactValue(value / 1000000)}M ₫',
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: _dashboardMutedText(context),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 28,
-                          interval: 1,
-                          getTitlesWidget: (value, meta) {
-                            final idx = value.toInt();
-                            if (value != idx.toDouble() ||
-                                idx < 0 ||
-                                idx >= chartData.length) {
-                              return const SizedBox.shrink();
-                            }
-                            final item = chartData[idx];
-                            final isCurrent = item.month == focusMonth;
-                            final hasValue = item.value > 0;
-                            return SideTitleWidget(
-                              axisSide: meta.axisSide,
-                              space: 6,
-                              child: Text(
-                                item.label,
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: isCurrent
-                                      ? const Color(0xFF1D4ED8)
-                                      : hasValue
-                                      ? const Color(0xFF334155)
-                                      : const Color(0xFF94A3B8),
-                                  fontWeight: isCurrent
-                                      ? FontWeight.w800
-                                      : FontWeight.w600,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                    barGroups: [
-                      for (var i = 0; i < chartData.length; i++)
-                        BarChartGroupData(
-                          x: i,
-                          showingTooltipIndicators:
-                              !enableHoverTooltip &&
-                                  _selectedBarGroupIndex == i &&
-                                  chartData[i].value > 0
-                              ? const [0]
-                              : const [],
-                          barRods: [
-                            BarChartRodData(
-                              toY: chartData[i].value.toDouble(),
-                              width: 18,
-                              backDrawRodData: BackgroundBarChartRodData(
-                                show: true,
-                                toY: topY * 0.06,
-                                color: const Color(0xFFE2E8F0),
-                              ),
-                              borderRadius: BorderRadius.circular(5),
-                              gradient: _revenueBarGradient(
-                                chartData[i],
-                                focusMonth,
-                              ),
-                              borderSide: chartData[i].month == focusMonth
-                                  ? const BorderSide(
-                                      color: Color(0xFF1E3A8A),
-                                      width: 1,
-                                    )
-                                  : BorderSide.none,
                             ),
-                          ],
-                        ),
-                    ],
+                          );
+                        },
+                      ),
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 28,
+                        interval: 1,
+                        getTitlesWidget: (value, meta) {
+                          final idx = value.toInt();
+                          if (value != idx.toDouble() ||
+                              idx < 0 ||
+                              idx >= chartData.length) {
+                            return const SizedBox.shrink();
+                          }
+                          final item = chartData[idx];
+                          final isCurrent = item.month == focusMonth;
+                          final hasValue = item.value > 0;
+                          return SideTitleWidget(
+                            axisSide: meta.axisSide,
+                            space: 6,
+                            child: Text(
+                              item.label,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: isCurrent
+                                    ? theme.colorScheme.primary
+                                    : hasValue
+                                    ? const Color(0xFF334155)
+                                    : const Color(0xFF94A3B8),
+                                fontWeight: isCurrent
+                                    ? FontWeight.w800
+                                    : FontWeight.w600,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                   ),
-                  swapAnimationDuration: Duration.zero,
-                  swapAnimationCurve: Curves.linear,
+                  barGroups: [
+                    for (var i = 0; i < chartData.length; i++)
+                      BarChartGroupData(
+                        x: i,
+                        showingTooltipIndicators:
+                            !enableHoverTooltip &&
+                                _selectedBarGroupIndex == i &&
+                                chartData[i].value > 0
+                            ? const [0]
+                            : const [],
+                        barRods: [
+                          BarChartRodData(
+                            toY: chartData[i].value.toDouble(),
+                            width: 18,
+                            backDrawRodData: BackgroundBarChartRodData(
+                              show: true,
+                              toY: topY * 0.06,
+                              color: const Color(0xFFE2E8F0),
+                            ),
+                            borderRadius: BorderRadius.circular(5),
+                            gradient: _revenueBarGradient(
+                              chartData[i],
+                              focusMonth,
+                            ),
+                            borderSide: chartData[i].month == focusMonth
+                                ? const BorderSide(
+                                    color: Color(0xFF1E3A8A),
+                                    width: 1,
+                                  )
+                                : BorderSide.none,
+                          ),
+                        ],
+                      ),
+                  ],
                 ),
+                swapAnimationDuration: Duration.zero,
+                swapAnimationCurve: Curves.linear,
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
@@ -2394,95 +2744,59 @@ class _OrderStatusDistributionCard extends StatelessWidget {
     final totalCount = totals.values.fold<int>(0, (sum, v) => sum + v);
     final showEmpty = totalCount == 0;
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    texts.orderDistributionTitle,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
+    return _DashboardSurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _DashboardCardHeader(
+            title: texts.orderDistributionTitle,
+            subtitle: showEmpty ? null : texts.orderDistributionHint,
+            trailing: _DashboardStatBadge(
+              icon: Icons.receipt_long_outlined,
+              label: texts.orderCountChipLabel(totalCount),
             ),
-            const SizedBox(height: 8),
-            if (!showEmpty)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: theme.colorScheme.outlineVariant),
-                ),
-                child: Text(
-                  texts.orderDistributionHint,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: _dashboardMutedText(context),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            const SizedBox(height: 12),
-            if (showEmpty)
-              _EmptyCard(
-                title: texts.orderDistributionTitle,
-                message: texts.orderDistributionEmptyMessage,
-                description: texts.orderDistributionEmptyDescription,
-                icon: Icons.inbox_outlined,
-                ctaLabel: texts.createOrderAction,
-                ctaSemanticLabel: texts.createOrderToTrackSemantic,
-                ctaIcon: Icons.add_shopping_cart_outlined,
-                onCtaPressed: onCreateOrder,
-              )
-            else
-              Column(
-                children: _statusOrder.map((status) {
-                  final count = totals[status] ?? 0;
-                  final ratio = totalCount == 0 ? 0.0 : count / totalCount;
-                  final percent = totalCount == 0 ? 0 : (ratio * 100).round();
-                  final statusOrders =
-                      orders.where((order) => order.status == status).toList()
-                        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: _StatusBar(
-                      label: texts.orderStatusLabel(status),
-                      count: count,
-                      ratio: ratio,
-                      percent: percent,
+          ),
+          const SizedBox(height: 12),
+          if (showEmpty)
+            _EmptyCard(
+              title: texts.orderDistributionTitle,
+              message: texts.orderDistributionEmptyMessage,
+              description: texts.orderDistributionEmptyDescription,
+              icon: Icons.inbox_outlined,
+              ctaLabel: texts.createOrderAction,
+              ctaSemanticLabel: texts.createOrderToTrackSemantic,
+              ctaIcon: Icons.add_shopping_cart_outlined,
+              onCtaPressed: onCreateOrder,
+            )
+          else
+            Column(
+              children: _statusOrder.map((status) {
+                final count = totals[status] ?? 0;
+                final ratio = totalCount == 0 ? 0.0 : count / totalCount;
+                final percent = totalCount == 0 ? 0 : (ratio * 100).round();
+                final statusOrders =
+                    orders.where((order) => order.status == status).toList()
+                      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _StatusBar(
+                    label: texts.orderStatusLabel(status),
+                    count: count,
+                    ratio: ratio,
+                    percent: percent,
+                    color: _statusColor(status, colorScheme),
+                    onTap: () => _showStatusDetailSheet(
+                      context: context,
+                      status: status,
+                      orders: statusOrders,
+                      totalCount: totalCount,
                       color: _statusColor(status, colorScheme),
-                      onTap: () => _showStatusDetailSheet(
-                        context: context,
-                        status: status,
-                        orders: statusOrders,
-                        totalCount: totalCount,
-                        color: _statusColor(status, colorScheme),
-                      ),
                     ),
-                  );
-                }).toList(),
-              ),
-          ],
-        ),
+                  ),
+                );
+              }).toList(),
+            ),
+        ],
       ),
     );
   }
@@ -2522,85 +2836,96 @@ class _OrderStatusDistributionCard extends StatelessWidget {
         final theme = Theme.of(context);
         return SafeArea(
           top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: color,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        texts.orderStatusLabel(status),
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 560),
+              child: RepaintBoundary(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: color,
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                texts.orderStatusLabel(status),
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              texts.orderCountPercentLabel(count, percent),
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurface,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ),
-                    Text(
-                      texts.orderCountPercentLabel(count, percent),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  texts.selectedStatusListDescription,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: _dashboardMutedText(context),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                if (orders.isEmpty)
-                  _EmptyCard(
-                    title: texts.noMatchingOrdersTitle,
-                    message: texts.noMatchingOrdersMessage,
-                    description: texts.noMatchingOrdersDescription,
-                    icon: Icons.filter_alt_off_outlined,
-                  )
-                else
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 300),
-                    child: ListView.separated(
-                      shrinkWrap: true,
-                      itemCount: orders.length,
-                      separatorBuilder: (context, index) =>
-                          const Divider(height: 1),
-                      itemBuilder: (context, index) {
-                        final order = orders[index];
-                        return ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 2,
+                        const SizedBox(height: 6),
+                        Text(
+                          texts.selectedStatusListDescription,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: _dashboardMutedText(context),
+                            fontWeight: FontWeight.w500,
                           ),
-                          minVerticalPadding: 8,
-                          title: Text(order.id),
-                          subtitle: Text(formatDateTime(order.createdAt)),
-                          trailing: Text(
-                            formatVnd(order.total),
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface,
-                              fontWeight: FontWeight.w700,
+                        ),
+                        const SizedBox(height: 12),
+                        if (orders.isEmpty)
+                          _EmptyCard(
+                            title: texts.noMatchingOrdersTitle,
+                            message: texts.noMatchingOrdersMessage,
+                            description: texts.noMatchingOrdersDescription,
+                            icon: Icons.filter_alt_off_outlined,
+                          )
+                        else
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 300),
+                            child: ListView.separated(
+                              shrinkWrap: true,
+                              itemCount: orders.length,
+                              separatorBuilder: (context, index) =>
+                                  const Divider(height: 1),
+                              itemBuilder: (context, index) {
+                                final order = orders[index];
+                                return ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 2,
+                                  ),
+                                  minVerticalPadding: 8,
+                                  title: Text(order.id),
+                                  subtitle: Text(
+                                    formatDateTime(order.createdAt),
+                                  ),
+                                  trailing: Text(
+                                    formatVnd(order.total),
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.onSurface,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                           ),
-                        );
-                      },
+                      ],
                     ),
                   ),
-              ],
+                ),
+              ),
             ),
           ),
         );
@@ -2782,7 +3107,7 @@ class _AgingDebtCard extends StatelessWidget {
                   style: TextButton.styleFrom(
                     visualDensity: VisualDensity.compact,
                     minimumSize: const Size(48, 48),
-                    foregroundColor: const Color(0xFF1D4ED8),
+                    foregroundColor: Theme.of(context).colorScheme.primary,
                   ),
                   icon: const Icon(Icons.list_alt_outlined, size: 18),
                   label: Text(texts.viewDebtListAction),
@@ -2919,76 +3244,85 @@ class _AgingDebtCard extends StatelessWidget {
         final theme = Theme.of(context);
         return SafeArea(
           top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: bucket.color,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        bucket.label,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 560),
+              child: RepaintBoundary(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: bucket.color,
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                bucket.label,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              '$percent%',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                color: theme.colorScheme.onSurface,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
+                        const SizedBox(height: 8),
+                        Text(
+                          texts.bucketValueLabel(bucket.amount),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurface,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          texts.bucketDescription(bucket),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: _dashboardMutedText(context),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        if (bucket.minDay >= 91) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            texts.over90DayNote,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: const Color(0xFF334155),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 12),
+                        FilledButton.tonalIcon(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            onViewAll();
+                          },
+                          icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                          label: Text(texts.openDebtListAction),
+                        ),
+                      ],
                     ),
-                    Text(
-                      '$percent%',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: theme.colorScheme.onSurface,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  texts.bucketValueLabel(bucket.amount),
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface,
-                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  texts.bucketDescription(bucket),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: _dashboardMutedText(context),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                if (bucket.minDay >= 91) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    texts.over90DayNote,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: const Color(0xFF334155),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 12),
-                FilledButton.tonalIcon(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    onViewAll();
-                  },
-                  icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                  label: Text(texts.openDebtListAction),
-                ),
-              ],
+              ),
             ),
           ),
         );
@@ -3243,40 +3577,6 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-class _HeaderSummaryChip extends StatelessWidget {
-  const _HeaderSummaryChip({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: _dashboardMutedText(context)),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurface,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _EmptyCard extends StatelessWidget {
   const _EmptyCard({
     required this.title,
@@ -3405,67 +3705,6 @@ class _EmptyCard extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _DashboardSyncBanner extends StatelessWidget {
-  const _DashboardSyncBanner({required this.summary, this.warningMessage});
-
-  final String summary;
-  final String? warningMessage;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final hasWarning =
-        warningMessage != null && warningMessage!.trim().isNotEmpty;
-    final backgroundColor = hasWarning
-        ? colorScheme.errorContainer.withValues(alpha: 0.52)
-        : colorScheme.primaryContainer.withValues(alpha: 0.34);
-    final borderColor = hasWarning
-        ? colorScheme.error.withValues(alpha: 0.34)
-        : colorScheme.primary.withValues(alpha: 0.22);
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            hasWarning ? Icons.sync_problem_outlined : Icons.insights_outlined,
-            color: hasWarning ? colorScheme.error : colorScheme.primary,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  summary,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-                ),
-                if (hasWarning) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    warningMessage!,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -4179,7 +4418,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
                         states,
                       ) {
                         if (states.contains(WidgetState.selected)) {
-                          return const Color(0xFF1D4ED8);
+                          return theme.colorScheme.primary;
                         }
                         return theme.colorScheme.surface;
                       }),

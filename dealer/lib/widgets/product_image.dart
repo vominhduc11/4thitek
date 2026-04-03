@@ -12,6 +12,7 @@ class ProductImage extends StatelessWidget {
     required this.height,
     required this.borderRadius,
     this.fit = BoxFit.cover,
+    this.contentPadding = EdgeInsets.zero,
     this.iconSize = 24,
   });
 
@@ -20,40 +21,66 @@ class ProductImage extends StatelessWidget {
   final double height;
   final BorderRadius borderRadius;
   final BoxFit fit;
+  final EdgeInsetsGeometry contentPadding;
   final double iconSize;
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final imageUrl = product.imageUrl?.trim().isNotEmpty == true
         ? resolveFileReference(product.imageUrl!.trim())
         : null;
     return ClipRRect(
       borderRadius: borderRadius,
-      child: Container(
-        width: width,
-        height: height,
-        color: const Color(0xFFEFF3FB),
-        child: imageUrl == null
-            ? _fallback()
-            : LazyNetworkImage(
-                url: imageUrl,
-                width: width,
-                height: height,
-                fit: fit,
-                filterQuality: FilterQuality.medium,
-                placeholderBuilder: (context) => _fallback(),
-                errorBuilder: (context, error, stackTrace) => _fallback(),
-              ),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerLow,
+          border: Border.all(
+            color: colors.outlineVariant.withValues(alpha: 0.4),
+          ),
+        ),
+        child: SizedBox(
+          width: width,
+          height: height,
+          child: imageUrl == null
+              ? _fallback(context)
+              : Padding(
+                  padding: contentPadding,
+                  child: LazyNetworkImage(
+                    url: imageUrl,
+                    width: width,
+                    height: height,
+                    fit: fit,
+                    filterQuality: FilterQuality.medium,
+                    placeholderBuilder: (context) => _fallback(context),
+                    errorBuilder: (context, error, stackTrace) =>
+                        _fallback(context),
+                  ),
+                ),
+        ),
       ),
     );
   }
 
-  Widget _fallback() {
-    return Center(
-      child: Icon(
-        Icons.headphones_outlined,
-        size: iconSize,
-        color: const Color(0xFF4A5977),
+  Widget _fallback(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            colors.surfaceContainerHigh,
+            colors.surfaceContainerLow,
+          ],
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          Icons.headphones_outlined,
+          size: iconSize,
+          color: colors.primary.withValues(alpha: 0.92),
+        ),
       ),
     );
   }

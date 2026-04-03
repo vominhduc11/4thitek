@@ -174,21 +174,63 @@ class _LaunchRouteScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            BrandLogoIcon(size: 88),
-            SizedBox(height: 14),
-            BrandLogoWordmark(height: 34),
-            SizedBox(height: 22),
-            SizedBox(
-              width: 30,
-              height: 30,
-              child: CircularProgressIndicator(strokeWidth: 2.8),
+    final colors = Theme.of(context).colorScheme;
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+    final statusLabel = isEnglish
+        ? 'Preparing the dealer workspace...'
+        : 'Đang chuẩn bị không gian làm việc cho đại lý...';
+    return Scaffold(
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              colors.surfaceContainerLow,
+              colors.surface,
+              const Color(0xFF091017),
+            ],
+          ),
+        ),
+        child: Center(
+          child: RepaintBoundary(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(28, 24, 28, 24),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(28),
+                  color: colors.surfaceContainer.withValues(alpha: 0.9),
+                  border: Border.all(
+                    color: colors.outlineVariant.withValues(alpha: 0.85),
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const BrandLogoIcon(size: 88),
+                    const SizedBox(height: 14),
+                    const BrandLogoWordmark(height: 34),
+                    const SizedBox(height: 18),
+                    Text(
+                      statusLabel,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: colors.onSurfaceVariant,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    const SizedBox(
+                      width: 30,
+                      height: 30,
+                      child: CircularProgressIndicator(strokeWidth: 2.8),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -247,29 +289,92 @@ class _RouteNotFoundScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+    final title = isEnglish ? 'Content not found' : 'Không tìm thấy nội dung';
+    final message = isEnglish
+        ? 'The destination may have changed or is no longer available.'
+        : 'Điểm đến có thể đã thay đổi hoặc hiện không còn khả dụng.';
+    final actionLabel = isEnglish ? 'Back to home' : 'Quay về trang chính';
+    final secondaryActionLabel = isEnglish
+        ? 'Open catalog'
+        : 'Mở danh mục sản phẩm';
+
     return Scaffold(
       appBar: AppBar(title: const BrandAppBarTitle('4thitek')),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.search_off_outlined, size: 52),
-              const SizedBox(height: 12),
-              Text(
-                'Khong tim thay noi dung.',
-                textAlign: TextAlign.center,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: RepaintBoundary(
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  color: Theme.of(context).colorScheme.surfaceContainer,
+                  border: Border.all(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outlineVariant.withValues(alpha: 0.8),
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primaryContainer.withValues(alpha: 0.65),
+                      ),
+                      child: Icon(
+                        Icons.search_off_outlined,
+                        size: 32,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      message,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        height: 1.45,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        FilledButton.icon(
+                          onPressed: () => context.go(DealerRoutePath.home),
+                          icon: const Icon(Icons.home_outlined),
+                          label: Text(actionLabel),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () => context.go(DealerRoutePath.products),
+                          icon: const Icon(Icons.storefront_outlined),
+                          label: Text(secondaryActionLabel),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 10),
-              FilledButton(
-                onPressed: () => context.go(DealerRoutePath.home),
-                child: const Text('Quay ve trang chinh'),
-              ),
-            ],
+            ),
           ),
         ),
       ),

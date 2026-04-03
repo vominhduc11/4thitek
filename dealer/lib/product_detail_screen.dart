@@ -85,7 +85,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     if (!mounted) {
       return;
     }
-    final detailedProduct = await _resolveLatestProductSnapshot(_currentProduct);
+    final detailedProduct = await _resolveLatestProductSnapshot(
+      _currentProduct,
+    );
     if (!mounted) {
       return;
     }
@@ -102,7 +104,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
     setState(() => _isAddingToCart = true);
     try {
-      final latestProduct = await _resolveLatestProductSnapshot(_currentProduct);
+      final latestProduct = await _resolveLatestProductSnapshot(
+        _currentProduct,
+      );
       if (!mounted) {
         return;
       }
@@ -178,7 +182,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
     setState(() => _isBuyingNow = true);
     try {
-      final latestProduct = await _resolveLatestProductSnapshot(_currentProduct);
+      final latestProduct = await _resolveLatestProductSnapshot(
+        _currentProduct,
+      );
       if (!mounted) {
         return;
       }
@@ -246,62 +252,68 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
+              scrollable: true,
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 20,
+              ),
               title: Text(title),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    productName,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    texts.quantityRangeLabel(minQuantity, maxQuantity),
-                  ),
-                  if (quantityInCart > 0) ...[
-                    const SizedBox(height: 6),
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      texts.quantityInCartMessage(quantityInCart),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                      productName,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
+                    const SizedBox(height: 8),
+                    Text(texts.quantityRangeLabel(minQuantity, maxQuantity)),
+                    if (quantityInCart > 0) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        texts.quantityInCartMessage(quantityInCart),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    SpinBox(
+                      min: minQuantity.toDouble(),
+                      max: maxQuantity.toDouble(),
+                      value: selectedQuantity.toDouble(),
+                      decimals: 0,
+                      step: 1,
+                      autofocus: true,
+                      textInputAction: TextInputAction.done,
+                      onChanged: (value) {
+                        setDialogState(() {
+                          selectedQuantity = value.round().clamp(
+                            minQuantity,
+                            maxQuantity,
+                          );
+                        });
+                      },
+                    ),
+                    if (selectedQuantity == maxQuantity)
+                      Text(
+                        texts.maximumByStockMessage,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    if (selectedQuantity == minQuantity && minQuantity > 1)
+                      Text(
+                        texts.minimumQuantityMessage(minQuantity),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                   ],
-                  const SizedBox(height: 12),
-                  SpinBox(
-                    min: minQuantity.toDouble(),
-                    max: maxQuantity.toDouble(),
-                    value: selectedQuantity.toDouble(),
-                    decimals: 0,
-                    step: 1,
-                    autofocus: true,
-                    textInputAction: TextInputAction.done,
-                    onChanged: (value) {
-                      setDialogState(() {
-                        selectedQuantity = value.round().clamp(
-                          minQuantity,
-                          maxQuantity,
-                        );
-                      });
-                    },
-                  ),
-                  if (selectedQuantity == maxQuantity)
-                    Text(
-                      texts.maximumByStockMessage,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  if (selectedQuantity == minQuantity && minQuantity > 1)
-                    Text(
-                      texts.minimumQuantityMessage(minQuantity),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                ],
+                ),
               ),
               actions: [
                 TextButton(
@@ -408,6 +420,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final isTablet = shortestSide >= AppBreakpoints.phone;
     final isSmallMobile = width <= _smallMobileBreakpoint;
     final isMidRange = !isTablet && width >= _midRangeBreakpoint;
+    final isWideLayout = width >= 980;
     final isLandscapePhone = isLandscape && !isTablet;
     final isVerticallyTight = !isTablet && (isLandscape || height < 640);
     final horizontalPadding = isTablet
@@ -417,12 +430,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         : isSmallMobile
         ? 16.0
         : 20.0;
-    final contentMaxWidth = isTablet
+    final contentMaxWidth = isWideLayout
+        ? 1120.0
+        : isTablet
         ? 760.0
         : isMidRange
         ? 640.0
         : double.infinity;
-    final heroImageHeight = isTablet
+    final heroImageHeight = isWideLayout
+        ? 320.0
+        : isTablet
         ? 280.0
         : isLandscapePhone
         ? 136.0
@@ -461,6 +478,102 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ? _bottomBarHeight
         : fallbackBarHeight + mediaQuery.padding.bottom;
     final contentBottomPadding = measuredBarHeight + 12;
+    final Widget heroSection = RepaintBoundary(
+      child: Hero(
+        tag: 'product-image-${_currentProduct.id}',
+        child: ProductImage(
+          product: _currentProduct,
+          width: double.infinity,
+          height: heroImageHeight,
+          borderRadius: BorderRadius.circular(24),
+          iconSize: heroIconSize,
+        ),
+      ),
+    );
+    final Widget headerSection = RepaintBoundary(
+      child: Container(
+        padding: EdgeInsets.all(headerCardPadding),
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: colors.outlineVariant.withValues(alpha: 0.6),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    _currentProduct.name,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      texts.dealerPriceLabel,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: colors.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      texts.vatExcludedLabel,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: colors.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      formatVnd(_currentProduct.price),
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              texts.skuLabel(_currentProduct.sku),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+            ),
+            const SizedBox(height: 12),
+            _StockBadge(remainingStock: remainingStock),
+            const SizedBox(height: 14),
+            Text(
+              _currentProduct.shortDescription,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: colors.onSurfaceVariant,
+                height: 1.55,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    final Widget quickInfoSection = RepaintBoundary(
+      child: _QuickInfoSection(
+        isTablet: isTablet,
+        stock: _currentProduct.stock,
+        remainingStock: remainingStock,
+        quantityInCart: quantityInCart,
+        warrantyMonths: _currentProduct.warrantyMonths,
+        nextAddQuantity: suggestedAddQuantity,
+      ),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -532,215 +645,142 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Hero(
-                          tag: 'product-image-${_currentProduct.id}',
-                          child: ProductImage(
-                            product: _currentProduct,
-                            width: double.infinity,
-                            height: heroImageHeight,
-                            borderRadius: BorderRadius.circular(24),
-                            iconSize: heroIconSize,
-                          ),
-                        ),
-                        SizedBox(height: heroToContentGap),
-                        Container(
-                          padding: EdgeInsets.all(headerCardPadding),
-                          decoration: BoxDecoration(
-                            color: colors.surface,
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(
-                              color: colors.outlineVariant.withValues(
-                                alpha: 0.6,
-                              ),
-                            ),
-                          ),
-                          child: Column(
+                        if (isWideLayout)
+                          Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      _currentProduct.name,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .headlineSmall
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text(
-                                        texts.dealerPriceLabel,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .labelSmall
-                                            ?.copyWith(
-                                              color: colors.onSurfaceVariant,
-                                            ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        texts.vatExcludedLabel,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .labelSmall
-                                            ?.copyWith(
-                                              color: colors.onSurfaceVariant,
-                                            ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        formatVnd(_currentProduct.price),
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleLarge
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.w700,
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.primary,
-                                            ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                texts.skuLabel(_currentProduct.sku),
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(color: colors.onSurfaceVariant),
-                              ),
-                              const SizedBox(height: 12),
-                              _StockBadge(remainingStock: remainingStock),
-                              const SizedBox(height: 14),
-                              Text(
-                                _currentProduct.shortDescription,
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(
-                                      color: colors.onSurfaceVariant,
-                                      height: 1.55,
-                                    ),
+                              Expanded(child: heroSection),
+                              SizedBox(width: heroToContentGap),
+                              SizedBox(
+                                width: 360,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    headerSection,
+                                    SizedBox(height: sectionGap),
+                                    quickInfoSection,
+                                  ],
+                                ),
                               ),
                             ],
-                          ),
-                        ),
-                        SizedBox(height: sectionGap),
-                        _QuickInfoSection(
-                          isTablet: isTablet,
-                          stock: _currentProduct.stock,
-                          remainingStock: remainingStock,
-                          quantityInCart: quantityInCart,
-                          warrantyMonths: _currentProduct.warrantyMonths,
-                          nextAddQuantity: suggestedAddQuantity,
-                        ),
+                          )
+                        else ...[
+                          heroSection,
+                          SizedBox(height: heroToContentGap),
+                          headerSection,
+                          SizedBox(height: sectionGap),
+                          quickInfoSection,
+                        ],
                         if (descriptionItems.isNotEmpty) ...[
                           SizedBox(height: sectionGap),
-                          _DescriptionSection(
-                            items: descriptionItems,
-                            contentPadding: sectionCardPadding,
+                          RepaintBoundary(
+                            child: _DescriptionSection(
+                              items: descriptionItems,
+                              contentPadding: sectionCardPadding,
+                            ),
                           ),
                         ],
                         if (videos.isNotEmpty) ...[
                           SizedBox(height: sectionGap),
-                          _VideoSection(
-                            videos: videos,
-                            contentPadding: sectionCardPadding,
+                          RepaintBoundary(
+                            child: _VideoSection(
+                              videos: videos,
+                              contentPadding: sectionCardPadding,
+                            ),
                           ),
                         ],
                         if (_currentProduct.specifications.isNotEmpty) ...[
                           SizedBox(height: sectionGap),
-                          Container(
-                            padding: EdgeInsets.all(sectionCardPadding),
-                            decoration: BoxDecoration(
-                              color: colors.surface,
-                              borderRadius: BorderRadius.circular(18),
-                              border: Border.all(
-                                color: colors.outlineVariant.withValues(
-                                  alpha: 0.6,
+                          RepaintBoundary(
+                            child: Container(
+                              padding: EdgeInsets.all(sectionCardPadding),
+                              decoration: BoxDecoration(
+                                color: colors.surface,
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(
+                                  color: colors.outlineVariant.withValues(
+                                    alpha: 0.6,
+                                  ),
                                 ),
                               ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  texts.technicalSpecsTitle,
-                                  style: Theme.of(context).textTheme.titleSmall
-                                      ?.copyWith(fontWeight: FontWeight.w700),
-                                ),
-                                const SizedBox(height: 10),
-                                ..._currentProduct.specifications
-                                    .asMap()
-                                    .entries
-                                    .map((entry) {
-                                      final index = entry.key;
-                                      final spec = entry.value;
-                                      final isLast =
-                                          index ==
-                                          _currentProduct
-                                                  .specifications
-                                                  .length -
-                                              1;
-                                      return Padding(
-                                        padding: const EdgeInsets.only(
-                                          bottom: 8,
-                                        ),
-                                        child: Column(
-                                          children: [
-                                            Row(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Expanded(
-                                                  flex: 4,
-                                                  child: Text(
-                                                    spec.label,
-                                                    style: Theme.of(context)
-                                                        .textTheme
-                                                        .bodySmall
-                                                        ?.copyWith(
-                                                          color: colors
-                                                              .onSurfaceVariant,
-                                                        ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    texts.technicalSpecsTitle,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleSmall
+                                        ?.copyWith(fontWeight: FontWeight.w700),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  ..._currentProduct.specifications
+                                      .asMap()
+                                      .entries
+                                      .map((entry) {
+                                        final index = entry.key;
+                                        final spec = entry.value;
+                                        final isLast =
+                                            index ==
+                                            _currentProduct
+                                                    .specifications
+                                                    .length -
+                                                1;
+                                        return Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 8,
+                                          ),
+                                          child: Column(
+                                            children: [
+                                              Row(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Expanded(
+                                                    flex: 4,
+                                                    child: Text(
+                                                      spec.label,
+                                                      style: Theme.of(context)
+                                                          .textTheme
+                                                          .bodySmall
+                                                          ?.copyWith(
+                                                            color: colors
+                                                                .onSurfaceVariant,
+                                                          ),
+                                                    ),
                                                   ),
-                                                ),
-                                                const SizedBox(width: 12),
-                                                Expanded(
-                                                  flex: 6,
-                                                  child: Text(
-                                                    spec.value,
-                                                    textAlign: TextAlign.right,
-                                                    style: Theme.of(context)
-                                                        .textTheme
-                                                        .bodySmall
-                                                        ?.copyWith(
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                        ),
+                                                  const SizedBox(width: 12),
+                                                  Expanded(
+                                                    flex: 6,
+                                                    child: Text(
+                                                      spec.value,
+                                                      textAlign:
+                                                          TextAlign.right,
+                                                      style: Theme.of(context)
+                                                          .textTheme
+                                                          .bodySmall
+                                                          ?.copyWith(
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                          ),
+                                                    ),
                                                   ),
+                                                ],
+                                              ),
+                                              if (!isLast) ...[
+                                                const SizedBox(height: 8),
+                                                Divider(
+                                                  height: 1,
+                                                  color: colors.outlineVariant
+                                                      .withValues(alpha: 0.5),
                                                 ),
                                               ],
-                                            ),
-                                            if (!isLast) ...[
-                                              const SizedBox(height: 8),
-                                              Divider(
-                                                height: 1,
-                                                color: colors.outlineVariant
-                                                    .withValues(alpha: 0.5),
-                                              ),
                                             ],
-                                          ],
-                                        ),
-                                      );
-                                    }),
-                              ],
+                                          ),
+                                        );
+                                      }),
+                                ],
+                              ),
                             ),
                           ),
                         ],
@@ -791,48 +831,36 @@ _QuickInfoPalette _quickInfoPaletteFor(
   _QuickInfoTone tone,
 ) {
   final colors = Theme.of(context).colorScheme;
-  final isDark = Theme.of(context).brightness == Brightness.dark;
   switch (tone) {
     case _QuickInfoTone.info:
       return _QuickInfoPalette(
-        background: colors.primary.withValues(alpha: isDark ? 0.18 : 0.08),
-        border: colors.primary.withValues(alpha: isDark ? 0.34 : 0.2),
-        iconBackground: colors.primary.withValues(alpha: isDark ? 0.26 : 0.14),
+        background: colors.primary.withValues(alpha: 0.18),
+        border: colors.primary.withValues(alpha: 0.34),
+        iconBackground: colors.primary.withValues(alpha: 0.26),
         iconColor: colors.primary,
         valueColor: colors.primary,
       );
     case _QuickInfoTone.success:
       return _QuickInfoPalette(
-        background: colors.tertiary.withValues(alpha: isDark ? 0.2 : 0.12),
-        border: colors.tertiary.withValues(alpha: isDark ? 0.34 : 0.2),
-        iconBackground: colors.tertiary.withValues(alpha: isDark ? 0.28 : 0.18),
+        background: colors.tertiary.withValues(alpha: 0.2),
+        border: colors.tertiary.withValues(alpha: 0.34),
+        iconBackground: colors.tertiary.withValues(alpha: 0.28),
         iconColor: colors.tertiary,
         valueColor: colors.tertiary,
       );
     case _QuickInfoTone.warning:
-      if (isDark) {
-        return const _QuickInfoPalette(
-          background: Color(0xFF4A3917),
-          border: Color(0xFF6C4E16),
-          iconBackground: Color(0xFF5C4518),
-          iconColor: Color(0xFFF4D18A),
-          valueColor: Color(0xFFF4D18A),
-        );
-      }
       return const _QuickInfoPalette(
-        background: Color(0xFFFFF8EB),
-        border: Color(0xFFFFE9C4),
-        iconBackground: Color(0xFFFFF0D8),
-        iconColor: Color(0xFFB26A00),
-        valueColor: Color(0xFFA85F00),
+        background: Color(0xFF4A3917),
+        border: Color(0xFF6C4E16),
+        iconBackground: Color(0xFF5C4518),
+        iconColor: Color(0xFFF4D18A),
+        valueColor: Color(0xFFF4D18A),
       );
     case _QuickInfoTone.danger:
       return _QuickInfoPalette(
-        background: colors.errorContainer.withValues(
-          alpha: isDark ? 0.32 : 0.7,
-        ),
-        border: colors.error.withValues(alpha: isDark ? 0.4 : 0.24),
-        iconBackground: colors.error.withValues(alpha: isDark ? 0.32 : 0.16),
+        background: colors.errorContainer.withValues(alpha: 0.32),
+        border: colors.error.withValues(alpha: 0.4),
+        iconBackground: colors.error.withValues(alpha: 0.32),
         iconColor: colors.error,
         valueColor: colors.error,
       );
@@ -1821,7 +1849,6 @@ class _StockBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final texts = _productDetailTexts(context);
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final style = Theme.of(context).textTheme.bodySmall;
     late final String label;
     late final Color textColor;
@@ -1829,21 +1856,15 @@ class _StockBadge extends StatelessWidget {
     if (remainingStock <= 0) {
       label = texts.outOfStockShortLabel;
       textColor = colors.error;
-      background = colors.errorContainer.withValues(
-        alpha: isDark ? 0.42 : 0.82,
-      );
+      background = colors.errorContainer.withValues(alpha: 0.42);
     } else if (remainingStock <= 10) {
       label = texts.lowStockBadge(remainingStock);
       textColor = colors.tertiary;
-      background = colors.tertiaryContainer.withValues(
-        alpha: isDark ? 0.46 : 0.82,
-      );
+      background = colors.tertiaryContainer.withValues(alpha: 0.46);
     } else {
       label = texts.inStockBadge(remainingStock);
       textColor = colors.primary;
-      background = colors.primaryContainer.withValues(
-        alpha: isDark ? 0.4 : 0.8,
-      );
+      background = colors.primaryContainer.withValues(alpha: 0.4);
     }
 
     return Container(
@@ -1913,7 +1934,6 @@ class _BottomActionBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final texts = _productDetailTexts(context);
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final label = remainingStock <= 0
         ? texts.outOfStockShortLabel
         : remainingStock <= 10
@@ -1924,9 +1944,7 @@ class _BottomActionBar extends StatelessWidget {
         : remainingStock <= 10
         ? colors.tertiary
         : colors.primary;
-    final helperTextColor = colors.onSurfaceVariant.withValues(
-      alpha: isDark ? 0.9 : 0.95,
-    );
+    final helperTextColor = colors.onSurfaceVariant.withValues(alpha: 0.9);
     final shouldShowAddDisabledReason =
         addToCartDisabledReason != null && onAddToCart == null;
     final shouldShowBuyDisabledReason =
@@ -2275,8 +2293,7 @@ class _ProductDetailTexts {
   String get cancelAction => isEnglish ? 'Cancel' : 'Huy';
   String get viewCartAction => isEnglish ? 'View cart' : 'Mo gio hang';
   String get dealerPriceLabel => isEnglish ? 'Dealer price' : 'Gia dai ly';
-  String get vatExcludedLabel =>
-      isEnglish ? 'Excludes VAT' : 'Chua gom VAT';
+  String get vatExcludedLabel => isEnglish ? 'Excludes VAT' : 'Chua gom VAT';
   String skuLabel(String sku) => 'SKU: $sku';
   String get technicalSpecsTitle =>
       isEnglish ? 'Technical specifications' : 'Thong so ky thuat';
@@ -2310,21 +2327,17 @@ class _ProductDetailTexts {
       ? 'Maximum quantity reached based on stock.'
       : 'Da dat toi da theo ton kho.';
   String get statusLabel => isEnglish ? 'Status' : 'Trang thai';
-  String get outOfStockShortLabel =>
-      isEnglish ? 'Out of stock' : 'Het hang';
+  String get outOfStockShortLabel => isEnglish ? 'Out of stock' : 'Het hang';
   String get lowStockShortLabel => isEnglish ? 'Low stock' : 'Sap het';
   String get inStockShortLabel => isEnglish ? 'In stock' : 'Con hang';
   String get lowStockCompactLabel =>
       isEnglish ? 'Limited stock' : 'Con it hang';
-  String lowStockBadge(int remainingStock) => isEnglish
-      ? 'Low stock: $remainingStock'
-      : 'Sap het: $remainingStock';
-  String inStockBadge(int remainingStock) => isEnglish
-      ? 'In stock: $remainingStock'
-      : 'Con hang: $remainingStock';
+  String lowStockBadge(int remainingStock) =>
+      isEnglish ? 'Low stock: $remainingStock' : 'Sap het: $remainingStock';
+  String inStockBadge(int remainingStock) =>
+      isEnglish ? 'In stock: $remainingStock' : 'Con hang: $remainingStock';
   String get stockLabel => isEnglish ? 'Stock' : 'Ton kho';
-  String get readyToAddLabel =>
-      isEnglish ? 'Ready to add' : 'Them duoc ngay';
+  String get readyToAddLabel => isEnglish ? 'Ready to add' : 'Them duoc ngay';
   String readyToAddValue(int quantity) =>
       isEnglish ? '$quantity products' : '$quantity san pham';
   String get warrantyLabel => isEnglish ? 'Warranty' : 'Bao hanh';
@@ -2373,12 +2386,10 @@ class _ProductDetailTexts {
       ? 'This device cannot load the video.'
       : 'Khong the tai video tren thiet bi nay.';
   String get retryLoadAction => isEnglish ? 'Retry' : 'Thu tai lai';
-  String get tapToLoadVideoMessage => isEnglish
-      ? 'Tap to load video'
-      : 'Nhan de tai video';
-  String quantityInCartSummary(int quantity) => isEnglish
-      ? '$quantity already in cart'
-      : 'Da co $quantity trong gio';
+  String get tapToLoadVideoMessage =>
+      isEnglish ? 'Tap to load video' : 'Nhan de tai video';
+  String quantityInCartSummary(int quantity) =>
+      isEnglish ? '$quantity already in cart' : 'Da co $quantity trong gio';
   String get flexibleQuantityLabel =>
       isEnglish ? 'Flexible quantity' : 'So luong linh hoat';
 }

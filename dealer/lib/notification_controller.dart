@@ -28,7 +28,7 @@ String notificationSyncErrorMessage(String error, {required bool isEnglish}) {
   if (error == _notificationSyncUnavailableMarker) {
     return isEnglish
         ? 'Unable to sync notifications.'
-        : 'Khong the dong bo thong bao.';
+        : 'Không thể đồng bộ thông báo.';
   }
   return error;
 }
@@ -236,7 +236,7 @@ class NotificationController extends ChangeNotifier {
           DistributorNotice(
             id: noticeId,
             type: _mapRemoteType(entry['type']?.toString()),
-            title: _normalizeString(entry['title']) ?? 'ThĂ´ng bĂ¡o',
+            title: _normalizeString(entry['title']) ?? 'Thông báo',
             message: _normalizeString(entry['body']) ?? '',
             createdAt: parseApiDateTime(entry['createdAt']) ?? DateTime.now(),
             link: _normalizeString(entry['link']),
@@ -493,7 +493,7 @@ class NotificationController extends ChangeNotifier {
     final notice = DistributorNotice(
       id: remoteId.toString(),
       type: _mapRemoteType(payload['type']?.toString()),
-      title: _normalizeString(payload['title']) ?? 'ThĂ´ng bĂ¡o',
+      title: _normalizeString(payload['title']) ?? 'Thông báo',
       message: _normalizeString(payload['body']) ?? '',
       createdAt: parseApiDateTime(payload['createdAt']) ?? DateTime.now(),
       link: _normalizeString(payload['link']),

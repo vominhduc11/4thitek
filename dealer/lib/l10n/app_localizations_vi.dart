@@ -95,7 +95,7 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get accountMenuPreferencesSubtitle =>
-      'Chuyển chế độ giao diện và ngôn ngữ sử dụng.';
+      'Quản lý ngôn ngữ và thiết lập ứng dụng.';
 
   @override
   String get accountLogoutAction => 'Đăng xuất';

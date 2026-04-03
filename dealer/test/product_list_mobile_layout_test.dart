@@ -51,7 +51,118 @@ void main() {
 
     expect(exceptions, isEmpty, reason: exceptions.join('\n'));
     expect(find.byType(ProductListScreen), findsOneWidget);
-    expect(find.text('AMP-8CH'), findsOneWidget);
+  });
+
+  testWidgets('Desktop width packs products into a denser grid row', (
+    tester,
+  ) async {
+    final view = tester.view;
+    view.devicePixelRatio = 1.0;
+    view.physicalSize = const Size(1280, 900);
+    addTearDown(() {
+      view.resetPhysicalSize();
+      view.resetDevicePixelRatio();
+    });
+
+    final settingsController = AppSettingsController();
+    final catalogController = _FakeProductCatalogController();
+    final cartController = CartController();
+    final notificationController = NotificationController();
+
+    await tester.pumpWidget(
+      AppSettingsScope(
+        controller: settingsController,
+        child: NotificationScope(
+          controller: notificationController,
+          child: ProductCatalogScope(
+            controller: catalogController,
+            child: CartScope(
+              controller: cartController,
+              child: const MaterialApp(home: ProductListScreen()),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+
+    final ampPosition = tester.getTopLeft(find.text('AMP-8CH'));
+    final speakerPosition = tester.getTopLeft(find.text('SPK-2WAY'));
+    final subwooferPosition = tester.getTopLeft(find.text('SUB-ACT'));
+
+    expect((ampPosition.dy - speakerPosition.dy).abs(), lessThan(1));
+    expect((speakerPosition.dy - subwooferPosition.dy).abs(), lessThan(1));
+
+    final exceptions = <Object>[];
+    Object? error;
+    while ((error = tester.takeException()) != null) {
+      exceptions.add(error!);
+    }
+
+    expect(exceptions, isEmpty, reason: exceptions.join('\n'));
+  });
+
+  testWidgets('Search empty state can clear filters and recover results', (
+    tester,
+  ) async {
+    final view = tester.view;
+    view.devicePixelRatio = 1.0;
+    view.physicalSize = const Size(320, 760);
+    addTearDown(() {
+      view.resetPhysicalSize();
+      view.resetDevicePixelRatio();
+    });
+
+    final settingsController = AppSettingsController();
+    final catalogController = _FakeProductCatalogController();
+    final cartController = CartController();
+    final notificationController = NotificationController();
+
+    await tester.pumpWidget(
+      AppSettingsScope(
+        controller: settingsController,
+        child: NotificationScope(
+          controller: notificationController,
+          child: ProductCatalogScope(
+            controller: catalogController,
+            child: CartScope(
+              controller: cartController,
+              child: const MaterialApp(home: ProductListScreen()),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).first, 'no-match-product');
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.search_off_rounded), findsOneWidget);
+    final clearButtons = find.widgetWithIcon(
+      OutlinedButton,
+      Icons.restart_alt_rounded,
+    );
+    expect(clearButtons, findsWidgets);
+
+    final clearButton = tester.widgetList<OutlinedButton>(clearButtons).first;
+    clearButton.onPressed!();
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.inventory_2_outlined), findsNothing);
+
+    final exceptions = <Object>[];
+    Object? error;
+    while ((error = tester.takeException()) != null) {
+      exceptions.add(error!);
+    }
+
+    expect(exceptions, isEmpty, reason: exceptions.join('\n'));
   });
 }
 

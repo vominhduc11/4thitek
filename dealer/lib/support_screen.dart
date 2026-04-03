@@ -180,12 +180,277 @@ class _SupportScreenState extends State<SupportScreen> {
     final texts = _SupportTexts(
       isEnglish: appSettings.locale.languageCode == 'en',
     );
+    final screenWidth = MediaQuery.sizeOf(context).width;
     final isTablet = AppBreakpoints.isTablet(context);
-    final contentMaxWidth = isTablet ? 860.0 : double.infinity;
+    final isWideLayout = screenWidth >= 1080;
+    final contentMaxWidth = isWideLayout
+        ? 1180.0
+        : isTablet
+        ? 860.0
+        : double.infinity;
     final faqItems = texts.faqItems;
 
+    final quickContactSection = RepaintBoundary(
+      child: FadeSlideIn(
+        child: SectionCard(
+          title: texts.quickContactTitle,
+          child: Column(
+            children: [
+              _ContactTile(
+                icon: Icons.phone_outlined,
+                label: texts.hotlineLabel,
+                value: _hotline,
+                copyTooltip: texts.copyAction,
+                onCopy: () => _copyToClipboard(
+                  _hotline,
+                  message: texts.hotlineCopiedMessage,
+                ),
+              ),
+              const Divider(height: 0),
+              _ContactTile(
+                icon: Icons.mail_outline,
+                label: texts.emailLabel,
+                value: _supportEmail,
+                copyTooltip: texts.copyAction,
+                onCopy: () => _copyToClipboard(
+                  _supportEmail,
+                  message: texts.supportEmailCopiedMessage,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => _launchHotline(_hotline, texts),
+                    icon: const Icon(Icons.phone_in_talk_outlined),
+                    label: Text(texts.callHotlineAction),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => _launchSupportEmail(_supportEmail, texts),
+                    icon: const Icon(Icons.alternate_email_outlined),
+                    label: Text(texts.sendEmailAction),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  texts.supportHours,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final faqSection = RepaintBoundary(
+      child: FadeSlideIn(
+        delay: const Duration(milliseconds: 60),
+        child: SectionCard(
+          title: texts.faqTitle,
+          child: Column(
+            children: [
+              for (var i = 0; i < faqItems.length; i++)
+                _FaqTile(
+                  item: faqItems[i],
+                  showDivider: i != faqItems.length - 1,
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final statusSection = _lastTicketId != null && _lastSubmittedAt != null
+        ? RepaintBoundary(
+            child: FadeSlideIn(
+              key: _ticketCardKey,
+              delay: const Duration(milliseconds: 90),
+              child: _StatusCard(
+                ticketId: _lastTicketId!,
+                submittedAt: _lastSubmittedAt!,
+                category: texts.categoryLabel(_lastCategory ?? _category),
+                priority: texts.priorityLabel(_lastPriority ?? _priority),
+                sla: texts.slaText(_lastPriority ?? _priority),
+                status: _lastStatus,
+                adminReply: _lastAdminReply,
+                texts: texts,
+                onClear: () {
+                  setState(() {
+                    _lastTicketId = null;
+                    _lastSubmittedAt = null;
+                    _lastCategory = null;
+                    _lastPriority = null;
+                    _lastStatus = null;
+                    _lastAdminReply = null;
+                  });
+                },
+              ),
+            ),
+          )
+        : null;
+
+    final latestWarningSection =
+        _latestTicketLoadErrorMessage != null &&
+            (_lastTicketId == null || _lastSubmittedAt == null)
+        ? RepaintBoundary(
+            child: FadeSlideIn(
+              delay: const Duration(milliseconds: 100),
+              child: _InlineSupportWarning(
+                title: texts.statusSyncWarningTitle,
+                message: texts.latestTicketLoadWarning,
+                actionLabel: texts.retryAction,
+                onRetry: _loadLatestTicket,
+              ),
+            ),
+          )
+        : null;
+
+    final historySection = RepaintBoundary(
+      child: FadeSlideIn(
+        delay: const Duration(milliseconds: 120),
+        child: SectionCard(
+          title: texts.recentRequestsTitle,
+          child: SupportTicketHistory(
+            isEnglish: texts.isEnglish,
+            items: _ticketHistory,
+            isLoading: _isHistoryLoading,
+            isLoadingMore: _isLoadingMoreTickets,
+            hasMore: _hasMoreTickets,
+            errorMessage: _ticketHistoryLoadErrorMessage == null
+                ? null
+                : texts.historyLoadWarning,
+            onLoadMore: () => _loadTicketHistory(loadMore: true),
+            onRetry: _loadTicketHistory,
+          ),
+        ),
+      ),
+    );
+
+    final submitSection = RepaintBoundary(
+      child: FadeSlideIn(
+        delay: const Duration(milliseconds: 140),
+        child: SectionCard(
+          title: texts.submitRequestTitle,
+          child: Column(
+            children: [
+              DropdownButtonFormField<SupportCategory>(
+                initialValue: _category,
+                decoration: InputDecoration(
+                  labelText: texts.categoryFieldLabel,
+                  prefixIcon: const Icon(Icons.category_outlined),
+                ),
+                items: SupportCategory.values
+                    .map(
+                      (item) => DropdownMenuItem(
+                        value: item,
+                        child: Text(texts.categoryLabel(item)),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  if (value == null) {
+                    return;
+                  }
+                  setState(() => _category = value);
+                },
+              ),
+              const SizedBox(height: 14),
+              DropdownButtonFormField<SupportPriority>(
+                initialValue: _priority,
+                decoration: InputDecoration(
+                  labelText: texts.priorityFieldLabel,
+                  prefixIcon: const Icon(Icons.flag_outlined),
+                ),
+                items: SupportPriority.values
+                    .map(
+                      (item) => DropdownMenuItem(
+                        value: item,
+                        child: Text(texts.priorityLabel(item)),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  if (value == null) {
+                    return;
+                  }
+                  setState(() => _priority = value);
+                },
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: _subjectController,
+                textInputAction: TextInputAction.next,
+                textCapitalization: TextCapitalization.sentences,
+                maxLength: _subjectMax,
+                buildCounter: _buildCounter,
+                decoration: InputDecoration(
+                  labelText: texts.subjectFieldLabel,
+                  prefixIcon: const Icon(Icons.subject_outlined),
+                ),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: _messageController,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
+                textCapitalization: TextCapitalization.sentences,
+                minLines: 4,
+                maxLines: 8,
+                maxLength: _messageMax,
+                buildCounter: _buildCounter,
+                decoration: InputDecoration(
+                  labelText: texts.descriptionFieldLabel,
+                  hintText: texts.descriptionHint,
+                  helperText: texts.descriptionHelper,
+                  alignLabelWithHint: true,
+                  prefixIcon: const Icon(Icons.chat_bubble_outline),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  texts.expectedResponseTime(texts.slaText(_priority)),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isSubmitting ? null : () => _handleSubmit(texts),
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2.5),
+                        )
+                      : Text(texts.submitRequestAction),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
     return Scaffold(
-      appBar: AppBar(title: BrandAppBarTitle(texts.screenTitle)),
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      appBar: AppBar(
+        title: BrandAppBarTitle(texts.screenTitle),
+        surfaceTintColor: Colors.transparent,
+        scrolledUnderElevation: 0,
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: contentMaxWidth),
@@ -195,261 +460,60 @@ class _SupportScreenState extends State<SupportScreen> {
               controller: _scrollController,
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-              children: [
-                FadeSlideIn(
-                  child: SectionCard(
-                    title: texts.quickContactTitle,
-                    child: Column(
-                      children: [
-                        _ContactTile(
-                          icon: Icons.phone_outlined,
-                          label: texts.hotlineLabel,
-                          value: _hotline,
-                          copyTooltip: texts.copyAction,
-                          onCopy: () => _copyToClipboard(
-                            _hotline,
-                            message: texts.hotlineCopiedMessage,
-                          ),
-                        ),
-                        const Divider(height: 0),
-                        _ContactTile(
-                          icon: Icons.mail_outline,
-                          label: texts.emailLabel,
-                          value: _supportEmail,
-                          copyTooltip: texts.copyAction,
-                          onCopy: () => _copyToClipboard(
-                            _supportEmail,
-                            message: texts.supportEmailCopiedMessage,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 12,
-                          runSpacing: 8,
-                          children: [
-                            OutlinedButton.icon(
-                              onPressed: () => _launchHotline(_hotline, texts),
-                              icon: const Icon(Icons.phone_in_talk_outlined),
-                              label: Text(texts.callHotlineAction),
+              children: isWideLayout
+                  ? [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 5,
+                            child: Column(
+                              children: [
+                                quickContactSection,
+                                const SizedBox(height: 14),
+                                faqSection,
+                                if (statusSection != null) ...[
+                                  const SizedBox(height: 14),
+                                  statusSection,
+                                ],
+                                if (latestWarningSection != null) ...[
+                                  const SizedBox(height: 14),
+                                  latestWarningSection,
+                                ],
+                              ],
                             ),
-                            OutlinedButton.icon(
-                              onPressed: () =>
-                                  _launchSupportEmail(_supportEmail, texts),
-                              icon: const Icon(Icons.alternate_email_outlined),
-                              label: Text(texts.sendEmailAction),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            flex: 7,
+                            child: Column(
+                              children: [
+                                historySection,
+                                const SizedBox(height: 14),
+                                submitSection,
+                              ],
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            texts.supportHours,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 60),
-                  child: SectionCard(
-                    title: texts.faqTitle,
-                    child: Column(
-                      children: [
-                        for (var i = 0; i < faqItems.length; i++)
-                          _FaqTile(
-                            item: faqItems[i],
-                            showDivider: i != faqItems.length - 1,
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                if (_lastTicketId != null && _lastSubmittedAt != null)
-                  FadeSlideIn(
-                    key: _ticketCardKey,
-                    delay: const Duration(milliseconds: 90),
-                    child: _StatusCard(
-                      ticketId: _lastTicketId!,
-                      submittedAt: _lastSubmittedAt!,
-                      category: texts.categoryLabel(_lastCategory ?? _category),
-                      priority: texts.priorityLabel(_lastPriority ?? _priority),
-                      sla: texts.slaText(_lastPriority ?? _priority),
-                      status: _lastStatus,
-                      adminReply: _lastAdminReply,
-                      texts: texts,
-                      onClear: () {
-                        setState(() {
-                          _lastTicketId = null;
-                          _lastSubmittedAt = null;
-                          _lastCategory = null;
-                          _lastPriority = null;
-                          _lastStatus = null;
-                          _lastAdminReply = null;
-                        });
-                      },
-                    ),
-                  ),
-                if (_lastTicketId != null && _lastSubmittedAt != null)
-                  const SizedBox(height: 14),
-                if (_latestTicketLoadErrorMessage != null &&
-                    (_lastTicketId == null || _lastSubmittedAt == null)) ...[
-                  FadeSlideIn(
-                    delay: const Duration(milliseconds: 100),
-                    child: _InlineSupportWarning(
-                      title: texts.statusSyncWarningTitle,
-                      message: texts.latestTicketLoadWarning,
-                      actionLabel: texts.retryAction,
-                      onRetry: _loadLatestTicket,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                ],
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 120),
-                  child: SectionCard(
-                    title: texts.recentRequestsTitle,
-                    child: SupportTicketHistory(
-                      isEnglish: texts.isEnglish,
-                      items: _ticketHistory,
-                      isLoading: _isHistoryLoading,
-                      isLoadingMore: _isLoadingMoreTickets,
-                      hasMore: _hasMoreTickets,
-                      errorMessage: _ticketHistoryLoadErrorMessage == null
-                          ? null
-                          : texts.historyLoadWarning,
-                      onLoadMore: () => _loadTicketHistory(loadMore: true),
-                      onRetry: _loadTicketHistory,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 140),
-                  child: SectionCard(
-                    title: texts.submitRequestTitle,
-                    child: Column(
-                      children: [
-                        DropdownButtonFormField<SupportCategory>(
-                          initialValue: _category,
-                          decoration: InputDecoration(
-                            labelText: texts.categoryFieldLabel,
-                            prefixIcon: const Icon(Icons.category_outlined),
-                          ),
-                          items: SupportCategory.values
-                              .map(
-                                (item) => DropdownMenuItem(
-                                  value: item,
-                                  child: Text(texts.categoryLabel(item)),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            if (value == null) {
-                              return;
-                            }
-                            setState(() => _category = value);
-                          },
-                        ),
+                        ],
+                      ),
+                    ]
+                  : [
+                      quickContactSection,
+                      const SizedBox(height: 14),
+                      faqSection,
+                      if (statusSection != null) ...[
                         const SizedBox(height: 14),
-                        DropdownButtonFormField<SupportPriority>(
-                          initialValue: _priority,
-                          decoration: InputDecoration(
-                            labelText: texts.priorityFieldLabel,
-                            prefixIcon: const Icon(Icons.flag_outlined),
-                          ),
-                          items: SupportPriority.values
-                              .map(
-                                (item) => DropdownMenuItem(
-                                  value: item,
-                                  child: Text(texts.priorityLabel(item)),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            if (value == null) {
-                              return;
-                            }
-                            setState(() => _priority = value);
-                          },
-                        ),
-                        const SizedBox(height: 14),
-                        TextField(
-                          controller: _subjectController,
-                          textInputAction: TextInputAction.next,
-                          textCapitalization: TextCapitalization.sentences,
-                          maxLength: _subjectMax,
-                          buildCounter: _buildCounter,
-                          decoration: InputDecoration(
-                            labelText: texts.subjectFieldLabel,
-                            prefixIcon: const Icon(Icons.subject_outlined),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        TextField(
-                          controller: _messageController,
-                          keyboardType: TextInputType.multiline,
-                          textInputAction: TextInputAction.newline,
-                          textCapitalization: TextCapitalization.sentences,
-                          minLines: 4,
-                          maxLines: 8,
-                          maxLength: _messageMax,
-                          buildCounter: _buildCounter,
-                          decoration: InputDecoration(
-                            labelText: texts.descriptionFieldLabel,
-                            hintText: texts.descriptionHint,
-                            helperText: texts.descriptionHelper,
-                            alignLabelWithHint: true,
-                            prefixIcon: const Icon(Icons.chat_bubble_outline),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            texts.expectedResponseTime(
-                              texts.slaText(_priority),
-                            ),
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _isSubmitting
-                                ? null
-                                : () => _handleSubmit(texts),
-                            child: _isSubmitting
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.5,
-                                    ),
-                                  )
-                                : Text(texts.submitRequestAction),
-                          ),
-                        ),
+                        statusSection,
                       ],
-                    ),
-                  ),
-                ),
-              ],
+                      if (latestWarningSection != null) ...[
+                        const SizedBox(height: 14),
+                        latestWarningSection,
+                      ],
+                      const SizedBox(height: 14),
+                      historySection,
+                      const SizedBox(height: 14),
+                      submitSection,
+                    ],
             ),
           ),
         ),
@@ -517,31 +581,41 @@ class _SupportScreenState extends State<SupportScreen> {
       traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
       requestFocus: true,
       builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(texts.confirmSubmitTitle),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(texts.confirmSubmitDescription),
-              const SizedBox(height: 10),
-              Text('${texts.subjectFieldLabel}: $subject'),
-              const SizedBox(height: 4),
-              Text('${texts.categorySummaryLabel}: $category'),
-              const SizedBox(height: 4),
-              Text('${texts.prioritySummaryLabel}: $priority'),
+        return RepaintBoundary(
+          child: AlertDialog(
+            scrollable: true,
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 20,
+            ),
+            title: Text(texts.confirmSubmitTitle),
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(texts.confirmSubmitDescription),
+                  const SizedBox(height: 10),
+                  Text('${texts.subjectFieldLabel}: $subject'),
+                  const SizedBox(height: 4),
+                  Text('${texts.categorySummaryLabel}: $category'),
+                  const SizedBox(height: 4),
+                  Text('${texts.prioritySummaryLabel}: $priority'),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(texts.cancelAction),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(texts.submitRequestAction),
+              ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(texts.cancelAction),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(texts.submitRequestAction),
-            ),
-          ],
         );
       },
     );
@@ -888,11 +962,11 @@ class _SupportTexts {
 extension _SupportTextsValidationMessages on _SupportTexts {
   String subjectTooShortMessage(int minLength) => isEnglish
       ? 'Subject must be at least $minLength characters.'
-      : 'Tieu de phai co it nhat $minLength ky tu.';
+      : 'Tiêu đề phải có ít nhất $minLength ký tự.';
 
   String messageTooShortMessage(int minLength) => isEnglish
       ? 'Description must be at least $minLength characters.'
-      : 'Noi dung phai co it nhat $minLength ky tu.';
+      : 'Nội dung phải có ít nhất $minLength ký tự.';
 }
 
 class _InlineSupportWarning extends StatelessWidget {
@@ -913,22 +987,43 @@ class _InlineSupportWarning extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     return SectionCard(
       title: title,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.info_outline, color: colors.error),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(message, style: Theme.of(context).textTheme.bodyMedium),
-                const SizedBox(height: 10),
-                OutlinedButton(onPressed: onRetry, child: Text(actionLabel)),
-              ],
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: colors.errorContainer.withValues(alpha: 0.28),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: colors.error.withValues(alpha: 0.28)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: colors.errorContainer,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(Icons.info_outline, color: colors.onErrorContainer),
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(message, style: Theme.of(context).textTheme.bodyMedium),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: onRetry,
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: Text(actionLabel),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -951,17 +1046,58 @@ class _ContactTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(icon),
-      title: Text(label),
-      subtitle: Text(value),
-      trailing: IconButton(
-        icon: const Icon(Icons.copy_rounded),
-        onPressed: onCopy,
-        tooltip: copyTooltip,
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onCopy,
+        borderRadius: BorderRadius.circular(18),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: colors.primaryContainer.withValues(alpha: 0.72),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: colors.onPrimaryContainer),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: textTheme.labelMedium?.copyWith(
+                        color: colors.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      value,
+                      style: textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.copy_rounded),
+                onPressed: onCopy,
+                tooltip: copyTooltip,
+              ),
+            ],
+          ),
+        ),
       ),
-      onTap: onCopy,
     );
   }
 }
@@ -991,29 +1127,74 @@ class _StatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final colors = Theme.of(context).colorScheme;
-    return Card(
-      color: colors.primaryContainer.withValues(alpha: 0.24),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: BorderSide(color: colors.primary.withValues(alpha: 0.45)),
+    final statusText = status == null ? null : texts.statusLabel(status!);
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: colors.outlineVariant.withValues(alpha: 0.55),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: colors.shadow.withValues(alpha: 0.03),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Text(
-                    texts.requestSubmittedTitle,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        texts.requestSubmittedTitle,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${texts.responseSlaLabel}: $sla',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+                if (statusText != null) ...[
+                  const SizedBox(width: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colors.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: colors.outlineVariant.withValues(alpha: 0.5),
+                      ),
+                    ),
+                    child: Text(
+                      statusText,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
                 IconButton(
                   onPressed: onClear,
                   icon: const Icon(Icons.close),
@@ -1034,23 +1215,36 @@ class _StatusCard extends StatelessWidget {
             _InfoRow(label: texts.prioritySummaryLabel, value: priority),
             const SizedBox(height: 6),
             _InfoRow(label: texts.responseSlaLabel, value: sla),
-            if (status != null) ...[
-              const SizedBox(height: 6),
-              _InfoRow(
-                label: texts.statusSummaryLabel,
-                value: texts.statusLabel(status!),
-              ),
-            ],
             if (adminReply != null) ...[
-              const SizedBox(height: 10),
-              Text(
-                texts.adminReplyLabel,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+              const SizedBox(height: 14),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: colors.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: colors.outlineVariant.withValues(alpha: 0.5),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      texts.adminReplyLabel,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: colors.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      adminReply!,
+                      style: theme.textTheme.bodyMedium?.copyWith(height: 1.45),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(adminReply!),
             ],
           ],
         ),
@@ -1077,8 +1271,11 @@ class _InfoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final labelStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
       color: Theme.of(context).colorScheme.onSurfaceVariant,
+      fontWeight: FontWeight.w600,
     );
-    final valueStyle = Theme.of(context).textTheme.bodyMedium;
+    final valueStyle = Theme.of(
+      context,
+    ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1109,13 +1306,48 @@ class _FaqTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return Column(
       children: [
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: Icon(item.icon),
-          title: Text(item.title),
-          subtitle: Text(item.body),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: colors.secondaryContainer.withValues(alpha: 0.72),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(item.icon, color: colors.onSecondaryContainer),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.title,
+                      style: textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      item.body,
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: colors.onSurfaceVariant,
+                        height: 1.45,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
         if (showDivider) const Divider(height: 0),
       ],

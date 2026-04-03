@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
@@ -54,7 +54,7 @@ String? _resolveDynamicOrderMessage(
         : formatVnd(minimumAmount);
     return isEnglish
         ? 'Each partial debt payment must be at least $minimumLabel unless it clears the remaining outstanding balance.'
-        : 'Moi lan thanh toan cong no tung phan phai tu $minimumLabel tro len, tru khi thanh toan het cong no con lai.';
+        : 'Mỗi lần thanh toán công nợ từng phần phải từ $minimumLabel trở lên, trừ khi thanh toán hết công nợ còn lại.';
   }
 
   final insufficientStockMatch = _insufficientStockPattern.firstMatch(
@@ -65,11 +65,11 @@ String? _resolveDynamicOrderMessage(
     if (productName == null || productName.isEmpty) {
       return isEnglish
           ? 'Insufficient stock. Please refresh and try again.'
-          : 'Ton kho khong con du. Vui long lam moi va thu lai.';
+          : 'Tồn kho không còn đủ. Vui lòng làm mới và thử lại.';
     }
     return isEnglish
         ? 'Insufficient stock for $productName. Please refresh and try again.'
-        : 'Ton kho cua $productName khong con du. Vui long lam moi va thu lai.';
+        : 'Tồn kho của $productName không còn đủ. Vui lòng làm mới và thử lại.';
   }
 
   switch (normalized) {
@@ -77,11 +77,11 @@ String? _resolveDynamicOrderMessage(
     case _optimisticConflictMessage:
       return isEnglish
           ? 'Stock changed while your request was being processed. Please refresh and try again.'
-          : 'Ton kho vua thay doi trong luc xu ly. Vui long lam moi va thu lai.';
+          : 'Tồn kho vừa thay đổi trong lúc xử lý. Vui lòng làm mới và thử lại.';
     case _roundedPaymentAmountMessage:
       return isEnglish
           ? 'The rounded payment amount must be at least 1 VND.'
-          : 'So tien sau khi lam tron phai tu 1 VND tro len.';
+          : 'Số tiền sau khi làm tròn phải từ 1 VND trở lên.';
     default:
       return null;
   }
@@ -97,7 +97,7 @@ String resolveOrderControllerMessage(
       : _resolveDynamicOrderMessage(normalized, isEnglish: isEnglish);
   if (!isEnglish) {
     if (normalized == null || normalized.isEmpty) {
-      return 'Khong the dong bo du lieu don hang.';
+      return 'Không thể đồng bộ dữ liệu đơn hàng.';
     }
     final dynamicMessage = _resolveDynamicOrderMessage(
       normalized,
@@ -105,27 +105,27 @@ String resolveOrderControllerMessage(
     );
     switch (normalized) {
       case 'order.message.apiNotConfigured':
-        return 'API don hang chua duoc cau hinh.';
+        return 'API đơn hàng chưa được cấu hình.';
       case 'order.message.unauthenticated':
-        return 'Ban can dang nhap truoc khi thao tac don hang.';
+        return 'Bạn cần đăng nhập trước khi thao tác đơn hàng.';
       case 'order.message.invalidOrderPayload':
-        return 'Du lieu don hang khong hop le.';
+        return 'Dữ liệu đơn hàng không hợp lệ.';
       case 'order.message.invalidOrdersPayload':
-        return 'Du lieu danh sach don hang khong hop le.';
+        return 'Dữ liệu danh sách đơn hàng không hợp lệ.';
       case 'order.message.invalidCreateOrderPayload':
-        return 'Du lieu don hang vua tao khong hop le.';
+        return 'Dữ liệu đơn hàng vừa tạo không hợp lệ.';
       case 'order.message.createOrderFailed':
-        return 'Khong the tao don hang. Vui long thu lai.';
+        return 'Không thể tạo đơn hàng. Vui lòng thử lại.';
       case 'order.message.statusUpdateFailed':
-        return 'Khong the cap nhat trang thai don hang. Vui long thu lai.';
+        return 'Không thể cập nhật trạng thái đơn hàng. Vui lòng thử lại.';
       case 'order.message.paymentFailed':
-        return 'Khong the ghi nhan thanh toan. Vui long kiem tra lai.';
+        return 'Không thể ghi nhận thanh toán. Vui lòng kiểm tra lại.';
       case 'order.message.syncFailed':
-        return 'Khong the dong bo du lieu don hang.';
+        return 'Không thể đồng bộ dữ liệu đơn hàng.';
       case 'Debt payment is not available for this dealer':
-        return 'Tai khoan chua duoc cap han muc cong no.';
+        return 'Tài khoản chưa được cấp hạn mức công nợ.';
       case 'Credit limit exceeded':
-        return 'Vuot han muc cong no. Vui long kiem tra lai tong cong no hien tai truoc khi dat don.';
+        return 'Vượt hạn mức công nợ. Vui lòng kiểm tra lại tổng công nợ hiện tại trước khi đặt đơn.';
       default:
         if (dynamicMessage != null) {
           return dynamicMessage;
@@ -179,11 +179,11 @@ String resolveOrderControllerMessage(
     case 'Debt payment is not available for this dealer':
       return isEnglish
           ? 'This account has not been granted a credit limit yet.'
-          : 'TĂ i khoáº£n chÆ°a Ä‘Æ°á»£c cáº¥p háº¡n má»©c cĂ´ng ná»£.';
+          : 'Tài khoản chưa được cấp hạn mức công nợ.';
     case 'Credit limit exceeded':
       return isEnglish
           ? 'Credit limit exceeded. Please review the current outstanding debt before placing the order.'
-          : 'VÆ°á»£t háº¡n má»©c cĂ´ng ná»£. Vui lĂ²ng kiá»ƒm tra láº¡i tá»•ng cĂ´ng ná»£ hiá»‡n táº¡i trÆ°á»›c khi Ä‘áº·t Ä‘Æ¡n.';
+          : 'Vượt hạn mức công nợ. Vui lòng kiểm tra lại tổng công nợ hiện tại trước khi đặt đơn.';
     default:
       if (dynamicMessage != null) {
         return dynamicMessage;
@@ -281,7 +281,7 @@ class OrderController extends ChangeNotifier {
       await _reloadRemotePaymentsForOrder(remoteOrderId);
       notifyListeners();
     } catch (_) {
-      // silently ignore — stale data is acceptable here
+      // Silently ignore; stale data is acceptable here.
     }
   }
 
@@ -437,9 +437,11 @@ class OrderController extends ChangeNotifier {
     });
   }
 
-  // Dealer-side pre-flight guard. Mirrors backend OrderStatusTransitionPolicy.isDealerTransitionAllowed.
-  // Admin-only transitions (pending -> confirmed, confirmed -> shipping, shipping -> completed/cancelled)
-  // are intentionally absent — the dealer app has no UI to trigger them.
+  // Dealer-side pre-flight guard. Mirrors backend
+  // OrderStatusTransitionPolicy.isDealerTransitionAllowed.
+  // Admin-only transitions (pending -> confirmed, confirmed -> shipping,
+  // shipping -> completed/cancelled) are intentionally absent because the
+  // dealer app has no UI to trigger them.
   static const Map<OrderStatus, Set<OrderStatus>> _validTransitions =
       <OrderStatus, Set<OrderStatus>>{
         OrderStatus.pending: {OrderStatus.cancelled},
@@ -1149,3 +1151,4 @@ class OrderScope extends InheritedNotifier<OrderController> {
     return scope!.notifier!;
   }
 }
+

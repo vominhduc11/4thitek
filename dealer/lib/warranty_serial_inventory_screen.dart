@@ -28,6 +28,7 @@ class _WarrantySerialInventoryScreenState
   static const String _allFilterValue = '__all__';
 
   final TextEditingController _searchController = TextEditingController();
+  final ValueNotifier<bool> _isSearchPending = ValueNotifier<bool>(false);
   Timer? _searchDebounce;
   final ScrollController _scrollController = ScrollController();
   String _query = '';
@@ -40,19 +41,49 @@ class _WarrantySerialInventoryScreenState
   void dispose() {
     _searchDebounce?.cancel();
     _searchController.dispose();
+    _isSearchPending.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
   void _onSearchChanged(String value) {
+    final shouldShowPending = value.trim() != _query.trim();
+    if (_isSearchPending.value != shouldShowPending) {
+      _isSearchPending.value = shouldShowPending;
+    }
     _searchDebounce?.cancel();
     _searchDebounce = Timer(const Duration(milliseconds: 250), () {
       if (!mounted) {
         return;
       }
-      setState(() => _query = value);
+      _isSearchPending.value = false;
+      setState(() => _query = value.trim());
       _jumpToTop();
     });
+  }
+
+  void _clearSearch() {
+    _searchDebounce?.cancel();
+    _searchController.clear();
+    _isSearchPending.value = false;
+    if (_query.isNotEmpty) {
+      setState(() => _query = '');
+      _jumpToTop();
+    }
+  }
+
+  void _resetFilters() {
+    _searchDebounce?.cancel();
+    _searchController.clear();
+    _isSearchPending.value = false;
+    setState(() {
+      _query = '';
+      _filter = SerialInventoryFilter.all;
+      _sort = SerialInventorySort.newest;
+      _selectedOrderId = null;
+      _selectedSku = null;
+    });
+    _jumpToTop();
   }
 
   Future<void> _refresh() async {
@@ -148,9 +179,22 @@ class _WarrantySerialInventoryScreenState
     final importedCount = warrantyController.importedSerialCount;
     final readyCount = warrantyController.availableImportedSerialCount;
     final activatedCount = warrantyController.activatedImportedSerialCount;
-    final isTablet =
-        MediaQuery.sizeOf(context).shortestSide >= AppBreakpoints.phone;
-    final maxWidth = isTablet ? 1100.0 : double.infinity;
+    final mediaSize = MediaQuery.sizeOf(context);
+    final isTablet = mediaSize.shortestSide >= AppBreakpoints.phone;
+    final isWideLayout = mediaSize.width >= 980;
+    final maxWidth = isWideLayout
+        ? 1160.0
+        : (isTablet ? 1100.0 : double.infinity);
+    final hasScopedFilters =
+        _query.isNotEmpty ||
+        _filter != SerialInventoryFilter.all ||
+        _selectedOrderId != null ||
+        _selectedSku != null ||
+        _sort != SerialInventorySort.newest;
+    final searchFieldListenable = Listenable.merge([
+      _searchController,
+      _isSearchPending,
+    ]);
 
     return Scaffold(
       appBar: AppBar(title: BrandAppBarTitle(texts.screenTitle)),
@@ -162,162 +206,246 @@ class _WarrantySerialInventoryScreenState
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextField(
-                      controller: _searchController,
-                      onChanged: _onSearchChanged,
-                      decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.search),
-                        hintText: texts.searchHint,
-                        suffixIcon: _query.isNotEmpty
-                            ? IconButton(
-                                tooltip: texts.clearSearchTooltip,
-                                onPressed: () {
-                                  _searchDebounce?.cancel();
-                                  _searchController.clear();
-                                  setState(() => _query = '');
-                                  _jumpToTop();
-                                },
-                                icon: const Icon(Icons.close_rounded),
-                              )
-                            : null,
+                child: RepaintBoundary(
+                  child: Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.outlineVariant.withValues(alpha: 0.64),
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _FilterChip(
-                          label: texts.allFilterLabel(scopedAllCount),
-                          selected: _filter == SerialInventoryFilter.all,
-                          onTap: () {
-                            setState(() => _filter = SerialInventoryFilter.all);
-                            _jumpToTop();
-                          },
-                        ),
-                        _FilterChip(
-                          label: texts.readyFilterLabel(scopedReadyCount),
-                          selected: _filter == SerialInventoryFilter.ready,
-                          onTap: () {
-                            setState(
-                              () => _filter = SerialInventoryFilter.ready,
-                            );
-                            _jumpToTop();
-                          },
-                        ),
-                        _FilterChip(
-                          label: texts.activatedFilterLabel(
-                            scopedActivatedCount,
-                          ),
-                          selected: _filter == SerialInventoryFilter.activated,
-                          onTap: () {
-                            setState(
-                              () => _filter = SerialInventoryFilter.activated,
-                            );
-                            _jumpToTop();
-                          },
-                        ),
-                        _MenuFilterButton(
-                          label: _selectedOrderId == null
-                              ? texts.orderFilterAllLabel
-                              : texts.orderFilterLabel(_selectedOrderId!),
-                          items: [
-                            PopupMenuItem<String>(
-                              value: _allFilterValue,
-                              child: Text(texts.allOrdersLabel),
-                            ),
-                            ...orderIds.map(
-                              (orderId) => PopupMenuItem<String>(
-                                value: orderId,
-                                child: Text(orderId),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final Widget searchAndFilters = Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              AnimatedBuilder(
+                                animation: searchFieldListenable,
+                                builder: (context, _) {
+                                  final hasTypedValue =
+                                      _searchController.text
+                                          .trim()
+                                          .isNotEmpty ||
+                                      _query.isNotEmpty;
+                                  return TextField(
+                                    controller: _searchController,
+                                    onChanged: _onSearchChanged,
+                                    decoration: InputDecoration(
+                                      prefixIcon: const Icon(Icons.search),
+                                      hintText: texts.searchHint,
+                                      suffixIcon: _isSearchPending.value
+                                          ? const Padding(
+                                              padding: EdgeInsets.all(14),
+                                              child: SizedBox(
+                                                width: 18,
+                                                height: 18,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      strokeWidth: 2.1,
+                                                    ),
+                                              ),
+                                            )
+                                          : hasTypedValue
+                                          ? IconButton(
+                                              tooltip: texts.clearSearchTooltip,
+                                              onPressed: _clearSearch,
+                                              icon: const Icon(
+                                                Icons.close_rounded,
+                                              ),
+                                            )
+                                          : null,
+                                    ),
+                                  );
+                                },
                               ),
-                            ),
-                          ],
-                          onSelected: (value) {
-                            setState(() {
-                              _selectedOrderId = value == _allFilterValue
-                                  ? null
-                                  : value;
-                            });
-                            _jumpToTop();
-                          },
-                        ),
-                        _MenuFilterButton(
-                          label: _selectedSku == null
-                              ? texts.skuFilterAllLabel
-                              : texts.skuFilterLabel(_selectedSku!),
-                          items: [
-                            PopupMenuItem<String>(
-                              value: _allFilterValue,
-                              child: Text(texts.allSkusLabel),
-                            ),
-                            ...skus.map(
-                              (sku) => PopupMenuItem<String>(
-                                value: sku,
-                                child: Text(sku),
+                              const SizedBox(height: 10),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  _FilterChip(
+                                    label: texts.allFilterLabel(scopedAllCount),
+                                    selected:
+                                        _filter == SerialInventoryFilter.all,
+                                    onTap: () {
+                                      setState(
+                                        () =>
+                                            _filter = SerialInventoryFilter.all,
+                                      );
+                                      _jumpToTop();
+                                    },
+                                  ),
+                                  _FilterChip(
+                                    label: texts.readyFilterLabel(
+                                      scopedReadyCount,
+                                    ),
+                                    selected:
+                                        _filter == SerialInventoryFilter.ready,
+                                    onTap: () {
+                                      setState(
+                                        () => _filter =
+                                            SerialInventoryFilter.ready,
+                                      );
+                                      _jumpToTop();
+                                    },
+                                  ),
+                                  _FilterChip(
+                                    label: texts.activatedFilterLabel(
+                                      scopedActivatedCount,
+                                    ),
+                                    selected:
+                                        _filter ==
+                                        SerialInventoryFilter.activated,
+                                    onTap: () {
+                                      setState(
+                                        () => _filter =
+                                            SerialInventoryFilter.activated,
+                                      );
+                                      _jumpToTop();
+                                    },
+                                  ),
+                                  _MenuFilterButton(
+                                    label: _selectedOrderId == null
+                                        ? texts.orderFilterAllLabel
+                                        : texts.orderFilterLabel(
+                                            _selectedOrderId!,
+                                          ),
+                                    items: [
+                                      PopupMenuItem<String>(
+                                        value: _allFilterValue,
+                                        child: Text(texts.allOrdersLabel),
+                                      ),
+                                      ...orderIds.map(
+                                        (orderId) => PopupMenuItem<String>(
+                                          value: orderId,
+                                          child: Text(orderId),
+                                        ),
+                                      ),
+                                    ],
+                                    onSelected: (value) {
+                                      setState(() {
+                                        _selectedOrderId =
+                                            value == _allFilterValue
+                                            ? null
+                                            : value;
+                                      });
+                                      _jumpToTop();
+                                    },
+                                  ),
+                                  _MenuFilterButton(
+                                    label: _selectedSku == null
+                                        ? texts.skuFilterAllLabel
+                                        : texts.skuFilterLabel(_selectedSku!),
+                                    items: [
+                                      PopupMenuItem<String>(
+                                        value: _allFilterValue,
+                                        child: Text(texts.allSkusLabel),
+                                      ),
+                                      ...skus.map(
+                                        (sku) => PopupMenuItem<String>(
+                                          value: sku,
+                                          child: Text(sku),
+                                        ),
+                                      ),
+                                    ],
+                                    onSelected: (value) {
+                                      setState(() {
+                                        _selectedSku = value == _allFilterValue
+                                            ? null
+                                            : value;
+                                      });
+                                      _jumpToTop();
+                                    },
+                                  ),
+                                  _MenuFilterButton(
+                                    label: _sort == SerialInventorySort.newest
+                                        ? texts.sortNewestLabel
+                                        : texts.sortOldestLabel,
+                                    items: [
+                                      PopupMenuItem<String>(
+                                        value: 'newest',
+                                        child: Text(texts.newestOptionLabel),
+                                      ),
+                                      PopupMenuItem<String>(
+                                        value: 'oldest',
+                                        child: Text(texts.oldestOptionLabel),
+                                      ),
+                                    ],
+                                    onSelected: (value) {
+                                      setState(() {
+                                        _sort = value == 'oldest'
+                                            ? SerialInventorySort.oldest
+                                            : SerialInventorySort.newest;
+                                      });
+                                      _jumpToTop();
+                                    },
+                                  ),
+                                ],
                               ),
-                            ),
-                          ],
-                          onSelected: (value) {
-                            setState(() {
-                              _selectedSku = value == _allFilterValue
-                                  ? null
-                                  : value;
-                            });
-                            _jumpToTop();
-                          },
-                        ),
-                        _MenuFilterButton(
-                          label: _sort == SerialInventorySort.newest
-                              ? texts.sortNewestLabel
-                              : texts.sortOldestLabel,
-                          items: [
-                            PopupMenuItem<String>(
-                              value: 'newest',
-                              child: Text(texts.newestOptionLabel),
-                            ),
-                            PopupMenuItem<String>(
-                              value: 'oldest',
-                              child: Text(texts.oldestOptionLabel),
-                            ),
-                          ],
-                          onSelected: (value) {
-                            setState(() {
-                              _sort = value == 'oldest'
-                                  ? SerialInventorySort.oldest
-                                  : SerialInventorySort.newest;
-                            });
-                            _jumpToTop();
-                          },
-                        ),
-                      ],
+                            ],
+                          );
+
+                          final Widget summaryPanel = Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                texts.summaryTitle,
+                                style: Theme.of(context).textTheme.titleSmall
+                                    ?.copyWith(fontWeight: FontWeight.w800),
+                              ),
+                              const SizedBox(height: 10),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  _SummaryChip(
+                                    label: texts.importedLabel,
+                                    value: '$importedCount',
+                                    color: const Color(0xFF1D4ED8),
+                                  ),
+                                  _SummaryChip(
+                                    label: texts.readyLabel,
+                                    value: '$readyCount',
+                                    color: const Color(0xFF047857),
+                                  ),
+                                  _SummaryChip(
+                                    label: texts.activatedLabel,
+                                    value: '$activatedCount',
+                                    color: const Color(0xFFB45309),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          );
+
+                          if (constraints.maxWidth >= 920) {
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(child: searchAndFilters),
+                                const SizedBox(width: 16),
+                                SizedBox(width: 260, child: summaryPanel),
+                              ],
+                            );
+                          }
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              searchAndFilters,
+                              const SizedBox(height: 12),
+                              summaryPanel,
+                            ],
+                          );
+                        },
+                      ),
                     ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _SummaryChip(
-                          label: texts.importedLabel,
-                          value: '$importedCount',
-                          color: const Color(0xFF1D4ED8),
-                        ),
-                        _SummaryChip(
-                          label: texts.readyLabel,
-                          value: '$readyCount',
-                          color: const Color(0xFF047857),
-                        ),
-                        _SummaryChip(
-                          label: texts.activatedLabel,
-                          value: '$activatedCount',
-                          color: const Color(0xFFB45309),
-                        ),
-                      ],
-                    ),
-                  ],
+                  ),
                 ),
               ),
               Expanded(
@@ -330,7 +458,27 @@ class _WarrantySerialInventoryScreenState
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                           children: [
                             _SerialInventoryEmptyCard(
-                              message: texts.emptyMessage,
+                              icon: imported.isEmpty
+                                  ? Icons.inventory_2_outlined
+                                  : Icons.filter_alt_off_outlined,
+                              title: imported.isEmpty
+                                  ? texts.emptyInventoryTitle
+                                  : texts.emptyFilteredTitle,
+                              message: imported.isEmpty
+                                  ? texts.emptyInventoryMessage
+                                  : texts.emptyFilteredMessage,
+                              actionLabel: imported.isEmpty
+                                  ? texts.refreshAction
+                                  : hasScopedFilters
+                                  ? texts.clearFiltersAction
+                                  : null,
+                              onAction: imported.isEmpty
+                                  ? () {
+                                      unawaited(_refresh());
+                                    }
+                                  : hasScopedFilters
+                                  ? _resetFilters
+                                  : null,
                             ),
                           ],
                         )
@@ -348,106 +496,102 @@ class _WarrantySerialInventoryScreenState
                             final isActivated = activatedSet.contains(
                               normalized,
                             );
-                            final isDark =
-                                Theme.of(context).brightness == Brightness.dark;
                             final statusLabel = isActivated
                                 ? texts.activatedLabel
                                 : texts.readyLabel;
                             final statusColor = isActivated
-                                ? (isDark
-                                      ? const Color(0xFFFBBF24)
-                                      : const Color(0xFFB45309))
-                                : (isDark
-                                      ? const Color(0xFF4ADE80)
-                                      : const Color(0xFF047857));
+                                ? const Color(0xFFFBBF24)
+                                : const Color(0xFF4ADE80);
 
-                            return Card(
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                                side: BorderSide(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .outlineVariant
-                                      .withValues(alpha: 0.6),
-                                ),
-                              ),
-                              child: ListTile(
-                                onTap: () => _openOrderDetail(record.orderId),
-                                title: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        record.serial,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleSmall
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: statusColor.withValues(
-                                          alpha: 0.1,
-                                        ),
-                                        borderRadius: BorderRadius.circular(
-                                          999,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        statusLabel,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .labelSmall
-                                            ?.copyWith(
-                                              color: statusColor,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                subtitle: Text(
-                                  texts.recordSubtitle(
-                                    productSku: record.productSku,
-                                    orderId: record.orderId,
-                                    importedAt: formatDateTime(
-                                      record.importedAt,
-                                    ),
+                            return RepaintBoundary(
+                              child: Card(
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  side: BorderSide(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .outlineVariant
+                                        .withValues(alpha: 0.6),
                                   ),
                                 ),
-                                isThreeLine: true,
-                                trailing: PopupMenuButton<String>(
-                                  tooltip: texts.serialActionsTooltip,
-                                  icon: const Icon(Icons.more_vert),
-                                  onSelected: (value) {
-                                    if (value == 'copy') {
-                                      _copySerial(record.serial);
-                                      return;
-                                    }
-                                    if (value == 'order') {
-                                      _openOrderDetail(record.orderId);
-                                    }
-                                  },
-                                  itemBuilder: (context) => [
-                                    PopupMenuItem<String>(
-                                      value: 'copy',
-                                      child: Text(texts.copySerialAction),
+                                child: ListTile(
+                                  onTap: () => _openOrderDetail(record.orderId),
+                                  title: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          record.serial,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleSmall
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: statusColor.withValues(
+                                            alpha: 0.1,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            999,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          statusLabel,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .labelSmall
+                                              ?.copyWith(
+                                                color: statusColor,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  subtitle: Text(
+                                    texts.recordSubtitle(
+                                      productSku: record.productSku,
+                                      orderId: record.orderId,
+                                      importedAt: formatDateTime(
+                                        record.importedAt,
+                                      ),
                                     ),
-                                    PopupMenuItem<String>(
-                                      value: 'order',
-                                      child: Text(texts.viewOrderAction),
-                                    ),
-                                  ],
+                                  ),
+                                  isThreeLine: true,
+                                  trailing: PopupMenuButton<String>(
+                                    tooltip: texts.serialActionsTooltip,
+                                    icon: const Icon(Icons.more_vert),
+                                    onSelected: (value) {
+                                      if (value == 'copy') {
+                                        _copySerial(record.serial);
+                                        return;
+                                      }
+                                      if (value == 'order') {
+                                        _openOrderDetail(record.orderId);
+                                      }
+                                    },
+                                    itemBuilder: (context) => [
+                                      PopupMenuItem<String>(
+                                        value: 'copy',
+                                        child: Text(texts.copySerialAction),
+                                      ),
+                                      PopupMenuItem<String>(
+                                        value: 'order',
+                                        child: Text(texts.viewOrderAction),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             );
@@ -513,9 +657,20 @@ class _WarrantySerialInventoryTexts {
   String get importedLabel => isEnglish ? 'Imported' : 'Đã nhập';
   String get readyLabel => isEnglish ? 'Ready' : 'Sẵn sàng';
   String get activatedLabel => isEnglish ? 'Activated' : 'Đã kích hoạt';
-  String get emptyMessage => isEnglish
-      ? 'No serial matches the current filters.'
-      : 'Không có serial phù hợp bộ lọc hiện tại.';
+  String get summaryTitle =>
+      isEnglish ? 'Inventory summary' : 'Tóm tắt tồn serial';
+  String get emptyInventoryTitle =>
+      isEnglish ? 'No serial inventory yet' : 'Chưa có serial trong kho';
+  String get emptyInventoryMessage => isEnglish
+      ? 'Imported serials will appear here after stock import or activation prep.'
+      : 'Serial đã nhập sẽ hiển thị tại đây sau khi nhập kho hoặc chuẩn bị kích hoạt.';
+  String get emptyFilteredTitle =>
+      isEnglish ? 'No matching serials' : 'Không có serial phù hợp';
+  String get emptyFilteredMessage => isEnglish
+      ? 'No serial matches the current search or filters.'
+      : 'Không có serial phù hợp tìm kiếm hoặc bộ lọc hiện tại.';
+  String get clearFiltersAction => isEnglish ? 'Clear filters' : 'Xóa bộ lọc';
+  String get refreshAction => isEnglish ? 'Refresh' : 'Làm mới';
   String get serialActionsTooltip =>
       isEnglish ? 'Serial actions' : 'Tác vụ serial';
   String get copySerialAction => isEnglish ? 'Copy serial' : 'Sao chép serial';
@@ -663,9 +818,19 @@ class _SummaryChip extends StatelessWidget {
 }
 
 class _SerialInventoryEmptyCard extends StatelessWidget {
-  const _SerialInventoryEmptyCard({required this.message});
+  const _SerialInventoryEmptyCard({
+    required this.icon,
+    required this.title,
+    required this.message,
+    this.actionLabel,
+    this.onAction,
+  });
 
+  final IconData icon;
+  final String title;
   final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
@@ -683,12 +848,16 @@ class _SerialInventoryEmptyCard extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.inventory_2_outlined,
-              color: colorScheme.onSurfaceVariant,
-              size: 28,
-            ),
+            Icon(icon, color: colorScheme.primary, size: 28),
             const SizedBox(height: 10),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
             Text(
               message,
               textAlign: TextAlign.center,
@@ -696,6 +865,14 @@ class _SerialInventoryEmptyCard extends StatelessWidget {
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
+            if (actionLabel != null && onAction != null) ...[
+              const SizedBox(height: 14),
+              OutlinedButton.icon(
+                onPressed: onAction,
+                icon: const Icon(Icons.restart_alt_rounded),
+                label: Text(actionLabel!),
+              ),
+            ],
           ],
         ),
       ),

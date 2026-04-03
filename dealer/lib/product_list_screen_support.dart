@@ -28,6 +28,7 @@ extension _ProductListScreenSupport on _ProductListScreenState {
 
   Future<void> _refreshCatalog() async {
     _isManuallyRefreshingCatalog = true;
+    _isCatalogRefreshing.value = true;
     try {
       _catalogRefreshDebounce?.cancel();
       await _productCatalog?.load(forceRefresh: true);
@@ -41,11 +42,16 @@ extension _ProductListScreenSupport on _ProductListScreenState {
       _refreshProducts();
     } finally {
       _isManuallyRefreshingCatalog = false;
+      _isCatalogRefreshing.value = false;
     }
   }
 
-  void _retryLoadProducts() {
-    unawaited(_refreshCatalog());
+  void _retryLoadProducts({required bool isFirstPage}) {
+    if (isFirstPage) {
+      unawaited(_refreshCatalog());
+      return;
+    }
+    _pagingController.retryLastFailedRequest();
   }
 
   void _refreshProducts() {
@@ -55,6 +61,26 @@ extension _ProductListScreenSupport on _ProductListScreenState {
       '_queryRevision went negative — refresh revision tracking is unbalanced',
     );
     _pagingController.refresh();
+  }
+
+  void _markProductAdded(String productId) {
+    _recentlyAddedTimers.remove(productId)?.cancel();
+    if (mounted) {
+      setState(() => _recentlyAddedProductIds.add(productId));
+    } else {
+      _recentlyAddedProductIds.add(productId);
+    }
+    _recentlyAddedTimers[productId] = Timer(
+      const Duration(milliseconds: 1600),
+      () {
+        _recentlyAddedTimers.remove(productId);
+        if (!mounted) {
+          _recentlyAddedProductIds.remove(productId);
+          return;
+        }
+        setState(() => _recentlyAddedProductIds.remove(productId));
+      },
+    );
   }
 
   String _catalogSummarySnapshot(ProductCatalogController catalog) {
@@ -158,6 +184,7 @@ extension _ProductListScreenSupport on _ProductListScreenState {
         _showCartLimitSnackBar();
         return;
       }
+      _markProductAdded(latestProduct.id);
       HapticFeedback.lightImpact();
       _showAddedToCartSnackBar(addQuantity);
     } finally {
@@ -220,30 +247,42 @@ extension _ProductListScreenSupport on _ProductListScreenState {
       requestFocus: true,
       builder: (dialogContext) {
         return AlertDialog(
+          scrollable: true,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 20,
+          ),
           title: Text(texts.chooseQuantityDialogTitle),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(product.name, maxLines: 2, overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 12),
-              SpinBox(
-                min: minQty.toDouble(),
-                max: maxQuantity.toDouble(),
-                value: selected.toDouble(),
-                step: 1,
-                decimals: 0,
-                autofocus: true,
-                onChanged: (val) =>
-                    selected = val.round().clamp(minQty, maxQuantity),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                texts.quantityRangeLabel(minQty, maxQuantity),
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  product.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-            ],
+                const SizedBox(height: 12),
+                SpinBox(
+                  min: minQty.toDouble(),
+                  max: maxQuantity.toDouble(),
+                  value: selected.toDouble(),
+                  step: 1,
+                  decimals: 0,
+                  autofocus: true,
+                  onChanged: (val) =>
+                      selected = val.round().clamp(minQty, maxQuantity),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  texts.quantityRangeLabel(minQty, maxQuantity),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(

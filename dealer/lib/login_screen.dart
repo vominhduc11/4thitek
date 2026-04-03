@@ -185,9 +185,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 end: Alignment.bottomRight,
                 stops: [0.0, 0.55, 1.0],
                 colors: [
-                  Color(0xFF1E40AF),
-                  Color(0xFF2563EB),
-                  Color(0xFFD6E6FF),
+                  Color(0xFF08131D),
+                  Color(0xFF102738),
+                  Color(0xFF1A415C),
                 ],
               ),
             ),
@@ -202,7 +202,7 @@ class _LoginScreenState extends State<LoginScreen> {
             top: layout.isTablet ? -60 : (layout.isCompactVisual ? -26 : -40),
             child: _GlowOrb(
               size: layout.topOrbSize,
-              color: const Color(0x66FFFFFF),
+              color: const Color(0x243385B0),
             ),
           ),
           Positioned(
@@ -212,7 +212,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 : (layout.isCompactVisual ? -18 : -30),
             child: _GlowOrb(
               size: layout.bottomOrbSize,
-              color: const Color(0x33FFFFFF),
+              color: const Color(0x1A8BB9D2),
             ),
           ),
           SafeArea(
@@ -294,14 +294,7 @@ class _BrandHeader extends StatelessWidget {
           Text(
             texts.brandSubtitle,
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: Colors.white,
-              shadows: const [
-                Shadow(
-                  color: Color(0x55000000),
-                  blurRadius: 8,
-                  offset: Offset(0, 1),
-                ),
-              ],
+              color: const Color(0xFFE9F0F4),
               height: 1.45,
             ),
             textAlign: textAlign,
@@ -388,9 +381,9 @@ class _BrandPill extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.16),
+        color: const Color(0x1A8BB9D2),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.32)),
+        border: Border.all(color: const Color(0x3D8BB9D2)),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -405,7 +398,7 @@ class _BrandPill extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: Colors.white,
+                  color: const Color(0xFFECEDEE),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -571,13 +564,16 @@ class _LoginCard extends StatelessWidget {
     return Container(
       padding: cardPadding,
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: theme.colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.48),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 28,
+            offset: const Offset(0, 14),
           ),
         ],
       ),
@@ -1085,17 +1081,13 @@ class _RegisterPrompt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final texts = _loginTexts(context);
-    final backgroundColor = theme.brightness == Brightness.dark
-        ? Colors.white.withValues(alpha: 0.16)
-        : Colors.black.withValues(alpha: 0.24);
-    final borderColor = Colors.white.withValues(
-      alpha: theme.brightness == Brightness.dark ? 0.24 : 0.34,
-    );
+    final borderColor = const Color(0x338BB9D2);
+    final textColor = const Color(0xFFECEDEE);
 
     return Center(
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: backgroundColor,
+          color: const Color(0x183385B0),
           borderRadius: BorderRadius.circular(999),
           border: Border.all(color: borderColor),
         ),
@@ -1104,23 +1096,23 @@ class _RegisterPrompt extends StatelessWidget {
           style: TextButton.styleFrom(
             minimumSize: const Size(48, 48),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            foregroundColor: Colors.white,
+            foregroundColor: textColor,
           ),
           child: Text.rich(
             TextSpan(
               text: texts.noAccountPrompt,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.white,
+                color: textColor,
                 height: 1.2,
               ),
               children: [
                 TextSpan(
                   text: texts.registerOnWebsiteAction,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.white,
+                    color: textColor,
                     fontWeight: FontWeight.w700,
                     decoration: TextDecoration.underline,
-                    decorationColor: Colors.white,
+                    decorationColor: textColor,
                   ),
                 ),
               ],
@@ -1139,66 +1131,66 @@ class _LoginTexts {
 
   String get brandSubtitle => isEnglish
       ? 'Sign in to manage orders, debt, and warranties with 4thitek.'
-      : 'Dang nhap de quan ly don nhap, cong no va bao hanh cung 4thitek.';
+      : 'Đăng nhập để quản lý đơn nhập, công nợ và bảo hành cùng 4thitek.';
   String get brandPillOrders =>
-      isEnglish ? 'Manage orders' : 'Quan ly don nhap';
-  String get brandPillDebt => isEnglish ? 'Track debt' : 'Theo doi cong no';
+      isEnglish ? 'Manage orders' : 'Quản lý đơn nhập';
+  String get brandPillDebt => isEnglish ? 'Track debt' : 'Theo dõi công nợ';
   String get brandPillWarranty =>
-      isEnglish ? 'Process warranties' : 'Xu ly bao hanh';
-  String get loginTitle => isEnglish ? 'Dealer sign in' : 'Dang nhap dai ly';
+      isEnglish ? 'Process warranties' : 'Xử lý bảo hành';
+  String get loginTitle => isEnglish ? 'Dealer sign in' : 'Đăng nhập đại lý';
   String get loginSubtitle => isEnglish
       ? 'Enter your email and password to continue.'
-      : 'Nhap email va mat khau de tiep tuc';
+      : 'Nhập email và mật khẩu để tiếp tục.';
   String get emailLabel => 'Email';
-  String get passwordLabel => isEnglish ? 'Password' : 'Mat khau';
+  String get passwordLabel => isEnglish ? 'Password' : 'Mật khẩu';
   String get emailRequiredMessage =>
-      isEnglish ? 'Email is required.' : 'Email khong duoc de trong';
+      isEnglish ? 'Email is required.' : 'Email không được để trống.';
   String get invalidEmailMessage =>
-      isEnglish ? 'Email is invalid.' : 'Email khong hop le';
+      isEnglish ? 'Email is invalid.' : 'Email không hợp lệ.';
   String get passwordRequiredMessage =>
-      isEnglish ? 'Password is required.' : 'Mat khau khong duoc de trong';
+      isEnglish ? 'Password is required.' : 'Mật khẩu không được để trống.';
   String get passwordMinLengthMessage => isEnglish
       ? 'Password must be at least 6 characters.'
-      : 'Mat khau toi thieu 6 ky tu';
+      : 'Mật khẩu tối thiểu 6 ký tự.';
   String get passwordMinLengthHint =>
-      isEnglish ? 'At least 6 characters' : 'Toi thieu 6 ky tu';
+      isEnglish ? 'At least 6 characters' : 'Tối thiểu 6 ký tự';
   String get showPasswordTooltip =>
-      isEnglish ? 'Show password' : 'Hien mat khau';
-  String get hidePasswordTooltip => isEnglish ? 'Hide password' : 'An mat khau';
+      isEnglish ? 'Show password' : 'Hiện mật khẩu';
+  String get hidePasswordTooltip => isEnglish ? 'Hide password' : 'Ẩn mật khẩu';
   String authErrorSemanticsLabel(String message) =>
-      isEnglish ? 'Login error: $message' : 'Loi dang nhap: $message';
+      isEnglish ? 'Login error: $message' : 'Lỗi đăng nhập: $message';
   String get forgotPasswordAction =>
-      isEnglish ? 'Forgot password?' : 'Quen mat khau?';
+      isEnglish ? 'Forgot password?' : 'Quên mật khẩu?';
   String get rememberEmailLabel =>
-      isEnglish ? 'Remember email' : 'Ghi nho email';
-  String get loginAction => isEnglish ? 'Sign in' : 'Dang nhap';
+      isEnglish ? 'Remember email' : 'Ghi nhớ email';
+  String get loginAction => isEnglish ? 'Sign in' : 'Đăng nhập';
   String get loggingInLabel =>
-      isEnglish ? 'Signing in...' : 'Dang dang nhap...';
+      isEnglish ? 'Signing in...' : 'Đang đăng nhập...';
   String get noAccountPrompt =>
-      isEnglish ? 'No account yet? ' : 'Chua co tai khoan? ';
+      isEnglish ? 'No account yet? ' : 'Chưa có tài khoản? ';
   String get registerOnWebsiteAction =>
-      isEnglish ? 'Register on website' : 'Dang ky tren website';
+      isEnglish ? 'Register on website' : 'Đăng ký trên website';
   String get invalidCredentialsMessage => isEnglish
       ? 'Email or password is incorrect.'
-      : 'Email hoac mat khau khong dung.';
+      : 'Email hoặc mật khẩu không đúng.';
   String get cannotConnectServerMessage => isEnglish
       ? 'Unable to connect to the server. Please try again.'
-      : 'Khong the ket noi may chu. Vui long thu lai.';
+      : 'Không thể kết nối máy chủ. Vui lòng thử lại.';
   String get loginFailedMessage => isEnglish
       ? 'Sign in failed. Please try again.'
-      : 'Dang nhap that bai. Vui long thu lai.';
+      : 'Đăng nhập thất bại. Vui lòng thử lại.';
   String get cannotCreateSessionMessage => isEnglish
       ? 'Unable to create a login session. Please try again.'
-      : 'Khong the tao phien dang nhap. Vui long thu lai.';
+      : 'Không thể tạo phiên đăng nhập. Vui lòng thử lại.';
   String get loginTimeoutMessage => isEnglish
       ? 'The sign-in request timed out. Please try again.'
-      : 'Yeu cau dang nhap het thoi gian. Vui long thu lai.';
+      : 'Yêu cầu đăng nhập hết thời gian. Vui lòng thử lại.';
   String get unknownLoginErrorMessage => isEnglish
       ? 'An unknown error occurred. Please try again.'
-      : 'Da xay ra loi khong xac dinh. Vui long thu lai.';
+      : 'Đã xảy ra lỗi không xác định. Vui lòng thử lại.';
   String get cannotOpenRegistrationPageMessage => isEnglish
       ? 'Unable to open the dealer registration page on the website.'
-      : 'Khong the mo trang dang ky dai ly tren website.';
+      : 'Không thể mở trang đăng ký đại lý trên website.';
 }
 
 class _TextureLayer extends StatelessWidget {

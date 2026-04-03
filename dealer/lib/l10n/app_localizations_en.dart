@@ -95,7 +95,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get accountMenuPreferencesSubtitle =>
-      'Switch theme mode and language preferences.';
+      'Manage language and app preferences.';
 
   @override
   String get accountLogoutAction => 'Log out';

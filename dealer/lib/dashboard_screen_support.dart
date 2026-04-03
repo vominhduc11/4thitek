@@ -634,202 +634,294 @@ Future<_DashboardTimeFilterSelection?> _showDashboardTimeFilterSheet({
     builder: (sheetContext) {
       return StatefulBuilder(
         builder: (context, setSheetState) {
+          final theme = Theme.of(context);
+          final colors = theme.colorScheme;
+          final textTheme = theme.textTheme;
           final isCurrentPeriod =
               _dashboardPeriodStartForFilter(draftPeriod, draftFilter) ==
               _dashboardPeriodStartForFilter(now, draftFilter);
+          final currentContextLabel = _dashboardPeriodContextLabelFor(
+            draftPeriod,
+            draftFilter,
+            isEnglish: texts.isEnglish,
+          );
 
           return SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    texts.filterSheetTitle,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SegmentedButton<_DashboardTimeFilter>(
-                    showSelectedIcon: false,
-                    multiSelectionEnabled: false,
-                    segments: [
-                      ButtonSegment<_DashboardTimeFilter>(
-                        value: _DashboardTimeFilter.month,
-                        label: Text(texts.filterByMonthLabel),
-                      ),
-                      ButtonSegment<_DashboardTimeFilter>(
-                        value: _DashboardTimeFilter.quarter,
-                        label: Text(texts.filterByQuarterLabel),
-                      ),
-                    ],
-                    selected: {draftFilter},
-                    onSelectionChanged: (selected) {
-                      if (selected.isEmpty) {
-                        return;
-                      }
-                      final nextFilter = selected.first;
-                      setSheetState(() {
-                        draftFilter = nextFilter;
-                        draftPeriod = _dashboardNormalizePeriodAnchorForFilter(
-                          draftPeriod,
-                          draftFilter,
-                          now: now,
-                        );
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                      ),
-                    ),
-                    child: Text(
-                      _dashboardPeriodContextLabelFor(
-                        draftPeriod,
-                        draftFilter,
-                        isEnglish: texts.isEnglish,
-                      ),
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            setSheetState(() {
-                              draftPeriod =
-                                  _dashboardPreviousPeriodStartForFilter(
-                                    draftPeriod,
-                                    draftFilter,
-                                  );
-                            });
-                          },
-                          icon: const Icon(Icons.chevron_left),
-                          label: Text(texts.previousPeriodLabel),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(0, 48),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed:
-                              _dashboardCanMoveToNextPeriod(
-                                draftPeriod,
-                                draftFilter,
-                                now,
-                              )
-                              ? () {
-                                  setSheetState(() {
-                                    draftPeriod =
-                                        _dashboardNextPeriodStartForFilter(
-                                          draftPeriod,
-                                          draftFilter,
-                                        );
-                                  });
+                      _DashboardSurfaceCard(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    color: colors.primaryContainer.withValues(
+                                      alpha: 0.72,
+                                    ),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Icon(
+                                    Icons.tune_rounded,
+                                    color: colors.onPrimaryContainer,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        texts.filterSheetTitle,
+                                        style: textTheme.titleMedium?.copyWith(
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        currentContextLabel,
+                                        style: textTheme.bodySmall?.copyWith(
+                                          color: colors.onSurfaceVariant,
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            SegmentedButton<_DashboardTimeFilter>(
+                              showSelectedIcon: false,
+                              multiSelectionEnabled: false,
+                              segments: [
+                                ButtonSegment<_DashboardTimeFilter>(
+                                  value: _DashboardTimeFilter.month,
+                                  label: Text(texts.filterByMonthLabel),
+                                ),
+                                ButtonSegment<_DashboardTimeFilter>(
+                                  value: _DashboardTimeFilter.quarter,
+                                  label: Text(texts.filterByQuarterLabel),
+                                ),
+                              ],
+                              selected: {draftFilter},
+                              onSelectionChanged: (selected) {
+                                if (selected.isEmpty) {
+                                  return;
                                 }
-                              : null,
-                          icon: const Icon(Icons.chevron_right),
-                          label: Text(texts.nextPeriodLabel),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(0, 48),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: draftPeriod.isAfter(now)
-                              ? now
-                              : draftPeriod,
-                          firstDate: DateTime(now.year - 5, 1, 1),
-                          lastDate: now,
-                          helpText: draftFilter == _DashboardTimeFilter.month
-                              ? texts.pickMonthLabel
-                              : texts.pickQuarterLabel,
-                        );
-                        if (picked == null) {
-                          return;
-                        }
-                        setSheetState(() {
-                          draftPeriod =
-                              _dashboardNormalizePeriodAnchorForFilter(
-                                picked,
-                                draftFilter,
-                                now: now,
-                              );
-                        });
-                      },
-                      icon: const Icon(Icons.event_outlined),
-                      label: Text(texts.pickFromCalendarLabel),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(48),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      TextButton(
-                        onPressed: isCurrentPeriod
-                            ? null
-                            : () {
+                                final nextFilter = selected.first;
                                 setSheetState(() {
+                                  draftFilter = nextFilter;
                                   draftPeriod =
                                       _dashboardNormalizePeriodAnchorForFilter(
-                                        now,
+                                        draftPeriod,
                                         draftFilter,
                                         now: now,
                                       );
                                 });
                               },
-                        child: Text(texts.backToCurrentLabel),
+                            ),
+                          ],
+                        ),
                       ),
-                      const Spacer(),
-                      FilledButton(
-                        onPressed: () {
-                          Navigator.of(sheetContext).pop(
-                            _DashboardTimeFilterSelection(
-                              filter: draftFilter,
-                              period: _dashboardNormalizePeriodAnchorForFilter(
-                                draftPeriod,
-                                draftFilter,
-                                now: now,
+                      const SizedBox(height: 12),
+                      _DashboardSurfaceCard(
+                        color: colors.surfaceContainerLow,
+                        padding: const EdgeInsets.all(14),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.calendar_month_outlined,
+                              size: 18,
+                              color: colors.primary,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                currentContextLabel,
+                                style: textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final shouldStack = constraints.maxWidth < 420;
+                          final previousButton = OutlinedButton.icon(
+                            onPressed: () {
+                              setSheetState(() {
+                                draftPeriod =
+                                    _dashboardPreviousPeriodStartForFilter(
+                                      draftPeriod,
+                                      draftFilter,
+                                    );
+                              });
+                            },
+                            icon: const Icon(Icons.chevron_left),
+                            label: Text(texts.previousPeriodLabel),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(0, 48),
+                            ),
+                          );
+                          final nextButton = OutlinedButton.icon(
+                            onPressed:
+                                _dashboardCanMoveToNextPeriod(
+                                  draftPeriod,
+                                  draftFilter,
+                                  now,
+                                )
+                                ? () {
+                                    setSheetState(() {
+                                      draftPeriod =
+                                          _dashboardNextPeriodStartForFilter(
+                                            draftPeriod,
+                                            draftFilter,
+                                          );
+                                    });
+                                  }
+                                : null,
+                            icon: const Icon(Icons.chevron_right),
+                            label: Text(texts.nextPeriodLabel),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(0, 48),
+                            ),
+                          );
+
+                          if (shouldStack) {
+                            return Column(
+                              children: [
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: previousButton,
+                                ),
+                                const SizedBox(height: 8),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: nextButton,
+                                ),
+                              ],
+                            );
+                          }
+
+                          return Row(
+                            children: [
+                              Expanded(child: previousButton),
+                              const SizedBox(width: 8),
+                              Expanded(child: nextButton),
+                            ],
                           );
                         },
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(96, 48),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: draftPeriod.isAfter(now)
+                                  ? now
+                                  : draftPeriod,
+                              firstDate: DateTime(now.year - 5, 1, 1),
+                              lastDate: now,
+                              helpText:
+                                  draftFilter == _DashboardTimeFilter.month
+                                  ? texts.pickMonthLabel
+                                  : texts.pickQuarterLabel,
+                            );
+                            if (picked == null) {
+                              return;
+                            }
+                            setSheetState(() {
+                              draftPeriod =
+                                  _dashboardNormalizePeriodAnchorForFilter(
+                                    picked,
+                                    draftFilter,
+                                    now: now,
+                                  );
+                            });
+                          },
+                          icon: const Icon(Icons.event_outlined),
+                          label: Text(texts.pickFromCalendarLabel),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(48),
+                          ),
                         ),
-                        child: Text(texts.applyAction),
+                      ),
+                      const SizedBox(height: 12),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final shouldStack = constraints.maxWidth < 360;
+                          final backButton = TextButton(
+                            onPressed: isCurrentPeriod
+                                ? null
+                                : () {
+                                    setSheetState(() {
+                                      draftPeriod =
+                                          _dashboardNormalizePeriodAnchorForFilter(
+                                            now,
+                                            draftFilter,
+                                            now: now,
+                                          );
+                                    });
+                                  },
+                            child: Text(texts.backToCurrentLabel),
+                          );
+                          final applyButton = FilledButton(
+                            onPressed: () {
+                              Navigator.of(sheetContext).pop(
+                                _DashboardTimeFilterSelection(
+                                  filter: draftFilter,
+                                  period:
+                                      _dashboardNormalizePeriodAnchorForFilter(
+                                        draftPeriod,
+                                        draftFilter,
+                                        now: now,
+                                      ),
+                                ),
+                              );
+                            },
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size(96, 48),
+                            ),
+                            child: Text(texts.applyAction),
+                          );
+
+                          if (shouldStack) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                backButton,
+                                const SizedBox(height: 8),
+                                applyButton,
+                              ],
+                            );
+                          }
+
+                          return Row(
+                            children: [backButton, const Spacer(), applyButton],
+                          );
+                        },
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
             ),
           );

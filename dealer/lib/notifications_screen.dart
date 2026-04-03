@@ -9,10 +9,8 @@ import 'global_search.dart';
 import 'l10n/app_localizations.dart';
 import 'models.dart';
 import 'notification_controller.dart';
-import 'order_detail_screen.dart';
 import 'orders_screen.dart';
 import 'product_list_screen.dart';
-import 'support_screen.dart';
 import 'utils.dart';
 import 'warranty_hub_screen.dart';
 import 'widgets/brand_identity.dart';
@@ -29,6 +27,7 @@ enum _NoticeDetailAction { markUnread, openRelated }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   static const double _tabletMaxWidth = 640;
+  static const double _desktopMaxWidth = 760;
 
   String _notificationError(String error) {
     return notificationSyncErrorMessage(
@@ -45,7 +44,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     final hasUnread = notificationController.unreadCount > 0;
     final isTablet = AppBreakpoints.isTablet(context);
-    final contentMaxWidth = isTablet ? _tabletMaxWidth : double.infinity;
+    final isDesktop =
+        MediaQuery.sizeOf(context).width >= AppBreakpoints.desktop;
+    final contentMaxWidth = isDesktop
+        ? _desktopMaxWidth
+        : isTablet
+        ? _tabletMaxWidth
+        : double.infinity;
 
     return Scaffold(
       appBar: AppBar(
@@ -76,6 +81,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         const SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       final notice = notices[index];
+                      final shouldAnimate = index < 6;
                       final isRead = notificationController.isRead(notice.id);
                       final colorScheme = Theme.of(context).colorScheme;
                       final cardColor = isRead
@@ -88,74 +94,79 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       );
 
                       return FadeSlideIn(
-                        delay: Duration(milliseconds: 20 * index),
-                        child: Card(
-                          color: cardColor,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(color: borderColor),
-                          ),
-                          child: ListTile(
-                            onTap: () => _openNoticeDetail(notice),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 10,
+                        animate: shouldAnimate,
+                        delay: shouldAnimate
+                            ? Duration(milliseconds: 20 * index)
+                            : Duration.zero,
+                        child: RepaintBoundary(
+                          child: Card(
+                            color: cardColor,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(color: borderColor),
                             ),
-                            leading: _NoticeTypeAvatar(
-                              type: notice.type,
-                              isRead: isRead,
-                            ),
-                            title: Text(
-                              notice.title,
-                              style: Theme.of(context).textTheme.titleSmall
-                                  ?.copyWith(
-                                    fontWeight: isRead
-                                        ? FontWeight.w600
-                                        : FontWeight.w700,
-                                  ),
-                            ),
-                            subtitle: Padding(
-                              padding: const EdgeInsets.only(top: 6),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    notice.message,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(
-                                          color: isRead
-                                              ? colorScheme.onSurfaceVariant
-                                              : colorScheme.onSurface,
-                                        ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    formatRelativeTime(notice.createdAt),
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .labelSmall
-                                        ?.copyWith(
-                                          color: colorScheme.onSurfaceVariant,
-                                        ),
-                                  ),
-                                ],
+                            child: ListTile(
+                              onTap: () => _openNoticeDetail(notice),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
                               ),
-                            ),
-                            trailing: isRead
-                                ? null
-                                : Container(
-                                    width: 10,
-                                    height: 10,
-                                    decoration: BoxDecoration(
-                                      color: colorScheme.primary,
-                                      shape: BoxShape.circle,
+                              leading: _NoticeTypeAvatar(
+                                type: notice.type,
+                                isRead: isRead,
+                              ),
+                              title: Text(
+                                notice.title,
+                                style: Theme.of(context).textTheme.titleSmall
+                                    ?.copyWith(
+                                      fontWeight: isRead
+                                          ? FontWeight.w600
+                                          : FontWeight.w700,
                                     ),
-                                  ),
+                              ),
+                              subtitle: Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      notice.message,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            color: isRead
+                                                ? colorScheme.onSurfaceVariant
+                                                : colorScheme.onSurface,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      formatRelativeTime(notice.createdAt),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.copyWith(
+                                            color: colorScheme.onSurfaceVariant,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              trailing: isRead
+                                  ? null
+                                  : Container(
+                                      width: 10,
+                                      height: 10,
+                                      decoration: BoxDecoration(
+                                        color: colorScheme.primary,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                            ),
                           ),
                         ),
                       );
@@ -169,25 +180,65 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Widget _buildEmptyState(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colors = Theme.of(context).colorScheme;
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(28, 56, 28, 24),
       children: [
-        const Icon(Icons.notifications_none, size: 56),
-        const SizedBox(height: 10),
-        Text(
-          l10n.notificationsEmptyTitle,
-          textAlign: TextAlign.center,
-          style: Theme.of(
-            context,
-          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          l10n.notificationsEmptyMessage,
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            color: colors.surfaceContainer,
+            border: Border.all(
+              color: colors.outlineVariant.withValues(alpha: 0.75),
+            ),
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 68,
+                height: 68,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: colors.primaryContainer.withValues(alpha: 0.65),
+                ),
+                child: Icon(
+                  Icons.notifications_none_rounded,
+                  size: 34,
+                  color: colors.primary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                l10n.notificationsEmptyTitle,
+                textAlign: TextAlign.center,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                l10n.notificationsEmptyMessage,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: colors.onSurfaceVariant,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 18),
+              OutlinedButton.icon(
+                onPressed: () {
+                  NotificationScope.of(context).refresh();
+                },
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: Text(
+                  Localizations.localeOf(context).languageCode == 'en'
+                      ? 'Refresh'
+                      : 'Làm mới',
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -233,70 +284,89 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       builder: (sheetContext) {
         final l10n = AppLocalizations.of(sheetContext)!;
         final colorScheme = Theme.of(sheetContext).colorScheme;
-        final content = Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _NoticeTypeAvatar(type: notice.type, isRead: false),
-                  const SizedBox(width: 10),
-                  Flexible(
-                    child: Text(
-                      _noticeTypeLabel(l10n, notice.type),
-                      style: Theme.of(sheetContext).textTheme.labelLarge
-                          ?.copyWith(fontWeight: FontWeight.w600),
-                    ),
+        final content = RepaintBoundary(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final compactActions = constraints.maxWidth < 420;
+                final markUnreadButton = OutlinedButton.icon(
+                  onPressed: () => Navigator.of(
+                    sheetContext,
+                  ).pop(_NoticeDetailAction.markUnread),
+                  icon: const Icon(Icons.mark_email_unread_outlined),
+                  label: Text(l10n.notificationsMarkUnreadAction),
+                );
+                final openRelatedButton = FilledButton.icon(
+                  onPressed: () => Navigator.of(
+                    sheetContext,
+                  ).pop(_NoticeDetailAction.openRelated),
+                  icon: const Icon(Icons.open_in_new),
+                  label: Text(_relatedActionLabel(notice)),
+                );
+
+                return SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _NoticeTypeAvatar(type: notice.type, isRead: false),
+                          const SizedBox(width: 10),
+                          Flexible(
+                            child: Text(
+                              _noticeTypeLabel(l10n, notice.type),
+                              style: Theme.of(sheetContext).textTheme.labelLarge
+                                  ?.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        notice.title,
+                        style: Theme.of(sheetContext).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        notice.message,
+                        style: Theme.of(sheetContext).textTheme.bodyMedium
+                            ?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                              height: 1.45,
+                            ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        formatDateTime(notice.createdAt),
+                        style: Theme.of(sheetContext).textTheme.labelSmall
+                            ?.copyWith(color: colorScheme.onSurfaceVariant),
+                      ),
+                      const SizedBox(height: 18),
+                      if (compactActions) ...[
+                        SizedBox(
+                          width: double.infinity,
+                          child: markUnreadButton,
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: openRelatedButton,
+                        ),
+                      ] else
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [markUnreadButton, openRelatedButton],
+                        ),
+                    ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Text(
-                notice.title,
-                style: Theme.of(
-                  sheetContext,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                notice.message,
-                style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                  height: 1.45,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                formatDateTime(notice.createdAt),
-                style: Theme.of(sheetContext).textTheme.labelSmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 18),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: () => Navigator.of(
-                      sheetContext,
-                    ).pop(_NoticeDetailAction.markUnread),
-                    icon: const Icon(Icons.mark_email_unread_outlined),
-                    label: Text(l10n.notificationsMarkUnreadAction),
-                  ),
-                  FilledButton.icon(
-                    onPressed: () => Navigator.of(
-                      sheetContext,
-                    ).pop(_NoticeDetailAction.openRelated),
-                    icon: const Icon(Icons.open_in_new),
-                    label: Text(_relatedActionLabel(notice)),
-                  ),
-                ],
-              ),
-            ],
+                );
+              },
+            ),
           ),
         );
 
@@ -415,7 +485,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case NoticeType.warranty:
         return Localizations.localeOf(context).languageCode == 'en'
             ? 'Warranty'
-            : 'Bao hanh';
+            : 'Bảo hành';
       case NoticeType.system:
         return l10n.notificationsTypeSystem;
     }
@@ -438,7 +508,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (link.startsWith('/warranty')) {
       return Localizations.localeOf(context).languageCode == 'en'
           ? 'View warranty'
-          : 'Xem bao hanh';
+          : 'Xem bảo hành';
     }
     if (link.startsWith('/notifications')) {
       return l10n.notificationsRelatedViewNotifications;
@@ -455,7 +525,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case NoticeType.warranty:
         return Localizations.localeOf(context).languageCode == 'en'
             ? 'View warranty'
-            : 'Xem bao hanh';
+            : 'Xem bảo hành';
       case NoticeType.system:
         return l10n.notificationsRelatedOpenOverview;
     }

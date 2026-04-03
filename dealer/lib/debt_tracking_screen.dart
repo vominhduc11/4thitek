@@ -12,6 +12,7 @@ import 'upload_service.dart';
 import 'utils.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
+import 'widgets/section_card.dart';
 
 class DebtTrackingScreen extends StatefulWidget {
   const DebtTrackingScreen({super.key});
@@ -22,6 +23,7 @@ class DebtTrackingScreen extends StatefulWidget {
 
 class _DebtTrackingScreenState extends State<DebtTrackingScreen> {
   DealerProfile _profile = DealerProfile.defaults;
+  bool _showAllPaymentHistory = false;
 
   @override
   void initState() {
@@ -53,184 +55,405 @@ class _DebtTrackingScreenState extends State<DebtTrackingScreen> {
   Widget build(BuildContext context) {
     final isEnglish = AppSettingsScope.of(context).locale.languageCode == 'en';
     final texts = _DebtTexts(isEnglish: isEnglish);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final orderController = OrderScope.of(context);
+
     final debtOrders = orderController.debtOrders;
     final debtOrderIds = orderController.orders
         .where((order) => order.paymentMethod == OrderPaymentMethod.debt)
         .map((order) => order.id)
         .toSet();
+
     final paymentHistory = orderController.paymentHistory
         .where((payment) => debtOrderIds.contains(payment.orderId))
         .toList(growable: false);
-    final isTablet = AppBreakpoints.isTablet(context);
-    final maxWidth = isTablet ? 960.0 : double.infinity;
 
-    return Scaffold(
-      appBar: AppBar(title: BrandAppBarTitle(texts.screenTitle)),
-      body: Align(
-        alignment: Alignment.topCenter,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: maxWidth),
-          child: RefreshIndicator(
-            onRefresh: _handleRefresh,
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-              children: [
-                FadeSlideIn(
-                  child: _DebtSummaryCard(
-                    totalOutstandingDebt: orderController.totalOutstandingDebt,
-                    debtOrderCount: debtOrders.length,
-                    creditLimit: _profile.creditLimit,
-                    texts: texts,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 60),
-                  child: Text(
-                    texts.debtOrdersSectionTitle,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+    final totalOutstandingDebt = orderController.totalOutstandingDebt;
+    final creditLimit = _profile.creditLimit;
+    final averageOutstandingDebt = debtOrders.isEmpty
+        ? 0
+        : (totalOutstandingDebt / debtOrders.length).round();
+
+    final latestPaymentAt = paymentHistory.isEmpty
+        ? null
+        : paymentHistory
+              .map((payment) => payment.paidAt)
+              .reduce((a, b) => a.isAfter(b) ? a : b);
+
+    final creditUsageRatio = creditLimit <= 0
+        ? 0.0
+        : (totalOutstandingDebt / creditLimit).clamp(0.0, 1.0);
+
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isTablet = AppBreakpoints.isTablet(context);
+    final useWideLayout = screenWidth >= 980;
+    final isDesktopWide = screenWidth >= 1180;
+    final contentMaxWidth = useWideLayout
+        ? 1180.0
+        : isTablet
+        ? 980.0
+        : 760.0;
+
+    final heroCard = FadeSlideIn(
+      child: _DebtHeroCard(
+        title: texts.heroTitle,
+        subtitle: texts.heroSubtitle,
+        totalOutstandingDebt: totalOutstandingDebt,
+        outstandingOrderCount: debtOrders.length,
+        creditLimit: creditLimit,
+        latestPaymentAt: latestPaymentAt,
+        texts: texts,
+      ),
+    );
+
+    final insightPanel = FadeSlideIn(
+      delay: const Duration(milliseconds: 70),
+      child: _DebtInsightPanel(
+        title: texts.insightPanelTitle,
+        subtitle: texts.insightPanelSubtitle,
+        totalOutstandingDebt: totalOutstandingDebt,
+        averageOutstandingDebt: averageOutstandingDebt,
+        creditLimit: creditLimit,
+        creditUsageRatio: creditUsageRatio,
+        recordedPaymentCount: paymentHistory.length,
+        texts: texts,
+      ),
+    );
+
+    final ordersSection = FadeSlideIn(
+      delay: const Duration(milliseconds: 110),
+      child: SectionCard(
+        title: texts.debtOrdersSectionTitle,
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              texts.debtOrdersSectionSubtitle,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colors.onSurfaceVariant,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (debtOrders.isEmpty)
+              _EmptyStateCard(
+                icon: Icons.check_circle_outline,
+                title: texts.debtOrdersEmptyTitle,
+                subtitle: texts.debtOrdersEmptySubtitle,
+              )
+            else
+              _DebtOrdersGrid(
+                orders: debtOrders,
+                texts: texts,
+                isTablet: isTablet,
+                isDesktopWide: isDesktopWide,
+              ),
+          ],
+        ),
+      ),
+    );
+
+    final paymentSection = FadeSlideIn(
+      delay: const Duration(milliseconds: 150),
+      child: SectionCard(
+        title: texts.paymentHistorySectionTitle,
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              texts.paymentHistorySectionSubtitle,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colors.onSurfaceVariant,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (paymentHistory.isEmpty)
+              _EmptyStateCard(
+                icon: Icons.history_toggle_off_outlined,
+                title: texts.paymentHistoryEmptyTitle,
+                subtitle: texts.paymentHistoryEmptySubtitle,
+              )
+            else ...[
+              ...(() {
+                const maxInitial = 20;
+                final displayList = _showAllPaymentHistory
+                    ? paymentHistory
+                    : paymentHistory.take(maxInitial).toList(growable: false);
+
+                return displayList.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final payment = entry.value;
+                  final shouldAnimate = index < 6;
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      bottom: index == displayList.length - 1 ? 0 : 10,
                     ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                if (debtOrders.isEmpty)
-                  FadeSlideIn(
-                    delay: const Duration(milliseconds: 90),
-                    child: _EmptyCard(
-                      icon: Icons.check_circle_outline,
-                      title: texts.debtOrdersEmptyTitle,
-                      subtitle: texts.debtOrdersEmptySubtitle,
-                    ),
-                  )
-                else
-                  _DebtOrdersGrid(
-                    orders: debtOrders,
-                    isTablet: isTablet,
-                    texts: texts,
-                  ),
-                const SizedBox(height: 14),
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 120),
-                  child: Text(
-                    texts.paymentHistorySectionTitle,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                if (paymentHistory.isEmpty)
-                  FadeSlideIn(
-                    delay: const Duration(milliseconds: 140),
-                    child: _EmptyCard(
-                      icon: Icons.history_toggle_off_outlined,
-                      title: texts.paymentHistoryEmptyTitle,
-                      subtitle: texts.paymentHistoryEmptySubtitle,
-                    ),
-                  )
-                else
-                  ...paymentHistory.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final payment = entry.value;
-                    return FadeSlideIn(
+                    child: FadeSlideIn(
                       key: ValueKey(payment.id),
-                      delay: Duration(milliseconds: 140 + index * 35),
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
+                      animate: shouldAnimate,
+                      delay: shouldAnimate
+                          ? Duration(milliseconds: 80 + index * 35)
+                          : Duration.zero,
+                      child: RepaintBoundary(
                         child: _PaymentHistoryCard(
                           payment: payment,
                           texts: texts,
                         ),
                       ),
-                    );
-                  }),
+                    ),
+                  );
+                });
+              })(),
+              if (!_showAllPaymentHistory && paymentHistory.length > 20) ...[
+                const SizedBox(height: 10),
+                Center(
+                  child: TextButton.icon(
+                    onPressed: () =>
+                        setState(() => _showAllPaymentHistory = true),
+                    icon: const Icon(Icons.expand_more, size: 18),
+                    label: Text(
+                      texts.showAllPaymentsLabel(paymentHistory.length),
+                    ),
+                  ),
+                ),
               ],
+            ],
+          ],
+        ),
+      ),
+    );
+
+    Widget bodyContent;
+    if (useWideLayout) {
+      bodyContent = ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+        children: [
+          heroCard,
+          const SizedBox(height: 18),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 7,
+                child: Column(
+                  children: [
+                    ordersSection,
+                    const SizedBox(height: 16),
+                    paymentSection,
+                  ],
+                ),
+              ),
+              const SizedBox(width: 18),
+              Expanded(flex: 5, child: insightPanel),
+            ],
+          ),
+        ],
+      );
+    } else {
+      bodyContent = ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        children: [
+          heroCard,
+          const SizedBox(height: 16),
+          insightPanel,
+          const SizedBox(height: 16),
+          ordersSection,
+          const SizedBox(height: 16),
+          paymentSection,
+        ],
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: colors.surface,
+      appBar: AppBar(
+        title: BrandAppBarTitle(texts.screenTitle),
+        surfaceTintColor: Colors.transparent,
+        scrolledUnderElevation: 0,
+      ),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    colors.primaryContainer.withValues(alpha: 0.10),
+                    colors.surface,
+                    colors.surface,
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: contentMaxWidth),
+              child: RefreshIndicator(
+                onRefresh: _handleRefresh,
+                child: bodyContent,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _DebtSummaryCard extends StatelessWidget {
-  const _DebtSummaryCard({
+class _DebtHeroCard extends StatelessWidget {
+  const _DebtHeroCard({
+    required this.title,
+    required this.subtitle,
     required this.totalOutstandingDebt,
-    required this.debtOrderCount,
+    required this.outstandingOrderCount,
     required this.creditLimit,
+    required this.latestPaymentAt,
     required this.texts,
   });
 
+  final String title;
+  final String subtitle;
   final int totalOutstandingDebt;
-  final int debtOrderCount;
+  final int outstandingOrderCount;
   final int creditLimit;
+  final DateTime? latestPaymentAt;
   final _DebtTexts texts;
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final debtColor = isDark
-        ? const Color(0xFFFBBF24)
-        : const Color(0xFFB45309);
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Semantics(
       container: true,
       label: texts.summarySemantics(
         amount: formatVnd(totalOutstandingDebt),
-        orderCount: debtOrderCount,
+        orderCount: outstandingOrderCount,
       ),
-      child: Card(
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-          side: BorderSide(
-            color: Theme.of(
-              context,
-            ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(28),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              colors.primaryContainer.withValues(alpha: 0.96),
+              colors.secondaryContainer.withValues(alpha: 0.88),
+            ],
           ),
+          border: Border.all(
+            color: colors.outlineVariant.withValues(alpha: 0.35),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 28,
+              offset: const Offset(0, 12),
+            ),
+          ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                texts.summaryTitle,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final compact = constraints.maxWidth < 620;
+                  final iconShell = Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: colors.surface.withValues(alpha: 0.72),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Icon(
+                      Icons.account_balance_wallet_outlined,
+                      color: colors.onSurface,
+                      size: 28,
+                    ),
+                  );
+
+                  final header = Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: colors.onPrimaryContainer,
+                          height: 1.15,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        subtitle,
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: colors.onPrimaryContainer.withValues(
+                            alpha: 0.84,
+                          ),
+                          height: 1.45,
+                        ),
+                      ),
+                    ],
+                  );
+
+                  if (compact) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [iconShell, const SizedBox(height: 14), header],
+                    );
+                  }
+
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      iconShell,
+                      const SizedBox(width: 16),
+                      Expanded(child: header),
+                    ],
+                  );
+                },
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 18),
               Text(
                 formatVnd(totalOutstandingDebt),
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: debtColor,
+                style: textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  color: colors.onPrimaryContainer,
+                  height: 1.0,
                 ),
               ),
-              const SizedBox(height: 10),
-              Row(
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
                 children: [
-                  const Icon(Icons.receipt_long_outlined, size: 18),
-                  const SizedBox(width: 6),
-                  Text(
-                    texts.outstandingOrdersLabel(debtOrderCount),
-                    style: Theme.of(context).textTheme.bodySmall,
+                  _HeroInfoChip(
+                    icon: Icons.receipt_long_outlined,
+                    label: texts.outstandingOrdersLabel(outstandingOrderCount),
                   ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(Icons.account_balance_wallet_outlined, size: 18),
-                  const SizedBox(width: 6),
-                  Text(
-                    '${texts.creditLimitLabel}: ${texts.creditLimitValue(creditLimit)}',
-                    style: Theme.of(context).textTheme.bodySmall,
+                  _HeroInfoChip(
+                    icon: Icons.account_balance_outlined,
+                    label: texts.creditLimitHeroLabel(creditLimit),
                   ),
+                  if (latestPaymentAt != null)
+                    _HeroInfoChip(
+                      icon: Icons.schedule_outlined,
+                      label: texts.latestPaymentLabel(
+                        formatDateTime(latestPaymentAt!),
+                      ),
+                    ),
                 ],
               ),
             ],
@@ -241,16 +464,259 @@ class _DebtSummaryCard extends StatelessWidget {
   }
 }
 
-class _DebtOrdersGrid extends StatelessWidget {
-  const _DebtOrdersGrid({
-    required this.orders,
-    required this.isTablet,
+class _HeroInfoChip extends StatelessWidget {
+  const _HeroInfoChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: colors.surface.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: colors.outlineVariant.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: colors.onSurfaceVariant),
+          const SizedBox(width: 8),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 220),
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DebtInsightPanel extends StatelessWidget {
+  const _DebtInsightPanel({
+    required this.title,
+    required this.subtitle,
+    required this.totalOutstandingDebt,
+    required this.averageOutstandingDebt,
+    required this.creditLimit,
+    required this.creditUsageRatio,
+    required this.recordedPaymentCount,
     required this.texts,
   });
 
-  final List<Order> orders;
-  final bool isTablet;
+  final String title;
+  final String subtitle;
+  final int totalOutstandingDebt;
+  final int averageOutstandingDebt;
+  final int creditLimit;
+  final double creditUsageRatio;
+  final int recordedPaymentCount;
   final _DebtTexts texts;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final isCreditConfigured = creditLimit > 0;
+    final ratioPercent = (creditUsageRatio * 100).round();
+
+    return SectionCard(
+      title: title,
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            subtitle,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: colors.onSurfaceVariant,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _InsightMetricTile(
+            icon: Icons.payments_outlined,
+            label: texts.totalDebtMetricLabel,
+            value: formatVnd(totalOutstandingDebt),
+            emphasize: true,
+          ),
+          const SizedBox(height: 12),
+          _InsightMetricTile(
+            icon: Icons.analytics_outlined,
+            label: texts.averageDebtMetricLabel,
+            value: averageOutstandingDebt <= 0
+                ? texts.metricUnavailableValue
+                : formatVnd(averageOutstandingDebt),
+          ),
+          const SizedBox(height: 12),
+          _InsightMetricTile(
+            icon: Icons.history_outlined,
+            label: texts.recordedPaymentsMetricLabel,
+            value: texts.recordedPaymentsValue(recordedPaymentCount),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              color: colors.primaryContainer.withValues(alpha: 0.32),
+              border: Border.all(
+                color: colors.outlineVariant.withValues(alpha: 0.35),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _SummaryLine(
+                  label: texts.creditUtilizationLabel,
+                  value: isCreditConfigured
+                      ? '$ratioPercent%'
+                      : texts.metricUnavailableValue,
+                ),
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    value: isCreditConfigured ? creditUsageRatio : 0,
+                    minHeight: 8,
+                    backgroundColor: colors.surface,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  texts.creditUtilizationDescription(
+                    creditLimit: creditLimit,
+                    ratioPercent: ratioPercent,
+                  ),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                    height: 1.45,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InsightMetricTile extends StatelessWidget {
+  const _InsightMetricTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.emphasize = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final bool emphasize;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final valueColor = emphasize ? colors.primary : colors.onSurface;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: colors.outlineVariant.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: colors.primaryContainer.withValues(alpha: 0.55),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, size: 20, color: colors.onPrimaryContainer),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: valueColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryLine extends StatelessWidget {
+  const _SummaryLine({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          value,
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w800),
+        ),
+      ],
+    );
+  }
+}
+
+class _DebtOrdersGrid extends StatelessWidget {
+  const _DebtOrdersGrid({
+    required this.orders,
+    required this.texts,
+    required this.isTablet,
+    required this.isDesktopWide,
+  });
+
+  final List<Order> orders;
+  final _DebtTexts texts;
+  final bool isTablet;
+  final bool isDesktopWide;
 
   @override
   Widget build(BuildContext context) {
@@ -260,12 +726,20 @@ class _DebtOrdersGrid extends StatelessWidget {
           ...orders.asMap().entries.map((entry) {
             final index = entry.key;
             final order = entry.value;
+            final shouldAnimate = index < 6;
             return FadeSlideIn(
               key: ValueKey('debt-${order.id}'),
-              delay: Duration(milliseconds: 90 + index * 40),
+              animate: shouldAnimate,
+              delay: shouldAnimate
+                  ? Duration(milliseconds: 80 + index * 35)
+                  : Duration.zero,
               child: Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _DebtOrderCard(order: order, texts: texts),
+                padding: EdgeInsets.only(
+                  bottom: index == orders.length - 1 ? 0 : 10,
+                ),
+                child: RepaintBoundary(
+                  child: _DebtOrderCard(order: order, texts: texts),
+                ),
               ),
             );
           }),
@@ -276,7 +750,13 @@ class _DebtOrdersGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         const spacing = 10.0;
-        final itemWidth = (constraints.maxWidth - spacing) / 2;
+        final columns = constraints.maxWidth >= 1080
+            ? 3
+            : constraints.maxWidth >= 680
+            ? 2
+            : 1;
+        final itemWidth =
+            (constraints.maxWidth - spacing * (columns - 1)) / columns;
 
         return Wrap(
           spacing: spacing,
@@ -285,12 +765,18 @@ class _DebtOrdersGrid extends StatelessWidget {
             ...orders.asMap().entries.map((entry) {
               final index = entry.key;
               final order = entry.value;
+              final shouldAnimate = index < 6;
               return SizedBox(
                 width: itemWidth,
                 child: FadeSlideIn(
                   key: ValueKey('debt-grid-${order.id}'),
-                  delay: Duration(milliseconds: 90 + index * 40),
-                  child: _DebtOrderCard(order: order, texts: texts),
+                  animate: shouldAnimate,
+                  delay: shouldAnimate
+                      ? Duration(milliseconds: 80 + index * 35)
+                      : Duration.zero,
+                  child: RepaintBoundary(
+                    child: _DebtOrderCard(order: order, texts: texts),
+                  ),
                 ),
               );
             }),
@@ -309,11 +795,9 @@ class _DebtOrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final colors = Theme.of(context).colorScheme;
-    final debtColor = isDark
-        ? const Color(0xFFFBBF24)
-        : const Color(0xFFB45309);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    const debtColor = Color(0xFFFBBF24);
     final paidRatio = order.total <= 0
         ? 0.0
         : (order.paidAmount / order.total).clamp(0.0, 1.0);
@@ -327,11 +811,11 @@ class _DebtOrderCard extends StatelessWidget {
       child: Card(
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.6)),
         ),
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           onTap: () => _openOrderDetail(context),
           child: Padding(
             padding: const EdgeInsets.all(14),
@@ -343,109 +827,152 @@ class _DebtOrderCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         order.id,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ),
+                    const SizedBox(width: 8),
                     _StatusChip(
                       label: texts.paymentStatusLabel(order.paymentStatus),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
-                _LabelValueRow(
-                  label: texts.orderDateLabel,
-                  value: formatDateTime(order.createdAt),
+                const SizedBox(height: 12),
+                _InfoStrip(
+                  items: [
+                    _InfoStripItem(
+                      icon: Icons.calendar_today_outlined,
+                      label: texts.orderDateLabel,
+                      value: formatDateTime(order.createdAt),
+                    ),
+                    _InfoStripItem(
+                      icon: Icons.credit_card_outlined,
+                      label: texts.paymentMethodLabel,
+                      value: texts.paymentMethod(context, order.paymentMethod),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 6),
-                _LabelValueRow(
-                  label: texts.paymentMethodLabel,
-                  value: texts.paymentMethod(context, order.paymentMethod),
+                const SizedBox(height: 12),
+                _InfoStrip(
+                  items: [
+                    _InfoStripItem(
+                      icon: Icons.receipt_long_outlined,
+                      label: texts.totalAmountLabel,
+                      value: formatVnd(order.total),
+                    ),
+                    _InfoStripItem(
+                      icon: Icons.check_circle_outline,
+                      label: texts.paidAmountLabel,
+                      value: formatVnd(order.paidAmount),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 6),
-                _LabelValueRow(
-                  label: texts.totalAmountLabel,
-                  value: formatVnd(order.total),
-                ),
-                const SizedBox(height: 6),
-                _LabelValueRow(
-                  label: texts.paidAmountLabel,
-                  value: formatVnd(order.paidAmount),
-                ),
-                const SizedBox(height: 10),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(999),
-                  child: LinearProgressIndicator(
-                    value: paidRatio,
-                    minHeight: 7,
-                    backgroundColor: colors.surfaceContainerHighest,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  texts.paymentProgress(
-                    paid: formatVnd(order.paidAmount),
-                    total: formatVnd(order.total),
-                  ),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: colors.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 14),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 8,
-                  ),
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: isDark
-                        ? const Color(0xFF422006)
-                        : const Color(0xFFFFF7ED),
-                    borderRadius: BorderRadius.circular(12),
+                    color: const Color(0xFF422006),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: debtColor.withValues(alpha: 0.18),
+                    ),
                   ),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        Icons.account_balance_wallet_outlined,
-                        size: 18,
-                        color: debtColor,
+                      Text(
+                        texts.outstandingAmountLabel(order.outstandingAmount),
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: debtColor,
+                        ),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          texts.outstandingAmountLabel(order.outstandingAmount),
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: debtColor,
-                              ),
+                      const SizedBox(height: 10),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(999),
+                        child: LinearProgressIndicator(
+                          value: paidRatio,
+                          minHeight: 8,
+                          backgroundColor: colors.surfaceContainerHighest,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        texts.paymentProgress(
+                          paid: formatVnd(order.paidAmount),
+                          total: formatVnd(order.total),
+                        ),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colors.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _openOrderDetail(context),
-                        icon: const Icon(Icons.receipt_long_outlined, size: 18),
-                        label: Text(texts.viewOrderButton),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () =>
-                            _showRecordPaymentBottomSheet(context, order),
-                        icon: const Icon(Icons.payments_outlined, size: 18),
-                        label: Text(texts.recordPaymentButton),
-                      ),
-                    ),
-                  ],
+                const SizedBox(height: 14),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final compact = constraints.maxWidth < 360;
+                    if (compact) {
+                      return Column(
+                        children: [
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: () => _openOrderDetail(context),
+                              icon: const Icon(
+                                Icons.receipt_long_outlined,
+                                size: 18,
+                              ),
+                              label: Text(texts.viewOrderButton),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton.icon(
+                              onPressed: () =>
+                                  _showRecordPaymentBottomSheet(context, order),
+                              icon: const Icon(
+                                Icons.payments_outlined,
+                                size: 18,
+                              ),
+                              label: Text(texts.recordPaymentButton),
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _openOrderDetail(context),
+                            icon: const Icon(
+                              Icons.receipt_long_outlined,
+                              size: 18,
+                            ),
+                            label: Text(texts.viewOrderButton),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: () =>
+                                _showRecordPaymentBottomSheet(context, order),
+                            icon: const Icon(Icons.payments_outlined, size: 18),
+                            label: Text(texts.recordPaymentButton),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
@@ -467,6 +994,7 @@ class _DebtOrderCard extends StatelessWidget {
   ) async {
     final uploadService = UploadService();
     final colors = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
     final amountController = TextEditingController();
     final noteController = TextEditingController();
     final proofController = TextEditingController();
@@ -476,6 +1004,37 @@ class _DebtOrderCard extends StatelessWidget {
         : channels.first;
     var isSubmitting = false;
     var isUploadingProof = false;
+    String? pickedFileName;
+
+    InputDecoration inputDecoration({
+      required String label,
+      Widget? prefixIcon,
+      String? hintText,
+    }) {
+      final border = OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(
+          color: colors.outlineVariant.withValues(alpha: 0.7),
+        ),
+      );
+
+      return InputDecoration(
+        labelText: label,
+        hintText: hintText,
+        prefixIcon: prefixIcon,
+        filled: true,
+        fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.22),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
+        border: border,
+        enabledBorder: border,
+        focusedBorder: border.copyWith(
+          borderSide: BorderSide(color: colors.primary, width: 1.4),
+        ),
+      );
+    }
 
     await showModalBottomSheet<void>(
       context: context,
@@ -488,13 +1047,49 @@ class _DebtOrderCard extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (sheetRootContext) {
-        String? pickedFileName;
         return StatefulBuilder(
           builder: (sheetContext, setDialogState) {
             final rawAmount = int.tryParse(amountController.text.trim()) ?? 0;
             final amountPreview = rawAmount > 0
                 ? formatVnd(rawAmount)
                 : texts.amountPreviewPlaceholder;
+            final isWide = MediaQuery.sizeOf(sheetContext).width >= 720;
+
+            final amountField = TextField(
+              controller: amountController,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              onChanged: (_) => setDialogState(() {}),
+              decoration: inputDecoration(
+                label: texts.paymentAmountLabel,
+                hintText: texts.maxAmountHint(
+                  formatVnd(order.outstandingAmount),
+                ),
+                prefixIcon: const Icon(Icons.payments_outlined),
+              ),
+            );
+
+            final channelField = DropdownButtonFormField<String>(
+              initialValue: channel,
+              decoration: inputDecoration(
+                label: texts.paymentChannelLabel,
+                prefixIcon: const Icon(Icons.account_balance_outlined),
+              ),
+              items: channels
+                  .map(
+                    (item) => DropdownMenuItem<String>(
+                      value: item,
+                      child: Text(item),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                if (value == null) {
+                  return;
+                }
+                setDialogState(() => channel = value);
+              },
+            );
 
             return Padding(
               padding: EdgeInsets.fromLTRB(
@@ -506,325 +1101,551 @@ class _DebtOrderCard extends StatelessWidget {
               child: SingleChildScrollView(
                 child: Center(
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 560),
-                    child: Semantics(
-                      container: true,
-                      label: texts.recordPaymentDialogTitle,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            texts.recordPaymentDialogTitle,
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(fontWeight: FontWeight.w700),
+                    constraints: const BoxConstraints(maxWidth: 620),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          texts.recordPaymentDialogTitle,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w800,
                           ),
-                          const SizedBox(height: 10),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 10,
+                        ),
+                        const SizedBox(height: 10),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(18),
+                            color: colors.primaryContainer.withValues(
+                              alpha: 0.32,
                             ),
-                            decoration: BoxDecoration(
-                              color: colors.surfaceContainerHighest.withValues(
-                                alpha: 0.45,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              texts.orderIdAndOutstanding(
-                                orderId: order.id,
-                                outstanding: formatVnd(order.outstandingAmount),
-                              ),
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          TextField(
-                            controller: amountController,
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                            ],
-                            onChanged: (_) => setDialogState(() {}),
-                            decoration: InputDecoration(
-                              labelText: texts.paymentAmountLabel,
-                              hintText: texts.maxAmountHint(
-                                formatVnd(order.outstandingAmount),
+                            border: Border.all(
+                              color: colors.outlineVariant.withValues(
+                                alpha: 0.35,
                               ),
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            texts.amountPreview(amountPreview),
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: colors.onSurfaceVariant,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
-                          const SizedBox(height: 10),
-                          DropdownButtonFormField<String>(
-                            initialValue: channel,
-                            decoration: InputDecoration(
-                              labelText: texts.paymentChannelLabel,
-                            ),
-                            items: channels
-                                .map(
-                                  (item) => DropdownMenuItem<String>(
-                                    value: item,
-                                    child: Text(item),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (value) {
-                              if (value == null) {
-                                return;
-                              }
-                              setDialogState(() => channel = value);
-                            },
-                          ),
-                          const SizedBox(height: 10),
-                          TextField(
-                            controller: noteController,
-                            decoration: InputDecoration(
-                              labelText: texts.noteLabel,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          OutlinedButton.icon(
-                            onPressed: isUploadingProof
-                                ? null
-                                : () async {
-                                    final picked = await ImagePicker()
-                                        .pickImage(source: ImageSource.gallery);
-                                    if (picked == null) {
-                                      return;
-                                    }
-                                    setDialogState(() {
-                                      isUploadingProof = true;
-                                      pickedFileName = picked.name;
-                                    });
-                                    try {
-                                      final storedFileName = await uploadService
-                                          .uploadXFile(
-                                            file: picked,
-                                            category: 'payment-proofs',
-                                          )
-                                          .then((value) => value.fileName);
-                                      if (!context.mounted) {
-                                        return;
-                                      }
-                                      if (sheetRootContext.mounted) {
-                                        setDialogState(() {
-                                          proofController.text = storedFileName;
-                                        });
-                                      }
-                                      ScaffoldMessenger.of(context)
-                                        ..hideCurrentSnackBar()
-                                        ..showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              texts.proofAttachedSuccess(
-                                                picked.name,
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                    } catch (error) {
-                                      if (!context.mounted) {
-                                        return;
-                                      }
-                                      ScaffoldMessenger.of(context)
-                                        ..hideCurrentSnackBar()
-                                        ..showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              texts.proofUploadFailed(error),
-                                            ),
-                                          ),
-                                        );
-                                    } finally {
-                                      if (sheetRootContext.mounted) {
-                                        setDialogState(() {
-                                          isUploadingProof = false;
-                                        });
-                                      }
-                                    }
-                                  },
-                            icon: isUploadingProof
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.2,
-                                    ),
-                                  )
-                                : const Icon(
-                                    Icons.attach_file_outlined,
-                                    size: 18,
-                                  ),
-                            label: Text(
-                              isUploadingProof
-                                  ? texts.attachingProofLabel
-                                  : (pickedFileName ?? texts.attachProofButton),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed: isSubmitting || isUploadingProof
-                                      ? null
-                                      : () => Navigator.of(
-                                          sheetRootContext,
-                                        ).pop(),
-                                  child: Text(texts.cancelButton),
+                              Text(
+                                order.id,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w800,
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: isSubmitting || isUploadingProof
-                                      ? null
-                                      : () async {
-                                          final parsedAmount =
-                                              int.tryParse(
-                                                amountController.text.trim(),
-                                              ) ??
-                                              0;
-                                          if (parsedAmount <= 0) {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  texts.amountMustBePositive,
-                                                ),
-                                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                texts.orderIdAndOutstanding(
+                                  orderId: order.id,
+                                  outstanding: formatVnd(
+                                    order.outstandingAmount,
+                                  ),
+                                ),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  height: 1.45,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        if (isWide)
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: amountField),
+                              const SizedBox(width: 12),
+                              Expanded(child: channelField),
+                            ],
+                          )
+                        else ...[
+                          amountField,
+                          const SizedBox(height: 12),
+                          channelField,
+                        ],
+                        const SizedBox(height: 8),
+                        Text(
+                          texts.amountPreview(amountPreview),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colors.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: noteController,
+                          decoration: inputDecoration(
+                            label: texts.noteLabel,
+                            prefixIcon: const Icon(Icons.edit_note_outlined),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: colors.outlineVariant.withValues(
+                                alpha: 0.35,
+                              ),
+                            ),
+                            color: colors.surface,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                texts.proofSectionTitle,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                texts.proofSectionSubtitle,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: colors.onSurfaceVariant,
+                                  height: 1.45,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              OutlinedButton.icon(
+                                onPressed: isUploadingProof
+                                    ? null
+                                    : () async {
+                                        final picked = await ImagePicker()
+                                            .pickImage(
+                                              source: ImageSource.gallery,
                                             );
-                                            return;
-                                          }
-                                          if (parsedAmount >
-                                              order.outstandingAmount) {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  texts.amountExceeded(
-                                                    formatVnd(
-                                                      order.outstandingAmount,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            );
-                                            return;
-                                          }
-
-                                          if (parsedAmount >=
-                                              _DebtTexts
-                                                  .largePaymentConfirmThreshold) {
-                                            final confirmLargePayment =
-                                                await _confirmLargePayment(
-                                                  context: context,
-                                                  amount: parsedAmount,
-                                                  orderId: order.id,
-                                                  texts: texts,
-                                                );
-                                            if (!context.mounted) {
-                                              return;
-                                            }
-                                            if (confirmLargePayment != true) {
-                                              return;
-                                            }
-                                          }
-
-                                          setDialogState(
-                                            () => isSubmitting = true,
-                                          );
-                                          final orderController = OrderScope.of(
-                                            context,
-                                          );
-                                          final success = await orderController
-                                              .recordPayment(
-                                                orderId: order.id,
-                                                amount: parsedAmount,
-                                                channel: channel,
-                                                note:
-                                                    noteController.text
-                                                        .trim()
-                                                        .isEmpty
-                                                    ? null
-                                                    : noteController.text
-                                                          .trim(),
-                                                proofFileName:
-                                                    proofController.text
-                                                        .trim()
-                                                        .isEmpty
-                                                    ? null
-                                                    : proofController.text
-                                                          .trim(),
-                                              );
-                                          setDialogState(
-                                            () => isSubmitting = false,
-                                          );
-
+                                        if (picked == null) {
+                                          return;
+                                        }
+                                        setDialogState(() {
+                                          isUploadingProof = true;
+                                          pickedFileName = picked.name;
+                                        });
+                                        try {
+                                          final storedFileName =
+                                              await uploadService
+                                                  .uploadXFile(
+                                                    file: picked,
+                                                    category: 'payment-proofs',
+                                                  )
+                                                  .then(
+                                                    (value) => value.fileName,
+                                                  );
                                           if (!context.mounted) {
                                             return;
                                           }
-                                          if (!success) {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  orderControllerErrorMessage(
-                                                    orderController
-                                                        .lastActionMessage,
-                                                    isEnglish: texts.isEnglish,
-                                                  ),
-                                                ),
-                                              ),
-                                            );
-                                            return;
+                                          if (sheetRootContext.mounted) {
+                                            setDialogState(() {
+                                              proofController.text =
+                                                  storedFileName;
+                                            });
                                           }
-
-                                          Navigator.of(sheetRootContext).pop();
                                           ScaffoldMessenger.of(context)
                                             ..hideCurrentSnackBar()
                                             ..showSnackBar(
                                               SnackBar(
                                                 content: Text(
-                                                  texts.paymentRecordedSuccess(
-                                                    amount: formatVnd(
-                                                      parsedAmount,
-                                                    ),
-                                                    orderId: order.id,
+                                                  texts.proofAttachedSuccess(
+                                                    picked.name,
                                                   ),
                                                 ),
                                               ),
                                             );
-                                        },
-                                  child: isSubmitting
-                                      ? const SizedBox(
-                                          width: 18,
-                                          height: 18,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2.4,
-                                          ),
-                                        )
-                                      : Text(texts.confirmButton),
+                                        } catch (error) {
+                                          if (!context.mounted) {
+                                            return;
+                                          }
+                                          ScaffoldMessenger.of(context)
+                                            ..hideCurrentSnackBar()
+                                            ..showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  texts.proofUploadFailed(
+                                                    error,
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                        } finally {
+                                          if (sheetRootContext.mounted) {
+                                            setDialogState(() {
+                                              isUploadingProof = false;
+                                            });
+                                          }
+                                        }
+                                      },
+                                icon: isUploadingProof
+                                    ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.2,
+                                        ),
+                                      )
+                                    : const Icon(
+                                        Icons.attach_file_outlined,
+                                        size: 18,
+                                      ),
+                                label: Text(
+                                  isUploadingProof
+                                      ? texts.attachingProofLabel
+                                      : (pickedFileName ??
+                                            texts.attachProofButton),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
+                              if (proofController.text.trim().isNotEmpty) ...[
+                                const SizedBox(height: 10),
+                                Text(
+                                  texts.proofStoredLabel(
+                                    proofController.text.trim(),
+                                  ),
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: colors.onSurfaceVariant,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(height: 16),
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final compact = constraints.maxWidth < 420;
+                            if (compact) {
+                              return Column(
+                                children: [
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: OutlinedButton(
+                                      onPressed:
+                                          isSubmitting || isUploadingProof
+                                          ? null
+                                          : () => Navigator.of(
+                                              sheetRootContext,
+                                            ).pop(),
+                                      child: Text(texts.cancelButton),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: FilledButton(
+                                      onPressed:
+                                          isSubmitting || isUploadingProof
+                                          ? null
+                                          : () async {
+                                              final parsedAmount =
+                                                  int.tryParse(
+                                                    amountController.text
+                                                        .trim(),
+                                                  ) ??
+                                                  0;
+                                              if (parsedAmount <= 0) {
+                                                ScaffoldMessenger.of(context)
+                                                  ..hideCurrentSnackBar()
+                                                  ..showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        texts
+                                                            .amountMustBePositive,
+                                                      ),
+                                                    ),
+                                                  );
+                                                return;
+                                              }
+                                              if (parsedAmount >
+                                                  order.outstandingAmount) {
+                                                ScaffoldMessenger.of(context)
+                                                  ..hideCurrentSnackBar()
+                                                  ..showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        texts.amountExceeded(
+                                                          formatVnd(
+                                                            order
+                                                                .outstandingAmount,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  );
+                                                return;
+                                              }
+
+                                              if (parsedAmount >=
+                                                  _DebtTexts
+                                                      .largePaymentConfirmThreshold) {
+                                                final confirmLargePayment =
+                                                    await _confirmLargePayment(
+                                                      context: context,
+                                                      amount: parsedAmount,
+                                                      orderId: order.id,
+                                                      texts: texts,
+                                                    );
+                                                if (!context.mounted) {
+                                                  return;
+                                                }
+                                                if (confirmLargePayment !=
+                                                    true) {
+                                                  return;
+                                                }
+                                              }
+
+                                              setDialogState(
+                                                () => isSubmitting = true,
+                                              );
+                                              final orderController =
+                                                  OrderScope.of(context);
+                                              final success =
+                                                  await orderController
+                                                      .recordPayment(
+                                                        orderId: order.id,
+                                                        amount: parsedAmount,
+                                                        channel: channel,
+                                                        note:
+                                                            noteController.text
+                                                                .trim()
+                                                                .isEmpty
+                                                            ? null
+                                                            : noteController
+                                                                  .text
+                                                                  .trim(),
+                                                        proofFileName:
+                                                            proofController.text
+                                                                .trim()
+                                                                .isEmpty
+                                                            ? null
+                                                            : proofController
+                                                                  .text
+                                                                  .trim(),
+                                                      );
+                                              setDialogState(
+                                                () => isSubmitting = false,
+                                              );
+
+                                              if (!context.mounted) {
+                                                return;
+                                              }
+                                              if (!success) {
+                                                ScaffoldMessenger.of(context)
+                                                  ..hideCurrentSnackBar()
+                                                  ..showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        orderControllerErrorMessage(
+                                                          orderController
+                                                              .lastActionMessage,
+                                                          isEnglish:
+                                                              texts.isEnglish,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  );
+                                                return;
+                                              }
+
+                                              Navigator.of(
+                                                sheetRootContext,
+                                              ).pop();
+                                              ScaffoldMessenger.of(context)
+                                                ..hideCurrentSnackBar()
+                                                ..showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      texts
+                                                          .paymentRecordedSuccess(
+                                                            amount: formatVnd(
+                                                              parsedAmount,
+                                                            ),
+                                                            orderId: order.id,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                );
+                                            },
+                                      child: isSubmitting
+                                          ? const SizedBox(
+                                              width: 18,
+                                              height: 18,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2.4,
+                                              ),
+                                            )
+                                          : Text(texts.confirmButton),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }
+
+                            return Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: isSubmitting || isUploadingProof
+                                        ? null
+                                        : () => Navigator.of(
+                                            sheetRootContext,
+                                          ).pop(),
+                                    child: Text(texts.cancelButton),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: FilledButton(
+                                    onPressed: isSubmitting || isUploadingProof
+                                        ? null
+                                        : () async {
+                                            final parsedAmount =
+                                                int.tryParse(
+                                                  amountController.text.trim(),
+                                                ) ??
+                                                0;
+                                            if (parsedAmount <= 0) {
+                                              ScaffoldMessenger.of(context)
+                                                ..hideCurrentSnackBar()
+                                                ..showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      texts
+                                                          .amountMustBePositive,
+                                                    ),
+                                                  ),
+                                                );
+                                              return;
+                                            }
+                                            if (parsedAmount >
+                                                order.outstandingAmount) {
+                                              ScaffoldMessenger.of(context)
+                                                ..hideCurrentSnackBar()
+                                                ..showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      texts.amountExceeded(
+                                                        formatVnd(
+                                                          order
+                                                              .outstandingAmount,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                );
+                                              return;
+                                            }
+
+                                            if (parsedAmount >=
+                                                _DebtTexts
+                                                    .largePaymentConfirmThreshold) {
+                                              final confirmLargePayment =
+                                                  await _confirmLargePayment(
+                                                    context: context,
+                                                    amount: parsedAmount,
+                                                    orderId: order.id,
+                                                    texts: texts,
+                                                  );
+                                              if (!context.mounted) {
+                                                return;
+                                              }
+                                              if (confirmLargePayment != true) {
+                                                return;
+                                              }
+                                            }
+
+                                            setDialogState(
+                                              () => isSubmitting = true,
+                                            );
+                                            final orderController =
+                                                OrderScope.of(context);
+                                            final success =
+                                                await orderController
+                                                    .recordPayment(
+                                                      orderId: order.id,
+                                                      amount: parsedAmount,
+                                                      channel: channel,
+                                                      note:
+                                                          noteController.text
+                                                              .trim()
+                                                              .isEmpty
+                                                          ? null
+                                                          : noteController.text
+                                                                .trim(),
+                                                      proofFileName:
+                                                          proofController.text
+                                                              .trim()
+                                                              .isEmpty
+                                                          ? null
+                                                          : proofController.text
+                                                                .trim(),
+                                                    );
+                                            setDialogState(
+                                              () => isSubmitting = false,
+                                            );
+
+                                            if (!context.mounted) {
+                                              return;
+                                            }
+                                            if (!success) {
+                                              ScaffoldMessenger.of(context)
+                                                ..hideCurrentSnackBar()
+                                                ..showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      orderControllerErrorMessage(
+                                                        orderController
+                                                            .lastActionMessage,
+                                                        isEnglish:
+                                                            texts.isEnglish,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                );
+                                              return;
+                                            }
+
+                                            Navigator.of(
+                                              sheetRootContext,
+                                            ).pop();
+                                            ScaffoldMessenger.of(context)
+                                              ..hideCurrentSnackBar()
+                                              ..showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    texts
+                                                        .paymentRecordedSuccess(
+                                                          amount: formatVnd(
+                                                            parsedAmount,
+                                                          ),
+                                                          orderId: order.id,
+                                                        ),
+                                                  ),
+                                                ),
+                                              );
+                                          },
+                                    child: isSubmitting
+                                        ? const SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2.4,
+                                            ),
+                                          )
+                                        : Text(texts.confirmButton),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -851,26 +1672,131 @@ class _DebtOrderCard extends StatelessWidget {
       traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
       requestFocus: true,
       builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(texts.largePaymentConfirmTitle),
-          content: Text(
-            texts.largePaymentConfirmMessage(
-              amount: formatVnd(amount),
-              orderId: orderId,
+        return RepaintBoundary(
+          child: AlertDialog(
+            scrollable: true,
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 20,
             ),
+            title: Text(texts.largePaymentConfirmTitle),
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Text(
+                texts.largePaymentConfirmMessage(
+                  amount: formatVnd(amount),
+                  orderId: orderId,
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(texts.cancelButton),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(texts.continueButton),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(texts.cancelButton),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(texts.continueButton),
-            ),
+        );
+      },
+    );
+  }
+}
+
+class _InfoStrip extends StatelessWidget {
+  const _InfoStrip({required this.items});
+
+  final List<_InfoStripItem> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 360;
+        if (compact) {
+          return Column(
+            children: [
+              for (var i = 0; i < items.length; i++) ...[
+                _InfoStripCell(item: items[i]),
+                if (i != items.length - 1) const SizedBox(height: 10),
+              ],
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            for (var i = 0; i < items.length; i++) ...[
+              Expanded(child: _InfoStripCell(item: items[i])),
+              if (i != items.length - 1) const SizedBox(width: 10),
+            ],
           ],
         );
       },
+    );
+  }
+}
+
+class _InfoStripItem {
+  const _InfoStripItem({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+}
+
+class _InfoStripCell extends StatelessWidget {
+  const _InfoStripCell({required this.item});
+
+  final _InfoStripItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        color: colors.surface,
+        border: Border.all(
+          color: colors.outlineVariant.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(item.icon, size: 18, color: colors.onSurfaceVariant),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.label,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  item.value,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -882,15 +1808,16 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final chipBg = isDark ? const Color(0xFF422006) : const Color(0xFFFFF7ED);
-    final chipText = isDark ? const Color(0xFFFCD34D) : const Color(0xFF9A3412);
+    final colors = Theme.of(context).colorScheme;
+    final chipBg = colors.primaryContainer.withValues(alpha: 0.42);
+    final chipText = colors.primary;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: chipBg,
         borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: chipText.withValues(alpha: 0.22)),
       ),
       child: Text(
         label,
@@ -911,20 +1838,19 @@ class _PaymentHistoryCard extends StatelessWidget {
 
   IconData _iconForChannel(String channel) {
     final normalized = channel.toLowerCase();
-    if (normalized.contains('chuyển khoản') ||
-        normalized.contains('chuyển khoản') ||
-        normalized.contains('bank transfer')) {
+    if (normalized.contains('bank transfer') ||
+        normalized.contains('chuyển khoản')) {
       return Icons.account_balance_outlined;
     }
-    if (normalized.contains('tiền mặt') ||
-        normalized.contains('tien mat') ||
-        normalized.contains('cash')) {
+    if (normalized.contains('cash') ||
+        normalized.contains('tiền mặt') ||
+        normalized.contains('tien mat')) {
       return Icons.money_outlined;
     }
-    if (normalized.contains('bù trừ') ||
-        normalized.contains('bu tru') ||
+    if (normalized.contains('offset') ||
         normalized.contains('debt') ||
-        normalized.contains('offset')) {
+        normalized.contains('bù trừ') ||
+        normalized.contains('bu tru')) {
       return Icons.swap_horiz_outlined;
     }
     return Icons.payments_outlined;
@@ -945,7 +1871,7 @@ class _PaymentHistoryCard extends StatelessWidget {
       child: Card(
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.6)),
         ),
         child: Padding(
@@ -956,11 +1882,11 @@ class _PaymentHistoryCard extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    width: 34,
-                    height: 34,
+                    width: 38,
+                    height: 38,
                     decoration: BoxDecoration(
                       color: colors.primaryContainer.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     alignment: Alignment.center,
                     child: Icon(
@@ -1005,42 +1931,34 @@ class _PaymentHistoryCard extends StatelessWidget {
                     ),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
+                  _HistoryChip(
+                    label: channel,
+                    backgroundColor: colors.secondaryContainer.withValues(
+                      alpha: 0.7,
                     ),
-                    decoration: BoxDecoration(
-                      color: colors.secondaryContainer.withValues(alpha: 0.7),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      channel,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: colors.onSecondaryContainer,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    foregroundColor: colors.onSecondaryContainer,
                   ),
-                  Text(
-                    formatDateTime(payment.paidAt),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: colors.onSurfaceVariant,
+                  _HistoryChip(
+                    label: formatDateTime(payment.paidAt),
+                    backgroundColor: colors.surfaceContainerHighest.withValues(
+                      alpha: 0.45,
                     ),
+                    foregroundColor: colors.onSurfaceVariant,
                   ),
                 ],
               ),
               if (payment.note != null && payment.note!.trim().isNotEmpty) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Text(
                   texts.noteValue(payment.note!.trim()),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: colors.onSurfaceVariant,
+                    height: 1.45,
                   ),
                 ),
               ],
@@ -1052,43 +1970,38 @@ class _PaymentHistoryCard extends StatelessWidget {
   }
 }
 
-class _LabelValueRow extends StatelessWidget {
-  const _LabelValueRow({required this.label, required this.value});
+class _HistoryChip extends StatelessWidget {
+  const _HistoryChip({
+    required this.label,
+    required this.backgroundColor,
+    required this.foregroundColor,
+  });
 
   final String label;
-  final String value;
+  final Color backgroundColor;
+  final Color foregroundColor;
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
-          ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: foregroundColor,
+          fontWeight: FontWeight.w600,
         ),
-        const SizedBox(width: 12),
-        Flexible(
-          child: Text(
-            value,
-            textAlign: TextAlign.right,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
 
-class _EmptyCard extends StatelessWidget {
-  const _EmptyCard({
+class _EmptyStateCard extends StatelessWidget {
+  const _EmptyStateCard({
     required this.icon,
     required this.title,
     required this.subtitle,
@@ -1104,20 +2017,25 @@ class _EmptyCard extends StatelessWidget {
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: Theme.of(
-            context,
-          ).colorScheme.outlineVariant.withValues(alpha: 0.6),
-        ),
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.6)),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 26, color: colors.onSurfaceVariant),
-            const SizedBox(height: 8),
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: colors.primaryContainer.withValues(alpha: 0.55),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              alignment: Alignment.center,
+              child: Icon(icon, size: 24, color: colors.onPrimaryContainer),
+            ),
+            const SizedBox(height: 12),
             Text(
               title,
               textAlign: TextAlign.center,
@@ -1129,9 +2047,10 @@ class _EmptyCard extends StatelessWidget {
             Text(
               subtitle,
               textAlign: TextAlign.center,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: colors.onSurfaceVariant,
+                height: 1.45,
+              ),
             ),
           ],
         ),
@@ -1148,49 +2067,131 @@ class _DebtTexts {
   final bool isEnglish;
 
   String get screenTitle => isEnglish ? 'Debt tracking' : 'Công nợ';
+
+  String get heroTitle =>
+      isEnglish ? 'Track outstanding debt' : 'Theo dõi công nợ hiện tại';
+
+  String get heroSubtitle => isEnglish
+      ? 'Review outstanding orders, record incoming payments and monitor credit usage in one place.'
+      : 'Theo dõi đơn còn nợ, ghi nhận thanh toán và kiểm soát hạn mức công nợ tại một nơi.';
+
+  String get insightPanelTitle =>
+      isEnglish ? 'Debt insights' : 'Tóm tắt công nợ';
+
+  String get insightPanelSubtitle => isEnglish
+      ? 'Use these indicators to understand exposure, average debt size and payment activity.'
+      : 'Dùng các chỉ số này để theo dõi mức dư nợ, giá trị nợ trung bình và hoạt động thanh toán.';
+
   String get debtOrdersSectionTitle =>
       isEnglish ? 'Outstanding orders' : 'Đơn hàng còn nợ';
+
+  String get debtOrdersSectionSubtitle => isEnglish
+      ? 'Orders using debt payment that still have an unpaid balance.'
+      : 'Các đơn dùng phương thức công nợ vẫn còn số dư chưa thanh toán.';
+
   String get paymentHistorySectionTitle =>
       isEnglish ? 'Payment history' : 'Lịch sử thanh toán';
+
+  String get paymentHistorySectionSubtitle => isEnglish
+      ? 'Recorded debt payments linked to debt orders will appear here.'
+      : 'Các khoản thanh toán đã ghi nhận cho đơn công nợ sẽ hiển thị tại đây.';
+
   String get debtOrdersEmptyTitle =>
       isEnglish ? 'No outstanding orders' : 'Không còn đơn nợ';
+
   String get debtOrdersEmptySubtitle => isEnglish
       ? 'All eligible orders are fully paid.'
       : 'Tất cả đơn hàng đủ điều kiện đã được thanh toán.';
+
   String get paymentHistoryEmptyTitle =>
       isEnglish ? 'No payment history' : 'Chưa có lịch sử thanh toán';
+
   String get paymentHistoryEmptySubtitle => isEnglish
       ? 'Recorded debt payments will appear here.'
       : 'Các giao dịch ghi nhận thanh toán sẽ hiển thị tại đây.';
-  String get summaryTitle =>
-      isEnglish ? 'Current outstanding debt' : 'Tổng công nợ hiện tại';
+
+  String get totalDebtMetricLabel =>
+      isEnglish ? 'Outstanding debt' : 'Tổng dư nợ';
+
+  String get averageDebtMetricLabel =>
+      isEnglish ? 'Average debt / order' : 'Nợ trung bình / đơn';
+
+  String get recordedPaymentsMetricLabel =>
+      isEnglish ? 'Recorded payments' : 'Số lượt thanh toán';
+
+  String recordedPaymentsValue(int count) =>
+      isEnglish ? '$count entries' : '$count lượt';
+
+  String get creditUtilizationLabel =>
+      isEnglish ? 'Credit utilization' : 'Mức sử dụng hạn mức';
+
+  String creditUtilizationDescription({
+    required int creditLimit,
+    required int ratioPercent,
+  }) {
+    if (creditLimit <= 0) {
+      return isEnglish
+          ? 'Credit limit has not been configured for this dealer profile yet.'
+          : 'Hồ sơ đại lý hiện chưa được cấu hình hạn mức công nợ.';
+    }
+    return isEnglish
+        ? 'Using $ratioPercent% of the configured credit limit.'
+        : 'Đang sử dụng $ratioPercent% hạn mức công nợ đã cấu hình.';
+  }
+
+  String get metricUnavailableValue => isEnglish ? 'Unavailable' : 'Chưa có';
+
   String get orderDateLabel => isEnglish ? 'Order date' : 'Ngày đặt';
+
   String get paymentMethodLabel => isEnglish ? 'Payment method' : 'Phương thức';
+
   String get totalAmountLabel => isEnglish ? 'Order total' : 'Tổng đơn';
+
   String get paidAmountLabel => isEnglish ? 'Paid amount' : 'Đã thanh toán';
+
   String get viewOrderButton => isEnglish ? 'View order' : 'Xem đơn';
+
   String get recordPaymentButton =>
       isEnglish ? 'Record payment' : 'Ghi nhận thanh toán';
+
   String get recordPaymentDialogTitle =>
       isEnglish ? 'Record debt payment' : 'Ghi nhận thanh toán';
+
   String get paymentAmountLabel =>
       isEnglish ? 'Payment amount' : 'Số tiền thanh toán';
+
   String get paymentChannelLabel =>
       isEnglish ? 'Payment channel' : 'Kênh thanh toán';
+
   String get noteLabel => isEnglish ? 'Note' : 'Ghi chú';
+
+  String get proofSectionTitle =>
+      isEnglish ? 'Payment proof' : 'Chứng từ thanh toán';
+
+  String get proofSectionSubtitle => isEnglish
+      ? 'Attach an image file if you want to keep supporting proof for this payment entry.'
+      : 'Đính kèm hình ảnh nếu bạn muốn lưu chứng từ hỗ trợ cho lần ghi nhận thanh toán này.';
+
   String get attachProofButton =>
       isEnglish ? 'Attach payment proof' : 'Đính kèm chứng từ';
+
   String get attachingProofLabel =>
       isEnglish ? 'Uploading proof...' : 'Đang tải chứng từ...';
+
+  String proofStoredLabel(String fileName) =>
+      isEnglish ? 'Stored proof: $fileName' : 'Chứng từ đã lưu: $fileName';
+
   String get cancelButton => isEnglish ? 'Cancel' : 'Hủy';
+
   String get confirmButton => isEnglish ? 'Confirm' : 'Xác nhận';
+
   String get continueButton => isEnglish ? 'Continue' : 'Tiếp tục';
+
   String get amountPreviewPlaceholder => '0 ₫';
+
   String get amountMustBePositive =>
       isEnglish ? 'Amount must be greater than 0.' : 'Số tiền phải lớn hơn 0.';
-  String get recordPaymentFailed => isEnglish
-      ? 'Unable to record payment. Please check data and try again.'
-      : 'Không thể ghi nhận thanh toán. Vui lòng kiểm tra lại dữ liệu.';
+
   String get largePaymentConfirmTitle =>
       isEnglish ? 'Confirm large payment' : 'Xác nhận khoản thanh toán lớn';
 
@@ -1202,6 +2203,18 @@ class _DebtTexts {
     }
     return formatVnd(amount);
   }
+
+  String creditLimitHeroLabel(int amount) {
+    if (amount <= 0) {
+      return isEnglish ? 'Credit limit not set' : 'Chưa có hạn mức công nợ';
+    }
+    return isEnglish
+        ? 'Credit limit ${formatVnd(amount)}'
+        : 'Hạn mức ${formatVnd(amount)}';
+  }
+
+  String latestPaymentLabel(String value) =>
+      isEnglish ? 'Latest payment $value' : 'Thanh toán gần nhất $value';
 
   String summarySemantics({required String amount, required int orderCount}) {
     if (isEnglish) {
@@ -1356,7 +2369,6 @@ class _DebtTexts {
     }
     final normalized = channel.trim().toLowerCase();
     if (normalized.contains('bank transfer') ||
-        normalized.contains('chuyển khoản') ||
         normalized.contains('chuyển khoản')) {
       return 'Bank transfer';
     }
@@ -1373,6 +2385,9 @@ class _DebtTexts {
     }
     return channel;
   }
+
+  String showAllPaymentsLabel(int count) =>
+      isEnglish ? 'Show all ($count)' : 'Xem tất cả ($count)';
 
   List<String> get paymentChannels {
     if (isEnglish) {

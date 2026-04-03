@@ -20,6 +20,7 @@ import 'utils.dart';
 import 'warranty_controller.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
+import 'widgets/skeleton_box.dart';
 
 part 'orders_screen_support.dart';
 
@@ -93,43 +94,53 @@ class _OrdersScreenState extends State<OrdersScreen> {
       requestFocus: true,
       builder: (dialogContext) {
         final colors = Theme.of(context).colorScheme;
-        return AlertDialog(
-          title: Text(texts.confirmCancelTitle),
-          content: Text(texts.confirmCancelDescription(order.id)),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(texts.noAction),
+        return RepaintBoundary(
+          child: AlertDialog(
+            scrollable: true,
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 20,
             ),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: colors.errorContainer,
-                foregroundColor: colors.onErrorContainer,
+            title: Text(texts.confirmCancelTitle),
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Text(texts.confirmCancelDescription(order.id)),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: Text(texts.noAction),
               ),
-              onPressed: () async {
-                Navigator.of(dialogContext).pop();
-                final orderController = OrderScope.of(context);
-                final success = await orderController.updateOrderStatus(
-                  order.id,
-                  OrderStatus.cancelled,
-                );
-                if (!context.mounted || success) {
-                  return;
-                }
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      orderControllerErrorMessage(
-                        orderController.lastActionMessage,
-                        isEnglish: texts.isEnglish,
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: colors.errorContainer,
+                  foregroundColor: colors.onErrorContainer,
+                ),
+                onPressed: () async {
+                  Navigator.of(dialogContext).pop();
+                  final orderController = OrderScope.of(context);
+                  final success = await orderController.updateOrderStatus(
+                    order.id,
+                    OrderStatus.cancelled,
+                  );
+                  if (!context.mounted || success) {
+                    return;
+                  }
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        orderControllerErrorMessage(
+                          orderController.lastActionMessage,
+                          isEnglish: texts.isEnglish,
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
-              child: Text(texts.cancelOrderAction),
-            ),
-          ],
+                  );
+                },
+                child: Text(texts.cancelOrderAction),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -256,6 +267,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final hasActiveCriteria = canResetCriteria;
     final orderBuilderDelegate = PagedChildBuilderDelegate<Order>(
       itemBuilder: (context, order, index) {
+        final pageIndex = index % _pageSize;
+        final shouldAnimate = pageIndex < 6;
         final canCancel =
             order.status == OrderStatus.pending ||
             order.status == OrderStatus.confirmed;
@@ -268,155 +281,187 @@ class _OrdersScreenState extends State<OrdersScreen> {
         final orderSemanticsLabel = texts.orderSemanticsLabel(order);
         final card = FadeSlideIn(
           key: ValueKey(order.id),
-          delay: Duration(
-            milliseconds: math.min(25 * (index % _pageSize), 150),
-          ),
+          animate: shouldAnimate,
+          delay: shouldAnimate
+              ? Duration(milliseconds: math.min(25 * pageIndex, 150))
+              : Duration.zero,
           child: Semantics(
             container: true,
             label: orderSemanticsLabel,
             hint: texts.openOrderDetailsHint,
-            child: Card(
-              clipBehavior: Clip.antiAlias,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
-                side: BorderSide(
-                  color: colors.outlineVariant.withValues(alpha: 0.6),
+            child: RepaintBoundary(
+              child: Card(
+                clipBehavior: Clip.antiAlias,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  side: BorderSide(
+                    color: colors.outlineVariant.withValues(alpha: 0.6),
+                  ),
                 ),
-              ),
-              child: InkWell(
-                onTap: () => _openOrderDetail(context, order.id),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    InkWell(
+                      onTap: () => _openOrderDetail(context, order.id),
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          16,
+                          16,
+                          16,
+                          canCancel ? 8 : 16,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  order.id,
-                                  style: Theme.of(context).textTheme.titleSmall
-                                      ?.copyWith(fontWeight: FontWeight.w700),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        order.id,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleSmall
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        order.receiverName,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        texts.placedAt(order.createdAt),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.copyWith(
+                                              color: colors.onSurfaceVariant,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  order.receiverName,
-                                  style: Theme.of(context).textTheme.bodyMedium
-                                      ?.copyWith(fontWeight: FontWeight.w600),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    _StatusChip(status: order.status),
+                                    const SizedBox(width: 4),
+                                    Icon(
+                                      Icons.chevron_right,
+                                      size: 18,
+                                      color: colors.onSurfaceVariant,
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(height: 2),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              formatVnd(order.total),
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
+                                    color: colors.onSurface,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              texts.itemCountLabel(order.totalItems),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: colors.onSurfaceVariant),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              texts.paymentMethodSummary(
+                                context,
+                                order.paymentMethod,
+                              ),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: colors.onSurfaceVariant),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
                                 Text(
-                                  texts.placedAt(order.createdAt),
+                                  texts.paymentStatusLabel,
                                   style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(
                                         color: colors.onSurfaceVariant,
                                       ),
                                 ),
+                                const SizedBox(width: 8),
+                                _PaymentStatusChip(
+                                  paymentStatus: order.paymentStatus,
+                                ),
                               ],
                             ),
-                          ),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _StatusChip(status: order.status),
-                              const SizedBox(width: 4),
-                              Icon(
-                                Icons.chevron_right,
-                                size: 18,
-                                color: colors.onSurfaceVariant,
+                            if (shouldShowSerialProgress) ...[
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(4),
+                                      child: LinearProgressIndicator(
+                                        value: order.totalItems > 0
+                                            ? serialProcessedCount /
+                                                  order.totalItems
+                                            : 0,
+                                        minHeight: 4,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    texts.serialProgressLabel(
+                                      serialProcessedCount,
+                                      order.totalItems,
+                                    ),
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(
+                                          color: colors.onSurfaceVariant,
+                                        ),
+                                  ),
+                                ],
                               ),
                             ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        formatVnd(order.total),
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: colors.onSurface,
-                              fontWeight: FontWeight.w700,
-                            ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        texts.itemCountLabel(order.totalItems),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: colors.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        texts.paymentMethodSummary(
-                          context,
-                          order.paymentMethod,
-                        ),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: colors.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Text(
-                            texts.paymentStatusLabel,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: colors.onSurfaceVariant),
-                          ),
-                          const SizedBox(width: 8),
-                          _PaymentStatusChip(
-                            paymentStatus: order.paymentStatus,
-                          ),
-                        ],
-                      ),
-                      if (shouldShowSerialProgress) ...[
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(4),
-                                child: LinearProgressIndicator(
-                                  value: order.totalItems > 0
-                                      ? serialProcessedCount / order.totalItems
-                                      : 0,
-                                  minHeight: 4,
+                            if (order.outstandingAmount > 0) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                texts.outstandingAmountLabel(
+                                  order.outstandingAmount,
                                 ),
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: colors.error,
+                                      fontWeight: FontWeight.w700,
+                                    ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              texts.serialProgressLabel(
-                                serialProcessedCount,
-                                order.totalItems,
-                              ),
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(color: colors.onSurfaceVariant),
-                            ),
+                            ],
                           ],
                         ),
-                      ],
-                      if (order.outstandingAmount > 0) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          texts.outstandingAmountLabel(order.outstandingAmount),
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: colors.error,
-                                fontWeight: FontWeight.w700,
-                              ),
-                        ),
-                      ],
-                      if (canCancel) ...[
-                        const SizedBox(height: 12),
-                        TextButton(
+                      ),
+                    ),
+                    if (canCancel)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+                        child: TextButton(
                           style: TextButton.styleFrom(
                             foregroundColor: Theme.of(
                               context,
@@ -427,9 +472,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           onPressed: () => _confirmCancel(context, order),
                           child: Text(texts.cancelOrderAction),
                         ),
-                      ],
-                    ],
-                  ),
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -440,12 +484,72 @@ class _OrdersScreenState extends State<OrdersScreen> {
         }
         return Padding(padding: const EdgeInsets.only(bottom: 12), child: card);
       },
-      firstPageProgressIndicatorBuilder: (context) =>
-          const Center(child: CircularProgressIndicator()),
-      newPageProgressIndicatorBuilder: (context) => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 24),
-        child: Center(child: CircularProgressIndicator()),
-      ),
+      firstPageProgressIndicatorBuilder: (context) {
+        if (layout.useGridLayout) {
+          return Column(
+            children: List.generate(2, (rowIndex) {
+              return Padding(
+                padding: EdgeInsets.only(bottom: rowIndex < 1 ? 12 : 0),
+                child: Row(
+                  children: List.generate(layout.gridColumnCount, (colIndex) {
+                    return Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          left: colIndex > 0 ? 6 : 0,
+                          right: colIndex < layout.gridColumnCount - 1 ? 6 : 0,
+                        ),
+                        child: SizedBox(
+                          height: layout.gridItemExtent,
+                          child: const _OrderCardSkeleton(),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              );
+            }),
+          );
+        }
+        return Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Column(
+            children: List.generate(
+              4,
+              (index) => const Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: _OrderCardSkeleton(),
+              ),
+            ),
+          ),
+        );
+      },
+      newPageProgressIndicatorBuilder: (context) {
+        if (layout.useGridLayout) {
+          return Padding(
+            padding: const EdgeInsets.only(top: 4, bottom: 12),
+            child: Row(
+              children: List.generate(layout.gridColumnCount, (colIndex) {
+                return Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      left: colIndex > 0 ? 6 : 0,
+                      right: colIndex < layout.gridColumnCount - 1 ? 6 : 0,
+                    ),
+                    child: SizedBox(
+                      height: layout.gridItemExtent,
+                      child: const _OrderCardSkeleton(),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          );
+        }
+        return const Padding(
+          padding: EdgeInsets.only(top: 4, bottom: 12),
+          child: _OrderCardSkeleton(),
+        );
+      },
       noItemsFoundIndicatorBuilder: (context) {
         if (allOrders.isEmpty) {
           return FadeSlideIn(
@@ -558,7 +662,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                   ),
                                 if (pendingCount > 0 && debtOrderCount > 0)
                                   Text(
-                                    ' · ',
+                                    ' • ',
                                     style: Theme.of(context).textTheme.bodySmall
                                         ?.copyWith(
                                           color: colors.onSurfaceVariant,
@@ -897,9 +1001,8 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final texts = _ordersTexts(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final background = _backgroundForStatus(status, isDark: isDark);
-    final textColor = _textForStatus(status, isDark: isDark);
+    final background = _backgroundForStatus(status);
+    final textColor = _textForStatus(status);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -927,9 +1030,8 @@ class _PaymentStatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final texts = _ordersTexts(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final background = _paymentStatusBackground(paymentStatus, isDark: isDark);
-    final textColor = _paymentStatusTextColor(paymentStatus, isDark: isDark);
+    final background = _paymentStatusBackground(paymentStatus);
+    final textColor = _paymentStatusTextColor(paymentStatus);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -1015,9 +1117,9 @@ class _OrdersTexts {
   String orderStatusLabel(OrderStatus status) {
     switch (status) {
       case OrderStatus.pending:
-        return isEnglish ? 'Pending' : '\u0043h\u1EDD x\u1EED l\u00FD';
+        return isEnglish ? 'Pending' : 'Chờ xử lý';
       case OrderStatus.confirmed:
-        return isEnglish ? 'Confirmed' : '\u0110\u00E3 x\u00E1c nh\u1EADn';
+        return isEnglish ? 'Confirmed' : 'Đã xác nhận';
       case OrderStatus.shipping:
         return isEnglish ? 'Shipping' : 'Đang giao';
       case OrderStatus.completed:
@@ -1141,124 +1243,62 @@ class _OrdersTexts {
   }
 }
 
-Color _paymentStatusBackground(
-  OrderPaymentStatus status, {
-  required bool isDark,
-}) {
-  if (isDark) {
-    switch (status) {
-      case OrderPaymentStatus.cancelled:
-        return const Color(0xFF3B1F26);
-      case OrderPaymentStatus.failed:
-        return const Color(0xFF3B1F26);
-      case OrderPaymentStatus.pending:
-        return const Color(0xFF4A1E24);
-      case OrderPaymentStatus.paid:
-        return const Color(0xFF1A3F2D);
-      case OrderPaymentStatus.debtRecorded:
-        return const Color(0xFF4C3B16);
-    }
-  }
+Color _paymentStatusBackground(OrderPaymentStatus status) {
   switch (status) {
     case OrderPaymentStatus.cancelled:
-      return const Color(0xFFFDE7EC);
+      return const Color(0xFF3B1F26);
     case OrderPaymentStatus.failed:
-      return const Color(0xFFFDE7EC);
+      return const Color(0xFF3B1F26);
     case OrderPaymentStatus.pending:
-      return const Color(0xFFFEECEE);
+      return const Color(0xFF4A1E24);
     case OrderPaymentStatus.paid:
-      return const Color(0xFFE8F8EF);
+      return const Color(0xFF1A3F2D);
     case OrderPaymentStatus.debtRecorded:
-      return const Color(0xFFFFF6DB);
+      return const Color(0xFF4C3B16);
   }
 }
 
-Color _paymentStatusTextColor(
-  OrderPaymentStatus status, {
-  required bool isDark,
-}) {
-  if (isDark) {
-    switch (status) {
-      case OrderPaymentStatus.cancelled:
-        return const Color(0xFFFDA4AF);
-      case OrderPaymentStatus.failed:
-        return const Color(0xFFFDA4AF);
-      case OrderPaymentStatus.pending:
-        return const Color(0xFFFDA4AF);
-      case OrderPaymentStatus.paid:
-        return const Color(0xFF86EFAC);
-      case OrderPaymentStatus.debtRecorded:
-        return const Color(0xFFF4D18A);
-    }
-  }
+Color _paymentStatusTextColor(OrderPaymentStatus status) {
   switch (status) {
     case OrderPaymentStatus.cancelled:
-      return const Color(0xFFB42318);
+      return const Color(0xFFFDA4AF);
     case OrderPaymentStatus.failed:
-      return const Color(0xFFB42318);
+      return const Color(0xFFFDA4AF);
     case OrderPaymentStatus.pending:
-      return const Color(0xFFB42318);
+      return const Color(0xFFFDA4AF);
     case OrderPaymentStatus.paid:
-      return const Color(0xFF1D7A3A);
+      return const Color(0xFF86EFAC);
     case OrderPaymentStatus.debtRecorded:
-      return const Color(0xFF8A5A00);
+      return const Color(0xFFF4D18A);
   }
 }
 
-Color _backgroundForStatus(OrderStatus status, {required bool isDark}) {
-  if (isDark) {
-    switch (status) {
-      case OrderStatus.pending:
-        return const Color(0xFF4C3B16);
-      case OrderStatus.confirmed:
-        return const Color(0xFF1E3150);
-      case OrderStatus.shipping:
-        return const Color(0xFF154052);
-      case OrderStatus.completed:
-        return const Color(0xFF1A3F2D);
-      case OrderStatus.cancelled:
-        return const Color(0xFF2A3642);
-    }
-  }
+Color _backgroundForStatus(OrderStatus status) {
   switch (status) {
     case OrderStatus.pending:
-      return const Color(0xFFFFF6DB);
+      return const Color(0xFF4C3B16);
     case OrderStatus.confirmed:
-      return const Color(0xFFEAF2FF);
+      return const Color(0xFF1E3150);
     case OrderStatus.shipping:
-      return const Color(0xFFE0F2FE);
+      return const Color(0xFF154052);
     case OrderStatus.completed:
-      return const Color(0xFFE8F8EF);
+      return const Color(0xFF1A3F2D);
     case OrderStatus.cancelled:
-      return const Color(0xFFF1F5F9);
+      return const Color(0xFF2A3642);
   }
 }
 
-Color _textForStatus(OrderStatus status, {required bool isDark}) {
-  if (isDark) {
-    switch (status) {
-      case OrderStatus.pending:
-        return const Color(0xFFF4D18A);
-      case OrderStatus.confirmed:
-        return const Color(0xFF93C5FD);
-      case OrderStatus.shipping:
-        return const Color(0xFF7DD3FC);
-      case OrderStatus.completed:
-        return const Color(0xFF86EFAC);
-      case OrderStatus.cancelled:
-        return const Color(0xFFCBD5E1);
-    }
-  }
+Color _textForStatus(OrderStatus status) {
   switch (status) {
     case OrderStatus.pending:
-      return const Color(0xFF8A5A00);
+      return const Color(0xFFF4D18A);
     case OrderStatus.confirmed:
-      return const Color(0xFF1A4FA3);
+      return const Color(0xFF93C5FD);
     case OrderStatus.shipping:
-      return const Color(0xFF0C4A6E);
+      return const Color(0xFF7DD3FC);
     case OrderStatus.completed:
-      return const Color(0xFF1D7A3A);
+      return const Color(0xFF86EFAC);
     case OrderStatus.cancelled:
-      return const Color(0xFF64748B);
+      return const Color(0xFFCBD5E1);
   }
 }

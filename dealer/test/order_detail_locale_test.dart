@@ -5,7 +5,6 @@ import 'package:dealer_hub/models.dart';
 import 'package:dealer_hub/order_controller.dart';
 import 'package:dealer_hub/order_detail_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -96,6 +95,10 @@ Future<Widget> _buildApp(
       locale: locale,
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
+      theme: ThemeData(
+        useMaterial3: true,
+        splashFactory: NoSplash.splashFactory,
+      ),
       home: CartScope(
         controller: _FakeCartController(),
         child: OrderScope(

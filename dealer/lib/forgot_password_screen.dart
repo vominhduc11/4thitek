@@ -11,11 +11,7 @@ import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
-  const ForgotPasswordScreen({
-    super.key,
-    this.initialEmail,
-    this.authService,
-  });
+  const ForgotPasswordScreen({super.key, this.initialEmail, this.authService});
 
   final String? initialEmail;
   final AuthService? authService;
@@ -86,9 +82,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final screenWidth = mediaSize.width;
     final screenHeight = mediaSize.height;
     final isTablet = mediaSize.shortestSide >= AppBreakpoints.phone;
+    final isWideLayout = screenWidth >= 980;
     final isCompact = screenWidth <= 420;
     final isShortHeight = screenHeight <= 700;
     final cardMaxWidth = isTablet ? 480.0 : 420.0;
+    final contentMaxWidth = isWideLayout ? 1040.0 : cardMaxWidth;
     final topOrbSize = isTablet ? 250.0 : (isCompact ? 170.0 : 220.0);
     final bottomOrbSize = isTablet ? 220.0 : (isCompact ? 150.0 : 200.0);
     final horizontalPadding = isCompact ? 16.0 : (isTablet ? 28.0 : 20.0);
@@ -102,6 +100,52 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final topOrbTop = isTablet ? -60.0 : (isCompact ? -26.0 : -40.0);
     final bottomOrbLeft = isTablet ? -88.0 : (isCompact ? -44.0 : -60.0);
     final bottomOrbBottom = isTablet ? -52.0 : (isCompact ? -18.0 : -30.0);
+    final Widget headerSection = RepaintBoundary(
+      child: FadeSlideIn(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: _ForgotHeader(
+            theme: theme,
+            isCompact: isCompact,
+            isTablet: isTablet,
+            texts: texts,
+          ),
+        ),
+      ),
+    );
+    final Widget cardSection = RepaintBoundary(
+      child: FadeSlideIn(
+        delay: const Duration(milliseconds: 80),
+        child: Container(
+          padding: EdgeInsets.fromLTRB(
+            cardHorizontalPadding,
+            cardTopPadding,
+            cardHorizontalPadding,
+            cardBottomPadding,
+          ),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.48),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.18),
+                blurRadius: 28,
+                offset: const Offset(0, 14),
+              ),
+            ],
+          ),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            child: _isSubmitted
+                ? _buildSuccessContent(theme)
+                : _buildFormContent(theme),
+          ),
+        ),
+      ),
+    );
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
@@ -114,9 +158,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 end: Alignment.bottomRight,
                 stops: [0.0, 0.45, 1.0],
                 colors: [
-                  Color(0xFF1D4ED8),
-                  Color(0xFF2563EB),
-                  Color(0xFFDBEAFE),
+                  Color(0xFF08131D),
+                  Color(0xFF102738),
+                  Color(0xFF1A415C),
                 ],
               ),
             ),
@@ -129,14 +173,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           Positioned(
             right: topOrbRight,
             top: topOrbTop,
-            child: _GlowOrb(size: topOrbSize, color: const Color(0x66FFFFFF)),
+            child: _GlowOrb(size: topOrbSize, color: const Color(0x243385B0)),
           ),
           Positioned(
             left: bottomOrbLeft,
             bottom: bottomOrbBottom,
             child: _GlowOrb(
               size: bottomOrbSize,
-              color: const Color(0x33FFFFFF),
+              color: const Color(0x1A8BB9D2),
             ),
           ),
           SafeArea(
@@ -150,7 +194,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               ),
               child: Center(
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: cardMaxWidth),
+                  constraints: BoxConstraints(maxWidth: contentMaxWidth),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -167,10 +211,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               tooltip: texts.backToLoginAction,
                               style: IconButton.styleFrom(
                                 minimumSize: const Size(48, 48),
-                                foregroundColor: Colors.white,
-                                backgroundColor: Colors.white.withValues(
-                                  alpha: 0.14,
-                                ),
+                                foregroundColor: const Color(0xFFECEDEE),
+                                backgroundColor: const Color(0x183385B0),
                               ),
                               icon: const Icon(Icons.arrow_back_rounded),
                             ),
@@ -178,43 +220,28 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         ),
                       ),
                       SizedBox(height: backToHeaderGap),
-                      FadeSlideIn(
-                        child: _ForgotHeader(
-                          theme: theme,
-                          isCompact: isCompact,
-                          isTablet: isTablet,
-                          texts: texts,
-                        ),
-                      ),
-                      SizedBox(height: headerToCardGap),
-                      FadeSlideIn(
-                        delay: const Duration(milliseconds: 80),
-                        child: Container(
-                          padding: EdgeInsets.fromLTRB(
-                            cardHorizontalPadding,
-                            cardTopPadding,
-                            cardHorizontalPadding,
-                            cardBottomPadding,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surface,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.1),
-                                blurRadius: 24,
-                                offset: const Offset(0, 12),
+                      if (isWideLayout)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 28),
+                                child: Align(
+                                  alignment: Alignment.topLeft,
+                                  child: headerSection,
+                                ),
                               ),
-                            ],
-                          ),
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 220),
-                            child: _isSubmitted
-                                ? _buildSuccessContent(theme)
-                                : _buildFormContent(theme),
-                          ),
-                        ),
-                      ),
+                            ),
+                            SizedBox(width: headerToCardGap),
+                            SizedBox(width: cardMaxWidth, child: cardSection),
+                          ],
+                        )
+                      else ...[
+                        headerSection,
+                        SizedBox(height: headerToCardGap),
+                        cardSection,
+                      ],
                     ],
                   ),
                 ),
@@ -650,10 +677,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         _showErrorSnackbar(
           message == null
               ? texts.cannotSendLinkMessage
-              : resolveAuthServiceMessage(
-                  message,
-                  isEnglish: texts.isEnglish,
-                ),
+              : resolveAuthServiceMessage(message, isEnglish: texts.isEnglish),
         );
         return;
       }
@@ -670,10 +694,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         _showSuccessSnackbar(
           message == null
               ? texts.resentLinkMessage(_submittedEmail)
-              : resolveAuthServiceMessage(
-                  message,
-                  isEnglish: texts.isEnglish,
-                ),
+              : resolveAuthServiceMessage(message, isEnglish: texts.isEnglish),
         );
       }
     } on TimeoutException {
@@ -921,14 +942,7 @@ class _ForgotHeader extends StatelessWidget {
         Text(
           subtitle,
           style: theme.textTheme.bodyMedium?.copyWith(
-            color: Colors.white,
-            shadows: const [
-              Shadow(
-                color: Color(0x55000000),
-                blurRadius: 8,
-                offset: Offset(0, 1),
-              ),
-            ],
+            color: const Color(0xFFE9F0F4),
             height: 1.45,
           ),
           textAlign: TextAlign.center,

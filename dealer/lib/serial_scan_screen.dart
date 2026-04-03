@@ -33,55 +33,55 @@ String serialScanErrorMessage(
     case SerialScanErrorCode.clipboardEmpty:
       return isEnglish
           ? 'Clipboard has no serial text to paste.'
-          : 'Clipboard khong co du lieu serial de dan.';
+          : 'Clipboard không có dữ liệu serial để dán.';
     case SerialScanErrorCode.noImageSelected:
       return isEnglish
           ? 'No image selected for scanning.'
-          : 'Ban chua chon anh de quet.';
+          : 'Bạn chưa chọn ảnh để quét.';
     case SerialScanErrorCode.noCodeFoundInImage:
       return isEnglish
           ? 'No QR or barcode found in the selected image.'
-          : 'Khong tim thay ma QR hoac barcode trong anh.';
+          : 'Không tìm thấy mã QR hoặc barcode trong ảnh.';
     case SerialScanErrorCode.imagePickerUnavailable:
       return isEnglish
           ? 'Image picker is unavailable. Please restart the app.'
-          : 'Chuc nang chon anh chua san sang. Hay khoi dong lai app.';
+          : 'Chức năng chọn ảnh chưa sẵn sàng. Hãy khởi động lại app.';
     case SerialScanErrorCode.photoLibraryPermissionDenied:
       return isEnglish
           ? 'Photo library permission denied. Please allow permission and try again.'
-          : 'Khong co quyen truy cap thu vien anh. Hay cap quyen roi thu lai.';
+          : 'Không có quyền truy cập thư viện ảnh. Hãy cấp quyền rồi thử lại.';
     case SerialScanErrorCode.photoPickerAlreadyOpen:
       return isEnglish
           ? 'Photo picker is already open. Please wait a moment.'
-          : 'Thu vien anh dang mo. Vui long cho trong giay lat.';
+          : 'Thư viện ảnh đang mở. Vui lòng chờ trong giây lát.';
     case SerialScanErrorCode.cannotOpenPhotoLibrary:
       return isEnglish
           ? 'Cannot open photo library. Please try again.'
-          : 'Khong the mo thu vien anh. Vui long thu lai.';
+          : 'Không thể mở thư viện ảnh. Vui lòng thử lại.';
     case SerialScanErrorCode.cannotReadSerialFromImage:
       return isEnglish
           ? 'Cannot read serial from image. Please try again.'
-          : 'Khong the doc ma tu anh. Vui long thu lai.';
+          : 'Không thể đọc mã từ ảnh. Vui lòng thử lại.';
     case SerialScanErrorCode.cannotRestartCamera:
       return isEnglish
           ? 'Cannot restart camera. Please try again.'
-          : 'Khong the khoi dong lai camera. Vui long thu lai.';
+          : 'Không thể khởi động lại camera. Vui lòng thử lại.';
     case SerialScanErrorCode.cannotStartCamera:
       return isEnglish
           ? 'Cannot start camera. Please try again.'
-          : 'Khong the khoi dong camera. Vui long thu lai.';
+          : 'Không thể khởi động camera. Vui lòng thử lại.';
     case SerialScanErrorCode.enterSerialPrompt:
       return isEnglish
           ? 'Please enter serial or QR content.'
-          : 'Vui long nhap serial hoac ma QR.';
+          : 'Vui lòng nhập serial hoặc mã QR.';
     case SerialScanErrorCode.cameraPermissionDenied:
       return isEnglish
           ? 'Camera permission is denied. Open app settings and enable camera access.'
-          : 'Quyen camera dang bi tu choi. Hay vao cai dat ung dung va bat lai quyen.';
+          : 'Quyền camera đang bị từ chối. Hãy vào cài đặt ứng dụng và bật lại quyền.';
     case SerialScanErrorCode.cameraAccessError:
       return isEnglish
           ? 'Cannot access camera. Please check and try again.'
-          : 'Khong the truy cap camera. Hay kiem tra lai va thu lai.';
+          : 'Không thể truy cập camera. Hãy kiểm tra lại và thử lại.';
   }
 }
 
@@ -365,6 +365,29 @@ class _SerialScanScreenState extends State<SerialScanScreen>
     final manualSectionSemanticsLabel = texts.manualSectionSemanticsLabel;
     final manualSectionSemanticsHint = texts.manualSectionSemanticsHint;
     final manualFieldSemanticsLabel = texts.manualFieldSemanticsLabel;
+    Widget buildManualActionButton({
+      required String tooltip,
+      required VoidCallback? onPressed,
+      required IconData icon,
+    }) {
+      return Tooltip(
+        message: tooltip,
+        child: IconButton(
+          onPressed: onPressed,
+          style: IconButton.styleFrom(
+            minimumSize: const Size(46, 46),
+            foregroundColor: colors.onSurface,
+            backgroundColor: colors.surfaceContainerHighest.withValues(
+              alpha: 0.88,
+            ),
+            side: BorderSide(
+              color: colors.outlineVariant.withValues(alpha: 0.72),
+            ),
+          ),
+          icon: Icon(icon),
+        ),
+      );
+    }
 
     Widget buildManualSection({
       required bool landscape,
@@ -374,104 +397,160 @@ class _SerialScanScreenState extends State<SerialScanScreen>
         container: true,
         label: manualSectionSemanticsLabel,
         hint: manualSectionSemanticsHint,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-          decoration: BoxDecoration(
-            color: colors.surface.withValues(alpha: 0.92),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: colors.outlineVariant.withValues(alpha: 0.8),
+        child: RepaintBoundary(
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+            decoration: BoxDecoration(
+              color: colors.surface.withValues(alpha: 0.92),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: colors.outlineVariant.withValues(alpha: 0.8),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: colors.shadow.withValues(alpha: 0.16),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
-            boxShadow: [
-              BoxShadow(
-                color: colors.shadow.withValues(alpha: 0.16),
-                blurRadius: 16,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                manualTitle,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: colors.onSurface,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                manualDescription,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: colors.onSurfaceVariant,
-                  height: 1.25,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Semantics(
-                textField: true,
-                label: manualFieldSemanticsLabel,
-                child: ValueListenableBuilder<TextEditingValue>(
-                  valueListenable: _manualController,
-                  builder: (context, value, child) {
-                    final hasText = value.text.trim().isNotEmpty;
-                    return TextField(
-                      controller: _manualController,
-                      textCapitalization: TextCapitalization.characters,
-                      textInputAction: TextInputAction.send,
-                      style: TextStyle(color: colors.onSurface),
-                      decoration: InputDecoration(
-                        isDense: true,
-                        hintText: manualHint,
-                        hintStyle: TextStyle(
-                          color: colors.onSurfaceVariant.withValues(alpha: 0.9),
-                        ),
-                        filled: true,
-                        fillColor: colors.surfaceContainerHigh,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 14,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        prefixIcon: Icon(
-                          Icons.edit_note_outlined,
-                          color: colors.onSurfaceVariant,
-                        ),
-                        suffixIcon: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              tooltip: pasteSerialTooltip,
-                              onPressed: _isCompleting ? null : _pasteManual,
-                              icon: const Icon(Icons.content_paste_go_outlined),
-                            ),
-                            if (hasText)
-                              IconButton(
-                                tooltip: clearSerialTooltip,
-                                onPressed: _isCompleting
-                                    ? null
-                                    : () => _manualController.clear(),
-                                icon: const Icon(Icons.close_rounded),
-                              ),
-                            IconButton(
-                              tooltip: submitSerialTooltip,
-                              onPressed: _isCompleting ? null : _submitManual,
-                              icon: const Icon(Icons.check_circle_outline),
-                            ),
-                          ],
-                        ),
+            child: LayoutBuilder(
+              builder: (context, panelConstraints) {
+                final stackManualActions = panelConstraints.maxWidth < 380;
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      manualTitle,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: colors.onSurface,
+                        fontWeight: FontWeight.w700,
                       ),
-                      onSubmitted: (_) => _submitManual(),
-                    );
-                  },
-                ),
-              ),
-            ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      manualDescription,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colors.onSurfaceVariant,
+                        height: 1.25,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Semantics(
+                      textField: true,
+                      label: manualFieldSemanticsLabel,
+                      child: ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: _manualController,
+                        builder: (context, value, child) {
+                          final hasText = value.text.trim().isNotEmpty;
+                          final VoidCallback? clearAction = _isCompleting
+                              ? null
+                              : () => _manualController.clear();
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              TextField(
+                                controller: _manualController,
+                                textCapitalization:
+                                    TextCapitalization.characters,
+                                textInputAction: TextInputAction.send,
+                                style: TextStyle(color: colors.onSurface),
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  hintText: manualHint,
+                                  hintStyle: TextStyle(
+                                    color: colors.onSurfaceVariant.withValues(
+                                      alpha: 0.9,
+                                    ),
+                                  ),
+                                  filled: true,
+                                  fillColor: colors.surfaceContainerHigh,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 14,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  prefixIcon: Icon(
+                                    Icons.edit_note_outlined,
+                                    color: colors.onSurfaceVariant,
+                                  ),
+                                  suffixIcon: stackManualActions
+                                      ? null
+                                      : Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            buildManualActionButton(
+                                              tooltip: pasteSerialTooltip,
+                                              onPressed: _isCompleting
+                                                  ? null
+                                                  : _pasteManual,
+                                              icon: Icons
+                                                  .content_paste_go_outlined,
+                                            ),
+                                            if (hasText)
+                                              buildManualActionButton(
+                                                tooltip: clearSerialTooltip,
+                                                onPressed: clearAction,
+                                                icon: Icons.close_rounded,
+                                              ),
+                                            buildManualActionButton(
+                                              tooltip: submitSerialTooltip,
+                                              onPressed: _isCompleting
+                                                  ? null
+                                                  : _submitManual,
+                                              icon: Icons.check_circle_outline,
+                                            ),
+                                          ],
+                                        ),
+                                ),
+                                onSubmitted: (_) => _submitManual(),
+                              ),
+                              if (stackManualActions) ...[
+                                const SizedBox(height: 10),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    alignment: WrapAlignment.end,
+                                    children: [
+                                      buildManualActionButton(
+                                        tooltip: pasteSerialTooltip,
+                                        onPressed: _isCompleting
+                                            ? null
+                                            : _pasteManual,
+                                        icon: Icons.content_paste_go_outlined,
+                                      ),
+                                      if (hasText)
+                                        buildManualActionButton(
+                                          tooltip: clearSerialTooltip,
+                                          onPressed: clearAction,
+                                          icon: Icons.close_rounded,
+                                        ),
+                                      buildManualActionButton(
+                                        tooltip: submitSerialTooltip,
+                                        onPressed: _isCompleting
+                                            ? null
+                                            : _submitManual,
+                                        icon: Icons.check_circle_outline,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
         ),
       );
@@ -670,27 +749,31 @@ class _SerialScanScreenState extends State<SerialScanScreen>
                             container: true,
                             liveRegion: true,
                             label: '$statusBannerSemantics: $status',
-                            child: ExcludeSemantics(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: colors.surface.withValues(alpha: 0.86),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: colors.outlineVariant.withValues(
-                                      alpha: 0.78,
+                            child: RepaintBoundary(
+                              child: ExcludeSemantics(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: colors.surface.withValues(
+                                      alpha: 0.86,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: colors.outlineVariant.withValues(
+                                        alpha: 0.78,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                child: Text(
-                                  status,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: colors.onSurface,
-                                    fontWeight: FontWeight.w600,
+                                  child: Text(
+                                    status,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: colors.onSurface,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -812,26 +895,28 @@ class _CameraLoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: Colors.black,
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(
-              width: 28,
-              height: 28,
-              child: CircularProgressIndicator(strokeWidth: 2.4),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              message,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
+    return RepaintBoundary(
+      child: ColoredBox(
+        color: Colors.black,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(strokeWidth: 2.4),
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              Text(
+                message,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -853,42 +938,46 @@ class _CameraErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: Colors.black,
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.videocam_off_rounded,
-                size: 38,
-                color: Colors.white,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                title,
-                style: const TextStyle(
+    return RepaintBoundary(
+      child: ColoredBox(
+        color: Colors.black,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.videocam_off_rounded,
+                  size: 38,
                   color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 17,
                 ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                message,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.84)),
-              ),
-              const SizedBox(height: 14),
-              FilledButton.tonalIcon(
-                onPressed: onRetry,
-                icon: const Icon(Icons.refresh),
-                label: Text(retryLabel),
-                style: FilledButton.styleFrom(minimumSize: const Size(132, 46)),
-              ),
-            ],
+                const SizedBox(height: 10),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 17,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.84)),
+                ),
+                const SizedBox(height: 14),
+                FilledButton.tonalIcon(
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.refresh),
+                  label: Text(retryLabel),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(132, 46),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

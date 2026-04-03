@@ -1,4 +1,4 @@
-import 'package:meta/meta.dart';
+import 'package:flutter/foundation.dart';
 
 class DealerApiConfig {
   static const String _rawApiOrigin = String.fromEnvironment('API_ORIGIN');
@@ -121,7 +121,7 @@ class DealerApiConfig {
     if (trimmed.isEmpty) {
       return false;
     }
-    return trimmed.contains('${apiBasePath}/upload/');
+    return trimmed.contains('$apiBasePath/upload/');
   }
 
   static String resolveUrl(String path) {

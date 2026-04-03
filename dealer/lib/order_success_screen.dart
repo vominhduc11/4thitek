@@ -83,13 +83,176 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
     final order = OrderScope.of(context).findById(widget.orderId);
     final isPaid = order?.paymentStatus == OrderPaymentStatus.paid;
     final statusNote = _buildStatusNote(order, texts);
-    final colorScheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    final screenWidth = MediaQuery.sizeOf(context).width;
     final isTablet = AppBreakpoints.isTablet(context);
-    final maxWidth = isTablet ? 860.0 : double.infinity;
-    final successColor = isDark
-        ? const Color(0xFF4ADE80)
-        : const Color(0xFF16A34A);
+    final isWideLayout = screenWidth >= 980;
+    final maxWidth = isWideLayout
+        ? 1080.0
+        : isTablet
+        ? 860.0
+        : double.infinity;
+    const successColor = Color(0xFF4ADE80);
+
+    final summarySection = RepaintBoundary(
+      child: FadeSlideIn(
+        delay: const Duration(milliseconds: 500),
+        child: _SummaryCard(
+          texts: texts,
+          itemCount: widget.itemCount,
+          totalPrice: widget.totalPrice,
+          paymentMethod: order != null
+              ? texts.paymentMethodLabel(context, order.paymentMethod)
+              : null,
+          paymentStatus: order != null
+              ? texts.paymentStatusLabel(order.paymentStatus)
+              : null,
+          note: order?.note,
+        ),
+      ),
+    );
+
+    final actionSection = RepaintBoundary(
+      child: FadeSlideIn(
+        delay: const Duration(milliseconds: 650),
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.55),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                isPaid
+                    ? texts.paymentConfirmedMessage
+                    : texts.pendingTransferMessage,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          OrderDetailScreen(orderId: widget.orderId),
+                    ),
+                    (route) => route.isFirst,
+                  );
+                },
+                icon: const Icon(Icons.receipt_long_outlined),
+                label: Text(texts.viewOrderDetailAction),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                },
+                icon: const Icon(Icons.storefront_outlined),
+                label: Text(texts.continueShoppingAction),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final heroSection = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TweenAnimationBuilder<double>(
+          tween: Tween<double>(begin: 0.4, end: 1.0),
+          duration: const Duration(milliseconds: 480),
+          curve: Curves.easeOutBack,
+          child: Icon(
+            Icons.check_circle_outline,
+            size: 72,
+            color: successColor,
+          ),
+          builder: (context, value, child) {
+            return Opacity(
+              opacity: value.clamp(0.0, 1.0),
+              child: Transform.scale(scale: value, child: child),
+            );
+          },
+        ),
+        const SizedBox(height: 16),
+        FadeSlideIn(
+          delay: const Duration(milliseconds: 200),
+          child: Column(
+            children: [
+              Text(
+                texts.orderRecordedTitle,
+                style: textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                texts.orderIdSummary(widget.orderId),
+                style: textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+        if (isPaid) ...[
+          const SizedBox(height: 16),
+          FadeSlideIn(
+            delay: const Duration(milliseconds: 250),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: successColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: successColor.withValues(alpha: 0.4)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.check_circle, color: successColor, size: 20),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      texts.paymentConfirmedMessage,
+                      textAlign: TextAlign.center,
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: successColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+        const SizedBox(height: 20),
+        FadeSlideIn(
+          delay: const Duration(milliseconds: 350),
+          child: Text(
+            statusNote,
+            style: textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+              height: 1.45,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ],
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -101,144 +264,35 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
           constraints: BoxConstraints(maxWidth: maxWidth),
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                TweenAnimationBuilder<double>(
-                  tween: Tween<double>(begin: 0.4, end: 1.0),
-                  duration: const Duration(milliseconds: 480),
-                  curve: Curves.easeOutBack,
-                  child: Icon(
-                    Icons.check_circle_outline,
-                    size: 72,
-                    color: successColor,
-                  ),
-                  builder: (context, value, child) {
-                    return Opacity(
-                      opacity: value.clamp(0.0, 1.0),
-                      child: Transform.scale(scale: value, child: child),
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 200),
-                  child: Column(
+            child: isWideLayout
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        texts.orderRecordedTitle,
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        texts.orderIdSummary(widget.orderId),
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
+                      Expanded(flex: 6, child: heroSection),
+                      const SizedBox(width: 24),
+                      Expanded(
+                        flex: 5,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            summarySection,
+                            const SizedBox(height: 20),
+                            actionSection,
+                          ],
                         ),
-                        textAlign: TextAlign.center,
                       ),
                     ],
-                  ),
-                ),
-                if (isPaid) ...[
-                  const SizedBox(height: 16),
-                  FadeSlideIn(
-                    delay: const Duration(milliseconds: 250),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: successColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: successColor.withValues(alpha: 0.4),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.check_circle,
-                            color: successColor,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            texts.paymentConfirmedMessage,
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(
-                                  color: successColor,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 20),
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 350),
-                  child: Text(
-                    statusNote,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 500),
-                  child: _SummaryCard(
-                    texts: texts,
-                    itemCount: widget.itemCount,
-                    totalPrice: widget.totalPrice,
-                    paymentMethod: order != null
-                        ? texts.paymentMethodLabel(context, order.paymentMethod)
-                        : null,
-                    paymentStatus: order != null
-                        ? texts.paymentStatusLabel(order.paymentStatus)
-                        : null,
-                    note: order?.note,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 650),
-                  child: Column(
+                  )
+                : Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).pushAndRemoveUntil(
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  OrderDetailScreen(orderId: widget.orderId),
-                            ),
-                            (route) => route.isFirst,
-                          );
-                        },
-                        child: Text(texts.viewOrderDetailAction),
-                      ),
-                      const SizedBox(height: 12),
-                      OutlinedButton(
-                        onPressed: () {
-                          Navigator.of(
-                            context,
-                          ).popUntil((route) => route.isFirst);
-                        },
-                        child: Text(texts.continueShoppingAction),
-                      ),
+                      heroSection,
+                      const SizedBox(height: 20),
+                      summarySection,
+                      const SizedBox(height: 24),
+                      actionSection,
                     ],
                   ),
-                ),
-              ],
-            ),
           ),
         ),
       ),
@@ -400,12 +454,28 @@ class _SummaryRow extends StatelessWidget {
       context,
     ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700);
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: isEmphasis ? emphasisStyle : style),
-        Text(value, style: isEmphasis ? emphasisStyle : style),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final shouldStack = constraints.maxWidth < 300;
+        if (shouldStack) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: isEmphasis ? emphasisStyle : style),
+              const SizedBox(height: 4),
+              Text(value, style: isEmphasis ? emphasisStyle : style),
+            ],
+          );
+        }
+
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: isEmphasis ? emphasisStyle : style),
+            Text(value, style: isEmphasis ? emphasisStyle : style),
+          ],
+        );
+      },
     );
   }
 }

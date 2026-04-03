@@ -23,24 +23,25 @@ class StockBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = Theme.of(context).textTheme.bodySmall;
+    final colors = Theme.of(context).colorScheme;
     late final String label;
     late final Color textColor;
     late final Color background;
 
     if (remainingStock <= 0) {
       label = 'Hết hàng';
-      textColor = const Color(0xFFD94939);
-      background = const Color(0xFFFFEBE9);
+      textColor = colors.error;
+      background = colors.errorContainer.withValues(alpha: 0.42);
     } else if (remainingStock <= lowStockThreshold) {
       label = useColonForLowStock
           ? 'Sắp hết: $remainingStock'
           : 'Sắp hết ($remainingStock)';
-      textColor = const Color(0xFFB26A00);
-      background = const Color(0xFFFFF4DD);
+      textColor = const Color(0xFFFFC361);
+      background = const Color(0xFF3B2C10);
     } else {
       label = showInStockQuantity ? 'Còn hàng: $remainingStock' : 'Còn hàng';
-      textColor = const Color(0xFF127A34);
-      background = const Color(0xFFEAF7EE);
+      textColor = colors.primary;
+      background = colors.primaryContainer.withValues(alpha: 0.48);
     }
 
     return Container(
@@ -48,6 +49,9 @@ class StockBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: textColor.withValues(alpha: 0.18),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

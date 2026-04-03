@@ -184,13 +184,387 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final cart = CartScope.of(context);
     final orderController = OrderScope.of(context);
     final isTablet = AppBreakpoints.isTablet(context);
-    final contentMaxWidth = isTablet ? 860.0 : double.infinity;
+    final isWideLayout = MediaQuery.sizeOf(context).width >= 1040;
+    final contentMaxWidth = isWideLayout
+        ? 1040.0
+        : isTablet
+        ? 860.0
+        : double.infinity;
     final subtotal = cart.subtotal;
     final discountPercent = cart.discountPercent;
     final discountAmount = cart.discountAmount;
     final totalAfterDiscount = cart.totalAfterDiscount;
     final vatAmount = cart.vatAmount;
     final total = cart.total;
+
+    Widget buildShippingSection() {
+      return FadeSlideIn(
+        child: SectionCard(
+          title: texts.shippingInfoTitle,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: _openAccountSettings,
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: Text(texts.editShippingInfoAction),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _profile.businessName,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                texts.contactPersonLine(_profile.contactName),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _profile.shippingAddress,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                texts.phoneLine(_profile.phone),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    Widget buildPaymentSection() {
+      return FadeSlideIn(
+        delay: const Duration(milliseconds: 60),
+        child: SectionCard(
+          title: texts.paymentMethodTitle,
+          child: _isLoadingProfile
+              ? _CheckoutStatePanel(
+                  icon: Icons.sync_outlined,
+                  message: texts.loadingProfileMessage,
+                  tone: _CheckoutStateTone.info,
+                )
+              : _profileLoadError != null
+              ? _CheckoutStatePanel(
+                  icon: Icons.error_outline,
+                  message: _profileLoadError!,
+                  tone: _CheckoutStateTone.error,
+                  action: TextButton.icon(
+                    onPressed: _isSubmitting
+                        ? null
+                        : () => _loadDealerProfile(showFailureSnackBar: true),
+                    icon: const Icon(Icons.refresh_outlined),
+                    label: Text(texts.retryAction),
+                  ),
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    RadioGroup<OrderPaymentMethod>(
+                      groupValue: _method,
+                      onChanged: (value) {
+                        if (value == null) {
+                          return;
+                        }
+                        setState(() => _method = value);
+                        if (value == OrderPaymentMethod.bankTransfer &&
+                            _bankTransferInstructions == null &&
+                            !_isLoadingBankTransferInstructions) {
+                          _loadBankTransferInstructions();
+                        }
+                      },
+                      child: Column(
+                        children: [
+                          RadioListTile<OrderPaymentMethod>(
+                            value: OrderPaymentMethod.bankTransfer,
+                            title: Text(texts.bankTransferTitle),
+                            subtitle: Text(texts.bankTransferSubtitle),
+                          ),
+                          RadioListTile<OrderPaymentMethod>(
+                            value: OrderPaymentMethod.debt,
+                            enabled: _canUseDebtPayment,
+                            title: Text(texts.debtPaymentTitle),
+                            subtitle: Text(
+                              _canUseDebtPayment
+                                  ? texts.remainingCreditLimitLabel(
+                                      formatVnd(
+                                        (_profile.creditLimit -
+                                                orderController
+                                                    .totalOutstandingDebt)
+                                            .clamp(0, _profile.creditLimit),
+                                      ),
+                                      formatVnd(_profile.creditLimit),
+                                    )
+                                  : texts.debtLimitRequiredMessage,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_method == OrderPaymentMethod.debt) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        texts.debtPrecheckHint,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colors.onSurfaceVariant,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+        ),
+      );
+    }
+
+    Widget buildProductsSection() {
+      return FadeSlideIn(
+        delay: const Duration(milliseconds: 120),
+        child: SectionCard(
+          title: texts.productsInOrderTitle(cart.totalItems),
+          child: Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              childrenPadding: const EdgeInsets.only(top: 8),
+              initiallyExpanded: cart.items.length <= 3,
+              title: Text(
+                texts.productLineCount(cart.items.length),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              subtitle: Text(
+                texts.expandProductsHint,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+              ),
+              children: [
+                for (var i = 0; i < cart.items.length; i++) ...[
+                  RepaintBoundary(child: _CheckoutItemRow(item: cart.items[i])),
+                  if (i != cart.items.length - 1) const Divider(height: 18),
+                ],
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    Widget buildOrderNoteSection() {
+      return FadeSlideIn(
+        delay: const Duration(milliseconds: 160),
+        child: SectionCard(
+          title: texts.orderNoteTitle,
+          child: TextField(
+            controller: _orderNoteController,
+            maxLines: 3,
+            minLines: 2,
+            maxLength: 200,
+            decoration: InputDecoration(
+              hintText: texts.orderNoteHint,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    Widget buildOrderSummarySection() {
+      return FadeSlideIn(
+        delay: const Duration(milliseconds: 200),
+        child: SectionCard(
+          title: texts.orderSummaryTitle,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _SummaryRow(
+                label: texts.itemCountLabel,
+                value: '${cart.totalItems}',
+              ),
+              const SizedBox(height: 8),
+              _SummaryRow(
+                label: texts.subtotalLabel,
+                value: formatVnd(subtotal),
+              ),
+              if (discountAmount > 0) ...[
+                const SizedBox(height: 8),
+                _SummaryRow(
+                  label: texts.discountLabel(discountPercent),
+                  value: '-${formatVnd(discountAmount)}',
+                ),
+                const SizedBox(height: 8),
+                _SummaryRow(
+                  label: texts.afterDiscountLabel,
+                  value: formatVnd(totalAfterDiscount),
+                ),
+              ],
+              const SizedBox(height: 8),
+              _SummaryRow(
+                label: texts.vatLabel(cart.vatPercent),
+                value: formatVnd(vatAmount),
+              ),
+              const SizedBox(height: 8),
+              _SummaryRow(
+                label: texts.paymentStatusLabelTitle,
+                value: texts.paymentStatusLabel(_previewPaymentStatus),
+              ),
+              if (_method == OrderPaymentMethod.bankTransfer) ...[
+                const SizedBox(height: 8),
+                Text(
+                  texts.bankTransferSummaryHint,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: colors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (_isLoadingBankTransferInstructions) ...[
+                  const SizedBox(height: 8),
+                  _CheckoutStatePanel(
+                    icon: Icons.account_balance_outlined,
+                    message: texts.loadingBankTransferMessage,
+                    tone: _CheckoutStateTone.info,
+                    dense: true,
+                  ),
+                ] else if (_bankTransferInstructions == null) ...[
+                  const SizedBox(height: 8),
+                  _CheckoutStatePanel(
+                    icon: Icons.sync_problem_outlined,
+                    message: texts.bankTransferUnavailableMessage,
+                    tone: _CheckoutStateTone.error,
+                    dense: true,
+                    action: TextButton(
+                      onPressed: _isSubmitting
+                          ? null
+                          : () =>
+                                _loadBankTransferInstructions(showError: true),
+                      child: Text(texts.retryAction),
+                    ),
+                  ),
+                ],
+              ],
+              const Divider(height: 20),
+              _SummaryRow(
+                label: texts.totalLabel,
+                value: formatVnd(total),
+                isEmphasis: true,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                texts.pricingNote,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colors.onSurfaceVariant,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    Widget buildSubmitAction() {
+      return FadeSlideIn(
+        delay: const Duration(milliseconds: 180),
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed:
+                cart.isEmpty ||
+                    _isSubmitting ||
+                    _isLoadingProfile ||
+                    _profileLoadError != null
+                ? null
+                : () async {
+                    setState(() => _isSubmitting = true);
+                    try {
+                      final validationService =
+                          _buildCheckoutValidationService();
+                      final validationResult = await validationService.validate(
+                        _buildCheckoutValidationRequest(
+                          cart: cart,
+                          orderController: orderController,
+                        ),
+                      );
+                      if (!context.mounted) {
+                        return;
+                      }
+                      final canProceed = await _handleValidationResult(
+                        validationResult,
+                      );
+                      if (!context.mounted || !canProceed) {
+                        return;
+                      }
+
+                      BankTransferInstructions? bankTransferInstructions;
+                      if (_method == OrderPaymentMethod.bankTransfer) {
+                        bankTransferInstructions =
+                            await _ensureBankTransferInstructions();
+                        if (!mounted) {
+                          return;
+                        }
+                        if (bankTransferInstructions == null) {
+                          return;
+                        }
+                      } else {
+                        final confirmed = await _showDebtConfirmDialog(
+                          context,
+                          amount: total,
+                          itemCount: cart.totalItems,
+                        );
+                        if (!context.mounted) {
+                          return;
+                        }
+                        if (confirmed != true) {
+                          return;
+                        }
+                      }
+
+                      await _placeOrder(
+                        cart: cart,
+                        orderController: orderController,
+                        bankTransferInstructions: bankTransferInstructions,
+                      );
+                    } catch (error) {
+                      _showSnackBar(
+                        orderControllerErrorMessage(
+                          error,
+                          isEnglish: texts.isEnglish,
+                        ),
+                      );
+                    } finally {
+                      if (mounted) {
+                        setState(() => _isSubmitting = false);
+                      }
+                    }
+                  },
+            child: _isSubmitting
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2.5),
+                  )
+                : Text(_primaryActionLabel),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -200,411 +574,80 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       body: Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: contentMaxWidth),
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-            children: [
-              FadeSlideIn(
-                child: SectionCard(
-                  title: texts.shippingInfoTitle,
-                  child: Column(
+          child: isWideLayout
+              ? Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton.icon(
-                          onPressed: _openAccountSettings,
-                          icon: const Icon(Icons.edit_outlined, size: 18),
-                          label: Text(texts.editShippingInfoAction),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _profile.businessName,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        texts.contactPersonLine(_profile.contactName),
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: colors.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _profile.shippingAddress,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: colors.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        texts.phoneLine(_profile.phone),
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: colors.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              FadeSlideIn(
-                delay: const Duration(milliseconds: 60),
-                child: SectionCard(
-                  title: texts.paymentMethodTitle,
-                  child: _isLoadingProfile
-                      ? Row(
+                      Expanded(
+                        child: ListView(
+                          padding: EdgeInsets.zero,
                           children: [
-                            const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(child: Text(texts.loadingProfileMessage)),
+                            buildShippingSection(),
+                            const SizedBox(height: 14),
+                            buildPaymentSection(),
+                            const SizedBox(height: 14),
+                            buildProductsSection(),
+                            const SizedBox(height: 14),
+                            buildOrderNoteSection(),
                           ],
-                        )
-                      : _profileLoadError != null
-                      ? Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _profileLoadError!,
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(color: colors.error),
-                            ),
-                            const SizedBox(height: 12),
-                            TextButton.icon(
-                              onPressed: _isSubmitting
-                                  ? null
-                                  : () => _loadDealerProfile(
-                                      showFailureSnackBar: true,
-                                    ),
-                              icon: const Icon(Icons.refresh_outlined),
-                              label: Text(texts.retryAction),
-                            ),
-                          ],
-                        )
-                      : Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            RadioGroup<OrderPaymentMethod>(
-                              groupValue: _method,
-                              onChanged: (value) {
-                                if (value == null) {
-                                  return;
-                                }
-                                setState(() => _method = value);
-                                if (value == OrderPaymentMethod.bankTransfer &&
-                                    _bankTransferInstructions == null &&
-                                    !_isLoadingBankTransferInstructions) {
-                                  _loadBankTransferInstructions();
-                                }
-                              },
-                              child: Column(
-                                children: [
-                                  RadioListTile<OrderPaymentMethod>(
-                                    value: OrderPaymentMethod.bankTransfer,
-                                    title: Text(texts.bankTransferTitle),
-                                    subtitle: Text(texts.bankTransferSubtitle),
-                                  ),
-                                  RadioListTile<OrderPaymentMethod>(
-                                    value: OrderPaymentMethod.debt,
-                                    enabled: _canUseDebtPayment,
-                                    title: Text(texts.debtPaymentTitle),
-                                    subtitle: Text(
-                                      _canUseDebtPayment
-                                          ? texts.remainingCreditLimitLabel(
-                                              formatVnd(
-                                                (_profile.creditLimit -
-                                                        orderController
-                                                            .totalOutstandingDebt)
-                                                    .clamp(
-                                                      0,
-                                                      _profile.creditLimit,
-                                                    ),
-                                              ),
-                                              formatVnd(_profile.creditLimit),
-                                            )
-                                          : texts.debtLimitRequiredMessage,
-                                    ),
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                      SizedBox(
+                        width: 340,
+                        child: SingleChildScrollView(
+                          child: RepaintBoundary(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                buildOrderSummarySection(),
+                                if (_profileLoadError != null) ...[
+                                  const SizedBox(height: 12),
+                                  _CheckoutStatePanel(
+                                    icon: Icons.error_outline,
+                                    message: _profileLoadError!,
+                                    tone: _CheckoutStateTone.error,
+                                    dense: true,
                                   ),
                                 ],
-                              ),
+                                const SizedBox(height: 16),
+                                buildSubmitAction(),
+                              ],
                             ),
-                            if (_method == OrderPaymentMethod.debt) ...[
-                              const SizedBox(height: 12),
-                              Text(
-                                texts.debtPrecheckHint,
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(
-                                      color: colors.onSurfaceVariant,
-                                      fontStyle: FontStyle.italic,
-                                    ),
-                              ),
-                            ],
-                          ],
-                        ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              FadeSlideIn(
-                delay: const Duration(milliseconds: 120),
-                child: SectionCard(
-                  title: texts.productsInOrderTitle(cart.totalItems),
-                  child: Theme(
-                    data: Theme.of(
-                      context,
-                    ).copyWith(dividerColor: Colors.transparent),
-                    child: ExpansionTile(
-                      tilePadding: EdgeInsets.zero,
-                      childrenPadding: const EdgeInsets.only(top: 8),
-                      initiallyExpanded: cart.items.length <= 3,
-                      title: Text(
-                        texts.productLineCount(cart.items.length),
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      subtitle: Text(
-                        texts.expandProductsHint,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: colors.onSurfaceVariant,
-                        ),
-                      ),
-                      children: [
-                        for (var i = 0; i < cart.items.length; i++) ...[
-                          _CheckoutItemRow(item: cart.items[i]),
-                          if (i != cart.items.length - 1)
-                            const Divider(height: 18),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              FadeSlideIn(
-                delay: const Duration(milliseconds: 160),
-                child: SectionCard(
-                  title: texts.orderNoteTitle,
-                  child: TextField(
-                    controller: _orderNoteController,
-                    maxLines: 3,
-                    minLines: 2,
-                    maxLength: 200,
-                    decoration: InputDecoration(
-                      hintText: texts.orderNoteHint,
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              FadeSlideIn(
-                delay: const Duration(milliseconds: 200),
-                child: SectionCard(
-                  title: texts.orderSummaryTitle,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _SummaryRow(
-                        label: texts.itemCountLabel,
-                        value: '${cart.totalItems}',
-                      ),
-                      const SizedBox(height: 8),
-                      _SummaryRow(
-                        label: texts.subtotalLabel,
-                        value: formatVnd(subtotal),
-                      ),
-                      if (discountAmount > 0) ...[
-                        const SizedBox(height: 8),
-                        _SummaryRow(
-                          label: texts.discountLabel(discountPercent),
-                          value: '-${formatVnd(discountAmount)}',
-                        ),
-                        const SizedBox(height: 8),
-                        _SummaryRow(
-                          label: texts.afterDiscountLabel,
-                          value: formatVnd(totalAfterDiscount),
-                        ),
-                      ],
-                      const SizedBox(height: 8),
-                      _SummaryRow(
-                        label: texts.vatLabel(cart.vatPercent),
-                        value: formatVnd(vatAmount),
-                      ),
-                      const SizedBox(height: 8),
-                      _SummaryRow(
-                        label: texts.paymentStatusLabelTitle,
-                        value: texts.paymentStatusLabel(_previewPaymentStatus),
-                      ),
-                      if (_method == OrderPaymentMethod.bankTransfer) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          texts.bankTransferSummaryHint,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: colors.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                        if (_isLoadingBankTransferInstructions) ...[
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  texts.loadingBankTransferMessage,
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(
-                                        color: colors.onSurfaceVariant,
-                                      ),
-                                ),
-                              ),
-                            ],
                           ),
-                        ] else if (_bankTransferInstructions == null) ...[
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  texts.bankTransferUnavailableMessage,
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(color: colors.error),
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: _isSubmitting
-                                    ? null
-                                    : () => _loadBankTransferInstructions(
-                                        showError: true,
-                                      ),
-                                child: Text(texts.retryAction),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ],
-                      const Divider(height: 20),
-                      _SummaryRow(
-                        label: texts.totalLabel,
-                        value: formatVnd(total),
-                        isEmphasis: true,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        texts.pricingNote,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: colors.onSurfaceVariant,
-                          fontStyle: FontStyle.italic,
                         ),
                       ),
                     ],
                   ),
+                )
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                  children: [
+                    buildShippingSection(),
+                    const SizedBox(height: 14),
+                    buildPaymentSection(),
+                    const SizedBox(height: 14),
+                    buildProductsSection(),
+                    const SizedBox(height: 14),
+                    buildOrderNoteSection(),
+                    const SizedBox(height: 14),
+                    buildOrderSummarySection(),
+                    const SizedBox(height: 20),
+                    if (_profileLoadError != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _CheckoutStatePanel(
+                          icon: Icons.error_outline,
+                          message: _profileLoadError!,
+                          tone: _CheckoutStateTone.error,
+                          dense: true,
+                        ),
+                      ),
+                    buildSubmitAction(),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 20),
-              FadeSlideIn(
-                delay: const Duration(milliseconds: 180),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed:
-                        cart.isEmpty ||
-                            _isSubmitting ||
-                            _isLoadingProfile ||
-                            _profileLoadError != null
-                        ? null
-                        : () async {
-                            setState(() => _isSubmitting = true);
-                            try {
-                              final validationService =
-                                  _buildCheckoutValidationService();
-                              final validationResult = await validationService
-                                  .validate(
-                                    _buildCheckoutValidationRequest(
-                                      cart: cart,
-                                      orderController: orderController,
-                                    ),
-                                  );
-                              if (!context.mounted) {
-                                return;
-                              }
-                              final canProceed = await _handleValidationResult(
-                                validationResult,
-                              );
-                              if (!context.mounted || !canProceed) {
-                                return;
-                              }
-
-                              BankTransferInstructions?
-                              bankTransferInstructions;
-                              if (_method == OrderPaymentMethod.bankTransfer) {
-                                bankTransferInstructions =
-                                    await _ensureBankTransferInstructions();
-                                if (!mounted) {
-                                  return;
-                                }
-                                if (bankTransferInstructions == null) {
-                                  return;
-                                }
-                              } else {
-                                final confirmed = await _showDebtConfirmDialog(
-                                  context,
-                                  amount: total,
-                                  itemCount: cart.totalItems,
-                                );
-                                if (!context.mounted) {
-                                  return;
-                                }
-                                if (confirmed != true) {
-                                  return;
-                                }
-                              }
-
-                              await _placeOrder(
-                                cart: cart,
-                                orderController: orderController,
-                                bankTransferInstructions:
-                                    bankTransferInstructions,
-                              );
-                            } catch (error) {
-                              _showSnackBar(
-                                orderControllerErrorMessage(
-                                  error,
-                                  isEnglish: texts.isEnglish,
-                                ),
-                              );
-                            } finally {
-                              if (mounted) {
-                                setState(() => _isSubmitting = false);
-                              }
-                            }
-                          },
-                    child: _isSubmitting
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2.5),
-                          )
-                        : Text(_primaryActionLabel),
-                  ),
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -716,17 +759,25 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       requestFocus: true,
       builder: (dialogContext) {
         return AlertDialog(
+          scrollable: true,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 20,
+          ),
           title: Text(texts.debtConfirmTitle),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(texts.debtConfirmDescription),
-              const SizedBox(height: 12),
-              Text(texts.productCountSummary(itemCount)),
-              const SizedBox(height: 4),
-              Text(texts.totalPaymentSummary(formatVnd(amount))),
-            ],
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(texts.debtConfirmDescription),
+                const SizedBox(height: 12),
+                Text(texts.productCountSummary(itemCount)),
+                const SizedBox(height: 4),
+                Text(texts.totalPaymentSummary(formatVnd(amount))),
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -824,26 +875,34 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       requestFocus: true,
       builder: (dialogContext) {
         return AlertDialog(
+          scrollable: true,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 20,
+          ),
           title: Text(texts.validationDialogTitle),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(texts.validationDialogSubtitle),
-              const SizedBox(height: 10),
-              ...issues.map(
-                (issue) => Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('- '),
-                      Expanded(child: Text(issue)),
-                    ],
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(texts.validationDialogSubtitle),
+                const SizedBox(height: 10),
+                ...issues.map(
+                  (issue) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('- '),
+                        Expanded(child: Text(issue)),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -901,7 +960,7 @@ class _CheckoutTexts {
       : 'Hạn mức còn lại: $remaining / $total.';
   String get debtLimitRequiredMessage => isEnglish
       ? 'A credit limit must be granted before using this option.'
-      : 'Cần được cấp hạn mức công nợ trước khi dùng tuỳ chọn này.';
+      : 'Cần được cấp hạn mức công nợ trước khi dùng tùy chọn này.';
   String get debtPrecheckHint => isEnglish
       ? 'Shown debt eligibility is based on the latest synced data. The backend revalidates the credit limit when the order is created.'
       : 'Điều kiện công nợ đang hiển thị chỉ dựa trên dữ liệu đồng bộ gần nhất. Backend sẽ kiểm tra lại hạn mức khi tạo đơn.';
@@ -1034,6 +1093,65 @@ class _SummaryRow extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+enum _CheckoutStateTone { info, error }
+
+class _CheckoutStatePanel extends StatelessWidget {
+  const _CheckoutStatePanel({
+    required this.icon,
+    required this.message,
+    required this.tone,
+    this.action,
+    this.dense = false,
+  });
+
+  final IconData icon;
+  final String message;
+  final _CheckoutStateTone tone;
+  final Widget? action;
+  final bool dense;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final isError = tone == _CheckoutStateTone.error;
+    final background = isError
+        ? colors.errorContainer.withValues(alpha: 0.4)
+        : colors.primaryContainer.withValues(alpha: 0.3);
+    final border = isError
+        ? colors.error.withValues(alpha: 0.28)
+        : colors.primary.withValues(alpha: 0.22);
+    final iconColor = isError ? colors.error : colors.primary;
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(dense ? 12 : 14),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(dense ? 14 : 16),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: dense ? 18 : 20, color: iconColor),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: dense ? colors.onSurfaceVariant : colors.onSurface,
+                height: 1.35,
+                fontWeight: dense ? FontWeight.w500 : FontWeight.w600,
+              ),
+            ),
+          ),
+          if (action != null) ...[const SizedBox(width: 8), action!],
+        ],
+      ),
     );
   }
 }

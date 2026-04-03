@@ -2,31 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AppSettingsController extends ChangeNotifier {
-  static const _themeModeKey = 'app_theme_mode';
+  static const _legacyThemeModeKey = 'app_theme_mode';
   static const _localeCodeKey = 'app_locale_code';
 
-  ThemeMode _themeMode = ThemeMode.light;
   Locale _locale = const Locale('vi');
 
-  ThemeMode get themeMode => _themeMode;
   Locale get locale => _locale;
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
-    _themeMode = _decodeThemeMode(prefs.getString(_themeModeKey));
+    // Legacy migration: theme mode is removed and the app is now dark-only.
+    if (prefs.containsKey(_legacyThemeModeKey)) {
+      await prefs.remove(_legacyThemeModeKey);
+    }
     _locale = _decodeLocale(prefs.getString(_localeCodeKey));
     notifyListeners();
-  }
-
-  Future<void> setThemeMode(ThemeMode mode) async {
-    if (_themeMode == mode) {
-      return;
-    }
-    _themeMode = mode;
-    notifyListeners();
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_themeModeKey, _encodeThemeMode(mode));
   }
 
   Future<void> setLocale(Locale locale) async {
@@ -39,29 +29,6 @@ class AppSettingsController extends ChangeNotifier {
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_localeCodeKey, languageCode);
-  }
-}
-
-ThemeMode _decodeThemeMode(String? raw) {
-  switch (raw) {
-    case 'dark':
-      return ThemeMode.dark;
-    case 'system':
-      return ThemeMode.system;
-    case 'light':
-    default:
-      return ThemeMode.light;
-  }
-}
-
-String _encodeThemeMode(ThemeMode mode) {
-  switch (mode) {
-    case ThemeMode.dark:
-      return 'dark';
-    case ThemeMode.system:
-      return 'system';
-    case ThemeMode.light:
-      return 'light';
   }
 }
 

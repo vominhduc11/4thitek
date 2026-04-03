@@ -162,114 +162,46 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     final texts = _texts;
     if (_phase == _ActivationPhase.syncing ||
         _phase == _ActivationPhase.prefilling) {
-      return Scaffold(
-        appBar: AppBar(title: BrandAppBarTitle(texts.screenTitle)),
-        body: const Center(child: CircularProgressIndicator()),
+      return _ActivationStateScaffold(
+        title: texts.screenTitle,
+        icon: Icons.sync_outlined,
+        headline: texts.loadingTitle,
+        message: texts.loadingDescription,
+        isLoading: true,
       );
     }
     if (_phase == _ActivationPhase.error) {
-      return Scaffold(
-        appBar: AppBar(title: BrandAppBarTitle(texts.screenTitle)),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.outlineVariant.withValues(alpha: 0.6),
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.error_outline, size: 40),
-                      const SizedBox(height: 12),
-                      Text(
-                        texts.screenErrorTitle,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _phaseError ?? texts.activationSyncFailedMessage,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      FilledButton.icon(
-                        onPressed: () => unawaited(_initializeScreen()),
-                        icon: const Icon(Icons.refresh),
-                        label: Text(texts.retryAction),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
+      return _ActivationStateScaffold(
+        title: texts.screenTitle,
+        icon: Icons.error_outline,
+        headline: texts.screenErrorTitle,
+        message: _phaseError ?? texts.activationSyncFailedMessage,
+        tone: _ActivationStateTone.error,
+        action: FilledButton.icon(
+          onPressed: () => unawaited(_initializeScreen()),
+          icon: const Icon(Icons.refresh),
+          label: Text(texts.retryAction),
         ),
       );
     }
     final order = OrderScope.of(context).findById(widget.orderId);
     if (order == null) {
-      return Scaffold(
-        appBar: AppBar(title: BrandAppBarTitle(texts.screenTitle)),
-        body: Center(child: Text(texts.orderNotFoundMessage)),
+      return _ActivationStateScaffold(
+        title: texts.screenTitle,
+        icon: Icons.receipt_long_outlined,
+        headline: texts.orderNotFoundTitle,
+        message: texts.orderNotFoundMessage,
       );
     }
 
     final canProcess = order.status == OrderStatus.completed;
     if (!canProcess) {
-      return Scaffold(
-        appBar: AppBar(title: BrandAppBarTitle(texts.screenTitle)),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.outlineVariant.withValues(alpha: 0.6),
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.lock_outline, size: 38),
-                    const SizedBox(height: 10),
-                    Text(
-                      texts.cannotProcessMessage,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      texts.currentStatusLabel(
-                        texts.orderStatusLabel(order.status),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
+      return _ActivationStateScaffold(
+        title: texts.screenTitle,
+        icon: Icons.lock_outline,
+        headline: texts.cannotProcessTitle,
+        message:
+            '${texts.cannotProcessMessage}\n${texts.currentStatusLabel(texts.orderStatusLabel(order.status))}',
       );
     }
 
@@ -284,14 +216,13 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     final lockAddressField = isFullyActivated;
     final progressValue = totalCount == 0 ? 0.0 : activatedCount / totalCount;
     final colorScheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isTablet =
         MediaQuery.sizeOf(context).shortestSide >= AppBreakpoints.phone;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final useWideCustomerFields = screenWidth >= 960;
     final maxWidth = isTablet ? 1040.0 : double.infinity;
     final submitMaxWidth = isTablet ? 420.0 : double.infinity;
-    final itemProgressColor = isDark
-        ? const Color(0xFF4ADE80)
-        : const Color(0xFF16A34A);
+    const itemProgressColor = Color(0xFF4ADE80);
     final isFormReady = _phase == _ActivationPhase.ready;
 
     return Scaffold(
@@ -381,46 +312,111 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      TextField(
-                        controller: _customerNameController,
-                        enabled: isFormReady && !lockNameField,
-                        decoration: InputDecoration(
-                          labelText: texts.customerNameLabel,
-                          prefixIcon: const Icon(Icons.person_outline),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        enabled: isFormReady && !isFullyActivated,
-                        decoration: InputDecoration(
-                          labelText: texts.customerEmailLabel,
-                          prefixIcon: const Icon(
-                            Icons.alternate_email_outlined,
+                      if (useWideCustomerFields)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _customerNameController,
+                                enabled: isFormReady && !lockNameField,
+                                decoration: InputDecoration(
+                                  labelText: texts.customerNameLabel,
+                                  prefixIcon: const Icon(Icons.person_outline),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextField(
+                                controller: _emailController,
+                                keyboardType: TextInputType.emailAddress,
+                                enabled: isFormReady && !isFullyActivated,
+                                decoration: InputDecoration(
+                                  labelText: texts.customerEmailLabel,
+                                  prefixIcon: const Icon(
+                                    Icons.alternate_email_outlined,
+                                  ),
+                                  helperText: texts.customerEmailHelper,
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      else ...[
+                        TextField(
+                          controller: _customerNameController,
+                          enabled: isFormReady && !lockNameField,
+                          decoration: InputDecoration(
+                            labelText: texts.customerNameLabel,
+                            prefixIcon: const Icon(Icons.person_outline),
                           ),
-                          helperText: texts.customerEmailHelper,
                         ),
-                      ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          enabled: isFormReady && !isFullyActivated,
+                          decoration: InputDecoration(
+                            labelText: texts.customerEmailLabel,
+                            prefixIcon: const Icon(
+                              Icons.alternate_email_outlined,
+                            ),
+                            helperText: texts.customerEmailHelper,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 12),
-                      TextField(
-                        controller: _phoneController,
-                        keyboardType: TextInputType.phone,
-                        enabled: isFormReady && !lockPhoneField,
-                        decoration: InputDecoration(
-                          labelText: texts.customerPhoneLabel,
-                          prefixIcon: const Icon(Icons.phone_outlined),
+                      if (useWideCustomerFields)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _phoneController,
+                                keyboardType: TextInputType.phone,
+                                enabled: isFormReady && !lockPhoneField,
+                                decoration: InputDecoration(
+                                  labelText: texts.customerPhoneLabel,
+                                  prefixIcon: const Icon(Icons.phone_outlined),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextField(
+                                controller: _addressController,
+                                enabled: isFormReady && !lockAddressField,
+                                decoration: InputDecoration(
+                                  labelText: texts.customerAddressLabel,
+                                  prefixIcon: const Icon(
+                                    Icons.location_on_outlined,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      else ...[
+                        TextField(
+                          controller: _phoneController,
+                          keyboardType: TextInputType.phone,
+                          enabled: isFormReady && !lockPhoneField,
+                          decoration: InputDecoration(
+                            labelText: texts.customerPhoneLabel,
+                            prefixIcon: const Icon(Icons.phone_outlined),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _addressController,
-                        enabled: isFormReady && !lockAddressField,
-                        decoration: InputDecoration(
-                          labelText: texts.customerAddressLabel,
-                          prefixIcon: const Icon(Icons.location_on_outlined),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _addressController,
+                          enabled: isFormReady && !lockAddressField,
+                          decoration: InputDecoration(
+                            labelText: texts.customerAddressLabel,
+                            prefixIcon: const Icon(Icons.location_on_outlined),
+                          ),
                         ),
-                      ),
+                      ],
                       const SizedBox(height: 12),
                       OutlinedButton.icon(
                         onPressed: !isFormReady || isFullyActivated
@@ -470,193 +466,371 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                       order.id,
                       item.product.id,
                     );
+                final shouldAnimate = index < 4;
 
                 return Padding(
                   padding: const EdgeInsets.only(bottom: _serialItemGap),
-                  child: FadeSlideIn(
-                    key: ValueKey('line-${item.product.id}'),
-                    delay: Duration(milliseconds: 60 + 40 * index),
-                    child: _SectionCard(
-                      title: '${item.product.name} (${item.product.sku})',
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _InfoRow(
-                            label: texts.quantityLabel,
-                            value: '${item.quantity}',
-                          ),
-                          const SizedBox(height: 10),
-                          _InfoRow(
-                            label: texts.activatedCountLabel,
-                            value: '${activated.length}/${item.quantity}',
-                          ),
-                          const SizedBox(height: 10),
-                          _InfoRow(
-                            label: texts.availableInventorySerialsLabel,
-                            value: '${availableSerials.length}',
-                          ),
-                          const SizedBox(height: 12),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(999),
-                            child: LinearProgressIndicator(
-                              value: item.quantity == 0
-                                  ? 0
-                                  : activated.length / item.quantity,
-                              minHeight: 7,
-                              backgroundColor: colorScheme
-                                  .surfaceContainerHighest
-                                  .withValues(alpha: 0.9),
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                itemProgressColor,
-                              ),
-                            ),
-                          ),
-                          if (activated.isNotEmpty) ...[
-                            const SizedBox(height: 12),
-                            const Divider(height: 1),
-                            const SizedBox(height: 12),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: activated
-                                  .map(
-                                    (record) => Chip(
-                                      label: Text(
-                                        '${record.serial} (${formatDate(record.startsAt)} - ${formatDate(record.expiresAt)})',
-                                      ),
-                                      avatar: const Icon(
-                                        Icons.verified_outlined,
-                                        size: 16,
+                  child: shouldAnimate
+                      ? FadeSlideIn(
+                          key: ValueKey('line-${item.product.id}'),
+                          delay: Duration(milliseconds: 60 + 40 * index),
+                          child: RepaintBoundary(
+                            child: _SectionCard(
+                              title:
+                                  '${item.product.name} (${item.product.sku})',
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _InfoRow(
+                                    label: texts.quantityLabel,
+                                    value: '${item.quantity}',
+                                  ),
+                                  const SizedBox(height: 10),
+                                  _InfoRow(
+                                    label: texts.activatedCountLabel,
+                                    value:
+                                        '${activated.length}/${item.quantity}',
+                                  ),
+                                  const SizedBox(height: 10),
+                                  _InfoRow(
+                                    label: texts.availableInventorySerialsLabel,
+                                    value: '${availableSerials.length}',
+                                  ),
+                                  const SizedBox(height: 12),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(999),
+                                    child: LinearProgressIndicator(
+                                      value: item.quantity == 0
+                                          ? 0
+                                          : activated.length / item.quantity,
+                                      minHeight: 7,
+                                      backgroundColor: colorScheme
+                                          .surfaceContainerHighest
+                                          .withValues(alpha: 0.9),
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        itemProgressColor,
                                       ),
                                     ),
-                                  )
-                                  .toList(growable: false),
-                            ),
-                          ],
-                          if (remaining > 0) ...[
-                            const SizedBox(height: 12),
-                            const Divider(height: 1),
-                            const SizedBox(height: 12),
-                            Text(
-                              texts.remainingSerialsLabel(remaining),
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(fontWeight: FontWeight.w600),
-                            ),
-                            const SizedBox(height: 10),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                OutlinedButton.icon(
-                                  onPressed: !isFormReady || isFullyActivated
-                                      ? null
-                                      : () => _scanSerialForItem(
-                                          order,
-                                          item,
-                                          warrantyController,
-                                        ),
-                                  icon: const Icon(
-                                    Icons.qr_code_scanner_outlined,
                                   ),
-                                  label: Text(texts.scanQrAction),
-                                  style: OutlinedButton.styleFrom(
-                                    minimumSize: const Size(
-                                      0,
-                                      _serialMinTapTarget,
-                                    ),
-                                  ),
-                                ),
-                                TextButton.icon(
-                                  onPressed: !isFormReady || isFullyActivated
-                                      ? null
-                                      : () => _showBulkPasteDialog(
-                                          order,
-                                          item,
-                                          warrantyController,
-                                        ),
-                                  icon: const Icon(Icons.content_paste_rounded),
-                                  label: Text(texts.bulkPasteAction),
-                                  style: TextButton.styleFrom(
-                                    minimumSize: const Size(
-                                      0,
-                                      _serialMinTapTarget,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            ...serialInputs.asMap().entries.map((serialEntry) {
-                              final serialIndex = serialEntry.key;
-                              final controller = serialEntry.value;
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
-                                child: TextField(
-                                  controller: controller,
-                                  textCapitalization:
-                                      TextCapitalization.characters,
-                                  enabled: isFormReady && !isFullyActivated,
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.allow(
-                                      RegExp(r'[A-Za-z0-9-]'),
+                                  if (activated.isNotEmpty) ...[
+                                    const SizedBox(height: 12),
+                                    const Divider(height: 1),
+                                    const SizedBox(height: 12),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: activated
+                                          .map(
+                                            (record) => Chip(
+                                              label: Text(
+                                                '${record.serial} (${formatDate(record.startsAt)} - ${formatDate(record.expiresAt)})',
+                                              ),
+                                              avatar: const Icon(
+                                                Icons.verified_outlined,
+                                                size: 16,
+                                              ),
+                                            ),
+                                          )
+                                          .toList(growable: false),
                                     ),
                                   ],
-                                  decoration: InputDecoration(
-                                    labelText: texts.serialFieldLabel(
-                                      serialIndex + 1,
-                                      remaining,
+                                  if (remaining > 0) ...[
+                                    const SizedBox(height: 12),
+                                    const Divider(height: 1),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      texts.remainingSerialsLabel(remaining),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                     ),
-                                    prefixIcon: const Icon(
-                                      Icons.confirmation_number_outlined,
+                                    const SizedBox(height: 10),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: [
+                                        OutlinedButton.icon(
+                                          onPressed:
+                                              !isFormReady || isFullyActivated
+                                              ? null
+                                              : () => _scanSerialForItem(
+                                                  order,
+                                                  item,
+                                                  warrantyController,
+                                                ),
+                                          icon: const Icon(
+                                            Icons.qr_code_scanner_outlined,
+                                          ),
+                                          label: Text(texts.scanQrAction),
+                                          style: OutlinedButton.styleFrom(
+                                            minimumSize: const Size(
+                                              0,
+                                              _serialMinTapTarget,
+                                            ),
+                                          ),
+                                        ),
+                                        TextButton.icon(
+                                          onPressed:
+                                              !isFormReady || isFullyActivated
+                                              ? null
+                                              : () => _showBulkPasteDialog(
+                                                  order,
+                                                  item,
+                                                  warrantyController,
+                                                ),
+                                          icon: const Icon(
+                                            Icons.content_paste_rounded,
+                                          ),
+                                          label: Text(texts.bulkPasteAction),
+                                          style: TextButton.styleFrom(
+                                            minimumSize: const Size(
+                                              0,
+                                              _serialMinTapTarget,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    helperText: texts.serialFieldHelper,
+                                    const SizedBox(height: 10),
+                                    ...serialInputs.asMap().entries.map((
+                                      serialEntry,
+                                    ) {
+                                      final serialIndex = serialEntry.key;
+                                      final controller = serialEntry.value;
+                                      return Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 10,
+                                        ),
+                                        child: TextField(
+                                          controller: controller,
+                                          textCapitalization:
+                                              TextCapitalization.characters,
+                                          enabled:
+                                              isFormReady && !isFullyActivated,
+                                          inputFormatters: [
+                                            FilteringTextInputFormatter.allow(
+                                              RegExp(r'[A-Za-z0-9-]'),
+                                            ),
+                                          ],
+                                          decoration: InputDecoration(
+                                            labelText: texts.serialFieldLabel(
+                                              serialIndex + 1,
+                                              remaining,
+                                            ),
+                                            prefixIcon: const Icon(
+                                              Icons
+                                                  .confirmation_number_outlined,
+                                            ),
+                                            helperText: texts.serialFieldHelper,
+                                          ),
+                                        ),
+                                      );
+                                    }),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
+                        )
+                      : RepaintBoundary(
+                          child: _SectionCard(
+                            title: '${item.product.name} (${item.product.sku})',
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _InfoRow(
+                                  label: texts.quantityLabel,
+                                  value: '${item.quantity}',
+                                ),
+                                const SizedBox(height: 10),
+                                _InfoRow(
+                                  label: texts.activatedCountLabel,
+                                  value: '${activated.length}/${item.quantity}',
+                                ),
+                                const SizedBox(height: 10),
+                                _InfoRow(
+                                  label: texts.availableInventorySerialsLabel,
+                                  value: '${availableSerials.length}',
+                                ),
+                                const SizedBox(height: 12),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(999),
+                                  child: LinearProgressIndicator(
+                                    value: item.quantity == 0
+                                        ? 0
+                                        : activated.length / item.quantity,
+                                    minHeight: 7,
+                                    backgroundColor: colorScheme
+                                        .surfaceContainerHighest
+                                        .withValues(alpha: 0.9),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      itemProgressColor,
+                                    ),
                                   ),
                                 ),
-                              );
-                            }),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }),
-              FadeSlideIn(
-                delay: const Duration(milliseconds: 240),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: submitMaxWidth),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed:
-                            isFullyActivated || _phase != _ActivationPhase.ready
-                            ? null
-                            : () => _handleSubmit(order),
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(52),
-                          elevation: 2,
-                          shadowColor: colorScheme.primary.withValues(
-                            alpha: 0.25,
-                          ),
-                          textStyle: const TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 15,
+                                if (activated.isNotEmpty) ...[
+                                  const SizedBox(height: 12),
+                                  const Divider(height: 1),
+                                  const SizedBox(height: 12),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: activated
+                                        .map(
+                                          (record) => Chip(
+                                            label: Text(
+                                              '${record.serial} (${formatDate(record.startsAt)} - ${formatDate(record.expiresAt)})',
+                                            ),
+                                            avatar: const Icon(
+                                              Icons.verified_outlined,
+                                              size: 16,
+                                            ),
+                                          ),
+                                        )
+                                        .toList(growable: false),
+                                  ),
+                                ],
+                                if (remaining > 0) ...[
+                                  const SizedBox(height: 12),
+                                  const Divider(height: 1),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    texts.remainingSerialsLabel(remaining),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(fontWeight: FontWeight.w600),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      OutlinedButton.icon(
+                                        onPressed:
+                                            !isFormReady || isFullyActivated
+                                            ? null
+                                            : () => _scanSerialForItem(
+                                                order,
+                                                item,
+                                                warrantyController,
+                                              ),
+                                        icon: const Icon(
+                                          Icons.qr_code_scanner_outlined,
+                                        ),
+                                        label: Text(texts.scanQrAction),
+                                        style: OutlinedButton.styleFrom(
+                                          minimumSize: const Size(
+                                            0,
+                                            _serialMinTapTarget,
+                                          ),
+                                        ),
+                                      ),
+                                      TextButton.icon(
+                                        onPressed:
+                                            !isFormReady || isFullyActivated
+                                            ? null
+                                            : () => _showBulkPasteDialog(
+                                                order,
+                                                item,
+                                                warrantyController,
+                                              ),
+                                        icon: const Icon(
+                                          Icons.content_paste_rounded,
+                                        ),
+                                        label: Text(texts.bulkPasteAction),
+                                        style: TextButton.styleFrom(
+                                          minimumSize: const Size(
+                                            0,
+                                            _serialMinTapTarget,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  ...serialInputs.asMap().entries.map((
+                                    serialEntry,
+                                  ) {
+                                    final serialIndex = serialEntry.key;
+                                    final controller = serialEntry.value;
+                                    return Padding(
+                                      padding: const EdgeInsets.only(
+                                        bottom: 10,
+                                      ),
+                                      child: TextField(
+                                        controller: controller,
+                                        textCapitalization:
+                                            TextCapitalization.characters,
+                                        enabled:
+                                            isFormReady && !isFullyActivated,
+                                        inputFormatters: [
+                                          FilteringTextInputFormatter.allow(
+                                            RegExp(r'[A-Za-z0-9-]'),
+                                          ),
+                                        ],
+                                        decoration: InputDecoration(
+                                          labelText: texts.serialFieldLabel(
+                                            serialIndex + 1,
+                                            remaining,
+                                          ),
+                                          prefixIcon: const Icon(
+                                            Icons.confirmation_number_outlined,
+                                          ),
+                                          helperText: texts.serialFieldHelper,
+                                        ),
+                                      ),
+                                    );
+                                  }),
+                                ],
+                              ],
+                            ),
                           ),
                         ),
-                        child: _phase == _ActivationPhase.submitting
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
+                );
+              }),
+              RepaintBoundary(
+                child: FadeSlideIn(
+                  delay: const Duration(milliseconds: 240),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: submitMaxWidth),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed:
+                              isFullyActivated ||
+                                  _phase != _ActivationPhase.ready
+                              ? null
+                              : () => _handleSubmit(order),
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(52),
+                            elevation: 2,
+                            shadowColor: colorScheme.primary.withValues(
+                              alpha: 0.25,
+                            ),
+                            textStyle: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 15,
+                            ),
+                          ),
+                          child: _phase == _ActivationPhase.submitting
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                  ),
+                                )
+                              : Text(
+                                  isFullyActivated
+                                      ? texts.fullyActivatedButtonLabel
+                                      : texts.confirmActivationAction,
                                 ),
-                              )
-                            : Text(
-                                isFullyActivated
-                                    ? texts.fullyActivatedButtonLabel
-                                    : texts.confirmActivationAction,
-                              ),
+                        ),
                       ),
                     ),
                   ),
@@ -895,12 +1069,20 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
       requestFocus: true,
       builder: (dialogContext) {
         return AlertDialog(
+          scrollable: true,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 20,
+          ),
           title: Text(texts.bulkPasteTitle),
-          content: TextField(
-            controller: textController,
-            maxLines: 6,
-            autofocus: true,
-            decoration: InputDecoration(hintText: texts.bulkPasteHint),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: TextField(
+              controller: textController,
+              maxLines: 6,
+              autofocus: true,
+              decoration: InputDecoration(hintText: texts.bulkPasteHint),
+            ),
           ),
           actions: [
             TextButton(
@@ -1197,121 +1379,130 @@ class _WarrantyActivationTexts {
 
   final bool isEnglish;
 
-  String get screenTitle => isEnglish ? 'Serial processing' : 'Xu ly serial';
+  String get screenTitle => isEnglish ? 'Serial processing' : 'Xử lý serial';
+  String get loadingTitle =>
+      isEnglish ? 'Syncing serial data' : 'Đang đồng bộ dữ liệu serial';
+  String get loadingDescription => isEnglish
+      ? 'Please wait while the latest order and warranty inventory are prepared.'
+      : 'Vui lòng chờ trong lúc hệ thống chuẩn bị dữ liệu đơn hàng và kho bảo hành mới nhất.';
+  String get orderNotFoundTitle =>
+      isEnglish ? 'Order not found' : 'Không tìm thấy đơn hàng';
   String get orderNotFoundMessage => isEnglish
       ? 'Cannot find the order for serial processing.'
-      : 'Khong tim thay don hang de xu ly serial.';
+      : 'Không tìm thấy đơn hàng để xử lý serial.';
   String get syncWarningTitle =>
-      isEnglish ? 'Sync warning' : 'Canh bao dong bo';
+      isEnglish ? 'Sync warning' : 'Cảnh báo đồng bộ';
   String get initialSyncWarning => isEnglish
       ? 'Latest warranty data could not be refreshed. The screen is using the current local data.'
-      : 'Khong the lam moi du lieu bao hanh moi nhat. Man hinh dang dung du lieu hien co tren may.';
+      : 'Không thể làm mới dữ liệu bảo hành mới nhất. Màn hình đang dùng dữ liệu hiện có trên máy.';
+  String get cannotProcessTitle =>
+      isEnglish ? 'Order is not ready' : 'Đơn hàng chưa sẵn sàng';
   String get cannotProcessMessage => isEnglish
       ? 'Only completed orders can be processed for serials.'
-      : 'Chi don da hoan thanh moi duoc xu ly serial.';
+      : 'Chỉ đơn đã hoàn thành mới được xử lý serial.';
   String currentStatusLabel(String statusLabel) => isEnglish
       ? 'Current status: $statusLabel'
-      : 'Trang thai hien tai: $statusLabel';
+      : 'Trạng thái hiện tại: $statusLabel';
   String get processingInfoTitle =>
-      isEnglish ? 'Serial processing information' : 'Thong tin xu ly serial';
-  String get orderIdLabel => isEnglish ? 'Order ID' : 'Ma don hang';
-  String get orderDateLabel => isEnglish ? 'Order date' : 'Ngay dat';
-  String get progressLabel => isEnglish ? 'Progress' : 'Tien do';
+      isEnglish ? 'Serial processing information' : 'Thông tin xử lý serial';
+  String get orderIdLabel => isEnglish ? 'Order ID' : 'Mã đơn hàng';
+  String get orderDateLabel => isEnglish ? 'Order date' : 'Ngày đặt';
+  String get progressLabel => isEnglish ? 'Progress' : 'Tiến độ';
   String serialProgressValue(int activatedCount, int totalCount) => isEnglish
       ? '$activatedCount/$totalCount serials'
       : '$activatedCount/$totalCount serial';
   String get inventoryValidationHint => isEnglish
       ? 'Only serials already in inventory and matching the order item can be activated.'
-      : 'Chi serial da nhap kho va thuoc san pham trong don moi duoc kich hoat.';
+      : 'Chỉ serial đã nhập kho và thuộc sản phẩm trong đơn mới được kích hoạt.';
   String get customerNameLabel =>
-      isEnglish ? 'Customer name' : 'Ten khach hang';
+      isEnglish ? 'Customer name' : 'Tên khách hàng';
   String get customerEmailLabel =>
-      isEnglish ? 'Customer email *' : 'Email khach hang *';
+      isEnglish ? 'Customer email *' : 'Email khách hàng *';
   String get customerEmailHelper => isEnglish
       ? 'Required. Used to store warranty activation details and support contact.'
-      : 'Bat buoc. Dung de luu thong tin kich hoat bao hanh va lien he ho tro.';
+      : 'Bắt buộc. Dùng để lưu thông tin kích hoạt bảo hành và liên hệ hỗ trợ.';
   String get customerPhoneLabel =>
-      isEnglish ? 'Customer phone number' : 'So dien thoai khach hang';
+      isEnglish ? 'Customer phone number' : 'Số điện thoại khách hàng';
   String get customerAddressLabel =>
-      isEnglish ? 'Customer address' : 'Dia chi khach hang';
+      isEnglish ? 'Customer address' : 'Địa chỉ khách hàng';
   String purchaseDateLabel(String dateLabel) =>
-      isEnglish ? 'Purchase date: $dateLabel' : 'Ngay mua: $dateLabel';
+      isEnglish ? 'Purchase date: $dateLabel' : 'Ngày mua: $dateLabel';
   String get purchaseDateHint => isEnglish
       ? 'Dealers can adjust the in-store purchase date before activating warranty.'
-      : 'Dai ly co the chon lai ngay khach mua tai cua hang truoc khi kich hoat bao hanh.';
+      : 'Đại lý có thể chọn lại ngày khách mua tại cửa hàng trước khi kích hoạt bảo hành.';
   String get prefilledCustomerHint => isEnglish
       ? 'Customer information is prefilled from the order and can still be edited if needed.'
-      : 'Thong tin khach hang duoc dien san tu don hang, van co the chinh sua neu can.';
-  String get quantityLabel => isEnglish ? 'Quantity' : 'So luong';
-  String get activatedCountLabel => isEnglish ? 'Activated' : 'Da kich hoat';
+      : 'Thông tin khách hàng được điền sẵn từ đơn hàng, vẫn có thể chỉnh sửa nếu cần.';
+  String get quantityLabel => isEnglish ? 'Quantity' : 'Số lượng';
+  String get activatedCountLabel => isEnglish ? 'Activated' : 'Đã kích hoạt';
   String get availableInventorySerialsLabel =>
-      isEnglish ? 'Valid serials in inventory' : 'Serial hop le trong kho';
+      isEnglish ? 'Valid serials in inventory' : 'Serial hợp lệ trong kho';
   String remainingSerialsLabel(int remaining) => isEnglish
       ? 'Enter $remaining remaining serials'
-      : 'Nhap $remaining serial con thieu';
-  String get scanQrAction => isEnglish ? 'Scan QR' : 'Quet QR';
+      : 'Nhập $remaining serial còn thiếu';
+  String get scanQrAction => isEnglish ? 'Scan QR' : 'Quét QR';
   String get bulkPasteAction =>
-      isEnglish ? 'Paste multiple serials' : 'Dan nhieu serial';
+      isEnglish ? 'Paste multiple serials' : 'Dán nhiều serial';
   String serialFieldLabel(int index, int remaining) =>
       isEnglish ? 'Serial $index/$remaining' : 'Serial $index/$remaining';
   String get serialFieldHelper => isEnglish
       ? 'Example: SN-ABC-12345 (letters, numbers, and - only)'
-      : 'Vi du: SN-ABC-12345 (chi gom chu, so va dau -)';
+      : 'Ví dụ: SN-ABC-12345 (chỉ gồm chữ, số và dấu -)';
   String get fullyActivatedButtonLabel => isEnglish
       ? 'Order already has all serials activated'
-      : 'Don da kich hoat du serial';
+      : 'Đơn đã kích hoạt đủ serial';
   String get confirmActivationAction =>
-      isEnglish ? 'Confirm serial activation' : 'Xac nhan kich hoat serial';
+      isEnglish ? 'Confirm serial activation' : 'Xác nhận kích hoạt serial';
 
   String serialNotFoundInInventory(String serial) => isEnglish
       ? 'Cannot find serial $serial in inventory.'
-      : 'Khong tim thay serial $serial trong kho.';
+      : 'Không tìm thấy serial $serial trong kho.';
   String serialBelongsToOtherOrder(
     String serial,
     String importedOrderId,
     String currentOrderId,
   ) => isEnglish
       ? 'Serial $serial belongs to order $importedOrderId, not order $currentOrderId.'
-      : 'Serial $serial thuoc don $importedOrderId, khong thuoc don $currentOrderId.';
+      : 'Serial $serial thuộc đơn $importedOrderId, không thuộc đơn $currentOrderId.';
   String serialProductMismatch(String serial) => isEnglish
       ? 'Serial $serial does not match the product being processed.'
-      : 'Serial $serial khong khop san pham can xu ly.';
+      : 'Serial $serial không khớp sản phẩm cần xử lý.';
   String noEmptySerialSlot(String productName) => isEnglish
       ? 'There is no empty serial slot left for $productName.'
-      : 'Khong con o serial trong cho $productName.';
+      : 'Không còn ô serial trống cho $productName.';
   String productAlreadyFull(String productName) => isEnglish
       ? '$productName already has enough serials and cannot be auto-filled.'
-      : 'Da du serial cho $productName, khong the tu dien them.';
+      : 'Đã đủ serial cho $productName, không thể tự điền thêm.';
   String prefilledSerialAssigned(String serial) => isEnglish
       ? 'Assigned scanned serial: $serial'
-      : 'Da dien serial quet: $serial';
+      : 'Đã điền serial quét: $serial';
   String get pickPurchaseDateHelp =>
-      isEnglish ? 'Select purchase date' : 'Chon ngay mua';
+      isEnglish ? 'Select purchase date' : 'Chọn ngày mua';
   String purchaseDateBeforeOrder(String minimumDate) => isEnglish
       ? 'Purchase date cannot be before the order date $minimumDate.'
-      : 'Ngay mua khong duoc truoc ngay dat hang $minimumDate.';
+      : 'Ngày mua không được trước ngày đặt hàng $minimumDate.';
   String get purchaseDateAfterToday => isEnglish
       ? 'Purchase date cannot be after today.'
-      : 'Ngay mua khong duoc sau hom nay.';
+      : 'Ngày mua không được sau hôm nay.';
   String scannedSerialAssigned(String productName) => isEnglish
       ? 'Assigned scanned serial for $productName.'
-      : 'Da dien serial quet cho $productName.';
+      : 'Đã điền serial quét cho $productName.';
   String get duplicateScannedSerialMessage => isEnglish
       ? 'This serial is already in the input list.'
-      : 'Serial nay da co trong danh sach nhap.';
+      : 'Serial này đã có trong danh sách nhập.';
   String get invalidScannedSerialMessage => isEnglish
       ? 'The scanned serial is not valid for this product.'
-      : 'Serial quet khong hop le cho san pham nay.';
+      : 'Serial quét không hợp lệ cho sản phẩm này.';
   String get bulkPasteTitle =>
-      isEnglish ? 'Paste multiple serials' : 'Dan nhieu serial';
+      isEnglish ? 'Paste multiple serials' : 'Dán nhiều serial';
   String get bulkPasteHint => isEnglish
       ? 'One serial per line, or separate them with commas'
-      : 'Moi serial mot dong, hoac phan tach bang dau phay';
-  String get cancelAction => isEnglish ? 'Cancel' : 'Huy';
-  String get fillSerialsAction => isEnglish ? 'Fill serials' : 'Dien serial';
+      : 'Mỗi serial một dòng, hoặc phân tách bằng dấu phẩy';
+  String get cancelAction => isEnglish ? 'Cancel' : 'Hủy';
+  String get fillSerialsAction => isEnglish ? 'Fill serials' : 'Điền serial';
   String get noValidSerialsFoundMessage => isEnglish
       ? 'No valid serial was found to fill.'
-      : 'Khong tim thay serial hop le de dien.';
+      : 'Không tìm thấy serial hợp lệ để điền.';
   String bulkPasteSummary(
     int assignedCount,
     int duplicateCount,
@@ -1319,35 +1510,35 @@ class _WarrantyActivationTexts {
     int fullCount,
   ) => isEnglish
       ? 'Assigned $assignedCount serials. Duplicates: $duplicateCount, invalid: $invalidCount, no slots: $fullCount.'
-      : 'Da dien $assignedCount serial. Trung: $duplicateCount, loi: $invalidCount, het o: $fullCount.';
+      : 'Đã điền $assignedCount serial. Trùng: $duplicateCount, lỗi: $invalidCount, hết ô: $fullCount.';
   String get customerInfoRequiredMessage => isEnglish
       ? 'Please enter all customer information.'
-      : 'Vui long nhap day du thong tin khach hang.';
+      : 'Vui lòng nhập đầy đủ thông tin khách hàng.';
   String get invalidEmailMessage => isEnglish
       ? 'Please enter a valid email address.'
-      : 'Vui long nhap email hop le.';
+      : 'Vui lòng nhập email hợp lệ.';
   String get invalidPhoneMessage => isEnglish
       ? 'Phone number must be 10 digits and start with 0.'
-      : 'So dien thoai phai gom 10 chu so va bat dau bang 0.';
+      : 'Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 0.';
   String serialRequiredForProduct(String productName) => isEnglish
       ? 'Please enter all serials for $productName.'
-      : 'Vui long nhap day du serial cho $productName.';
+      : 'Vui lòng nhập đầy đủ serial cho $productName.';
   String duplicateSerialInSubmission(String serial) => isEnglish
       ? 'Serial $serial is duplicated in this submission.'
-      : 'Serial $serial bi trung trong lan nhap nay.';
+      : 'Serial $serial bị trùng trong lần nhập này.';
   String get orderAlreadyFullyActivatedMessage => isEnglish
       ? 'This order already has all serials activated.'
-      : 'Don hang nay da kich hoat du serial.';
+      : 'Đơn hàng này đã kích hoạt đủ serial.';
   String get activationSyncFailedMessage => isEnglish
       ? 'Cannot sync warranty activation. Please check again.'
-      : 'Khong the dong bo kich hoat bao hanh. Vui long kiem tra lai.';
+      : 'Không thể đồng bộ kích hoạt bảo hành. Vui lòng kiểm tra lại.';
   String get screenErrorTitle => isEnglish
       ? 'Warranty activation is temporarily unavailable'
-      : 'Man hinh kich hoat bao hanh tam thoi khong kha dung';
-  String get retryAction => isEnglish ? 'Retry' : 'Thu lai';
+      : 'Màn hình kích hoạt bảo hành tạm thời không khả dụng';
+  String get retryAction => isEnglish ? 'Retry' : 'Thử lại';
   String activationSuccessMessage(int count) => isEnglish
       ? 'Successfully activated $count serials.'
-      : 'Da kich hoat thanh cong $count serial.';
+      : 'Đã kích hoạt thành công $count serial.';
 
   String orderStatusLabel(OrderStatus status) {
     switch (status) {
@@ -1356,12 +1547,110 @@ class _WarrantyActivationTexts {
       case OrderStatus.confirmed:
         return isEnglish ? 'Confirmed' : '\u0110\u00E3 x\u00E1c nh\u1EADn';
       case OrderStatus.shipping:
-        return isEnglish ? 'Shipping' : 'Dang giao';
+        return isEnglish ? 'Shipping' : 'Đang giao';
       case OrderStatus.completed:
-        return isEnglish ? 'Completed' : 'Hoan thanh';
+        return isEnglish ? 'Completed' : 'Hoàn thành';
       case OrderStatus.cancelled:
-        return isEnglish ? 'Cancelled' : 'Da huy';
+        return isEnglish ? 'Cancelled' : 'Đã hủy';
     }
+  }
+}
+
+enum _ActivationStateTone { info, error, neutral }
+
+class _ActivationStateScaffold extends StatelessWidget {
+  const _ActivationStateScaffold({
+    required this.title,
+    required this.icon,
+    required this.headline,
+    required this.message,
+    this.action,
+    this.isLoading = false,
+    this.tone = _ActivationStateTone.neutral,
+  });
+
+  final String title;
+  final IconData icon;
+  final String headline;
+  final String message;
+  final Widget? action;
+  final bool isLoading;
+  final _ActivationStateTone tone;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final isError = tone == _ActivationStateTone.error;
+    final isInfo = tone == _ActivationStateTone.info || isLoading;
+    final background = isError
+        ? colors.errorContainer.withValues(alpha: 0.42)
+        : isInfo
+        ? colors.primaryContainer.withValues(alpha: 0.3)
+        : colors.surfaceContainerHighest.withValues(alpha: 0.42);
+    final border = isError
+        ? colors.error.withValues(alpha: 0.28)
+        : isInfo
+        ? colors.primary.withValues(alpha: 0.22)
+        : colors.outlineVariant.withValues(alpha: 0.72);
+    final iconColor = isError
+        ? colors.error
+        : isInfo
+        ? colors.primary
+        : colors.onSurfaceVariant;
+
+    return Scaffold(
+      appBar: AppBar(title: BrandAppBarTitle(title)),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: background,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: border),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (isLoading)
+                    SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.6,
+                        color: iconColor,
+                      ),
+                    )
+                  else
+                    Icon(icon, size: 42, color: iconColor),
+                  const SizedBox(height: 14),
+                  Text(
+                    headline,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    message,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: colors.onSurfaceVariant,
+                      height: 1.45,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  if (action != null) ...[const SizedBox(height: 16), action!],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

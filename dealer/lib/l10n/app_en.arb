@@ -26,7 +26,7 @@
   "accountMenuWarrantyTitle": "Warranty center",
   "accountMenuWarrantySubtitle": "Process serials, activate warranties, and review serial inventory.",
   "accountMenuPreferencesTitle": "Appearance and language",
-  "accountMenuPreferencesSubtitle": "Switch theme mode and language preferences.",
+  "accountMenuPreferencesSubtitle": "Manage language and app preferences.",
   "accountLogoutAction": "Log out",
   "accountEditProfileAction": "Edit profile",
   "accountVersionLabel": "Version {version}",

@@ -42,29 +42,26 @@ class _SkeletonBoxState extends State<SkeletonBox>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final baseColor = isDark
-        ? const Color(0xFF2A2F3A)
-        : const Color(0xFFE3E8F3);
-    final highlightColor = isDark
-        ? const Color(0xFF3D4557)
-        : const Color(0xFFF4F6FC);
+    const baseColor = Color(0xFF162230);
+    const highlightColor = Color(0xFF25384A);
 
     return AnimatedBuilder(
       animation: _shimmer,
       builder: (context, child) {
-        return Container(
-          width: widget.width,
-          height: widget.height,
-          decoration: BoxDecoration(
-            borderRadius: widget.borderRadius ?? BorderRadius.circular(10),
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              stops: const [0.0, 0.5, 1.0],
-              colors: [baseColor, highlightColor, baseColor],
-              transform: _SlidingGradientTransform(
-                slidePercent: _shimmer.value,
+        return RepaintBoundary(
+          child: Container(
+            width: widget.width,
+            height: widget.height,
+            decoration: BoxDecoration(
+              borderRadius: widget.borderRadius ?? BorderRadius.circular(10),
+              gradient: LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                stops: const [0.0, 0.5, 1.0],
+                colors: [baseColor, highlightColor, baseColor],
+                transform: _SlidingGradientTransform(
+                  slidePercent: _shimmer.value,
+                ),
               ),
             ),
           ),

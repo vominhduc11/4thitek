@@ -364,9 +364,7 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
                         onGenerateTitle: (context) =>
                             AppLocalizations.of(context)?.appTitle ??
                             '4thitek Dealer Hub',
-                        theme: _buildLightTheme(),
-                        darkTheme: _buildDarkTheme(),
-                        themeMode: _appSettingsController.themeMode,
+                        theme: _buildDarkTheme(),
                         locale: _appSettingsController.locale,
                         localizationsDelegates: const [
                           AppLocalizations.delegate,
@@ -387,90 +385,136 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
     );
   }
 
-  ThemeData _buildLightTheme() {
-    const seedColor = Color(0xFF2563EB);
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: seedColor,
-      brightness: Brightness.light,
-    );
-
-    return ThemeData(
-      useMaterial3: true,
-      colorScheme: colorScheme,
-      scaffoldBackgroundColor: const Color(0xFFF2F5FB),
-      textTheme: GoogleFonts.beVietnamProTextTheme(),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: colorScheme.outlineVariant),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: colorScheme.outlineVariant),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: colorScheme.error),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: colorScheme.error, width: 1.5),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 16,
-        ),
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: seedColor,
-          foregroundColor: Colors.white,
-          minimumSize: const Size(0, 54),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          minimumSize: const Size(0, 54),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          side: BorderSide(color: colorScheme.outlineVariant),
-          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-        ),
-      ),
-      checkboxTheme: CheckboxThemeData(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-      ),
-    );
-  }
-
   ThemeData _buildDarkTheme() {
-    const seedColor = Color(0xFF2563EB);
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: seedColor,
+    const scaffoldColor = Color(0xFF091017);
+    const cardRadius = 20.0;
+    const colorScheme = ColorScheme(
       brightness: Brightness.dark,
+      primary: Color(0xFF3385B0),
+      onPrimary: Color(0xFFECEDEE),
+      primaryContainer: Color(0xFF17384E),
+      onPrimaryContainer: Color(0xFFE6F3F9),
+      secondary: Color(0xFF437496),
+      onSecondary: Color(0xFFECEDEE),
+      secondaryContainer: Color(0xFF1B3141),
+      onSecondaryContainer: Color(0xFFDCEAF1),
+      tertiary: Color(0xFF8BB9D2),
+      onTertiary: Color(0xFF081722),
+      tertiaryContainer: Color(0xFF204255),
+      onTertiaryContainer: Color(0xFFE8F4FB),
+      error: Color(0xFFE86A6A),
+      onError: Color(0xFF220909),
+      errorContainer: Color(0xFF4B191B),
+      onErrorContainer: Color(0xFFFFDAD7),
+      surface: Color(0xFF0F1822),
+      onSurface: Color(0xFFECEDEE),
+      surfaceContainerLowest: Color(0xFF0B131C),
+      surfaceContainerLow: Color(0xFF121C27),
+      surfaceContainer: Color(0xFF162230),
+      surfaceContainerHigh: Color(0xFF1D2A39),
+      surfaceContainerHighest: Color(0xFF253648),
+      onSurfaceVariant: Color(0xFFAEB8C3),
+      outline: Color(0xFF385166),
+      outlineVariant: Color(0xFF27394B),
+      shadow: Color(0xFF000000),
+      scrim: Color(0xCC000000),
+      inverseSurface: Color(0xFFE8EDF2),
+      onInverseSurface: Color(0xFF16202A),
+      inversePrimary: Color(0xFF2D5E84),
+      surfaceTint: Color(0xFF3385B0),
+    );
+    final baseTextTheme = GoogleFonts.beVietnamProTextTheme(
+      ThemeData(brightness: Brightness.dark).textTheme,
+    ).apply(
+      bodyColor: colorScheme.onSurface,
+      displayColor: colorScheme.onSurface,
     );
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: const Color(0xFF0F172A),
-      textTheme: GoogleFonts.beVietnamProTextTheme(
-        ThemeData(brightness: Brightness.dark).textTheme,
+      scaffoldBackgroundColor: scaffoldColor,
+      canvasColor: scaffoldColor,
+      splashFactory: InkSparkle.splashFactory,
+      textTheme: baseTextTheme.copyWith(
+        headlineSmall: baseTextTheme.headlineSmall?.copyWith(
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.3,
+        ),
+        titleLarge: baseTextTheme.titleLarge?.copyWith(
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.2,
+        ),
+        titleMedium: baseTextTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.w700,
+        ),
+        bodyLarge: baseTextTheme.bodyLarge?.copyWith(height: 1.42),
+        bodyMedium: baseTextTheme.bodyMedium?.copyWith(height: 1.45),
+        labelLarge: baseTextTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.1,
+        ),
+      ),
+      appBarTheme: AppBarTheme(
+        backgroundColor: scaffoldColor,
+        foregroundColor: colorScheme.onSurface,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        centerTitle: false,
+        titleTextStyle: baseTextTheme.titleLarge?.copyWith(
+          color: colorScheme.onSurface,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      cardTheme: CardThemeData(
+        color: colorScheme.surfaceContainer,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(cardRadius),
+          side: BorderSide(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.8),
+          ),
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: colorScheme.surfaceContainerHigh,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.9),
+          ),
+        ),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: colorScheme.surfaceContainerLow,
+        surfaceTintColor: Colors.transparent,
+        dragHandleColor: colorScheme.outline,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: colorScheme.surfaceContainerHighest,
+        contentTextStyle: baseTextTheme.bodyMedium?.copyWith(
+          color: colorScheme.onSurface,
+        ),
+        actionTextColor: colorScheme.primary,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+          side: BorderSide(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.85),
+          ),
+        ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFF1E293B),
+        fillColor: colorScheme.surfaceContainerLow,
+        hintStyle: baseTextTheme.bodyMedium?.copyWith(
+          color: colorScheme.onSurfaceVariant,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: colorScheme.outline),
@@ -496,10 +540,41 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
           vertical: 16,
         ),
       ),
+      iconButtonTheme: IconButtonThemeData(
+        style: ButtonStyle(
+          minimumSize: const WidgetStatePropertyAll(Size(44, 44)),
+          padding: const WidgetStatePropertyAll(EdgeInsets.all(10)),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          ),
+          foregroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.disabled)) {
+              return colorScheme.onSurfaceVariant.withValues(alpha: 0.55);
+            }
+            return colorScheme.onSurface;
+          }),
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.disabled)) {
+              return colorScheme.surfaceContainerLow.withValues(alpha: 0.45);
+            }
+            if (states.contains(WidgetState.pressed)) {
+              return colorScheme.primaryContainer.withValues(alpha: 0.8);
+            }
+            if (states.contains(WidgetState.hovered) ||
+                states.contains(WidgetState.focused)) {
+              return colorScheme.surfaceContainerHigh;
+            }
+            return colorScheme.surfaceContainerLow.withValues(alpha: 0.88);
+          }),
+          overlayColor: WidgetStatePropertyAll(
+            colorScheme.primary.withValues(alpha: 0.08),
+          ),
+        ),
+      ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: seedColor,
-          foregroundColor: Colors.white,
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
           minimumSize: const Size(0, 54),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -507,15 +582,141 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
+          disabledBackgroundColor: colorScheme.surfaceContainerHighest,
+          disabledForegroundColor: colorScheme.onSurfaceVariant,
+          minimumSize: const Size(0, 54),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+        ),
+      ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           minimumSize: const Size(0, 54),
+          foregroundColor: colorScheme.onSurface,
+          backgroundColor: colorScheme.surfaceContainerLow.withValues(alpha: 0.3),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
           side: BorderSide(color: colorScheme.outline),
           textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: colorScheme.primary,
+          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+        backgroundColor: colorScheme.surfaceContainerLow,
+        side: BorderSide(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.9),
+        ),
+        selectedColor: colorScheme.primaryContainer.withValues(alpha: 0.9),
+        labelStyle: baseTextTheme.labelMedium?.copyWith(
+          color: colorScheme.onSurface,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: ButtonStyle(
+          padding: const WidgetStatePropertyAll(
+            EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          ),
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return colorScheme.primaryContainer.withValues(alpha: 0.95);
+            }
+            return colorScheme.surfaceContainerLow;
+          }),
+          foregroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return colorScheme.onPrimaryContainer;
+            }
+            return colorScheme.onSurfaceVariant;
+          }),
+          side: WidgetStatePropertyAll(
+            BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.9)),
+          ),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          ),
+        ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        height: 74,
+        backgroundColor: colorScheme.surfaceContainerLow.withValues(alpha: 0.98),
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Colors.black.withValues(alpha: 0.16),
+        indicatorColor: colorScheme.primaryContainer.withValues(alpha: 0.95),
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return baseTextTheme.labelSmall?.copyWith(
+            color: selected
+                ? colorScheme.onPrimaryContainer
+                : colorScheme.onSurfaceVariant,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+          );
+        }),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return IconThemeData(
+            color: selected
+                ? colorScheme.onPrimaryContainer
+                : colorScheme.onSurfaceVariant,
+            size: 22,
+          );
+        }),
+      ),
+      navigationRailTheme: NavigationRailThemeData(
+        backgroundColor: colorScheme.surfaceContainerLow.withValues(alpha: 0.96),
+        indicatorColor: colorScheme.primaryContainer.withValues(alpha: 0.95),
+        selectedIconTheme: IconThemeData(color: colorScheme.onPrimaryContainer),
+        unselectedIconTheme: IconThemeData(
+          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.92),
+        ),
+        selectedLabelTextStyle: baseTextTheme.labelMedium?.copyWith(
+          color: colorScheme.onPrimaryContainer,
+          fontWeight: FontWeight.w700,
+        ),
+        unselectedLabelTextStyle: baseTextTheme.labelMedium?.copyWith(
+          color: colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: colorScheme.surfaceContainerHigh,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+          side: BorderSide(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.9),
+          ),
+        ),
+        textStyle: baseTextTheme.bodyMedium?.copyWith(
+          color: colorScheme.onSurface,
+        ),
+      ),
+      dividerTheme: DividerThemeData(
+        color: colorScheme.outlineVariant.withValues(alpha: 0.7),
+        thickness: 1,
+        space: 1,
+      ),
+      progressIndicatorTheme: ProgressIndicatorThemeData(
+        color: colorScheme.primary,
+        circularTrackColor: colorScheme.surfaceContainerHighest,
+        linearTrackColor: colorScheme.surfaceContainerHighest,
       ),
       checkboxTheme: CheckboxThemeData(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),

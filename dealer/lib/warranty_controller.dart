@@ -78,42 +78,42 @@ String resolveWarrantySyncMessage(String? message, {required bool isEnglish}) {
   if (normalized == null || normalized.isEmpty) {
     return isEnglish
         ? 'Unable to sync warranty data.'
-        : 'Khong the dong bo du lieu bao hanh.';
+        : 'Không thể đồng bộ dữ liệu bảo hành.';
   }
 
   switch (normalized) {
     case 'warranty.sync.message.apiNotConfigured':
       return isEnglish
           ? 'Warranty API is not configured.'
-          : 'API bao hanh chua duoc cau hinh.';
+          : 'API bảo hành chưa được cấu hình.';
     case 'warranty.sync.message.unauthenticated':
       return isEnglish
           ? 'You need to sign in before activating warranty.'
-          : 'Ban can dang nhap truoc khi kich hoat bao hanh.';
+          : 'Bạn cần đăng nhập trước khi kích hoạt bảo hành.';
     case 'warranty.sync.message.invalidSerialPayload':
       return isEnglish
           ? 'Serial inventory data is invalid.'
-          : 'Du lieu serial ton kho khong hop le.';
+          : 'Dữ liệu serial tồn kho không hợp lệ.';
     case 'warranty.sync.message.invalidWarrantyPayload':
       return isEnglish
           ? 'Warranty activation data is invalid.'
-          : 'Du lieu kich hoat bao hanh khong hop le.';
+          : 'Dữ liệu kích hoạt bảo hành không hợp lệ.';
     case 'warranty.sync.message.serialSyncFailed':
       return isEnglish
           ? 'Unable to sync serial inventory.'
-          : 'Khong the dong bo serial ton kho.';
+          : 'Không thể đồng bộ serial tồn kho.';
     case 'warranty.sync.message.remoteSerialNotFound':
       return isEnglish
           ? 'The selected serial is not available for warranty activation.'
-          : 'Serial da chon khong san sang de kich hoat bao hanh.';
+          : 'Serial đã chọn không sẵn sàng để kích hoạt bảo hành.';
     case 'warranty.sync.message.activationFailed':
       return isEnglish
           ? 'Unable to activate warranty. Please try again.'
-          : 'Khong the kich hoat bao hanh. Vui long thu lai.';
+          : 'Không thể kích hoạt bảo hành. Vui lòng thử lại.';
     case 'warranty.sync.message.syncFailed':
       return isEnglish
           ? 'Unable to sync warranty data.'
-          : 'Khong the dong bo du lieu bao hanh.';
+          : 'Không thể đồng bộ dữ liệu bảo hành.';
     default:
       return normalized;
   }
