@@ -79,13 +79,13 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
     return (
         <motion.header
-            className="fixed left-0 right-0 top-0 flex items-center justify-between px-3 py-3 transition-all duration-300 ease-out sm:left-20 sm:px-6 sm:py-4"
+            className="fixed left-0 right-0 top-0 flex items-center justify-between px-3 py-2.5 transition-all duration-300 ease-out sm:left-20 sm:px-6 sm:py-4"
             variants={headerVariants}
             initial="hidden"
             animate="visible"
             style={{ ...headerStyle, zIndex: Z_INDEX.HEADER }}
         >
-            <motion.div className="flex items-center gap-3 sm:gap-4" variants={logoVariants}>
+            <motion.div className="flex items-center gap-2.5 sm:gap-4" variants={logoVariants}>
                 <button
                     onClick={onMenuClick}
                     className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-[var(--brand-border)] bg-[rgba(7,17,27,0.72)] text-[var(--brand-blue)] shadow-[0_10px_24px_rgba(1,8,15,0.18)] transition-all duration-200 hover:border-[var(--brand-border-strong)] hover:bg-[rgba(12,30,44,0.86)] sm:hidden"
@@ -100,7 +100,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                         alt={t('brand.logoAlt')}
                         width={142}
                         height={32}
-                        className="h-auto w-[110px] transition-transform duration-200 hover:scale-[1.03] sm:w-[150px]"
+                        className="h-auto w-[102px] transition-transform duration-200 hover:scale-[1.03] sm:w-[150px]"
                         priority
                     />
                 </Link>
@@ -128,7 +128,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 })}
             </nav>
 
-            <motion.div variants={searchVariants} className="flex items-center gap-2 sm:gap-3">
+            <motion.div variants={searchVariants} className="flex items-center gap-1.5 sm:gap-3">
                 <button
                     onClick={openSearch}
                     className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-[var(--brand-border)] bg-[rgba(7,17,27,0.64)] text-[var(--brand-blue)] transition-all duration-200 hover:border-[var(--brand-border-strong)] hover:bg-[rgba(41,171,226,0.12)]"

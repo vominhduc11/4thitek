@@ -91,7 +91,7 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
 
     return (
         <section
-            className="relative h-[clamp(28rem,72vw,100vh)] w-full overflow-hidden"
+            className="relative h-[100svh] w-full overflow-hidden sm:h-[clamp(28rem,72vw,100vh)]"
             aria-label={t('hero.ariaLabel').replace('{product}', displayName)}
         >
             <motion.video
@@ -175,9 +175,9 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
                 </div>
             )}
 
-            <div className="absolute inset-0 z-20 flex flex-col items-center justify-between px-4 pb-12 pt-20 sm:items-start sm:pl-24 sm:pr-8 md:pl-28 md:pr-8 lg:pl-32 lg:pr-12 xl:pl-36 xl:pr-16 2xl:pl-40 2xl:pr-20">
+            <div className="absolute inset-0 z-20 flex flex-col items-center gap-4 px-4 pb-7 pt-[5.25rem] sm:items-start sm:justify-between sm:gap-0 sm:pb-12 sm:pt-20 sm:pl-24 sm:pr-8 md:pl-28 md:pr-8 lg:pl-32 lg:pr-12 xl:pl-36 xl:pr-16 2xl:pl-40 2xl:pr-20">
                 <motion.h1
-                    className="w-full cursor-pointer text-center font-serif text-2xl leading-[0.94] text-white transition-colors duration-300 hover:text-[var(--brand-blue)] xs:text-3xl sm:text-left sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl"
+                    className="w-full max-w-[18rem] cursor-pointer text-center font-serif text-[2.15rem] leading-[0.94] text-white transition-colors duration-300 hover:text-[var(--brand-blue)] xs:max-w-[20rem] xs:text-[2.45rem] sm:max-w-none sm:text-left sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl"
                     variants={titleVariants}
                     initial="hidden"
                     animate="visible"
@@ -188,7 +188,7 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
                 </motion.h1>
 
                 <motion.div
-                    className="group relative flex w-full flex-1 cursor-pointer items-center justify-center py-4"
+                    className="group relative flex min-h-0 w-full flex-1 cursor-pointer items-center justify-center py-3 sm:py-4"
                     variants={productVariants}
                     initial="hidden"
                     animate="visible"
@@ -201,7 +201,7 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
                             alt={displayName}
                             width={384}
                             height={216}
-                            className="max-h-[20vh] w-auto object-contain drop-shadow-2xl xs:max-h-[25vh] sm:max-h-[30vh] md:max-h-[35vh] lg:max-h-[40vh] xl:max-h-[45vh] 2xl:max-h-[50vh]"
+                            className="max-h-[28svh] w-auto object-contain drop-shadow-2xl xs:max-h-[30svh] sm:max-h-[30vh] md:max-h-[35vh] lg:max-h-[40vh] xl:max-h-[45vh] 2xl:max-h-[50vh]"
                             priority
                         />
                     ) : (
@@ -212,21 +212,21 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
                 </motion.div>
 
                 <motion.div
-                    className="w-full text-center sm:text-left"
+                    className="w-full max-w-[22rem] text-center sm:max-w-2xl sm:text-left"
                     variants={contentVariants}
                     initial="hidden"
                     animate="visible"
                 >
-                    <div className="mx-auto mb-4 max-w-2xl sm:mx-0">
-                        <p className="brand-eyebrow mb-3 text-center text-[0.74rem] sm:text-left">
+                    <div className="mx-auto mb-3 max-w-[22rem] sm:mx-0 sm:mb-4 sm:max-w-2xl">
+                        <p className="brand-eyebrow mb-2 text-center text-[0.68rem] leading-[1.55] tracking-[0.2em] xs:text-[0.72rem] sm:mb-3 sm:text-left sm:text-[0.74rem] sm:tracking-[0.24em]">
                             {t('brand.message')}
                         </p>
-                        <p className="line-clamp-3 text-sm leading-relaxed text-[var(--text-primary)] xs:text-base sm:text-lg lg:text-xl">
+                        <p className="line-clamp-3 text-[0.95rem] leading-[1.55] text-[var(--text-primary)] xs:text-base sm:text-lg sm:leading-relaxed lg:text-xl">
                             {product?.shortDescription || t('hero.subtitle')}
                         </p>
                     </div>
                     <motion.button
-                        className="brand-button-primary min-w-[160px] rounded-full px-4 py-2.5 text-sm font-semibold sm:px-6 sm:py-3 sm:text-base"
+                        className="brand-button-primary min-w-[176px] rounded-full px-5 py-3 text-sm font-semibold sm:min-w-[160px] sm:px-6 sm:py-3 sm:text-base"
                         variants={buttonVariants}
                         initial="hidden"
                         animate="visible"
