@@ -10,7 +10,7 @@ class _OrderCardSkeleton extends StatelessWidget {
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(22),
         side: BorderSide(
           color: Theme.of(
             context,
@@ -18,7 +18,7 @@ class _OrderCardSkeleton extends StatelessWidget {
         ),
       ),
       child: const Padding(
-        padding: EdgeInsets.all(16),
+        padding: EdgeInsets.fromLTRB(18, 18, 18, 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -29,33 +29,66 @@ class _OrderCardSkeleton extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SkeletonBox(width: 120, height: 16),
+                      SkeletonBox(width: 152, height: 18),
                       SizedBox(height: 6),
-                      SkeletonBox(width: double.infinity, height: 14),
-                      SizedBox(height: 4),
-                      SkeletonBox(width: 80, height: 12),
+                      SkeletonBox(width: 110, height: 13),
                     ],
                   ),
                 ),
                 SizedBox(width: 12),
-                SkeletonBox(
-                  width: 72,
-                  height: 26,
-                  borderRadius: BorderRadius.all(Radius.circular(20)),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    SkeletonBox(
+                      width: 74,
+                      height: 26,
+                      borderRadius: BorderRadius.all(Radius.circular(20)),
+                    ),
+                    SizedBox(height: 10),
+                    SkeletonBox(width: 96, height: 22),
+                    SizedBox(height: 4),
+                    SkeletonBox(width: 68, height: 12),
+                  ],
                 ),
               ],
             ),
-            SizedBox(height: 12),
-            SkeletonBox(width: 100, height: 20),
-            SizedBox(height: 6),
-            SkeletonBox(width: 60, height: 13),
-            SizedBox(height: 6),
-            SkeletonBox(width: 140, height: 13),
-            SizedBox(height: 8),
+            SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                SkeletonBox(
+                  width: 118,
+                  height: 28,
+                  borderRadius: BorderRadius.all(Radius.circular(999)),
+                ),
+                SkeletonBox(
+                  width: 88,
+                  height: 28,
+                  borderRadius: BorderRadius.all(Radius.circular(999)),
+                ),
+              ],
+            ),
+            SizedBox(height: 14),
             SkeletonBox(
-              width: 90,
-              height: 24,
-              borderRadius: BorderRadius.all(Radius.circular(12)),
+              width: double.infinity,
+              height: 118,
+              borderRadius: BorderRadius.all(Radius.circular(18)),
+            ),
+            SizedBox(height: 12),
+            SkeletonBox(
+              width: 108,
+              height: 28,
+              borderRadius: BorderRadius.all(Radius.circular(999)),
+            ),
+            SizedBox(height: 14),
+            Align(
+              alignment: Alignment.centerRight,
+              child: SkeletonBox(
+                width: 116,
+                height: 40,
+                borderRadius: BorderRadius.all(Radius.circular(14)),
+              ),
             ),
           ],
         ),
@@ -106,7 +139,7 @@ class _OrdersLayoutConfig {
           : isWideDesktop
           ? 3
           : 2,
-      gridItemExtent: isWideDesktop ? 420.0 : 460.0,
+      gridItemExtent: isWideDesktop ? 396.0 : 436.0,
       listBottomPadding: (isCompact ? 104.0 : 88.0) + bottomSafeArea,
     );
   }
@@ -201,30 +234,9 @@ extension _OrdersScreenSupport on _OrdersScreenState {
     _refreshOrders();
   }
 
-  void _clearActiveFilters() {
-    if (_query.status == null &&
-        _query.paymentStatus == null &&
-        !_query.onlyOutstanding) {
-      return;
-    }
-    setState(() {
-      _query = _query.copyWith(
-        status: null,
-        paymentStatus: null,
-        onlyOutstanding: false,
-      );
-    });
-    _refreshOrders();
-  }
-
   void _clearAllCriteria() {
-    final hadSearch =
-        _searchController.text.isNotEmpty || _query.searchText.isNotEmpty;
-    final hadFilters =
-        _query.status != null ||
-        _query.paymentStatus != null ||
-        _query.onlyOutstanding;
-    if (!hadSearch && !hadFilters) {
+    final hadCriteria = _searchController.text.isNotEmpty || _query.hasCriteria;
+    if (!hadCriteria) {
       return;
     }
     _searchDebounce?.cancel();
@@ -284,9 +296,12 @@ extension _OrdersScreenSupport on _OrdersScreenState {
     if (_query.paymentStatus != null) {
       parts.add(texts.paymentCriteriaLabel(_query.paymentStatus!));
     }
+    if (_query.sort != OrderSortOption.newest) {
+      parts.add(texts.sortLabel(_query.sort));
+    }
     if (_query.normalizedSearchText.isNotEmpty) {
       parts.add(texts.keywordCriteriaLabel(_query.normalizedSearchText));
     }
-    return parts.join(' · ');
+    return parts.join(' | ');
   }
 }

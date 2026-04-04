@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -544,14 +544,15 @@ class NotificationController extends ChangeNotifier {
     final orderCode = payload['orderCode']?.toString();
     final status = payload['status']?.toString();
     final paymentStatus = payload['paymentStatus']?.toString();
+    final onOrderStatusEvent = _onOrderStatusEvent;
 
     if (orderCode != null &&
         orderCode.isNotEmpty &&
         status != null &&
         status.isNotEmpty &&
-        _onOrderStatusEvent != null) {
+        onOrderStatusEvent != null) {
       final paidAmount = _parseAmount(payload['paidAmount']);
-      _onOrderStatusEvent(
+      onOrderStatusEvent(
         orderCode,
         status,
         paymentStatus ?? '',

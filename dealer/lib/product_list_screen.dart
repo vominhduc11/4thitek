@@ -222,8 +222,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
               right: 0,
               child: IgnorePointer(
                 ignoring: floatingFilterBarReveal <= 0.04,
-                child: Opacity(
-                  opacity: floatingFilterBarVisualProgress,
+                child: ClipRect(
+                  clipBehavior: Clip.hardEdge,
                   child: Transform.translate(
                     offset: Offset(
                       0,
@@ -274,8 +274,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
         );
       } else if (delta < 0) {
         _setFloatingFilterBarReveal(
-          _floatingFilterBarReveal +
-              ((-delta) / _floatingFilterRevealDistance),
+          _floatingFilterBarReveal + ((-delta) / _floatingFilterRevealDistance),
         );
       }
     } else if (notification is ScrollEndNotification) {
@@ -310,11 +309,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
               horizontalPadding,
               layout.stickyOuterBottomPadding,
             ),
-            child: _buildStickyFilterBar(
-              context,
-              layout: layout,
-              cart: cart,
-            ),
+            child: _buildStickyFilterBar(context, layout: layout, cart: cart),
           ),
           Positioned(
             left: horizontalPadding,
@@ -1137,9 +1132,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: colors.outlineVariant.withValues(alpha: 0.8),
-        ),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.8)),
       ),
       child: Row(
         children: [
@@ -1608,6 +1601,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
     final remainingStock = cart.remainingStockFor(product);
     final suggestedAddQuantity = cart.suggestedAddQuantity(product);
     final canAddToCart = suggestedAddQuantity > 0 && !isBusy;
+    final primaryAddActionLabel = remainingStock <= 0
+        ? texts.quickAddLabel(remainingStock: remainingStock)
+        : (texts.isEnglish ? 'Add to cart' : 'Thêm vào giỏ');
     final productSemanticsLabel = texts.productSemanticsLabel(
       product,
       remainingStock,
@@ -1631,9 +1627,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
     final theme = Theme.of(context);
     final imageSize = isTablet ? 80.0 : 64.0;
     final cardPadding = isTablet ? (isGridLayout ? 16.0 : 18.0) : 14.0;
-    final addButtonLabel = remainingStock <= 0
-        ? texts.unavailableAction
-        : texts.quickAddLabel(remainingStock: remainingStock);
+    final addButtonLabel = primaryAddActionLabel;
     final useCompactQuickAdd = isGridLayout && canAddToCart;
 
     return FadeSlideIn(
@@ -1915,6 +1909,15 @@ class _ProductListScreenState extends State<ProductListScreen> {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final isRecentlyAdded = _recentlyAddedProductIds.contains(product.id);
+    final summary = _productCardSummary(product);
+    final primaryActionLabel = remainingStock <= 0
+        ? texts.quickAddLabel(remainingStock: remainingStock)
+        : (texts.isEnglish ? 'Add to cart' : 'Thêm vào giỏ');
+    final warrantyLabel = product.warrantyMonths > 0
+        ? (texts.isEnglish
+              ? '${product.warrantyMonths} mo warranty'
+              : 'BH ${product.warrantyMonths} tháng')
+        : null;
 
     return FadeSlideIn(
       key: ValueKey(product.id),
@@ -1926,79 +1929,182 @@ class _ProductListScreenState extends State<ProductListScreen> {
           label: productSemanticsLabel,
           hint: texts.openProductDetailsHint,
           child: _InteractiveProductCardSurface(
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(24),
             side: BorderSide(
-              color: colors.outlineVariant.withValues(alpha: 0.55),
+              color: colors.outlineVariant.withValues(alpha: 0.68),
             ),
             onTap: () => _openProductDetails(context, product),
             child: Padding(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSquareProductCardImage(
-                    product,
-                    borderRadius: BorderRadius.circular(18),
-                    widthFactor: 0.78,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 8,
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          colors.surfaceContainerLow.withValues(alpha: 0.96),
+                          colors.surface.withValues(alpha: 0.98),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(
+                        color: colors.outlineVariant.withValues(alpha: 0.34),
+                      ),
                     ),
-                    iconSize: 30,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    product.sku,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: colors.onSurfaceVariant,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.3,
+                    child: AspectRatio(
+                      aspectRatio: 1.32,
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: _buildSquareProductCardImage(
+                                product,
+                                borderRadius: BorderRadius.circular(18),
+                                widthFactor: 0.66,
+                                contentPadding: const EdgeInsets.all(8),
+                                iconSize: 28,
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 12,
+                            right: 12,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: colors.surface.withValues(alpha: 0.92),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: colors.outlineVariant.withValues(
+                                    alpha: 0.4,
+                                  ),
+                                ),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(8),
+                                child: Icon(
+                                  Icons.arrow_outward_rounded,
+                                  size: 16,
+                                  color: colors.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 14),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _ProductMetaPill(
+                        icon: Icons.qr_code_2_rounded,
+                        label: product.sku,
+                        backgroundColor: colors.surfaceContainerLow.withValues(
+                          alpha: 0.92,
+                        ),
+                        foregroundColor: colors.onSurfaceVariant,
+                      ),
+                      if (warrantyLabel != null)
+                        _ProductMetaPill(
+                          icon: Icons.verified_outlined,
+                          label: warrantyLabel,
+                          backgroundColor: colors.primaryContainer.withValues(
+                            alpha: 0.42,
+                          ),
+                          foregroundColor: colors.primary,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
                   Text(
                     product.name,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      height: 1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  StockBadge(
-                    remainingStock: remainingStock,
-                    lowStockThreshold: _lowStockThreshold,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    iconSize: 12,
-                    iconTextSpacing: 3,
-                  ),
-                  const Spacer(),
-                  Text(
-                    texts.dealerPriceLabel,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: colors.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    formatVnd(product.price),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: colors.primary,
+                    style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w800,
+                      height: 1.15,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  if (summary != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      summary,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colors.onSurfaceVariant,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: colors.surfaceContainerLow.withValues(alpha: 0.9),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: colors.outlineVariant.withValues(alpha: 0.34),
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                texts.dealerPriceLabel,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: colors.onSurfaceVariant,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                formatVnd(product.price),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.headlineSmall?.copyWith(
+                                  color: colors.primary,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Flexible(
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: StockBadge(
+                              remainingStock: remainingStock,
+                              lowStockThreshold: _lowStockThreshold,
+                              showInStockQuantity: true,
+                              useColonForLowStock: true,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              iconSize: 13,
+                              iconTextSpacing: 4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
@@ -2007,37 +2113,36 @@ class _ProductListScreenState extends State<ProductListScreen> {
                               ? () => _handleAddToCart(cart, product)
                               : null,
                           style: ElevatedButton.styleFrom(
-                            minimumSize: const Size(0, 40),
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            minimumSize: const Size(0, 50),
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                             elevation: 0,
                             backgroundColor: isRecentlyAdded
                                 ? colors.tertiaryContainer
-                                : colors.secondaryContainer.withValues(
-                                    alpha: 0.82,
+                                : colors.primaryContainer.withValues(
+                                    alpha: 0.92,
                                   ),
                             foregroundColor: isRecentlyAdded
                                 ? colors.onTertiaryContainer
-                                : colors.onSecondaryContainer,
-                            disabledBackgroundColor:
-                                colors.surfaceContainerHighest,
+                                : colors.onPrimaryContainer,
+                            disabledBackgroundColor: colors
+                                .surfaceContainerHighest
+                                .withValues(alpha: 0.94),
                             disabledForegroundColor: colors.onSurfaceVariant
-                                .withValues(alpha: 0.75),
+                                .withValues(alpha: 0.78),
                           ),
                           child: _buildQuickAddButtonContent(
                             context,
                             isBusy: isBusy,
                             isRecentlyAdded: isRecentlyAdded,
                             useCompactLayout: false,
-                            label: canAddToCart
-                                ? texts.addAction
-                                : texts.unavailableAction,
+                            label: primaryActionLabel,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       Tooltip(
                         message: isSyncingProduct
                             ? texts.syncingCartTooltip
@@ -2051,21 +2156,37 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                 )
                               : null,
                           style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(40, 40),
+                            minimumSize: const Size(50, 50),
                             padding: EdgeInsets.zero,
+                            backgroundColor: colors.surface.withValues(
+                              alpha: 0.72,
+                            ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            side: BorderSide(
+                              color: colors.outlineVariant.withValues(
+                                alpha: 0.5,
+                              ),
                             ),
                           ),
                           child: isSyncingProduct
                               ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
+                                  width: 18,
+                                  height: 18,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2.2,
                                   ),
                                 )
-                              : const Icon(Icons.tune_rounded, size: 18),
+                              : Icon(
+                                  Icons.tune_rounded,
+                                  size: 19,
+                                  color: canAddToCart
+                                      ? colors.onSurface
+                                      : colors.onSurfaceVariant.withValues(
+                                          alpha: 0.7,
+                                        ),
+                                ),
                         ),
                       ),
                     ],
@@ -2105,6 +2226,25 @@ class _ProductListScreenState extends State<ProductListScreen> {
         );
       },
     );
+  }
+
+  String? _productCardSummary(Product product) {
+    final raw = product.shortDescription.trim();
+    if (raw.isEmpty) {
+      return null;
+    }
+
+    final normalized = raw.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (normalized.isEmpty) {
+      return null;
+    }
+
+    final normalizedName = product.name.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (normalized.toLowerCase() == normalizedName.toLowerCase()) {
+      return null;
+    }
+
+    return normalized;
   }
 
   int get _activeFilterCount {
@@ -2224,8 +2364,7 @@ class _ProductListAdaptiveLayout {
 
   double get stickyOuterTopPadding => isMobile ? 4 : 8;
 
-  double get stickyOuterBottomPadding =>
-      isDesktop ? 16 : (isMobile ? 10 : 14);
+  double get stickyOuterBottomPadding => isDesktop ? 16 : (isMobile ? 10 : 14);
 
   double get resultsBottomPadding => isDesktop ? 32 : 24;
 
@@ -2303,9 +2442,9 @@ class _ProductListAdaptiveLayout {
 
   double _resolveGridItemExtent(double itemWidth) {
     if (isMobile) {
-      final mediaExtent = math.max(0, (itemWidth - 20) * 0.78);
-      final contentHeight = 220.0;
-      return mediaExtent + contentHeight + ((textScale - 1) * 108);
+      final mediaExtent = math.max(0, (itemWidth - 28) / 1.32);
+      const contentHeight = 208.0;
+      return mediaExtent + contentHeight + ((textScale - 1) * 102);
     }
 
     final mediaExtent = math.max(
@@ -2555,6 +2694,52 @@ class _InteractiveProductCardSurfaceState
   }
 }
 
+class _ProductMetaPill extends StatelessWidget {
+  const _ProductMetaPill({
+    required this.icon,
+    required this.label,
+    required this.backgroundColor,
+    required this.foregroundColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color backgroundColor;
+  final Color foregroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: foregroundColor.withValues(alpha: 0.16)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: foregroundColor),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: foregroundColor,
+                fontWeight: FontWeight.w700,
+                height: 1,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ProductCardSkeleton extends StatelessWidget {
   const _ProductCardSkeleton({this.isGridLayout = false});
 
@@ -2580,25 +2765,35 @@ class _ProductCardSkeleton extends StatelessWidget {
                 children: [
                   SkeletonBox(
                     width: double.infinity,
-                    height: 120,
-                    borderRadius: BorderRadius.all(Radius.circular(16)),
+                    height: 198,
+                    borderRadius: BorderRadius.all(Radius.circular(22)),
                   ),
-                  SizedBox(height: 10),
-                  SkeletonBox(width: double.infinity, height: 18),
-                  SizedBox(height: 4),
-                  SkeletonBox(width: 52, height: 13),
+                  SizedBox(height: 14),
+                  Row(
+                    children: [
+                      SkeletonBox(width: 86, height: 28),
+                      SizedBox(width: 8),
+                      SkeletonBox(width: 94, height: 28),
+                    ],
+                  ),
+                  SizedBox(height: 12),
+                  SkeletonBox(width: double.infinity, height: 22),
                   SizedBox(height: 8),
-                  SkeletonBox(width: 52, height: 22),
-                  SizedBox(height: 10),
-                  Divider(height: 1, thickness: 1),
-                  SizedBox(height: 10),
+                  SkeletonBox(width: 176, height: 16),
+                  SizedBox(height: 14),
+                  SkeletonBox(
+                    width: double.infinity,
+                    height: 74,
+                    borderRadius: BorderRadius.all(Radius.circular(18)),
+                  ),
+                  SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
-                        child: SkeletonBox(width: double.infinity, height: 20),
+                        child: SkeletonBox(width: double.infinity, height: 50),
                       ),
-                      SizedBox(width: 8),
-                      SkeletonBox(width: 40, height: 40),
+                      SizedBox(width: 10),
+                      SkeletonBox(width: 50, height: 50),
                     ],
                   ),
                 ],
@@ -2688,8 +2883,7 @@ class _ProductListTexts {
       isEnglish ? 'Choose quantity' : 'Chọn số lượng';
   String get cancelAction => isEnglish ? 'Cancel' : 'Hủy';
   String get addAction => isEnglish ? 'Add' : 'Thêm';
-  String get unavailableAction =>
-      isEnglish ? 'Unavailable' : 'Không thể thêm';
+  String get unavailableAction => isEnglish ? 'Unavailable' : 'Không thể thêm';
   String get dealerPriceLabel => isEnglish ? 'Dealer price' : 'Giá đại lý';
   String resultsLabel(int count) =>
       isEnglish ? '$count results' : '$count kết quả';

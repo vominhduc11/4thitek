@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
@@ -20,11 +19,8 @@ import 'widgets/product_image.dart';
 part 'inventory_screen_support.dart';
 
 const int _lowStockThreshold = kLowStockThreshold;
-const double _inventoryFabHeight = 56;
-const double _inventoryFabBottomSpacing = 20;
 const double _inventoryMinTapTarget = 48;
 const int _inventoryPageSize = 12;
-const double _inventorySectionSpacing = 16;
 const double _inventorySectionSpacingLarge = 20;
 const double _inventoryListItemSpacing = 10;
 
@@ -297,6 +293,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
   @override
   Widget build(BuildContext context) {
     final texts = _inventoryTexts(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final orderController = OrderScope.of(context);
     final warrantyController = WarrantyScope.of(context);
     final inventoryItems = _resolveInventoryItems(
@@ -314,7 +312,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
     final summary = _buildSummary(inventoryItems);
     final sortLabel = texts.sortLabel(_sortOption);
-    final summaryCards = <Widget>[
+    final heroMetrics = <Widget>[
       _SummaryChip(
         label: texts.totalProductsLabel,
         value: '${summary.totalProducts}',
@@ -337,13 +335,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
         helperText: texts.lowStockSummaryHelperText,
       ),
     ];
+    final warningMessage = _syncWarningMessage?.trim();
+    final hasActiveFilters =
+        _query.trim().isNotEmpty ||
+        _stockFilter != InventoryStockFilter.all ||
+        _sortOption != InventorySortOption.importedDate ||
+        _sortDirection != InventorySortDirection.descending;
     _filteredItemCount = filteredItems.length;
     final visibleItemCount = math.min(_visibleItemCount, filteredItems.length);
-    final listBottomPadding =
-        _inventoryFabHeight +
-        kFloatingActionButtonMargin +
-        _inventoryFabBottomSpacing +
-        MediaQuery.paddingOf(context).bottom;
+    final listBottomPadding = 28 + MediaQuery.paddingOf(context).bottom;
     final layout = _InventoryLayoutConfig.fromContext(context);
 
     return Scaffold(
@@ -351,7 +351,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
         title: BrandAppBarTitle(texts.screenTitle),
         actions: const [GlobalSearchIconButton()],
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
@@ -372,9 +371,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 keyboardDismissBehavior:
                     ScrollViewKeyboardDismissBehavior.onDrag,
-                padding: EdgeInsets.fromLTRB(16, 12, 16, listBottomPadding),
+                padding: EdgeInsets.fromLTRB(16, 16, 16, listBottomPadding),
                 children: [
-                  _InventorySyncBanner(
+                  _InventoryHeroCard(
+                    headline: texts.heroTitle,
                     summary: texts.inventorySourceSummary(
                       warrantyController.lastRemoteSyncAt == null
                           ? null
@@ -382,105 +382,178 @@ class _InventoryScreenState extends State<InventoryScreen> {
                               warrantyController.lastRemoteSyncAt!,
                             ),
                     ),
-                    warningMessage: _syncWarningMessage,
+                    warningMessage: warningMessage,
+                    metrics: heroMetrics,
+                    primaryActionLabel: texts.exportAction,
+                    primaryActionIcon: Icons.local_shipping_outlined,
+                    onPrimaryAction: () =>
+                        unawaited(_handleQuickAction('export')),
+                    secondaryActionLabel: texts.scanQrBarcodeAction,
+                    secondaryActionIcon: Icons.qr_code_scanner_outlined,
+                    onSecondaryAction: () =>
+                        unawaited(_handleQuickAction('scan')),
                   ),
-                  const SizedBox(height: _inventorySectionSpacing),
-                  Semantics(
-                    textField: true,
-                    label: texts.searchSemantic,
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: _onSearchChanged,
-                      decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.search),
-                        hintText: texts.searchHint,
-                        suffixIcon: _query.isNotEmpty
-                            ? IconButton(
-                                tooltip: texts.clearSearchTooltip,
-                                onPressed: _clearSearchQuery,
-                                icon: const Icon(Icons.close_rounded),
-                              )
-                            : null,
+                  const SizedBox(height: _inventorySectionSpacingLarge),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerLow.withValues(
+                        alpha: 0.92,
+                      ),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: colorScheme.outlineVariant.withValues(
+                          alpha: 0.86,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: _inventorySectionSpacing),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _FilterChip(
-                        label: texts.filterAllLabel,
-                        selected: _stockFilter == InventoryStockFilter.all,
-                        onTap: () =>
-                            _onStockFilterChanged(InventoryStockFilter.all),
-                      ),
-                      _FilterChip(
-                        label: texts.filterInStockLabel,
-                        selected: _stockFilter == InventoryStockFilter.inStock,
-                        onTap: () =>
-                            _onStockFilterChanged(InventoryStockFilter.inStock),
-                      ),
-                      _FilterChip(
-                        label: texts.filterLowStockLabel,
-                        selected: _stockFilter == InventoryStockFilter.lowStock,
-                        onTap: () => _onStockFilterChanged(
-                          InventoryStockFilter.lowStock,
-                        ),
-                      ),
-                      _FilterChip(
-                        label: texts.filterOutOfStockLabel,
-                        selected:
-                            _stockFilter == InventoryStockFilter.outOfStock,
-                        onTap: () => _onStockFilterChanged(
-                          InventoryStockFilter.outOfStock,
-                        ),
-                      ),
-                      _MenuFilterButton(
-                        label:
-                            '$sortLabel ${_sortDirection == InventorySortDirection.ascending ? '↑' : '↓'}',
-                        items: [
-                          PopupMenuItem<String>(
-                            value: 'name',
-                            child: Text(texts.sortByNameOption),
-                          ),
-                          PopupMenuItem<String>(
-                            value: 'quantity',
-                            child: Text(texts.sortByQuantityOption),
-                          ),
-                          PopupMenuItem<String>(
-                            value: 'importedDate',
-                            child: Text(texts.sortByImportedDateOption),
-                          ),
-                        ],
-                        onSelected: (value) {
-                          _onSortChanged(switch (value) {
-                            'name' => InventorySortOption.name,
-                            'quantity' => InventorySortOption.quantity,
-                            _ => InventorySortOption.importedDate,
-                          });
-                        },
-                      ),
-                      _SortDirectionButton(
-                        ascending:
-                            _sortDirection == InventorySortDirection.ascending,
-                        onTap: _toggleSortDirection,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: _inventorySectionSpacing),
-                  if (layout.showSummaryRow)
-                    Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(child: summaryCards[0]),
-                        const SizedBox(width: 8),
-                        Expanded(child: summaryCards[1]),
-                        const SizedBox(width: 8),
-                        Expanded(child: summaryCards[2]),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    texts.controlPanelLabel,
+                                    style: theme.textTheme.labelLarge?.copyWith(
+                                      color: colorScheme.primary,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    texts.inventoryResultsSummary(
+                                      filteredItems.length,
+                                      inventoryItems.length,
+                                    ),
+                                    style: theme.textTheme.titleSmall?.copyWith(
+                                      color: colorScheme.onSurface,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (hasActiveFilters)
+                              TextButton.icon(
+                                onPressed: _clearFilters,
+                                icon: const Icon(Icons.restart_alt_rounded),
+                                label: Text(texts.clearFiltersAction),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        Semantics(
+                          textField: true,
+                          label: texts.searchSemantic,
+                          child: TextField(
+                            controller: _searchController,
+                            onChanged: _onSearchChanged,
+                            decoration: InputDecoration(
+                              prefixIcon: const Icon(Icons.search),
+                              hintText: texts.searchHint,
+                              suffixIcon: _query.isNotEmpty
+                                  ? IconButton(
+                                      tooltip: texts.clearSearchTooltip,
+                                      onPressed: _clearSearchQuery,
+                                      icon: const Icon(Icons.close_rounded),
+                                    )
+                                  : null,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _MenuFilterButton(
+                                label:
+                                    '$sortLabel ${_sortDirection == InventorySortDirection.ascending ? '↑' : '↓'}',
+                                items: [
+                                  PopupMenuItem<String>(
+                                    value: 'name',
+                                    child: Text(texts.sortByNameOption),
+                                  ),
+                                  PopupMenuItem<String>(
+                                    value: 'quantity',
+                                    child: Text(texts.sortByQuantityOption),
+                                  ),
+                                  PopupMenuItem<String>(
+                                    value: 'importedDate',
+                                    child: Text(texts.sortByImportedDateOption),
+                                  ),
+                                ],
+                                onSelected: (value) {
+                                  _onSortChanged(switch (value) {
+                                    'name' => InventorySortOption.name,
+                                    'quantity' => InventorySortOption.quantity,
+                                    _ => InventorySortOption.importedDate,
+                                  });
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            _SortDirectionButton(
+                              ascending:
+                                  _sortDirection ==
+                                  InventorySortDirection.ascending,
+                              onTap: _toggleSortDirection,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              _FilterChip(
+                                label: texts.filterAllLabel,
+                                selected:
+                                    _stockFilter == InventoryStockFilter.all,
+                                onTap: () => _onStockFilterChanged(
+                                  InventoryStockFilter.all,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              _FilterChip(
+                                label: texts.filterInStockLabel,
+                                selected:
+                                    _stockFilter ==
+                                    InventoryStockFilter.inStock,
+                                onTap: () => _onStockFilterChanged(
+                                  InventoryStockFilter.inStock,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              _FilterChip(
+                                label: texts.filterLowStockLabel,
+                                selected:
+                                    _stockFilter ==
+                                    InventoryStockFilter.lowStock,
+                                onTap: () => _onStockFilterChanged(
+                                  InventoryStockFilter.lowStock,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              _FilterChip(
+                                label: texts.filterOutOfStockLabel,
+                                selected:
+                                    _stockFilter ==
+                                    InventoryStockFilter.outOfStock,
+                                onTap: () => _onStockFilterChanged(
+                                  InventoryStockFilter.outOfStock,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
-                    )
-                  else
-                    Wrap(spacing: 8, runSpacing: 8, children: summaryCards),
+                    ),
+                  ),
                   const SizedBox(height: _inventorySectionSpacingLarge),
                   if (inventoryItems.isEmpty)
                     _InventoryEmptyView(
@@ -489,6 +562,61 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   else if (filteredItems.isEmpty)
                     _InventoryFilteredEmptyView(onClear: _clearFilters)
                   else ...[
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                texts.catalogSectionTitle,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  color: colorScheme.onSurface,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                texts.catalogSectionSubtitle(
+                                  filteredItems.length,
+                                ),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (summary.lowStockProducts > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                0xFFB45309,
+                              ).withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color: const Color(
+                                  0xFFB45309,
+                                ).withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Text(
+                              texts.lowStockHighlight(summary.lowStockProducts),
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: const Color(0xFFF6AD55),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
                     if (layout.showWideGrid)
                       GridView.builder(
                         shrinkWrap: true,
@@ -498,7 +626,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                           crossAxisCount: layout.tileColumnCount,
                           mainAxisSpacing: _inventoryListItemSpacing,
                           crossAxisSpacing: 12,
-                          mainAxisExtent: 170,
+                          mainAxisExtent: 214,
                         ),
                         itemBuilder: (context, index) {
                           final item = filteredItems[index];
@@ -570,19 +698,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
           },
         ),
       ),
-      floatingActionButton: Semantics(
-        button: true,
-        label: texts.quickActionsLabel,
-        child: Padding(
-          padding: const EdgeInsets.only(bottom: 6),
-          child: FloatingActionButton.extended(
-            onPressed: () => _showActionSheet(),
-            tooltip: texts.quickActionsLabel,
-            icon: const Icon(Icons.flash_on_outlined),
-            label: Text(texts.quickActionsLabel),
-          ),
-        ),
-      ),
     );
   }
 
@@ -597,133 +712,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       _visibleItemCount = _inventoryPageSize;
     });
     _jumpToTop();
-  }
-
-  void _showActionSheet() {
-    final texts = _inventoryTexts(context);
-    final colorScheme = Theme.of(context).colorScheme;
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      requestFocus: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: colorScheme.scrim.withValues(alpha: 0.42),
-      builder: (sheetContext) {
-        void onSelect(String action) {
-          Navigator.of(sheetContext).pop();
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted) {
-              return;
-            }
-            unawaited(_handleQuickAction(action));
-          });
-        }
-
-        final sheetScheme = Theme.of(sheetContext).colorScheme;
-        return SafeArea(
-          top: false,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 520),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                child: RepaintBoundary(
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(20),
-                      bottom: Radius.circular(18),
-                    ),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: sheetScheme.surface.withValues(alpha: 0.95),
-                          boxShadow: [
-                            BoxShadow(
-                              color: sheetScheme.shadow.withValues(alpha: 0.14),
-                              blurRadius: 20,
-                              offset: Offset(0, -4),
-                            ),
-                          ],
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
-                          child: SingleChildScrollView(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      width: 24,
-                                      height: 24,
-                                      decoration: BoxDecoration(
-                                        color: sheetScheme.primaryContainer,
-                                        borderRadius: BorderRadius.circular(
-                                          999,
-                                        ),
-                                      ),
-                                      child: Icon(
-                                        Icons.flash_on_rounded,
-                                        size: 14,
-                                        color: sheetScheme.onPrimaryContainer,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      texts.quickActionsLabel,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleSmall
-                                          ?.copyWith(
-                                            color: sheetScheme.onSurface,
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  texts.quickActionsSubtitle,
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(
-                                        color: sheetScheme.onSurfaceVariant,
-                                      ),
-                                ),
-                                const SizedBox(height: 14),
-                                _QuickActionSheetItem(
-                                  icon: Icons.local_shipping_outlined,
-                                  title: texts.exportAction,
-                                  subtitle: texts.exportSubtitle,
-                                  tone: _QuickActionTone.primary,
-                                  onTap: () => onSelect('export'),
-                                ),
-                                const SizedBox(height: 8),
-                                const SizedBox(height: 12),
-                                const Divider(height: 1, thickness: 1),
-                                const SizedBox(height: 12),
-                                _QuickActionSheetItem(
-                                  icon: Icons.qr_code_scanner_outlined,
-                                  title: texts.scanQrBarcodeAction,
-                                  subtitle: texts.scanQrBarcodeSubtitle,
-                                  tone: _QuickActionTone.secondary,
-                                  onTap: () => onSelect('scan'),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
   }
 
   Future<void> _handleQuickAction(String action) async {
@@ -807,49 +795,62 @@ class _SummaryChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.09),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.28)),
+        color: colorScheme.surface.withValues(alpha: 0.46),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
       ),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 88),
+        constraints: const BoxConstraints(minHeight: 104, minWidth: 132),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 16, color: color),
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(icon, size: 18, color: color),
+                ),
                 const SizedBox(width: 6),
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    height: 1.3,
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      height: 1.3,
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 10),
             Text(
               value,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
                 color: color,
-                fontSize: 20,
+                fontSize: 24,
                 fontWeight: FontWeight.w800,
                 height: 1.1,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Text(
               helperText,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.92),
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.94),
                 fontSize: 11,
+                height: 1.35,
               ),
             ),
           ],
@@ -1018,105 +1019,6 @@ class _SortDirectionButton extends StatelessWidget {
   }
 }
 
-enum _QuickActionTone { primary, secondary }
-
-class _QuickActionSheetItem extends StatelessWidget {
-  const _QuickActionSheetItem({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.tone,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final _QuickActionTone tone;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final isPrimary = tone == _QuickActionTone.primary;
-    final iconColor = isPrimary
-        ? colorScheme.primary
-        : colorScheme.onSurfaceVariant;
-    final surfaceColor = isPrimary
-        ? colorScheme.primaryContainer.withValues(alpha: 0.58)
-        : colorScheme.surfaceContainerHighest.withValues(alpha: 0.55);
-    final borderColor = isPrimary
-        ? colorScheme.primary.withValues(alpha: 0.34)
-        : colorScheme.outlineVariant.withValues(alpha: 0.72);
-    final titleColor = isPrimary ? colorScheme.primary : colorScheme.onSurface;
-
-    return Material(
-      color: Colors.transparent,
-      child: Ink(
-        decoration: BoxDecoration(
-          color: surfaceColor,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: borderColor),
-        ),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(14),
-          splashColor: iconColor.withValues(alpha: 0.12),
-          highlightColor: iconColor.withValues(alpha: 0.06),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 54),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              child: Row(
-                children: [
-                  Container(
-                    width: 30,
-                    height: 30,
-                    decoration: BoxDecoration(
-                      color: colorScheme.surface.withValues(alpha: 0.95),
-                      borderRadius: BorderRadius.circular(9),
-                    ),
-                    alignment: Alignment.center,
-                    child: Icon(icon, size: 18, color: iconColor),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          title,
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(
-                                color: titleColor,
-                                fontWeight: FontWeight.w700,
-                              ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          subtitle,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: colorScheme.onSurfaceVariant),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    color: iconColor.withValues(alpha: 0.72),
-                    size: 20,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _InventoryProductTile extends StatelessWidget {
   const _InventoryProductTile({required this.item, required this.onTap});
 
@@ -1126,7 +1028,8 @@ class _InventoryProductTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final texts = _inventoryTexts(context);
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     late final String status;
     late final Color statusColor;
     late final IconData statusIcon;
@@ -1148,7 +1051,6 @@ class _InventoryProductTile extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isCompact = constraints.maxWidth <= 380;
-        final rightColumnWidth = isCompact ? 104.0 : 150.0;
         return Semantics(
           button: true,
           label: texts.productTileSemantic(
@@ -1161,166 +1063,204 @@ class _InventoryProductTile extends StatelessWidget {
             elevation: 1,
             shadowColor: colorScheme.shadow.withValues(alpha: 0.1),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-              side: BorderSide(
-                color: Theme.of(
-                  context,
-                ).colorScheme.outlineVariant.withValues(alpha: 0.6),
-              ),
+              borderRadius: BorderRadius.circular(18),
+              side: BorderSide(color: statusColor.withValues(alpha: 0.16)),
             ),
             child: InkWell(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(18),
               onTap: onTap,
               child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                padding: const EdgeInsets.all(14),
+                child: Column(
                   children: [
-                    Semantics(
-                      image: true,
-                      label: texts.productImageLabel(item.product.name),
-                      child: ExcludeSemantics(
-                        child: ProductImage(
-                          product: item.product,
-                          width: 72,
-                          height: 72,
-                          borderRadius: BorderRadius.circular(10),
-                          fit: BoxFit.cover,
-                          iconSize: 20,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Semantics(
+                          image: true,
+                          label: texts.productImageLabel(item.product.name),
+                          child: ExcludeSemantics(
+                            child: ProductImage(
+                              product: item.product,
+                              width: 84,
+                              height: 84,
+                              borderRadius: BorderRadius.circular(14),
+                              fit: BoxFit.cover,
+                              iconSize: 22,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            item.product.name,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.titleSmall
-                                ?.copyWith(
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.product.name,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.titleMedium?.copyWith(
                                   color: colorScheme.onSurface,
-                                  fontSize: 17,
-                                  height: 1.25,
+                                  fontSize: 18,
+                                  height: 1.2,
                                   fontWeight: FontWeight.w800,
                                 ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'SKU: ${item.product.sku}',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                  fontSize: 11.5,
-                                  height: 1.3,
+                              ),
+                              const SizedBox(height: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
                                 ),
-                          ),
-                          const SizedBox(height: 8),
-                          RichText(
-                            text: TextSpan(
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(
-                                    color: colorScheme.onSurface,
-                                    fontSize: 15,
+                                decoration: BoxDecoration(
+                                  color: colorScheme.surfaceContainerLow
+                                      .withValues(alpha: 0.82),
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                    color: colorScheme.outlineVariant
+                                        .withValues(alpha: 0.76),
+                                  ),
+                                ),
+                                child: Text(
+                                  'SKU: ${item.product.sku}',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                    fontSize: 11.5,
                                     height: 1.2,
-                                  ),
-                              children: [
-                                TextSpan(text: texts.stockLabelPrefix),
-                                TextSpan(
-                                  text: '${item.readyQuantity}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w800,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                              const SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.schedule_rounded,
+                                    size: 14,
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      texts.latestImportedLabel(
+                                        formatDate(item.latestImportedAt),
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: colorScheme.onSurfaceVariant,
+                                            fontSize: 12,
+                                          ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                          if (item.warrantyQuantity > 0) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              texts.warrantyCountLabel(item.warrantyQuantity),
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
-                                    color: colorScheme.onSurfaceVariant,
-                                    fontSize: 12,
-                                    height: 1.25,
+                        ),
+                        const SizedBox(width: 10),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              constraints: BoxConstraints(
+                                maxWidth: isCompact ? 120 : 150,
+                              ),
+                              decoration: BoxDecoration(
+                                color: statusColor.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(999),
+                                border: Border.all(
+                                  color: statusColor.withValues(alpha: 0.24),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    statusIcon,
+                                    size: 13,
+                                    color: statusColor,
                                   ),
-                            ),
-                          ],
-                          if (item.issueQuantity > 0) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              texts.issueCountLabel(item.issueQuantity),
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
-                                    color: colorScheme.onSurfaceVariant,
-                                    fontSize: 12,
-                                    height: 1.25,
+                                  const SizedBox(width: 5),
+                                  Flexible(
+                                    child: Text(
+                                      status,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: statusColor,
+                                            fontSize: 11.5,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
                                   ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    SizedBox(width: isCompact ? 4 : 8),
-                    SizedBox(
-                      width: rightColumnWidth,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: statusColor.withValues(alpha: 0.06),
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(
-                                color: statusColor.withValues(alpha: 0.28),
+                                ],
                               ),
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(statusIcon, size: 12, color: statusColor),
-                                const SizedBox(width: 4),
-                                Flexible(
-                                  child: Text(
-                                    status,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(context).textTheme.bodySmall
-                                        ?.copyWith(
-                                          color: statusColor,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                        ),
+                            const SizedBox(height: 22),
+                            Container(
+                              width: 34,
+                              height: 34,
+                              decoration: BoxDecoration(
+                                color: colorScheme.surfaceContainerLow
+                                    .withValues(alpha: 0.88),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: colorScheme.outlineVariant.withValues(
+                                    alpha: 0.76,
                                   ),
                                 ),
-                              ],
+                              ),
+                              alignment: Alignment.center,
+                              child: Icon(
+                                Icons.arrow_outward_rounded,
+                                size: 18,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
                             ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _InventoryMetricTag(
+                          icon: Icons.inventory_2_outlined,
+                          label: texts.stockMetricLabel,
+                          value: '${item.readyQuantity}',
+                          accentColor: const Color(0xFF1D4ED8),
+                        ),
+                        if (item.warrantyQuantity > 0)
+                          _InventoryMetricTag(
+                            icon: Icons.verified_outlined,
+                            label: texts.warrantyMetricLabel,
+                            value: '${item.warrantyQuantity}',
+                            accentColor: const Color(0xFF0F9D8B),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            isCompact
-                                ? formatDate(item.latestImportedAt)
-                                : texts.latestImportedLabel(
-                                    formatDate(item.latestImportedAt),
-                                  ),
-                            maxLines: isCompact ? 1 : 2,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.right,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                  fontSize: 12,
-                                  height: 1.25,
-                                ),
+                        if (item.issueQuantity > 0)
+                          _InventoryMetricTag(
+                            icon: Icons.report_gmailerrorred_outlined,
+                            label: texts.issueMetricLabel,
+                            value: '${item.issueQuantity}',
+                            accentColor: const Color(0xFFB45309),
                           ),
-                        ],
-                      ),
+                        if (item.importedQuantity > 0 &&
+                            item.importedQuantity != item.readyQuantity)
+                          _InventoryMetricTag(
+                            icon: Icons.stacked_bar_chart_outlined,
+                            label: texts.importedMetricLabel,
+                            value: '${item.importedQuantity}',
+                            accentColor: colorScheme.onSurfaceVariant,
+                          ),
+                      ],
                     ),
                   ],
                 ),
@@ -1342,33 +1282,17 @@ class _InventoryLoadingView extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       physics: const NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.fromLTRB(16, 12, 16, bottomPadding),
+      padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPadding),
       children: [
-        const _SkeletonBox(height: 48, radius: 12),
-        const SizedBox(height: _inventorySectionSpacing),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: List.generate(
-            6,
-            (_) => const _SkeletonBox(width: 96, height: 44, radius: 20),
-          ),
-        ),
-        const SizedBox(height: _inventorySectionSpacing),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: List.generate(
-            3,
-            (_) => const _SkeletonBox(width: 156, height: 52, radius: 12),
-          ),
-        ),
+        const _SkeletonBox(height: 220, radius: 24),
+        const SizedBox(height: _inventorySectionSpacingLarge),
+        const _SkeletonBox(height: 192, radius: 24),
         const SizedBox(height: _inventorySectionSpacingLarge),
         ...List.generate(
           5,
           (_) => const Padding(
             padding: EdgeInsets.only(bottom: _inventoryListItemSpacing),
-            child: _SkeletonBox(height: 102, radius: 14),
+            child: _SkeletonBox(height: 174, radius: 18),
           ),
         ),
       ],
@@ -1376,62 +1300,239 @@ class _InventoryLoadingView extends StatelessWidget {
   }
 }
 
-class _InventorySyncBanner extends StatelessWidget {
-  const _InventorySyncBanner({required this.summary, this.warningMessage});
+class _InventoryHeroCard extends StatelessWidget {
+  const _InventoryHeroCard({
+    required this.headline,
+    required this.summary,
+    required this.metrics,
+    required this.primaryActionLabel,
+    required this.primaryActionIcon,
+    required this.onPrimaryAction,
+    required this.secondaryActionLabel,
+    required this.secondaryActionIcon,
+    required this.onSecondaryAction,
+    this.warningMessage,
+  });
 
+  final String headline;
   final String summary;
   final String? warningMessage;
+  final List<Widget> metrics;
+  final String primaryActionLabel;
+  final IconData primaryActionIcon;
+  final VoidCallback onPrimaryAction;
+  final String secondaryActionLabel;
+  final IconData secondaryActionIcon;
+  final VoidCallback onSecondaryAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final texts = _inventoryTexts(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final hasWarning =
+        warningMessage != null && warningMessage!.trim().isNotEmpty;
+    final accentColor = hasWarning ? colorScheme.error : colorScheme.primary;
+    final metricWidth = MediaQuery.sizeOf(context).width >= 640 ? 176.0 : 148.0;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            (hasWarning
+                    ? colorScheme.errorContainer
+                    : colorScheme.primaryContainer)
+                .withValues(alpha: hasWarning ? 0.54 : 0.64),
+            colorScheme.surfaceContainerHigh.withValues(alpha: 0.96),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: accentColor.withValues(alpha: 0.22)),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withValues(alpha: 0.2),
+            blurRadius: 24,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _InventoryStatusPill(
+                icon: Icons.sync_rounded,
+                label: texts.liveSyncLabel,
+                accentColor: accentColor,
+              ),
+              if (hasWarning)
+                _InventoryStatusPill(
+                  icon: Icons.priority_high_rounded,
+                  label: texts.syncAttentionLabel,
+                  accentColor: colorScheme.error,
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            headline,
+            style: theme.textTheme.headlineSmall?.copyWith(
+              color: colorScheme.onSurface,
+              fontWeight: FontWeight.w800,
+              height: 1.15,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            summary,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+              height: 1.5,
+            ),
+          ),
+          if (hasWarning) ...[
+            const SizedBox(height: 10),
+            Text(
+              warningMessage!,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onErrorContainer,
+                fontWeight: FontWeight.w600,
+                height: 1.45,
+              ),
+            ),
+          ],
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              for (final metric in metrics)
+                SizedBox(width: metricWidth, child: metric),
+            ],
+          ),
+          const SizedBox(height: 18),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final buttonWidth = constraints.maxWidth >= 520
+                  ? (constraints.maxWidth - 10) / 2
+                  : double.infinity;
+              return Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  SizedBox(
+                    width: buttonWidth,
+                    child: FilledButton.icon(
+                      onPressed: onPrimaryAction,
+                      icon: Icon(primaryActionIcon),
+                      label: Text(primaryActionLabel),
+                    ),
+                  ),
+                  SizedBox(
+                    width: buttonWidth,
+                    child: OutlinedButton.icon(
+                      onPressed: onSecondaryAction,
+                      icon: Icon(secondaryActionIcon),
+                      label: Text(secondaryActionLabel),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InventoryStatusPill extends StatelessWidget {
+  const _InventoryStatusPill({
+    required this.icon,
+    required this.label,
+    required this.accentColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final hasWarning =
-        warningMessage != null && warningMessage!.trim().isNotEmpty;
-    final backgroundColor = hasWarning
-        ? colorScheme.errorContainer.withValues(alpha: 0.55)
-        : colorScheme.primaryContainer.withValues(alpha: 0.38);
-    final borderColor = hasWarning
-        ? colorScheme.error.withValues(alpha: 0.35)
-        : colorScheme.primary.withValues(alpha: 0.24);
-    final iconColor = hasWarning ? colorScheme.error : colorScheme.primary;
-
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: borderColor),
+        color: colorScheme.surface.withValues(alpha: 0.48),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: accentColor.withValues(alpha: 0.2)),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            hasWarning ? Icons.sync_problem_outlined : Icons.info_outline,
-            color: iconColor,
-            size: 20,
+          Icon(icon, size: 14, color: accentColor),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: colorScheme.onSurface,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  summary,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurface,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                if (hasWarning) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    warningMessage!,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ],
+        ],
+      ),
+    );
+  }
+}
+
+class _InventoryMetricTag extends StatelessWidget {
+  const _InventoryMetricTag({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.accentColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLow.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: accentColor.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: accentColor),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            value,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: accentColor,
+              fontWeight: FontWeight.w800,
             ),
           ),
         ],
@@ -1441,13 +1542,8 @@ class _InventorySyncBanner extends StatelessWidget {
 }
 
 class _SkeletonBox extends StatefulWidget {
-  const _SkeletonBox({
-    this.width = double.infinity,
-    required this.height,
-    this.radius = 10,
-  });
+  const _SkeletonBox({required this.height, this.radius = 10});
 
-  final double width;
   final double height;
   final double radius;
 
@@ -1489,7 +1585,7 @@ class _SkeletonBoxState extends State<_SkeletonBox>
             baseColor;
         return RepaintBoundary(
           child: Container(
-            width: widget.width,
+            width: double.infinity,
             height: widget.height,
             decoration: BoxDecoration(
               color: pulse,
@@ -1676,6 +1772,27 @@ class _InventoryTexts {
   const _InventoryTexts({required this.isEnglish});
 
   final bool isEnglish;
+
+  String get heroTitle => isEnglish
+      ? 'Track ready serial stock and move outbound tasks faster.'
+      : 'Theo dõi serial sẵn sàng và xử lý xuất kho nhanh hơn.';
+  String get liveSyncLabel =>
+      isEnglish ? 'Live dealer sync' : 'Đồng bộ trực tiếp';
+  String get syncAttentionLabel =>
+      isEnglish ? 'Needs attention' : 'Cần kiểm tra';
+  String get controlPanelLabel =>
+      isEnglish ? 'Search and refine' : 'Tìm kiếm và tinh chỉnh';
+  String inventoryResultsSummary(int filteredCount, int totalCount) => isEnglish
+      ? '$filteredCount of $totalCount tracked SKUs visible'
+      : 'Hiển thị $filteredCount / $totalCount SKU đang theo dõi';
+  String get catalogSectionTitle =>
+      isEnglish ? 'Tracked inventory' : 'Danh sách SKU';
+  String catalogSectionSubtitle(int filteredCount) => isEnglish
+      ? '$filteredCount products match the current view'
+      : '$filteredCount sản phẩm khớp bộ lọc hiện tại';
+  String lowStockHighlight(int count) =>
+      isEnglish ? '$count low-stock SKUs' : '$count SKU sắp hết';
+
   String inventorySourceSummary(String? warrantySyncAt) {
     if (isEnglish) {
       if (warrantySyncAt != null) {
@@ -1740,19 +1857,9 @@ class _InventoryTexts {
   String sortDirectionTooltip(String label) => isEnglish
       ? 'Change sort direction ($label)'
       : 'Đổi chiều sắp xếp ($label)';
-  String get quickActionsLabel => isEnglish ? 'Quick actions' : 'Tác vụ nhanh';
-  String get quickActionsSubtitle => isEnglish
-      ? 'Export is the primary action'
-      : 'Xuất hàng là thao tác chính';
   String get exportAction => isEnglish ? 'Export stock' : 'Xuất hàng';
-  String get exportSubtitle => isEnglish
-      ? 'Start stock export by serial'
-      : 'Kích hoạt xuất kho theo serial';
   String get scanQrBarcodeAction =>
       isEnglish ? 'Scan QR / Barcode' : 'Quét QR / Barcode';
-  String get scanQrBarcodeSubtitle => isEnglish
-      ? 'Look up serials using the camera'
-      : 'Tra cứu serial bằng camera';
   String get invalidScannedCodeMessage =>
       isEnglish ? 'The scanned code is not valid.' : 'Mã quét không hợp lệ.';
   String get inStockStatus => isEnglish ? 'Ready' : 'Sẵn sàng';
@@ -1769,12 +1876,10 @@ class _InventoryTexts {
   String productImageLabel(String productName) => isEnglish
       ? 'Product image for $productName'
       : 'Ảnh sản phẩm $productName';
-  String get stockLabelPrefix => isEnglish ? 'Ready: ' : 'Sẵn sàng: ';
-  String warrantyCountLabel(int count) =>
-      isEnglish ? 'Warranty: $count' : 'Bảo hành: $count';
-  String issueCountLabel(int count) => isEnglish
-      ? 'Issue / unavailable: $count'
-      : 'Lỗi / không khả dụng: $count';
+  String get stockMetricLabel => isEnglish ? 'Ready' : 'Sẵn sàng';
+  String get warrantyMetricLabel => isEnglish ? 'Warranty' : 'Bảo hành';
+  String get issueMetricLabel => isEnglish ? 'Issue' : 'Sự cố';
+  String get importedMetricLabel => isEnglish ? 'Imported' : 'Đã nhập';
   String latestImportedLabel(String dateLabel) =>
       isEnglish ? 'Latest import: $dateLabel' : 'Nhập gần nhất: $dateLabel';
   String get loadInventoryErrorMessage => isEnglish

@@ -4,12 +4,10 @@ class _InventoryLayoutConfig {
   const _InventoryLayoutConfig({
     required this.contentMaxWidth,
     required this.tileColumnCount,
-    required this.showSummaryRow,
   });
 
   final double contentMaxWidth;
   final int tileColumnCount;
-  final bool showSummaryRow;
 
   bool get showWideGrid => tileColumnCount > 1;
 
@@ -24,7 +22,6 @@ class _InventoryLayoutConfig {
           ? 1040.0
           : double.infinity,
       tileColumnCount: isWideDesktop ? 2 : 1,
-      showSummaryRow: isTablet,
     );
   }
 }

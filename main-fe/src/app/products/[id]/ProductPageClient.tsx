@@ -35,6 +35,13 @@ interface ProductPageClientProps {
     }>;
 }
 
+type SectionKey = 'details' | 'videos' | 'specifications' | 'warranty';
+
+interface BreadcrumbItem {
+    label: string;
+    section: SectionKey;
+}
+
 const contentVariants: Variants = {
     hidden: {
         opacity: 0,
@@ -71,11 +78,43 @@ export default function ProductPageClient({ initialProductData, initialRelatedPr
             { label: t('products.detail.breadcrumbs.warranty'), section: 'warranty' }
         ],
         [t]
-    );
+    ) satisfies BreadcrumbItem[];
 
-    const [activeBreadcrumb, setActiveBreadcrumb] = useState(breadcrumbItems[0]?.label || '');
-    const [currentSection, setCurrentSection] = useState('details');
+    const [currentSection, setCurrentSection] = useState<SectionKey>('details');
     const [showStickyNav, setShowStickyNav] = useState(false);
+    const [headerHeight, setHeaderHeight] = useState(76);
+    const activeBreadcrumb = breadcrumbItems.find((item) => item.section === currentSection)?.label || breadcrumbItems[0]?.label || '';
+
+    useEffect(() => {
+        document.body.classList.add('product-detail-body');
+
+        const header = document.querySelector('header');
+        if (!header) {
+            setHeaderHeight(76);
+            return () => {
+                document.body.classList.remove('product-detail-body');
+            };
+        }
+
+        const updateHeaderHeight = () => {
+            const nextHeight = Math.ceil(header.getBoundingClientRect().height);
+            if (nextHeight > 0) {
+                setHeaderHeight(nextHeight);
+            }
+        };
+
+        updateHeaderHeight();
+        window.addEventListener('resize', updateHeaderHeight);
+
+        const resizeObserver = new ResizeObserver(() => updateHeaderHeight());
+        resizeObserver.observe(header);
+
+        return () => {
+            document.body.classList.remove('product-detail-body');
+            window.removeEventListener('resize', updateHeaderHeight);
+            resizeObserver.disconnect();
+        };
+    }, []);
 
     useEffect(() => {
         const el = document.getElementById('hero-breadcrumb');
@@ -84,11 +123,12 @@ export default function ProductPageClient({ initialProductData, initialRelatedPr
             return;
         }
         const observer = new IntersectionObserver(([entry]) => setShowStickyNav(!entry.isIntersecting), {
-            threshold: 0
+            threshold: 0,
+            rootMargin: `-${headerHeight}px 0px 0px 0px`
         });
         observer.observe(el);
         return () => observer.disconnect();
-    }, []);
+    }, [headerHeight]);
 
     const renderSectionContent = () => {
         switch (currentSection) {
@@ -193,9 +233,8 @@ export default function ProductPageClient({ initialProductData, initialRelatedPr
         }
     };
 
-    const handleBreadcrumbClick = (item: { label: string; section: string }) => {
-        if (activeBreadcrumb !== item.label) {
-            setActiveBreadcrumb(item.label);
+    const handleBreadcrumbClick = (item: BreadcrumbItem) => {
+        if (currentSection !== item.section) {
             startTransition(() => {
                 setCurrentSection(item.section);
             });
@@ -204,11 +243,37 @@ export default function ProductPageClient({ initialProductData, initialRelatedPr
         requestAnimationFrame(() => {
             const el = document.getElementById('product-details');
             if (!el) return;
-            const navOffset = showStickyNav ? 76 + 44 : 76;
+            const stickyNavHeight = window.innerWidth < 700 ? 64 : 44;
+            const navOffset = showStickyNav ? headerHeight + stickyNavHeight : headerHeight;
             const top = el.getBoundingClientRect().top + window.scrollY - navOffset;
             window.scrollTo({ top, behavior: 'smooth' });
         });
     };
+
+    const renderMobileSectionNav = () => (
+        <nav
+            className="custom-scrollbar flex items-center gap-2 overflow-x-auto px-4 py-3"
+            aria-label={t('products.detail.selectSection')}
+        >
+            {breadcrumbItems.map((item) => {
+                const isActive = currentSection === item.section;
+                return (
+                    <button
+                        key={item.section}
+                        type="button"
+                        onClick={() => handleBreadcrumbClick(item)}
+                        className={`shrink-0 rounded-full border px-4 py-2.5 text-[13px] font-semibold tracking-[0.04em] transition-all duration-200 ${
+                            isActive
+                                ? 'border-[var(--brand-border-strong)] bg-[rgba(41,171,226,0.14)] text-white shadow-[0_10px_20px_rgba(0,113,188,0.16)]'
+                                : 'border-[rgba(255,255,255,0.08)] bg-[rgba(7,17,27,0.72)] text-[var(--text-secondary)] hover:border-[var(--brand-border-strong)] hover:text-white'
+                        }`}
+                    >
+                        {item.label}
+                    </button>
+                );
+            })}
+        </nav>
+    );
 
     return (
         <div className="brand-section min-h-screen text-white flex flex-col">
@@ -223,10 +288,10 @@ export default function ProductPageClient({ initialProductData, initialRelatedPr
                 />
             </AvoidSidebar>
 
-            {/* Mobile section selector (< md) */}
+            {/* Mobile section nav (< md) */}
             <motion.div
-                className="fixed left-0 right-0 top-[68px] border-b border-[var(--brand-border)] bg-[rgba(6,17,27,0.95)] py-3 backdrop-blur-sm md:hidden sm:top-[76px]"
-                style={{ zIndex: Z_INDEX.STICKY }}
+                className="fixed left-0 right-0 border-b border-[var(--brand-border)] bg-[rgba(6,17,27,0.95)] backdrop-blur-sm md:hidden"
+                style={{ zIndex: Z_INDEX.STICKY, top: headerHeight }}
                 animate={{
                     opacity: showStickyNav ? 1 : 0,
                     y: showStickyNav ? 0 : -8,
@@ -235,44 +300,14 @@ export default function ProductPageClient({ initialProductData, initialRelatedPr
                 transition={{ duration: 0.25, ease: 'easeOut' }}
             >
                 <AvoidSidebar>
-                    <div className="relative px-4">
-                        <select
-                            value={activeBreadcrumb}
-                            onChange={(event) => {
-                                const selectedItem = breadcrumbItems.find((item) => item.label === event.target.value);
-                                if (selectedItem) handleBreadcrumbClick(selectedItem);
-                            }}
-                            className="w-full appearance-none rounded-full border border-[var(--brand-border)] bg-[rgba(7,17,27,0.72)] px-4 py-3 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-[var(--brand-blue)]"
-                            aria-label={t('products.detail.selectSection')}
-                        >
-                            {breadcrumbItems.map((item) => (
-                                <option
-                                    key={item.label}
-                                    value={item.label}
-                                    className="bg-[var(--brand-dark)] text-white"
-                                >
-                                    {item.label}
-                                </option>
-                            ))}
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center">
-                            <svg
-                                className="h-4 w-4 text-[var(--text-muted)]"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </div>
-                    </div>
+                    {renderMobileSectionNav()}
                 </AvoidSidebar>
             </motion.div>
 
             {/* Desktop section tab nav (md+) */}
             <motion.div
-                className="fixed left-0 right-0 top-[76px] hidden border-b border-[var(--brand-border)] bg-[rgba(6,17,27,0.95)] backdrop-blur-sm md:block"
-                style={{ zIndex: Z_INDEX.STICKY }}
+                className="fixed left-0 right-0 hidden border-b border-[var(--brand-border)] bg-[rgba(6,17,27,0.95)] backdrop-blur-sm md:block"
+                style={{ zIndex: Z_INDEX.STICKY, top: headerHeight }}
                 animate={{
                     opacity: showStickyNav ? 1 : 0,
                     y: showStickyNav ? 0 : -8,
@@ -310,10 +345,15 @@ export default function ProductPageClient({ initialProductData, initialRelatedPr
             {/* Section content + related products */}
             <AvoidSidebar>
                 <div className="relative z-30 -mt-20 md:-mt-24 lg:-mt-32 xl:-mt-40 2xl:-mt-44 3xl:-mt-52 bg-transparent">
-                    <div id="product-details" className="overflow-hidden">
+                    <div className="pointer-events-none absolute inset-x-0 -top-40 bottom-0 z-0 xs:-top-44 sm:-top-48 md:-top-56 lg:-top-64">
+                        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,17,27,0)_0px,rgba(6,17,27,0.28)_84px,rgba(6,17,27,0.72)_168px,rgba(7,17,27,0.94)_260px,rgba(8,18,30,0.985)_360px,rgba(8,18,30,0.985)_100%)]" />
+                        <div className="absolute inset-x-[-6%] top-8 h-32 bg-[radial-gradient(ellipse_at_center,rgba(41,171,226,0.12)_0%,rgba(22,50,71,0.18)_38%,rgba(8,18,30,0)_78%)] blur-[64px] md:top-10 md:h-40 lg:h-48" />
+                    </div>
+
+                    <div id="product-details" className="relative z-10 overflow-hidden pt-4 md:pt-6 lg:pt-8">
                         <AnimatePresence mode="wait">{renderSectionContent()}</AnimatePresence>
                     </div>
-                    <div className="pt-2 md:pt-4">
+                    <div className="relative z-10 pt-2 md:pt-4">
                         <RelatedProducts products={relatedProducts} />
                     </div>
                 </div>

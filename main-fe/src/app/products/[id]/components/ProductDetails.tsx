@@ -287,9 +287,9 @@ export default function ProductDetails({ description, content, descriptions }: P
         <section className="relative min-h-screen py-10 md:py-14">
             <div className="absolute inset-0 bg-dot-grid opacity-12 pointer-events-none" />
             <div className="brand-shell relative z-10">
-                <div className="mb-10">
-                    <span className="brand-badge mb-4">{t('products.detail.breadcrumbs.productDetails')}</span>
-                    <h2 className="font-serif text-2xl font-semibold text-[var(--text-primary)] md:text-3xl xl:text-4xl">
+                <div className="mb-8 md:mb-10">
+                    <span className="brand-badge mb-4 hidden sm:inline-flex">{t('products.detail.breadcrumbs.productDetails')}</span>
+                    <h2 className="font-serif text-[1.95rem] font-semibold text-[var(--text-primary)] md:text-3xl xl:text-4xl">
                         {t('products.detail.breadcrumbs.productDetails')}
                     </h2>
                 </div>
