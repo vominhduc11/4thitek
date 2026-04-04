@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { FiX } from 'react-icons/fi';
 import { FaFacebookF, FaYoutube } from 'react-icons/fa';
@@ -33,6 +33,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
     const { t } = useLanguage();
     const router = useRouter();
     const pathname = usePathname();
+    const [isDesktop, setIsDesktop] = useState(false);
 
     const handleNavigation = useCallback(
         (href: string) => {
@@ -53,6 +54,24 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
             modalManager.closeModal('side-drawer');
         };
     }, [isOpen]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+
+        const mediaQuery = window.matchMedia('(min-width: 640px)');
+        const updateViewportMode = (event?: MediaQueryListEvent) => {
+            setIsDesktop(event ? event.matches : mediaQuery.matches);
+        };
+
+        updateViewportMode();
+        mediaQuery.addEventListener('change', updateViewportMode);
+
+        return () => {
+            mediaQuery.removeEventListener('change', updateViewportMode);
+        };
+    }, []);
 
     const handleKeyDown = useCallback(
         (e: KeyboardEvent) => {
@@ -80,23 +99,69 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
         }
     };
 
-    const drawerVariants: Variants = {
-        hidden: {
-            x: '-100%',
-            transition: { duration: 0.3, ease: 'easeIn' }
-        },
-        visible: {
-            x: 0,
-            transition: {
-                duration: 0.4,
-                ease: [0.25, 0.46, 0.45, 0.94]
-            }
-        },
-        exit: {
-            x: '-100%',
-            transition: { duration: 0.3, ease: 'easeIn' }
-        }
-    };
+    const drawerVariants: Variants = isDesktop
+        ? {
+              hidden: {
+                  x: '-100%',
+                  transition: { duration: 0.3, ease: 'easeIn' }
+              },
+              visible: {
+                  x: 0,
+                  transition: {
+                      duration: 0.4,
+                      ease: [0.25, 0.46, 0.45, 0.94]
+                  }
+              },
+              exit: {
+                  x: '-100%',
+                  transition: { duration: 0.3, ease: 'easeIn' }
+              }
+          }
+        : {
+              hidden: {
+                  y: '-100%',
+                  transition: { duration: 0.28, ease: 'easeIn' }
+              },
+              visible: {
+                  y: 0,
+                  transition: {
+                      duration: 0.38,
+                      ease: [0.25, 0.46, 0.45, 0.94]
+                  }
+              },
+              exit: {
+                  y: '-100%',
+                  transition: { duration: 0.24, ease: 'easeIn' }
+              }
+          };
+
+    const panelVariants: Variants = isDesktop
+        ? {
+              hidden: { opacity: 0, x: -50 },
+              visible: {
+                  opacity: 1,
+                  x: 0,
+                  transition: { delay: 0.2, duration: 0.4 }
+              },
+              exit: {
+                  opacity: 0,
+                  x: -28,
+                  transition: { duration: 0.18, ease: 'easeIn' }
+              }
+          }
+        : {
+              hidden: { opacity: 0, y: -24 },
+              visible: {
+                  opacity: 1,
+                  y: 0,
+                  transition: { delay: 0.12, duration: 0.28, ease: 'easeOut' }
+              },
+              exit: {
+                  opacity: 0,
+                  y: -20,
+                  transition: { duration: 0.16, ease: 'easeIn' }
+              }
+          };
 
     const staggerContainer: Variants = {
         visible: {
@@ -138,7 +203,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                     />
 
                     <motion.aside
-                        className="fixed left-0 top-0 flex h-[100dvh] shadow-2xl"
+                        className="fixed inset-x-0 top-0 flex w-full flex-col shadow-2xl sm:inset-y-0 sm:left-0 sm:right-auto sm:w-auto sm:flex-row"
                         style={{ zIndex: Z_INDEX.DRAWER }}
                         variants={drawerVariants}
                         initial="hidden"
@@ -189,10 +254,11 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                         </motion.div>
 
                         <motion.nav
-                            className="relative flex h-full w-[calc(100vw-2rem)] max-w-[20rem] flex-col overflow-y-auto border-r border-[var(--brand-border)] bg-[radial-gradient(circle_at_top,rgba(41,171,226,0.12),transparent_34%),linear-gradient(180deg,rgba(12,22,33,0.98),rgba(7,14,22,0.98))] px-4 py-4 text-[var(--text-secondary)] xs:w-[20rem] xs:px-5 xs:py-5 sm:w-72 sm:max-w-none sm:px-6 sm:py-8 md:w-80 md:px-8 md:py-10 lg:w-96 lg:px-10 lg:py-12"
-                            initial={{ opacity: 0, x: -50 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.2, duration: 0.4 }}
+                            className="relative flex h-[min(36rem,100dvh)] w-full flex-col overflow-y-auto border-b border-[var(--brand-border)] rounded-b-[30px] bg-[radial-gradient(circle_at_top,rgba(41,171,226,0.12),transparent_34%),linear-gradient(180deg,rgba(12,22,33,0.98),rgba(7,14,22,0.98))] px-4 py-4 text-[var(--text-secondary)] sm:h-full sm:w-72 sm:max-w-none sm:rounded-b-none sm:border-b-0 sm:border-r sm:px-6 sm:py-8 md:w-80 md:px-8 md:py-10 lg:w-96 lg:px-10 lg:py-12"
+                            variants={panelVariants}
+                            initial="hidden"
+                            animate="visible"
+                            exit="exit"
                         >
                             <motion.div
                                 className="mb-5 flex items-start justify-between gap-4 sm:hidden"
