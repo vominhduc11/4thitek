@@ -535,7 +535,7 @@ public class AdminController {
             @RequestParam(name = "sortBy", required = false) String sortBy,
             @RequestParam(name = "sortDir", required = false) String sortDir
     ) {
-        Pageable pageable = PaginationUtils.toPageable(page, size, sortBy, sortDir, "paidAt");
+        Pageable pageable = PaginationUtils.toUnsortedPageable(page, size);
         Page<AdminRecentPaymentResponse> result = adminFinancialService.getRecentDebtPayments(
                 dealerId,
                 from,

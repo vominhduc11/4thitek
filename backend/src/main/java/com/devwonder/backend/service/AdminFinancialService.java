@@ -32,10 +32,14 @@ import com.devwonder.backend.repository.UnmatchedPaymentRepository;
 import com.devwonder.backend.service.support.OrderPricingSupport;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -69,15 +73,48 @@ public class AdminFinancialService {
             Boolean hasProof,
             Pageable pageable
     ) {
-        return paymentRepository.findDebtPaymentsForReview(
-                dealerId,
-                fromInclusive,
-                toInclusive,
-                minAmount,
-                maxAmount,
-                hasProof,
-                pageable
-        ).map(this::toRecentPaymentResponse);
+        Specification<Payment> specification = (root, query, criteriaBuilder) -> {
+            boolean countQuery = Long.class.equals(query.getResultType()) || long.class.equals(query.getResultType());
+            if (!countQuery) {
+                query.orderBy(
+                        criteriaBuilder.desc(criteriaBuilder.coalesce(root.get("paidAt"), root.get("createdAt"))),
+                        criteriaBuilder.desc(root.get("id"))
+                );
+            }
+
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(criteriaBuilder.equal(root.get("order").get("paymentMethod"), PaymentMethod.DEBT));
+
+            if (dealerId != null) {
+                predicates.add(criteriaBuilder.equal(root.get("order").get("dealer").get("id"), dealerId));
+            }
+
+            Expression<Instant> recordedAt = criteriaBuilder.coalesce(root.get("paidAt"), root.get("createdAt"));
+            if (fromInclusive != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(recordedAt, fromInclusive));
+            }
+            if (toInclusive != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(recordedAt, toInclusive));
+            }
+            if (minAmount != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("amount"), minAmount));
+            }
+            if (maxAmount != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("amount"), maxAmount));
+            }
+            if (hasProof != null) {
+                Expression<String> proofFileName = criteriaBuilder.trim(
+                        criteriaBuilder.coalesce(root.get("proofFileName"), "")
+                );
+                predicates.add(hasProof
+                        ? criteriaBuilder.notEqual(proofFileName, "")
+                        : criteriaBuilder.equal(proofFileName, ""));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
+        };
+
+        return paymentRepository.findAll(specification, pageable).map(this::toRecentPaymentResponse);
     }
 
     @Transactional(readOnly = true)

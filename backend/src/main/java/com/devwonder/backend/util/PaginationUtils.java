@@ -17,6 +17,12 @@ public final class PaginationUtils {
         return PageRequest.of(safePage, safeSize, Sort.by(direction, effectiveSortBy));
     }
 
+    public static Pageable toUnsortedPageable(Integer page, Integer size) {
+        int safePage = page == null ? 0 : validatePage(page);
+        int safeSize = size == null ? 20 : validateSize(size);
+        return PageRequest.of(safePage, safeSize, Sort.unsorted());
+    }
+
     private static int validatePage(int page) {
         if (page < 0) {
             throw new BadRequestException("page must be greater than or equal to 0");
