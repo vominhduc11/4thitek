@@ -81,7 +81,7 @@ export default function FeaturedProductsCarousel({ products = [], initialIndex =
         return (
             <AvoidSidebar>
                 <section className="brand-section-blue py-16 md:py-24">
-                    <div className="brand-shell relative z-10 text-center sm:ml-16 md:ml-20">
+                    <div className="brand-shell relative z-10 text-center lg:ml-20">
                         <h2 className="font-serif text-[2rem] font-semibold text-[var(--text-primary)]">
                             {t('products.featured.carouselTitle')}
                         </h2>
@@ -125,7 +125,7 @@ export default function FeaturedProductsCarousel({ products = [], initialIndex =
                     </svg>
                 </div>
 
-                <div className="brand-shell relative z-10 sm:ml-16 md:ml-20">
+                <div className="brand-shell relative z-10 lg:ml-20">
                     <div className="mb-12 text-center">
                         <span className="brand-badge mb-4">{t('products.featured.product')}</span>
                         <h2

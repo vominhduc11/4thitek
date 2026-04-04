@@ -20,44 +20,44 @@ const sidebarVariants: Variants = {
 export default function Sidebar({ onMenuClick }: SidebarProps) {
     return (
         <motion.aside
-            className="fixed top-0 left-0 hidden sm:flex h-full w-16 sm:w-20 bg-[#1e2631]/50 backdrop-blur-md flex-col items-center py-3 sm:py-4 shadow-lg"
+            className="fixed left-0 top-0 hidden h-full w-20 flex-col items-center bg-[#1e2631]/50 py-4 shadow-lg backdrop-blur-md lg:flex"
             style={{ zIndex: Z_INDEX.SIDEBAR }}
             variants={sidebarVariants}
             initial="hidden"
             animate="visible"
         >
             {/* Menu Icon */}
-            <div className="mb-6 sm:mb-8 mt-1 sm:mt-2">
+            <div className="mb-8 mt-2">
                 <button
-                    className="p-1.5 sm:p-2 rounded hover:bg-[#263040] transition"
+                    className="rounded p-2 transition hover:bg-[#263040]"
                     onClick={onMenuClick}
                     suppressHydrationWarning
                 >
-                    <FiMenu size={24} className="sm:w-8 sm:h-8" color="#27b2fc" />
+                    <FiMenu size={24} color="#27b2fc" />
                 </button>
             </div>
 
             <div className="flex-1" />
 
             {/* Social icons */}
-            <div className="mb-3 sm:mb-4 flex flex-col gap-3 sm:gap-4">
+            <div className="mb-4 flex flex-col gap-4">
                 <a
                     href={SOCIAL_URLS.FACEBOOK}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="Facebook"
-                    className="p-2.5 sm:p-3 rounded hover:bg-[#263040] transition flex items-center justify-center"
+                    className="flex items-center justify-center rounded p-3 transition hover:bg-[#263040]"
                 >
-                    <FaFacebookF size={14} className="sm:w-4.5 sm:h-4.5" color="#fff" />
+                    <FaFacebookF size={14} color="#fff" />
                 </a>
                 <a
                     href={SOCIAL_URLS.YOUTUBE}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="YouTube"
-                    className="p-2.5 sm:p-3 rounded hover:bg-[#263040] transition flex items-center justify-center"
+                    className="flex items-center justify-center rounded p-3 transition hover:bg-[#263040]"
                 >
-                    <FaYoutube size={14} className="sm:w-4.5 sm:h-4.5" color="#fff" />
+                    <FaYoutube size={14} color="#fff" />
                 </a>
             </div>
         </motion.aside>

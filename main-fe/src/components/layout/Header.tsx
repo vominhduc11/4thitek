@@ -55,15 +55,15 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
     const headerStyle = isHydrated
         ? {
-              backgroundColor: scrollY <= 0 ? 'transparent' : `rgba(6,17,27,${Math.min(0.58 + scrollY / 700, 0.92)})`,
-              backdropFilter: scrollY > 20 ? `blur(${Math.min(scrollY / 80, 14)}px)` : 'none',
-              borderBottom: `1px solid rgba(41,171,226,${Math.min(scrollY / 550, 0.2)})`,
+              backgroundColor: scrollY <= 0 ? 'rgba(6,17,27,0.18)' : `rgba(6,17,27,${Math.min(0.64 + scrollY / 650, 0.92)})`,
+              backdropFilter: `blur(${Math.min(8 + scrollY / 80, 14)}px)`,
+              borderBottom: `1px solid rgba(41,171,226,${Math.min(0.08 + scrollY / 550, 0.22)})`,
               boxShadow: scrollY > 100 ? '0 18px 40px rgba(1,8,15,0.24)' : 'none'
           }
         : {
-              backgroundColor: 'transparent',
-              backdropFilter: 'none',
-              borderBottom: '1px solid rgba(41,171,226,0)',
+              backgroundColor: 'rgba(6,17,27,0.18)',
+              backdropFilter: 'blur(8px)',
+              borderBottom: '1px solid rgba(41,171,226,0.08)',
               boxShadow: 'none'
           };
 
@@ -79,7 +79,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
     return (
         <motion.header
-            className="fixed left-0 right-0 top-0 flex items-center justify-between px-3 py-2.5 transition-all duration-300 ease-out sm:left-20 sm:px-6 sm:py-4"
+            className="fixed left-0 right-0 top-0 flex items-center justify-between px-3 py-2.5 transition-all duration-300 ease-out sm:px-5 sm:py-3 md:px-6 lg:left-20 lg:py-4"
             variants={headerVariants}
             initial="hidden"
             animate="visible"
@@ -88,7 +88,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
             <motion.div className="flex items-center gap-2.5 sm:gap-4" variants={logoVariants}>
                 <button
                     onClick={onMenuClick}
-                    className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-[var(--brand-border)] bg-[rgba(7,17,27,0.72)] text-[var(--brand-blue)] shadow-[0_10px_24px_rgba(1,8,15,0.18)] transition-all duration-200 hover:border-[var(--brand-border-strong)] hover:bg-[rgba(12,30,44,0.86)] sm:hidden"
+                    className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-[var(--brand-border)] bg-[rgba(7,17,27,0.72)] text-[var(--brand-blue)] shadow-[0_10px_24px_rgba(1,8,15,0.18)] transition-all duration-200 hover:border-[var(--brand-border-strong)] hover:bg-[rgba(12,30,44,0.86)] lg:hidden"
                     aria-label={t('common.openMenu')}
                     suppressHydrationWarning
                 >
@@ -100,14 +100,14 @@ export default function Header({ onMenuClick }: HeaderProps) {
                         alt={t('brand.logoAlt')}
                         width={142}
                         height={32}
-                        className="h-auto w-[102px] transition-transform duration-200 hover:scale-[1.03] sm:w-[150px]"
+                        className="h-auto w-[102px] transition-transform duration-200 hover:scale-[1.03] sm:w-[128px] md:w-[142px] lg:w-[150px]"
                         priority
                     />
                 </Link>
             </motion.div>
 
             <nav
-                className="hidden items-center gap-2 rounded-full border border-[var(--brand-border)] bg-[rgba(7,17,27,0.62)] px-2 py-1.5 shadow-[0_12px_30px_rgba(1,8,15,0.18)] backdrop-blur-xl md:flex"
+                className="hidden items-center gap-2 rounded-full border border-[var(--brand-border)] bg-[rgba(7,17,27,0.62)] px-2 py-1.5 shadow-[0_12px_30px_rgba(1,8,15,0.18)] backdrop-blur-xl lg:flex"
                 aria-label={t('nav.navigation')}
             >
                 {NAV_LINKS.map(({ href, key }) => {
@@ -128,7 +128,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 })}
             </nav>
 
-            <motion.div variants={searchVariants} className="flex items-center gap-1.5 sm:gap-3">
+            <motion.div variants={searchVariants} className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
                 <button
                     onClick={openSearch}
                     className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-[var(--brand-border)] bg-[rgba(7,17,27,0.64)] text-[var(--brand-blue)] transition-all duration-200 hover:border-[var(--brand-border-strong)] hover:bg-[rgba(41,171,226,0.12)]"

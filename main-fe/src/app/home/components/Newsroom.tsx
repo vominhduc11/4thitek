@@ -24,9 +24,18 @@ interface NewsroomProps {
     initialBlogs?: BlogPost[];
 }
 
+const NEWSROOM_VIDEO = '/videos/newsroom-editorial-cover-loop.mp4';
+
 export default function Newsroom({ initialBlogs = [] }: NewsroomProps) {
     const { t, locale } = useLanguage();
     const isHydrated = useHydration();
+    const emptyMessage = t('newsroom.empty');
+    const resolvedEmptyMessage =
+        emptyMessage && emptyMessage !== 'newsroom.empty'
+            ? emptyMessage
+            : locale === 'vi'
+              ? 'Nội dung newsroom đang được cập nhật. Những câu chuyện mới sẽ sớm xuất hiện.'
+              : 'Newsroom stories are being prepared and will be published soon.';
 
     const blogs: BlogItem[] = initialBlogs.map((blog) => ({
         id: blog.id,
@@ -50,24 +59,50 @@ export default function Newsroom({ initialBlogs = [] }: NewsroomProps) {
                 <div className="absolute inset-0 bg-topo opacity-30" />
                 <div className="absolute inset-0 bg-dot-grid opacity-15" />
 
-                <div className="brand-shell relative z-10 sm:ml-16 md:ml-20">
-                    <div className="mx-auto mb-10 max-w-3xl text-center">
-                        <span className="brand-badge mb-4">{t('newsroom.subtitle')}</span>
-                        <h2
-                            id="newsroom-heading"
-                            className="font-serif text-3xl font-semibold text-[var(--text-primary)] sm:text-4xl lg:text-5xl"
+                <div className="brand-shell relative z-10 lg:ml-20">
+                    <div className="mb-10 grid gap-8 lg:mb-12 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.74fr)] lg:items-center xl:gap-10">
+                        <div className="mx-auto max-w-3xl text-center lg:mx-0 lg:max-w-2xl lg:text-left">
+                            <span className="brand-badge mb-4">{t('newsroom.subtitle')}</span>
+                            <h2
+                                id="newsroom-heading"
+                                className="font-serif text-3xl font-semibold text-[var(--text-primary)] sm:text-4xl lg:text-5xl"
+                            >
+                                {t('newsroom.title')}
+                            </h2>
+                            <p className="mt-4 text-base leading-7 text-[var(--text-secondary)] sm:text-lg">
+                                {t('newsroom.tagline')}
+                            </p>
+                        </div>
+
+                        <motion.div
+                            className="brand-card-muted relative overflow-hidden rounded-[28px] border border-[rgba(41,171,226,0.18)]"
+                            initial={{ opacity: 0, x: 24, scale: 0.98 }}
+                            whileInView={{ opacity: 1, x: 0, scale: 1 }}
+                            viewport={{ once: true, amount: 0.3 }}
+                            transition={{ duration: 0.55, ease: 'easeOut' }}
                         >
-                            {t('newsroom.title')}
-                        </h2>
-                        <p className="mt-4 text-base leading-7 text-[var(--text-secondary)] sm:text-lg">
-                            {t('newsroom.tagline')}
-                        </p>
+                            <div className="relative aspect-[16/10] sm:aspect-[16/9] lg:aspect-[16/10]">
+                                <video
+                                    src={NEWSROOM_VIDEO}
+                                    className="absolute inset-0 h-full w-full object-cover object-center"
+                                    autoPlay
+                                    loop
+                                    muted
+                                    playsInline
+                                    preload="metadata"
+                                    aria-hidden="true"
+                                />
+                                <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(6,17,27,0.82)_0%,rgba(6,17,27,0.34)_42%,rgba(6,17,27,0.68)_100%)]" />
+                                <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#07111A] via-[rgba(7,17,26,0.76)] to-transparent" />
+                                <div className="absolute inset-5 rounded-[22px] border border-[rgba(255,255,255,0.05)]" />
+                            </div>
+                        </motion.div>
                     </div>
 
                     {blogs.length === 0 ? (
-                        <div className="brand-card-muted rounded-[28px] px-6 py-16 text-center text-[var(--text-secondary)]">
+                        <div className="brand-card-muted rounded-[28px] px-6 py-14 text-center text-[var(--text-secondary)]">
                             <FiArrowUpRight className="mx-auto mb-4 h-10 w-10 opacity-40" />
-                            <p className="text-base">{t('newsroom.empty') || 'Chua co bai viet nao.'}</p>
+                            <p className="text-base sm:text-lg">{resolvedEmptyMessage}</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">

@@ -13,6 +13,8 @@ const ITEMS = [
     { icon: FiMap, key: 'network' }
 ] as const;
 
+const BRAND_VALUES_VIDEO = '/videos/brand-values-dealer-network-loop.mp4';
+
 export default function BrandValues() {
     const { t } = useLanguage();
     const { enableInfiniteAnimations } = useAnimationConfig();
@@ -23,41 +25,63 @@ export default function BrandValues() {
                 <div className="absolute inset-0 bg-topo opacity-35" />
                 <div className="absolute inset-0 bg-dot-grid opacity-20" />
 
-                {enableInfiniteAnimations && (
-                    <div
-                        className="pointer-events-none absolute right-[10%] top-1/2 hidden -translate-y-1/2 lg:block"
-                        aria-hidden="true"
-                    >
-                        <div className="relative flex h-52 w-52 items-center justify-center">
-                            <div className="animate-signal-ring absolute h-full w-full rounded-full border border-[rgba(41,171,226,0.24)]" />
-                            <div className="animate-signal-ring-2 absolute h-full w-full rounded-full border border-[rgba(0,113,188,0.2)]" />
-                            <div className="animate-signal-ring-3 absolute h-full w-full rounded-full border border-[rgba(41,171,226,0.16)]" />
-                            <div className="h-3 w-3 rounded-full bg-[var(--brand-blue)] shadow-[0_0_20px_rgba(41,171,226,0.5)]" />
-                        </div>
-                    </div>
-                )}
-
-                <div className="brand-shell relative z-10 sm:ml-16 md:ml-20">
-                    <motion.div
-                        className="mx-auto mb-14 max-w-3xl text-center"
-                        initial={{ opacity: 0, y: 24 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.6 }}
-                    >
-                        <span className="brand-badge mb-5">{t('brandValues.eyebrow')}</span>
-                        <h2
-                            id="brand-values-heading"
-                            className="font-serif text-3xl font-semibold text-[var(--text-primary)] sm:text-4xl lg:text-5xl"
+                <div className="brand-shell relative z-10 lg:ml-20">
+                    <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.72fr)] lg:items-start xl:grid-cols-[minmax(0,1.02fr)_minmax(360px,0.78fr)] xl:gap-12">
+                        <motion.div
+                            className="mx-auto max-w-3xl text-center lg:mx-0 lg:max-w-2xl lg:text-left"
+                            initial={{ opacity: 0, y: 24 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.6 }}
                         >
-                            {t('brandValues.title')}
-                        </h2>
-                        <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-[var(--text-secondary)] sm:text-lg">
-                            {t('brandValues.subtitle')}
-                        </p>
-                    </motion.div>
+                            <span className="brand-badge mb-5">{t('brandValues.eyebrow')}</span>
+                            <h2
+                                id="brand-values-heading"
+                                className="font-serif text-3xl font-semibold text-[var(--text-primary)] sm:text-4xl lg:text-5xl"
+                            >
+                                {t('brandValues.title')}
+                            </h2>
+                            <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-[var(--text-secondary)] sm:text-lg lg:mx-0">
+                                {t('brandValues.subtitle')}
+                            </p>
+                        </motion.div>
 
-                    <div className="mx-auto grid max-w-6xl gap-5 md:grid-cols-3">
+                        <motion.div
+                            className="brand-card-muted relative hidden overflow-hidden rounded-[30px] border border-[rgba(41,171,226,0.18)] lg:block lg:min-h-[22rem] xl:min-h-[25rem]"
+                            initial={{ opacity: 0, x: 28, scale: 0.98 }}
+                            whileInView={{ opacity: 1, x: 0, scale: 1 }}
+                            viewport={{ once: true, amount: 0.35 }}
+                            transition={{ duration: 0.65, ease: 'easeOut' }}
+                        >
+                            <video
+                                src={BRAND_VALUES_VIDEO}
+                                className="absolute inset-0 h-full w-full scale-[1.04] object-cover object-center"
+                                autoPlay
+                                loop
+                                muted
+                                playsInline
+                                preload="metadata"
+                                aria-hidden="true"
+                            />
+                            <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(5,14,22,0.82)_0%,rgba(5,14,22,0.38)_34%,rgba(5,14,22,0.5)_68%,rgba(5,14,22,0.82)_100%)]" />
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_24%,rgba(41,171,226,0.12),transparent_36%),radial-gradient(circle_at_78%_72%,rgba(0,113,188,0.12),transparent_40%)]" />
+                            <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#07131f] via-[rgba(7,19,31,0.72)] to-transparent" />
+                            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#07131f] via-[rgba(7,19,31,0.84)] to-transparent" />
+                            <div className="absolute inset-5 rounded-[24px] border border-[rgba(255,255,255,0.06)]" />
+
+                            {enableInfiniteAnimations && (
+                                <div className="pointer-events-none absolute left-6 top-6" aria-hidden="true">
+                                    <div className="relative flex h-20 w-20 items-center justify-center">
+                                        <div className="animate-signal-ring absolute h-full w-full rounded-full border border-[rgba(41,171,226,0.18)]" />
+                                        <div className="animate-signal-ring-2 absolute h-full w-full rounded-full border border-[rgba(0,113,188,0.14)]" />
+                                        <div className="h-2.5 w-2.5 rounded-full bg-[var(--brand-blue)] shadow-[0_0_18px_rgba(41,171,226,0.45)]" />
+                                    </div>
+                                </div>
+                            )}
+                        </motion.div>
+                    </div>
+
+                    <div className="mx-auto mt-12 grid max-w-6xl gap-5 md:grid-cols-3 lg:mt-14 lg:max-w-none">
                         {ITEMS.map(({ icon: Icon, key }, index) => (
                             <motion.article
                                 key={key}
@@ -81,7 +105,7 @@ export default function BrandValues() {
                     </div>
 
                     <motion.div
-                        className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row"
+                        className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row lg:justify-start"
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}

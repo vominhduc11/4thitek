@@ -60,7 +60,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
             return;
         }
 
-        const mediaQuery = window.matchMedia('(min-width: 640px)');
+        const mediaQuery = window.matchMedia('(min-width: 1024px)');
         const updateViewportMode = (event?: MediaQueryListEvent) => {
             setIsDesktop(event ? event.matches : mediaQuery.matches);
         };
@@ -203,7 +203,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                     />
 
                     <motion.aside
-                        className="fixed inset-x-0 top-0 flex w-full flex-col shadow-2xl sm:inset-y-0 sm:left-0 sm:right-auto sm:w-auto sm:flex-row"
+                        className="fixed inset-x-0 top-0 flex w-full flex-col shadow-2xl lg:inset-y-0 lg:left-0 lg:right-auto lg:w-auto lg:flex-row"
                         style={{ zIndex: Z_INDEX.DRAWER }}
                         variants={drawerVariants}
                         initial="hidden"
@@ -214,7 +214,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                         aria-label={t('nav.navigation')}
                     >
                         <motion.div
-                            className="hidden w-16 flex-col items-center justify-between border-r border-[var(--brand-border)] bg-[linear-gradient(180deg,rgba(15,29,44,0.98),rgba(6,13,21,0.98))] py-4 sm:flex sm:w-20 sm:py-6 md:py-8"
+                            className="hidden w-20 flex-col items-center justify-between border-r border-[var(--brand-border)] bg-[linear-gradient(180deg,rgba(15,29,44,0.98),rgba(6,13,21,0.98))] py-6 lg:flex lg:py-8"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.3, duration: 0.3 }}
@@ -254,14 +254,14 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                         </motion.div>
 
                         <motion.nav
-                            className="relative flex h-[min(36rem,100dvh)] w-full flex-col overflow-y-auto border-b border-[var(--brand-border)] rounded-b-[30px] bg-[radial-gradient(circle_at_top,rgba(41,171,226,0.12),transparent_34%),linear-gradient(180deg,rgba(12,22,33,0.98),rgba(7,14,22,0.98))] px-4 py-4 text-[var(--text-secondary)] sm:h-full sm:w-72 sm:max-w-none sm:rounded-b-none sm:border-b-0 sm:border-r sm:px-6 sm:py-8 md:w-80 md:px-8 md:py-10 lg:w-96 lg:px-10 lg:py-12"
+                            className="relative flex h-[min(38rem,100dvh)] w-full flex-col overflow-y-auto rounded-b-[30px] border-b border-[var(--brand-border)] bg-[radial-gradient(circle_at_top,rgba(41,171,226,0.12),transparent_34%),linear-gradient(180deg,rgba(12,22,33,0.98),rgba(7,14,22,0.98))] px-4 py-4 text-[var(--text-secondary)] sm:px-5 sm:py-5 md:px-6 md:py-6 lg:h-full lg:w-72 lg:max-w-none lg:rounded-b-none lg:border-b-0 lg:border-r lg:px-6 lg:py-8 xl:w-80 xl:px-8 xl:py-10 2xl:w-96 2xl:px-10 2xl:py-12"
                             variants={panelVariants}
                             initial="hidden"
                             animate="visible"
                             exit="exit"
                         >
                             <motion.div
-                                className="mb-5 flex items-start justify-between gap-4 sm:hidden"
+                                className="mb-5 flex items-start justify-between gap-4 lg:hidden"
                                 initial={{ opacity: 0, y: -20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.35, duration: 0.3 }}
@@ -285,17 +285,17 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                             </motion.div>
 
                             <motion.div
-                                className="mb-6 hidden sm:block sm:mb-8 md:mb-10"
+                                className="mb-8 hidden lg:block xl:mb-10"
                                 initial={{ opacity: 0, y: -20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.4, duration: 0.3 }}
                             >
                                 <p className="brand-eyebrow text-[0.72rem]">{t('brand.message')}</p>
-                                <h2 className="mb-2 mt-3 font-serif text-lg font-bold text-white sm:text-xl md:mb-3 md:text-2xl">
+                                <h2 className="mb-2 mt-3 font-serif text-lg font-bold text-white lg:text-xl xl:mb-3 xl:text-2xl">
                                     {t('nav.navigation') || 'Navigation'}
                                 </h2>
                                 <motion.div
-                                    className="h-0.5 w-10 bg-[linear-gradient(135deg,var(--brand-gradient-start),var(--brand-gradient-end))] sm:w-12 md:h-1 md:w-14"
+                                    className="h-0.5 w-10 bg-[linear-gradient(135deg,var(--brand-gradient-start),var(--brand-gradient-end))] lg:w-12 xl:h-1 xl:w-14"
                                     initial={{ width: 0 }}
                                     animate={{ width: '2.5rem' }}
                                     transition={{ delay: 0.6, duration: 0.5, ease: 'easeOut' }}
@@ -303,7 +303,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                             </motion.div>
 
                             <motion.ul
-                                className="space-y-2 sm:space-y-4 md:space-y-5"
+                                className="space-y-2 md:space-y-3 lg:space-y-4 xl:space-y-5"
                                 variants={staggerContainer}
                                 initial="hidden"
                                 animate="visible"
@@ -339,7 +339,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                             </motion.ul>
 
                             <motion.div
-                                className="mt-auto flex items-center justify-between border-t border-[rgba(133,170,197,0.14)] pt-4 sm:hidden"
+                                className="mt-auto flex items-center justify-between border-t border-[rgba(133,170,197,0.14)] pt-4 lg:hidden"
                                 initial={{ opacity: 0, y: 16 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.45, duration: 0.3 }}
@@ -364,7 +364,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                             </motion.div>
 
                             <motion.div
-                                className="absolute bottom-[4.5rem] right-4 hidden opacity-20 sm:bottom-20 sm:right-6 sm:block md:bottom-24 md:right-8"
+                                className="absolute bottom-[4.5rem] right-4 hidden opacity-20 lg:block lg:bottom-20 lg:right-6 xl:bottom-24 xl:right-8"
                                 initial={{ opacity: 0, rotate: 0 }}
                                 animate={{ opacity: 0.2, rotate: 90 }}
                                 transition={{ delay: 0.8, duration: 0.5 }}

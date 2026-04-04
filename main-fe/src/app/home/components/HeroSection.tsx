@@ -8,7 +8,56 @@ import { useAnimationConfig } from '@/hooks/useReducedMotion';
 import { buildProductPath } from '@/lib/slug';
 import type { SimpleProduct } from '@/types/product';
 
-const HERO_VIDEO = '/videos/motorbike-road-trip-2022-07-26-01-49-02-utc.mp4';
+const HERO_VIDEO = '/videos/hero-road-tech-loop.mp4';
+const HERO_SUMMARY_MAX_LENGTH = 136;
+
+const ensureTerminalPunctuation = (value: string) => (/[.!?…]$/.test(value) ? value : `${value}.`);
+
+const trimAtWordBoundary = (value: string, maxLength: number) => {
+    if (value.length <= maxLength) {
+        return value;
+    }
+
+    const truncated = value.slice(0, maxLength + 1);
+    const punctuationCut = Math.max(truncated.lastIndexOf(', '), truncated.lastIndexOf('; '), truncated.lastIndexOf(': '));
+
+    if (punctuationCut >= 80) {
+        return ensureTerminalPunctuation(truncated.slice(0, punctuationCut).trim());
+    }
+
+    const lastSpace = truncated.lastIndexOf(' ');
+    const safeCut = lastSpace > 0 ? lastSpace : maxLength;
+    return `${truncated.slice(0, safeCut).trim()}...`;
+};
+
+const createHeroSummary = (value: string) => {
+    const normalized = value.replace(/\s+/g, ' ').trim();
+    if (!normalized) {
+        return '';
+    }
+
+    const firstSentence = normalized.split(/(?<=[.!?])\s+/)[0]?.trim();
+    if (firstSentence) {
+        if (firstSentence.length <= HERO_SUMMARY_MAX_LENGTH) {
+            return firstSentence;
+        }
+
+        const clauseBreaks = [
+            firstSentence.indexOf(', '),
+            firstSentence.indexOf('; '),
+            firstSentence.indexOf(': ')
+        ].filter((index) => index >= 0);
+        const preferredBreak = clauseBreaks.find((index) => index >= 72 && index <= 120);
+
+        if (preferredBreak !== undefined) {
+            return ensureTerminalPunctuation(firstSentence.slice(0, preferredBreak).trim());
+        }
+
+        return trimAtWordBoundary(firstSentence, HERO_SUMMARY_MAX_LENGTH);
+    }
+
+    return trimAtWordBoundary(normalized, HERO_SUMMARY_MAX_LENGTH);
+};
 
 const makeVideoVariants = (animate: boolean): Variants => ({
     hidden: animate ? { scale: 1.04, opacity: 0 } : { opacity: 0 },
@@ -88,15 +137,16 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
     const contentVariants = makeContentVariants(enableDecorativeAnimations);
     const buttonVariants = makeButtonVariants(enableDecorativeAnimations);
     const productPath = product?.id ? buildProductPath(product.id, product.name) : '/products';
+    const heroSummary = createHeroSummary(product?.shortDescription || t('hero.subtitle'));
 
     return (
         <section
-            className="relative h-[100svh] w-full overflow-hidden sm:h-[clamp(28rem,72vw,100vh)]"
+            className="relative h-[clamp(39rem,84svh,44rem)] w-full overflow-hidden min-[480px]:h-[clamp(36rem,78svh,41rem)] sm:h-[clamp(34rem,76vw,44rem)] md:h-[clamp(36rem,72vw,48rem)] lg:h-[clamp(28rem,72vw,100vh)]"
             aria-label={t('hero.ariaLabel').replace('{product}', displayName)}
         >
             <motion.video
                 src={HERO_VIDEO}
-                className="absolute inset-0 hidden h-full w-full object-cover sm:block"
+                className="absolute inset-0 hidden h-full w-full object-cover object-center sm:block md:object-[center_46%] lg:object-[center_50%]"
                 autoPlay
                 loop
                 muted
@@ -113,18 +163,19 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(41,171,226,0.24),_transparent_42%),linear-gradient(180deg,_#09111A_0%,_#07101A_55%,_#03070D_100%)] sm:hidden" />
 
             <motion.div
-                className="absolute inset-0 bg-black/55"
+                className="absolute inset-0 bg-black/55 sm:bg-black/28 md:bg-black/24"
                 variants={overlayVariants}
                 initial="hidden"
                 animate="visible"
                 aria-hidden="true"
             />
 
-            <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(90deg,rgba(7,17,26,0.82),rgba(7,17,26,0.2)_35%,rgba(7,17,26,0.65)_100%)]" />
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-24 bg-gradient-to-b from-[#06111B] to-transparent" />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-32 bg-gradient-to-t from-[#06111B] to-transparent" />
+            <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(92deg,rgba(7,17,26,0.84)_0%,rgba(7,17,26,0.76)_28%,rgba(7,17,26,0.42)_52%,rgba(7,17,26,0.6)_74%,rgba(7,17,26,0.8)_100%)] sm:bg-[linear-gradient(92deg,rgba(7,17,26,0.92)_0%,rgba(7,17,26,0.72)_26%,rgba(7,17,26,0.2)_50%,rgba(7,17,26,0.46)_72%,rgba(7,17,26,0.78)_100%)]" />
+            <div className="pointer-events-none absolute inset-0 z-10 hidden sm:block bg-[radial-gradient(circle_at_54%_42%,rgba(7,17,26,0.02)_0%,rgba(7,17,26,0.08)_28%,rgba(7,17,26,0.34)_62%,rgba(7,17,26,0.64)_100%)]" />
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-36 bg-gradient-to-b from-[#06111B] via-[rgba(6,17,27,0.94)] to-transparent min-[480px]:h-32 sm:h-28 sm:via-[rgba(6,17,27,0.78)] md:h-24 md:via-[rgba(6,17,27,0.68)]" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-28 bg-gradient-to-t from-[#06111B] via-[rgba(6,17,27,0.88)] to-transparent min-[480px]:h-24 sm:h-32 sm:via-[rgba(6,17,27,0.72)]" />
 
-            <div className="pointer-events-none absolute bottom-[15%] right-4 z-10 sm:right-6" aria-hidden="true">
+            <div className="pointer-events-none absolute bottom-[13%] right-4 z-10 hidden opacity-75 md:block md:right-6" aria-hidden="true">
                 <svg
                     width="260"
                     height="56"
@@ -164,7 +215,7 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
 
             {enableInfiniteAnimations && (
                 <div
-                    className="pointer-events-none absolute left-1/2 top-1/2 z-10 hidden -translate-x-1/2 -translate-y-1/2 sm:block"
+                    className="pointer-events-none absolute left-1/2 top-1/2 z-10 hidden -translate-x-1/2 -translate-y-1/2 lg:block"
                     aria-hidden="true"
                 >
                     <div className="relative flex items-center justify-center">
@@ -175,9 +226,9 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
                 </div>
             )}
 
-            <div className="absolute inset-0 z-20 flex flex-col items-center gap-4 px-4 pb-7 pt-[5.25rem] sm:items-start sm:justify-between sm:gap-0 sm:pb-12 sm:pt-20 sm:pl-24 sm:pr-8 md:pl-28 md:pr-8 lg:pl-32 lg:pr-12 xl:pl-36 xl:pr-16 2xl:pl-40 2xl:pr-20">
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-between gap-4 px-4 pb-8 pt-[5.25rem] min-[480px]:items-start min-[480px]:px-6 min-[480px]:pb-9 min-[480px]:pt-[5rem] sm:items-start sm:gap-0 sm:px-6 sm:pb-10 sm:pt-24 md:px-8 md:pb-12 md:pt-28 lg:pl-32 lg:pr-14 xl:pl-36 xl:pr-[4.5rem] 2xl:pl-40 2xl:pr-20">
                 <motion.h1
-                    className="w-full max-w-[18rem] cursor-pointer text-center font-serif text-[2.15rem] leading-[0.94] text-white transition-colors duration-300 hover:text-[var(--brand-blue)] xs:max-w-[20rem] xs:text-[2.45rem] sm:max-w-none sm:text-left sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl"
+                    className="w-full max-w-[18rem] cursor-pointer text-center font-serif text-[2.15rem] leading-[0.94] text-white transition-colors duration-300 hover:text-[var(--brand-blue)] min-[480px]:max-w-[16rem] min-[480px]:text-left min-[480px]:text-[2.35rem] sm:max-w-[15rem] sm:text-left sm:text-[3.35rem] md:max-w-[18rem] md:text-[4.1rem] lg:max-w-none lg:text-6xl xl:text-7xl 2xl:text-8xl"
                     variants={titleVariants}
                     initial="hidden"
                     animate="visible"
@@ -188,7 +239,7 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
                 </motion.h1>
 
                 <motion.div
-                    className="group relative flex min-h-0 w-full flex-1 cursor-pointer items-center justify-center py-3 sm:py-4"
+                    className="group relative flex min-h-0 w-full flex-1 cursor-pointer items-center justify-center py-2 min-[480px]:items-center min-[480px]:py-3 sm:py-4"
                     variants={productVariants}
                     initial="hidden"
                     animate="visible"
@@ -201,7 +252,7 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
                             alt={displayName}
                             width={384}
                             height={216}
-                            className="max-h-[28svh] w-auto object-contain drop-shadow-2xl xs:max-h-[30svh] sm:max-h-[30vh] md:max-h-[35vh] lg:max-h-[40vh] xl:max-h-[45vh] 2xl:max-h-[50vh]"
+                            className="max-h-[29svh] w-auto object-contain drop-shadow-2xl min-[480px]:max-h-[27svh] sm:max-h-[31vh] md:max-h-[34vh] lg:max-h-[40vh] xl:max-h-[45vh] 2xl:max-h-[50vh]"
                             priority
                         />
                     ) : (
@@ -212,21 +263,21 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
                 </motion.div>
 
                 <motion.div
-                    className="w-full max-w-[22rem] text-center sm:max-w-2xl sm:text-left"
+                    className="w-full max-w-[22rem] text-center min-[480px]:max-w-[30rem] min-[480px]:text-left sm:max-w-[34rem] md:max-w-[38rem] lg:max-w-2xl"
                     variants={contentVariants}
                     initial="hidden"
                     animate="visible"
                 >
-                    <div className="mx-auto mb-3 max-w-[22rem] sm:mx-0 sm:mb-4 sm:max-w-2xl">
-                        <p className="brand-eyebrow mb-2 text-center text-[0.68rem] leading-[1.55] tracking-[0.2em] xs:text-[0.72rem] sm:mb-3 sm:text-left sm:text-[0.74rem] sm:tracking-[0.24em]">
+                    <div className="mx-auto mb-2.5 max-w-[22rem] min-[480px]:mx-0 min-[480px]:max-w-[30rem] sm:mb-4 sm:max-w-[34rem] md:max-w-[38rem] lg:max-w-2xl">
+                        <p className="brand-eyebrow mb-1.5 text-center text-[0.66rem] leading-[1.48] tracking-[0.14em] min-[480px]:text-left min-[480px]:text-[0.7rem] min-[480px]:tracking-[0.17em] sm:mb-3 sm:text-[0.72rem] sm:tracking-[0.2em] md:text-[0.74rem] md:tracking-[0.22em]">
                             {t('brand.message')}
                         </p>
-                        <p className="line-clamp-3 text-[0.95rem] leading-[1.55] text-[var(--text-primary)] xs:text-base sm:text-lg sm:leading-relaxed lg:text-xl">
-                            {product?.shortDescription || t('hero.subtitle')}
+                        <p className="text-[0.95rem] leading-[1.65] text-[var(--text-primary)] xs:text-[1rem] sm:text-[1.02rem] sm:leading-[1.7] md:text-[1.12rem] lg:text-xl lg:leading-relaxed">
+                            {heroSummary}
                         </p>
                     </div>
                     <motion.button
-                        className="brand-button-primary min-w-[176px] rounded-full px-5 py-3 text-sm font-semibold sm:min-w-[160px] sm:px-6 sm:py-3 sm:text-base"
+                        className="brand-button-primary min-w-[176px] rounded-full px-5 py-3 text-sm font-semibold sm:min-w-[184px] sm:px-6 sm:py-3 sm:text-base"
                         variants={buttonVariants}
                         initial="hidden"
                         animate="visible"
