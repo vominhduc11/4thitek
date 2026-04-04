@@ -65,6 +65,8 @@ interface ProductHeroProps {
     onBreadcrumbClick?: (item: BreadcrumbItem) => void;
 }
 
+const PRODUCT_HERO_VIDEO = '/videos/hero-product-tech-road-loop.mp4';
+
 export default function ProductHero({
     product,
     relatedProducts = [],
@@ -108,7 +110,7 @@ export default function ProductHero({
                     className="hidden sm:block w-full h-full object-cover"
                     onCanPlay={() => videoRef.current?.play().catch(() => {})}
                 >
-                    <source src="/videos/futuristic-background-2022-08-04-19-57-56-utc.mp4" type="video/mp4" />
+                    <source src={PRODUCT_HERO_VIDEO} type="video/mp4" />
                 </video>
 
                 {/* Mobile gradient background */}

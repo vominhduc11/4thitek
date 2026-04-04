@@ -13,18 +13,21 @@ interface BreadcrumbItem {
 interface HeroProps {
     breadcrumbItems?: BreadcrumbItem[];
     breadcrumbWrapperClassName?: string;
+    videoSrc?: string;
 }
 
 const defaultBreadcrumbWrapperClassName = 'ml-0 sm:ml-16 md:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20';
+const defaultVideoSrc = '/videos/hero-brand-network-service-loop.mp4';
 
 export default function Hero({
     breadcrumbItems = [],
-    breadcrumbWrapperClassName = defaultBreadcrumbWrapperClassName
+    breadcrumbWrapperClassName = defaultBreadcrumbWrapperClassName,
+    videoSrc = defaultVideoSrc
 }: HeroProps) {
     return (
         <section className="relative h-[250px] w-full overflow-hidden xs:h-[300px] sm:h-[350px] md:h-[400px] lg:h-[450px] 2xl:h-[500px] 3xl:h-[600px]">
             <motion.video
-                src="/videos/motorbike-road-trip-2022-07-26-01-49-02-utc.mp4"
+                src={videoSrc}
                 className="absolute inset-0 w-full h-full object-cover transform-gpu"
                 autoPlay
                 loop
