@@ -464,7 +464,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
         final nextSuppressedCatalogLoadCount = _suppressedCatalogLoadCount - 1;
         assert(
           nextSuppressedCatalogLoadCount >= 0,
-          '_suppressedCatalogLoadCount went negative â€” suppression logic is unbalanced',
+          '_suppressedCatalogLoadCount went negative - suppression logic is unbalanced',
         );
         _suppressedCatalogLoadCount = math.max(
           0,
@@ -2857,17 +2857,17 @@ class _ProductListTexts {
   String get clearSearchTooltip => isEnglish ? 'Clear search' : 'Xóa tìm kiếm';
   String get emptyFilteredProductsMessage => isEnglish
       ? 'No products match your current filters.'
-      : 'Không tìm thấy sản phẩm phù hợp bộ lọc.';
+      : 'Không tìm thấy sản phẩm phù hợp với bộ lọc hiện tại.';
   String get emptyProductsMessage => isEnglish
       ? 'No products available to display.'
       : 'Chưa có sản phẩm để hiển thị.';
   String get discountAutoApplyMessage => isEnglish
       ? 'Volume discounts apply automatically when eligible'
-      : 'Chiết khấu số lượng sẽ áp dụng tự động khi đủ điều kiện';
+      : 'Chiết khấu số lượng sẽ tự động áp dụng khi đủ điều kiện';
   String get sortTooltip => isEnglish ? 'Sort products' : 'Sắp xếp';
   String get loadProductsFailedTitle => isEnglish
       ? 'Unable to load the product catalog.'
-      : 'Không tải được danh sách sản phẩm.';
+      : 'Không tải được danh mục sản phẩm.';
   String get loadProductsFailedDescription => isEnglish
       ? 'Please check your connection and try again.'
       : 'Vui lòng kiểm tra kết nối và thử lại.';
@@ -2928,7 +2928,7 @@ class _ProductListTexts {
 
   String discountReachedMessage(int percent) => isEnglish
       ? 'Current discount tier reached: $percent%'
-      : 'Đã đạt mức chiết khấu hiện tại $percent%';
+      : 'Đã đạt mức chiết khấu hiện tại: $percent%';
 
   String discountTargetProductMessage(
     int remaining,
@@ -2936,11 +2936,11 @@ class _ProductListTexts {
     int percent,
   ) => isEnglish
       ? 'Buy $remaining more ${remaining == 1 ? 'item' : 'items'} of "$productName" to unlock $percent% discount'
-      : 'Mua thêm $remaining sản phẩm "$productName" để đạt chiết khấu $percent%';
+      : 'Mua thêm $remaining sản phẩm "$productName" để mở chiết khấu $percent%';
 
   String discountTargetMessage(int remaining, int percent) => isEnglish
       ? 'Buy $remaining more ${remaining == 1 ? 'item' : 'items'} to unlock $percent% discount'
-      : 'Mua thêm $remaining sản phẩm để đạt chiết khấu $percent%';
+      : 'Mua thêm $remaining sản phẩm để mở chiết khấu $percent%';
 
   String quickAddLabel({required int remainingStock}) {
     if (remainingStock <= 0) {
@@ -2994,7 +2994,7 @@ extension _ProductListTextsUxStates on _ProductListTexts {
       : 'Không tải thêm được sản phẩm';
   String get loadMoreProductsFailedDescription => isEnglish
       ? 'You can retry without losing the products already on screen.'
-      : 'Bạn có thể thử lại mà vẫn giữ các sản phẩm đang hiện trên màn hình.';
+      : 'Bạn có thể thử lại mà vẫn giữ các sản phẩm đang hiển thị trên màn hình.';
   String get refreshCatalogAction =>
       isEnglish ? 'Refresh catalog' : 'Tải lại danh mục';
   String get refreshingCatalogLabel => isEnglish

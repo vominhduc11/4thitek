@@ -16,171 +16,171 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get sessionExpiredMessage =>
-      'PhiĂªn Ä‘Äƒng nháº­p Ä‘Ă£ háº¿t háº¡n. Vui lĂ²ng Ä‘Äƒng nháº­p láº¡i.';
+      'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
 
   @override
-  String get welcomeTitle => 'ChĂ o má»«ng Ä‘áº¿n 4T HITEK Dealer';
+  String get welcomeTitle => 'Chào mừng đến 4T HITEK Dealer';
 
   @override
-  String get welcomeStepProducts => '1. Táº¡o Ä‘Æ¡n nhanh trong tab Sáº£n pháº©m.';
+  String get welcomeStepProducts => '1. Tạo đơn nhanh trong tab Sản phẩm.';
 
   @override
   String get welcomeStepOrders =>
-      '2. Theo dĂµi cĂ´ng ná»£ vĂ  tráº¡ng thĂ¡i trong tab ÄÆ¡n hĂ ng.';
+      '2. Theo dõi công nợ và trạng thái trong tab Đơn hàng.';
 
   @override
   String get welcomeStepSearch =>
-      '3. DĂ¹ng tĂ¬m kiáº¿m toĂ n cá»¥c Ä‘á»ƒ tra Ä‘Æ¡n vĂ  sáº£n pháº©m tá»©c thĂ¬.';
+      '3. Dùng tìm kiếm toàn cục để tra đơn và sản phẩm tức thì.';
 
   @override
-  String get getStarted => 'Báº¯t Ä‘áº§u';
+  String get getStarted => 'Bắt đầu';
 
   @override
-  String get tabProducts => 'Sáº£n pháº©m';
+  String get tabProducts => 'Sản phẩm';
 
   @override
-  String get tabOrders => 'ÄÆ¡n hĂ ng';
+  String get tabOrders => 'Đơn hàng';
 
   @override
-  String get tabOverview => 'Tá»•ng quan';
+  String get tabOverview => 'Tổng quan';
 
   @override
   String get tabInventory => 'Kho';
 
   @override
-  String get tabAccount => 'TĂ i khoáº£n';
+  String get tabAccount => 'Tài khoản';
 
   @override
-  String get retryAction => 'Thá»­ láº¡i';
+  String get retryAction => 'Thử lại';
 
   @override
-  String get cancelAction => 'Há»§y';
+  String get cancelAction => 'Hủy';
 
   @override
-  String get accountLogoutConfirmTitle => 'XĂ¡c nháº­n Ä‘Äƒng xuáº¥t';
+  String get accountLogoutConfirmTitle => 'Xác nhận đăng xuất';
 
   @override
   String get accountLogoutConfirmMessage =>
-      'Báº¡n sáº¯p Ä‘Äƒng xuáº¥t. Dá»¯ liá»‡u giá» hĂ ng hiá»‡n táº¡i sáº½ bá»‹ xĂ³a. Báº¡n cĂ³ muá»‘n tiáº¿p tá»¥c khĂ´ng?';
+      'Bạn sắp đăng xuất. Dữ liệu giỏ hàng hiện tại sẽ bị xóa. Bạn có muốn tiếp tục không?';
 
   @override
-  String get accountScreenTitle => 'TĂ i khoáº£n';
+  String get accountScreenTitle => 'Tài khoản';
 
   @override
-  String get accountSignOutLoading => 'Äang Ä‘Äƒng xuáº¥t...';
+  String get accountSignOutLoading => 'Đang đăng xuất...';
 
   @override
-  String get accountMenuSettingsTitle => 'CĂ i Ä‘áº·t tĂ i khoáº£n';
+  String get accountMenuSettingsTitle => 'Cài đặt tài khoản';
 
   @override
   String get accountMenuSettingsSubtitle =>
-      'Cáº­p nháº­t thĂ´ng tin Ä‘áº¡i lĂ½, liĂªn há»‡ vĂ  Ä‘á»‹a chá»‰ giao hĂ ng.';
+      'Cập nhật thông tin đại lý, liên hệ và địa chỉ giao hàng.';
 
   @override
-  String get accountMenuSupportTitle => 'Há»— trá»£';
+  String get accountMenuSupportTitle => 'Hỗ trợ';
 
   @override
   String get accountMenuSupportSubtitle =>
-      'LiĂªn há»‡ há»— trá»£ vĂ  gá»­i yĂªu cáº§u Ä‘Æ¡n hĂ ng, sáº£n pháº©m, báº£o hĂ nh.';
+      'Liên hệ hỗ trợ và gửi yêu cầu đơn hàng, sản phẩm, bảo hành.';
 
   @override
-  String get accountMenuWarrantyTitle => 'Trung tĂ¢m báº£o hĂ nh';
+  String get accountMenuWarrantyTitle => 'Trung tâm bảo hành';
 
   @override
   String get accountMenuWarrantySubtitle =>
-      'Xá»­ lĂ½ serial, kĂ­ch hoáº¡t báº£o hĂ nh vĂ  xem kho serial.';
+      'Xử lý serial, kích hoạt bảo hành và xem kho serial.';
 
   @override
-  String get accountMenuPreferencesTitle => 'Giao diá»‡n vĂ  ngĂ´n ngá»¯';
+  String get accountMenuPreferencesTitle => 'Giao diện và ngôn ngữ';
 
   @override
   String get accountMenuPreferencesSubtitle =>
-      'Quáº£n lĂ½ ngĂ´n ngá»¯ vĂ  thiáº¿t láº­p á»©ng dá»¥ng.';
+      'Quản lý ngôn ngữ và thiết lập ứng dụng.';
 
   @override
-  String get accountLogoutAction => 'ÄÄƒng xuáº¥t';
+  String get accountLogoutAction => 'Đăng xuất';
 
   @override
-  String get accountEditProfileAction => 'Sá»­a há»“ sÆ¡';
+  String get accountEditProfileAction => 'Sửa hồ sơ';
 
   @override
   String accountVersionLabel(String version) {
-    return 'PhiĂªn báº£n $version';
+    return 'Phiên bản $version';
   }
 
   @override
-  String get accountContactLabel => 'NgÆ°á»i liĂªn há»‡';
+  String get accountContactLabel => 'Người liên hệ';
 
   @override
-  String get accountPhoneLabel => 'Sá»‘ Ä‘iá»‡n thoáº¡i';
+  String get accountPhoneLabel => 'Số điện thoại';
 
   @override
-  String get accountShippingLabel => 'Äá»‹a chá»‰ giao hĂ ng';
+  String get accountShippingLabel => 'Địa chỉ giao hàng';
 
   @override
-  String get accountPolicyLabel => 'ChĂ­nh sĂ¡ch';
+  String get accountPolicyLabel => 'Chính sách';
 
   @override
-  String get accountProfileLoadError => 'KhĂ´ng thá»ƒ táº£i dá»¯ liá»‡u tĂ i khoáº£n.';
+  String get accountProfileLoadError => 'Không thể tải dữ liệu tài khoản.';
 
   @override
   String notificationsTitle(int count) {
-    return 'ThĂ´ng bĂ¡o ($count)';
+    return 'Thông báo ($count)';
   }
 
   @override
-  String get notificationsMarkAllReadTooltip => 'ÄĂ¡nh dáº¥u táº¥t cáº£ Ä‘Ă£ Ä‘á»c';
+  String get notificationsMarkAllReadTooltip => 'Đánh dấu tất cả đã đọc';
 
   @override
-  String get notificationsEmptyTitle => 'ChÆ°a cĂ³ thĂ´ng bĂ¡o nĂ o';
+  String get notificationsEmptyTitle => 'Chưa có thông báo nào';
 
   @override
   String get notificationsEmptyMessage =>
-      'ThĂ´ng bĂ¡o má»›i sáº½ xuáº¥t hiá»‡n táº¡i Ä‘Ă¢y khi cĂ³ cáº­p nháº­t.';
+      'Thông báo mới sẽ xuất hiện tại đây khi có cập nhật.';
 
   @override
   String get notificationsMarkedAllReadMessage =>
-      'ÄĂ£ Ä‘Ă¡nh dáº¥u táº¥t cáº£ lĂ  Ä‘Ă£ Ä‘á»c.';
+      'Đã đánh dấu tất cả là đã đọc.';
 
   @override
-  String get notificationsMarkUnreadAction => 'ÄĂ¡nh dáº¥u chÆ°a Ä‘á»c';
+  String get notificationsMarkUnreadAction => 'Đánh dấu chưa đọc';
 
   @override
-  String get notificationsMarkedUnreadMessage => 'ÄĂ£ Ä‘Ă¡nh dáº¥u lĂ  chÆ°a Ä‘á»c.';
+  String get notificationsMarkedUnreadMessage => 'Đã đánh dấu là chưa đọc.';
 
   @override
-  String get notificationsOpenLinkFailedMessage => 'KhĂ´ng má»Ÿ Ä‘Æ°á»£c liĂªn káº¿t.';
+  String get notificationsOpenLinkFailedMessage => 'Không mở được liên kết.';
 
   @override
-  String get notificationsTypeOrder => 'ÄÆ¡n hĂ ng';
+  String get notificationsTypeOrder => 'Đơn hàng';
 
   @override
-  String get notificationsTypePromotion => 'Khuyáº¿n mĂ£i';
+  String get notificationsTypePromotion => 'Khuyến mãi';
 
   @override
-  String get notificationsTypeSystem => 'Há»‡ thá»‘ng';
+  String get notificationsTypeSystem => 'Hệ thống';
 
   @override
-  String get notificationsRelatedViewOrder => 'Xem Ä‘Æ¡n hĂ ng';
+  String get notificationsRelatedViewOrder => 'Xem đơn hàng';
 
   @override
-  String get notificationsRelatedViewProducts => 'Xem sáº£n pháº©m';
+  String get notificationsRelatedViewProducts => 'Xem sản phẩm';
 
   @override
-  String get notificationsRelatedViewSupport => 'Xem há»— trá»£';
+  String get notificationsRelatedViewSupport => 'Xem hỗ trợ';
 
   @override
-  String get notificationsRelatedViewNotifications => 'Xem thĂ´ng bĂ¡o';
+  String get notificationsRelatedViewNotifications => 'Xem thông báo';
 
   @override
-  String get notificationsRelatedOpenLink => 'Má»Ÿ liĂªn káº¿t';
+  String get notificationsRelatedOpenLink => 'Mở liên kết';
 
   @override
-  String get notificationsRelatedOpenOverview => 'Má»Ÿ tá»•ng quan';
+  String get notificationsRelatedOpenOverview => 'Mở tổng quan';
 
   @override
-  String get paymentMethodBankTransfer => 'Chuyá»ƒn khoáº£n ngĂ¢n hĂ ng';
+  String get paymentMethodBankTransfer => 'Chuyển khoản ngân hàng';
 
   @override
-  String get paymentMethodDebt => 'Use credit line';
+  String get paymentMethodDebt => 'Ghi nhận công nợ';
 }

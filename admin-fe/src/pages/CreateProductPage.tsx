@@ -1178,23 +1178,23 @@ function CreateProductPage() {
   const productTabs = [
     {
       id: "basic",
-      label: "ThĂ´ng tin",
-      errorTitle: "Thiáº¿u tĂªn, SKU hoáº·c giĂ¡ bĂ¡n",
+      label: "Thông tin",
+      errorTitle: "Thiếu tên, SKU hoặc giá bán",
     },
     {
       id: "description",
-      label: "MĂ´ táº£ chi tiáº¿t",
-      errorTitle: "CĂ³ lá»—i á»Ÿ áº£nh mĂ´ táº£",
+      label: "Mô tả chi tiết",
+      errorTitle: "Có lỗi ở ảnh mô tả",
     },
     {
       id: "specs",
-      label: "ThĂ´ng sá»‘",
-      errorTitle: "CĂ³ lá»—i á»Ÿ thĂ´ng sá»‘",
+      label: "Thông số",
+      errorTitle: "Có lỗi ở thông số",
     },
     {
       id: "videos",
       label: "Video",
-      errorTitle: "URL video khĂ´ng há»£p lá»‡",
+      errorTitle: "URL video không hợp lệ",
     },
   ] as const;
   const mediaOverlayActionClass =
@@ -1228,7 +1228,7 @@ function CreateProductPage() {
           <div className="mt-5 sm:hidden">
             <label className="block text-sm text-slate-700" htmlFor="create-product-tab-select">
               <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                {t("CĂ¡c tab sáº£n pháº©m")}
+                {t("Các tab sản phẩm")}
               </span>
               <select
                 id="create-product-tab-select"
@@ -2655,7 +2655,7 @@ function CreateProductPage() {
               className={secondaryButtonClass}
               onClick={() => void requestNavigateAway()}
             >
-              {t("Hủy")}
+              {t("Hủy thao tác")}
             </button>
             <button
               type="button"

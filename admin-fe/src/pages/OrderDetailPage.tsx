@@ -78,10 +78,10 @@ function OrderDetailPage() {
 
       const nextAmount = Number(value)
       if (Number.isNaN(nextAmount) || nextAmount <= 0) {
-        return t('SĂ¡Â»â€˜ tiĂ¡Â»Ân thanh toÄ‚Â¡n khÄ‚Â´ng hĂ¡Â»Â£p lĂ¡Â»â€¡')
+        return t('Số tiền thanh toán không hợp lệ')
       }
       if (order && nextAmount > order.outstandingAmount) {
-        return t('SĂ¡Â»â€˜ tiĂ¡Â»Ân khÄ‚Â´ng Ă„â€˜Ă†Â°Ă¡Â»Â£t vĂ†Â°Ă¡Â»Â£t quÄ‚Â¡ cÄ‚Â²n lĂ¡ÂºÂ¡i')
+        return t('Số tiền không được vượt quá còn lại')
       }
 
       return ''
@@ -125,7 +125,7 @@ function OrderDetailPage() {
       .then((data) => { if (!cancelled) setPayments(data) })
       .catch((err) => {
         if (!cancelled) {
-          setPaymentsError(err instanceof Error ? err.message : t('KhĂ´ng táº£i Ä‘Æ°á»£c lá»‹ch sá»­ thanh toĂ¡n'))
+          setPaymentsError(err instanceof Error ? err.message : t('Không tải được lịch sử thanh toán'))
         }
       })
     return () => { cancelled = true }
@@ -139,7 +139,7 @@ function OrderDetailPage() {
       .then((data) => { if (!cancelled) setAdjustments(data) })
       .catch((err) => {
         if (!cancelled) {
-          setAdjustmentsError(err instanceof Error ? err.message : t('KhĂ´ng táº£i Ä‘Æ°á»£c lá»‹ch sá»­ Ä‘iá»u chá»‰nh'))
+          setAdjustmentsError(err instanceof Error ? err.message : t('Không tải được lịch sử điều chỉnh'))
         }
       })
     return () => { cancelled = true }
@@ -161,8 +161,8 @@ function OrderDetailPage() {
     return (
       <PagePanel>
         <ErrorState
-          title={t('KhĂ´ng thá»ƒ táº£i Ä‘Æ¡n hĂ ng')}
-          message={ordersState.error || t('KhĂ´ng táº£i Ä‘Æ°á»£c chi tiáº¿t Ä‘Æ¡n hĂ ng')}
+          title={t('Không thể tải đơn hàng')}
+          message={ordersState.error || t('Không tải được chi tiết đơn hàng')}
           onRetry={() => void reloadResource('orders')}
         />
       </PagePanel>
@@ -173,8 +173,8 @@ function OrderDetailPage() {
     return (
       <PagePanel>
         <EmptyState
-          title={t('KhĂ´ng tĂ¬m tháº¥y Ä‘Æ¡n hĂ ng')}
-          message={t('ÄÆ¡n {id} khĂ´ng tá»“n táº¡i hoáº·c Ä‘Ă£ bá»‹ xĂ³a.', { id: decodedId })}
+          title={t('Không tìm thấy đơn hàng')}
+          message={t('Đơn {id} không tồn tại hoặc đã bị xóa.', { id: decodedId })}
         />
         <div className="mt-4">
           <GhostButton
@@ -182,7 +182,7 @@ function OrderDetailPage() {
             onClick={() => navigate('/orders')}
             type="button"
           >
-            {t('Vá» danh sĂ¡ch')}
+            {t('Về danh sách')}
           </GhostButton>
         </div>
       </PagePanel>
@@ -191,20 +191,20 @@ function OrderDetailPage() {
 
   const paymentMethodLabel =
     order.paymentMethod === 'debt'
-      ? t('CĂ´ng ná»£')
+      ? t('Công nợ')
       : order.paymentMethod === 'bank_transfer'
-        ? t('Chuyá»ƒn khoáº£n ngĂ¢n hĂ ng')
-        : t('ChÆ°a xĂ¡c Ä‘á»‹nh')
+        ? t('Chuyển khoản ngân hàng')
+        : t('Chưa xác định')
   const paymentStatusLabel =
     order.paymentStatus === 'paid'
-      ? t('ÄĂ£ thanh toĂ¡n')
+      ? t('Đã thanh toán')
       : order.paymentStatus === 'debt_recorded'
         ? t('Open receivable')
         : order.paymentStatus === 'cancelled'
-          ? t('ÄĂ£ há»§y')
+          ? t('Đã hủy')
           : order.paymentStatus === 'failed'
-            ? t('Tháº¥t báº¡i')
-            : t('ChÆ°a thanh toĂ¡n')
+            ? t('Thất bại')
+            : t('Chưa thanh toán')
 
   const paymentStatusTone =
     order.paymentStatus === 'paid'
@@ -236,10 +236,10 @@ function OrderDetailPage() {
         : order.outstandingAmount
 
   const adjTypeLabel: Record<BackendOrderAdjustmentType, string> = {
-    CORRECTION: t('Äiá»u chá»‰nh'),
-    WRITE_OFF: t('XĂ³a ná»£'),
-    CREDIT_NOTE: t('Ghi cĂ³'),
-    REFUND_RECORD: t('Ghi nháº­n hoĂ n tiá»n'),
+    CORRECTION: t('Điều chỉnh'),
+    WRITE_OFF: t('Xóa nợ'),
+    CREDIT_NOTE: t('Ghi có'),
+    REFUND_RECORD: t("Ghi nhận hoàn tiền"),
   }
 
   return (
@@ -250,7 +250,7 @@ function OrderDetailPage() {
           onClick={() => navigate('/orders')}
           type="button"
         >
-          {t('Vá» Ä‘Æ¡n hĂ ng')}
+          {t("Về đơn hàng")}
         </GhostButton>
         <StatusBadge tone={orderStatusTone[order.status]}>{t(orderStatusLabel[order.status])}</StatusBadge>
       </div>
@@ -259,43 +259,43 @@ function OrderDetailPage() {
         <div className="mt-4 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-800/40 dark:bg-rose-900/20 dark:text-rose-200">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" />
           <span>
-            {t('ÄÆ¡n nĂ y Ä‘Ă£ háº¿t háº¡n xá»­ lĂ½ nhÆ°ng cĂ³ thanh toĂ¡n ghi nháº­n â€” cáº§n xem xĂ©t thá»§ cĂ´ng trÆ°á»›c khi há»§y.')}
+            {t('Đơn này đã hết hạn xử lý nhưng có thanh toán ghi nhận — cần xem xét thủ công trước khi hủy.')}
           </span>
         </div>
       )}
 
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
         <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-ghost)] p-5">
-          <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('ÄÆ¡n hĂ ng')}</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Đơn hàng')}</p>
           <h3 className="mt-2 text-2xl font-semibold text-[var(--ink)]">{order.orderCode}</h3>
           <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[var(--muted)]">#{order.id}</p>
           <p className="mt-2 text-sm text-[var(--muted)]">{formatDateTime(order.createdAt)}</p>
           <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Äáº¡i lĂ½')}</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Đại lý')}</p>
               <p className="mt-1 font-semibold text-[var(--ink)]">{order.dealer}</p>
             </div>
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Sá»‘ máº·t hĂ ng')}</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Số mặt hàng')}</p>
               <p className="mt-1 font-semibold text-[var(--ink)]">{order.items}</p>
             </div>
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Tá»•ng tiá»n')}</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Tổng tiền')}</p>
               <p className="mt-1 font-semibold text-[var(--accent)]">{formatCurrency(order.total)}</p>
             </div>
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('PhÆ°Æ¡ng thá»©c')}</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Phương thức')}</p>
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 <span className="font-semibold text-[var(--ink)]">{paymentMethodLabel}</span>
                 <StatusBadge tone={paymentStatusTone}>{paymentStatusLabel}</StatusBadge>
               </div>
             </div>
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('ÄĂ£ thu')}</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Paid amount')}</p>
               <p className="mt-1 font-semibold text-[var(--tone-success-ink,#16a34a)]">{formatCurrency(order.paidAmount)}</p>
             </div>
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('CĂ²n láº¡i')}</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Còn lại')}</p>
               <p className={`mt-1 font-semibold ${order.outstandingAmount > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-[var(--ink)]'}`}>
                 {formatCurrency(order.outstandingAmount)}
               </p>
@@ -315,21 +315,21 @@ function OrderDetailPage() {
               </div>
             ) : null}
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 sm:col-span-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Äá»‹a chá»‰')}</p>
-              <p className="mt-1 text-[var(--ink)]">{order.address || 'â€”'}</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Địa chỉ')}</p>
+              <p className="mt-1 text-[var(--ink)]">{order.address || '—'}</p>
             </div>
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 sm:col-span-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Ghi chĂº')}</p>
-              <p className="mt-1 text-[var(--ink)]">{order.note || 'â€”'}</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Ghi chú')}</p>
+              <p className="mt-1 text-[var(--ink)]">{order.note || '—'}</p>
             </div>
           </div>
         </div>
 
         <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-ghost)] p-5">
-          <p className="text-sm font-semibold text-[var(--ink)]">{t('Cáº­p nháº­t tráº¡ng thĂ¡i')}</p>
+          <p className="text-sm font-semibold text-[var(--ink)]">{t('Cập nhật trạng thái')}</p>
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <select
-              aria-label={t('Tráº¡ng thĂ¡i Ä‘Æ¡n {id}', { id: order.id })}
+              aria-label={t('Trạng thái đơn {id}', { id: order.id })}
               className={inputClass}
               onChange={async (event) => {
                 const next = event.target.value as OrderStatus
@@ -338,8 +338,8 @@ function OrderDetailPage() {
                 }
 
                 const approved = await confirm({
-                  title: t('XĂ¡c nháº­n Ä‘á»•i tráº¡ng thĂ¡i'),
-                  message: t('Chuyá»ƒn Ä‘Æ¡n nĂ y sang "{status}"?', {
+                  title: t('Xác nhận đổi trạng thái'),
+                  message: t('Chuyển đơn này sang "{status}"?', {
                     status: t(orderStatusLabel[next]),
                   }),
                   tone: next === 'cancelled' ? 'danger' : 'warning',
@@ -353,13 +353,13 @@ function OrderDetailPage() {
 
                 try {
                   await updateOrderStatus(order.id, next)
-                  notify(t('ÄÆ¡n {id} -> {status}', { id: order.id, status: t(orderStatusLabel[next]) }), {
-                    title: t('ÄÆ¡n hĂ ng'),
+                  notify(t('Đơn {id} -> {status}', { id: order.id, status: t(orderStatusLabel[next]) }), {
+                      title: t("Đơn hàng"),
                     variant: 'info',
                   })
                 } catch (error) {
-                  notify(error instanceof Error ? error.message : t('KhĂ´ng cáº­p nháº­t Ä‘Æ°á»£c Ä‘Æ¡n hĂ ng'), {
-                    title: t('ÄÆ¡n hĂ ng'),
+                  notify(error instanceof Error ? error.message : t('Không cập nhật được đơn hàng'), {
+                      title: t("Đơn hàng"),
                     variant: 'error',
                   })
                 }
@@ -379,21 +379,21 @@ function OrderDetailPage() {
               className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800"
               role="status"
             >
-              {t('CĂ³ thay Ä‘á»•i chÆ°a lÆ°u trong biá»ƒu máº«u thanh toĂ¡n.')}
+              {t('Có thay đổi chưa lưu trong biểu mẫu thanh toán.')}
             </div>
           ) : null}
 
           {order.outstandingAmount > 0 ? (
             <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
               <p className="text-sm font-semibold text-emerald-800">
-                {t('Ghi nháº­n thanh toĂ¡n thá»§ cĂ´ng')}
+                {t('Ghi nhận thanh toán thủ công')}
               </p>
               <p className="mt-1 text-xs text-emerald-700">
-                {t('DĂ¹ng khi cáº§n xĂ¡c nháº­n tiá»n Ä‘Ă£ nháº­n ngoĂ i webhook tá»± Ä‘á»™ng.')}
+                {t('Dùng khi cần xác nhận tiền đã nhận ngoài webhook tự động.')}
               </p>
               <div className="mt-3 grid gap-3">
                 <label className="space-y-2">
-                  <span className={labelClass}>{t('Sá»‘ tiá»n')}</span>
+                  <span className={labelClass}>{t('Số tiền')}</span>
                   <input
                     aria-describedby={paymentError ? 'order-payment-amount-error' : undefined}
                     aria-invalid={Boolean(paymentError)}
@@ -409,7 +409,7 @@ function OrderDetailPage() {
                           nextAmount > 0 &&
                           nextAmount <= order.outstandingAmount)
                           ? ''
-                          : t('Sá»‘ tiá»n thanh toĂ¡n khĂ´ng há»£p lá»‡'),
+                          : t('Số tiền thanh toán không hợp lệ'),
                       )
                     }}
                     type="number"
@@ -422,7 +422,7 @@ function OrderDetailPage() {
                   ) : null}
                 </label>
                 <label className="space-y-2">
-                  <span className={labelClass}>{t('MĂ£ giao dá»‹ch')}</span>
+                  <span className={labelClass}>{t('Mã giao dịch')}</span>
                   <input
                     className={inputClass}
                     onChange={(event) => setTransactionCode(event.target.value)}
@@ -430,7 +430,7 @@ function OrderDetailPage() {
                   />
                 </label>
                 <label className="space-y-2">
-                  <span className={labelClass}>{t('Ghi chĂº ná»™i bá»™')}</span>
+                  <span className={labelClass}>{t('Ghi chú nội bộ')}</span>
                   <textarea
                     className="min-h-24 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-sm text-[var(--ink)] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                     onChange={(event) => setPaymentNote(event.target.value)}
@@ -448,7 +448,7 @@ function OrderDetailPage() {
                     }
                     const amount = Number(paymentAmount)
                     if (Number.isNaN(amount) || amount <= 0) {
-                      setPaymentError(t('Sá»‘ tiá»n thanh toĂ¡n khĂ´ng há»£p lá»‡'))
+                      setPaymentError(t('Số tiền thanh toán không hợp lệ'))
                       return
                     }
 
@@ -465,8 +465,8 @@ function OrderDetailPage() {
                         transactionCode: transactionCode.trim() || undefined,
                         note: paymentNote.trim() || undefined,
                       })
-                      notify(t('ÄĂ£ ghi nháº­n thanh toĂ¡n cho Ä‘Æ¡n {id}', { id: order.orderCode }), {
-                        title: t('ÄÆ¡n hĂ ng'),
+                      notify(t('Đã ghi nhận thanh toán cho đơn {id}', { id: order.orderCode }), {
+                        title: t('Đơn hàng'),
                         variant: 'success',
                       })
                       setPaymentError('')
@@ -478,9 +478,9 @@ function OrderDetailPage() {
                       }
                     } catch (error) {
                       notify(
-                        error instanceof Error ? error.message : t('KhĂ´ng ghi nháº­n Ä‘Æ°á»£c thanh toĂ¡n'),
+                        error instanceof Error ? error.message : t('Không ghi nhận được thanh toán'),
                         {
-                          title: t('ÄÆ¡n hĂ ng'),
+                          title: t("Đơn hàng"),
                           variant: 'error',
                         },
                       )
@@ -488,7 +488,7 @@ function OrderDetailPage() {
                   }}
                   type="button"
                 >
-                  {t('Ghi nháº­n thanh toĂ¡n')}
+                  {t('Ghi nhận thanh toán')}
                 </PrimaryButton>
                 {isPaymentDirty ? (
                   <GhostButton
@@ -500,7 +500,7 @@ function OrderDetailPage() {
                     }}
                     type="button"
                   >
-                    {t('HoĂ n tĂ¡c')}
+                    {t('Hoàn tác')}
                   </GhostButton>
                 ) : null}
               </div>
@@ -509,18 +509,18 @@ function OrderDetailPage() {
 
           {canDeleteOrder(order.status) && (
             <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50/70 p-3">
-              <p className="text-sm font-semibold text-rose-700">{t('XĂ³a Ä‘Æ¡n hĂ ng')}</p>
+              <p className="text-sm font-semibold text-rose-700">{t('Xóa đơn hàng')}</p>
               <p className="mt-1 text-xs text-rose-600">
-                {t('HĂ nh Ä‘á»™ng nĂ y sáº½ xĂ³a Ä‘Æ¡n khá»i danh sĂ¡ch.')}
+                {t('Hành động này sẽ xóa đơn khỏi danh sách.')}
               </p>
               <GhostButton
                 className="mt-3 border-rose-200 text-rose-700 hover:border-rose-500 hover:text-rose-700"
                 onClick={async () => {
                   const approved = await confirm({
-                    title: t('XĂ³a Ä‘Æ¡n hĂ ng'),
-                    message: t('HĂ nh Ä‘á»™ng nĂ y sáº½ xĂ³a Ä‘Æ¡n khá»i danh sĂ¡ch.'),
+                    title: t('Xóa đơn hàng'),
+                    message: t('Hành động này sẽ xóa đơn khỏi danh sách.'),
                     tone: 'danger',
-                    confirmLabel: t('XĂ³a Ä‘Æ¡n'),
+                    confirmLabel: t('Xóa đơn'),
                   })
                   if (!approved) {
                     return
@@ -528,21 +528,21 @@ function OrderDetailPage() {
 
                   try {
                     await deleteOrder(order.id)
-                    notify(t('ÄĂ£ xĂ³a {id}', { id: order.id }), {
-                      title: t('ÄÆ¡n hĂ ng'),
+                    notify(t('Đã xóa {id}', { id: order.id }), {
+                      title: t('Đơn hàng'),
                       variant: 'error',
                     })
                     navigate('/orders')
                   } catch (error) {
-                    notify(error instanceof Error ? error.message : t('KhĂ´ng xĂ³a Ä‘Æ°á»£c Ä‘Æ¡n hĂ ng'), {
-                      title: t('ÄÆ¡n hĂ ng'),
+                    notify(error instanceof Error ? error.message : t('Không xóa được đơn hàng'), {
+                      title: t("Đơn hàng"),
                       variant: 'error',
                     })
                   }
                 }}
                 type="button"
               >
-                {t('XĂ³a Ä‘Æ¡n')}
+                {t('Xóa đơn')}
               </GhostButton>
             </div>
           )}
@@ -550,19 +550,19 @@ function OrderDetailPage() {
       </div>
 
       <div className="mt-6 rounded-3xl border border-[var(--border)] bg-[var(--surface-ghost)] p-5">
-        <p className="text-sm font-semibold text-[var(--ink)]">{t('Máº·t hĂ ng trong Ä‘Æ¡n')}</p>
+        <p className="text-sm font-semibold text-[var(--ink)]">{t('Mặt hàng trong đơn')}</p>
         {order.orderItems.length === 0 ? (
-          <p className="mt-3 text-sm text-[var(--muted)]">{t('ChÆ°a cĂ³ thĂ´ng tin máº·t hĂ ng.')}</p>
+          <p className="mt-3 text-sm text-[var(--muted)]">{t('Chưa có thông tin mặt hàng.')}</p>
         ) : (
           <div className="mt-3 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className={tableHeadClass}>
                   <th className="px-3 py-2 text-left font-semibold">{t('SKU')}</th>
-                  <th className="px-3 py-2 text-left font-semibold">{t('TĂªn sáº£n pháº©m')}</th>
-                  <th className="px-3 py-2 text-right font-semibold">{t('Sá»‘ lÆ°á»£ng')}</th>
-                  <th className="px-3 py-2 text-right font-semibold">{t('ÄÆ¡n giĂ¡')}</th>
-                  <th className="px-3 py-2 text-right font-semibold">{t('ThĂ nh tiá»n')}</th>
+                  <th className="px-3 py-2 text-left font-semibold">{t('Tên sản phẩm')}</th>
+                  <th className="px-3 py-2 text-right font-semibold">{t('Số lượng')}</th>
+                  <th className="px-3 py-2 text-right font-semibold">{t('Đơn giá')}</th>
+                  <th className="px-3 py-2 text-right font-semibold">{t('Thành tiền')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -581,7 +581,7 @@ function OrderDetailPage() {
               <tfoot>
                 <tr className="border-t border-[var(--border)]">
                   <td colSpan={4} className={`px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide ${tableMetaClass}`}>
-                    {t('Tá»•ng cá»™ng')}
+                    {t('Tổng cộng')}
                   </td>
                   <td className={`px-3 py-2 text-right ${tableValueClass}`}>
                     {formatCurrency(order.total)}
@@ -594,9 +594,9 @@ function OrderDetailPage() {
       </div>
 
       <div className="mt-6 rounded-3xl border border-[var(--border)] bg-[var(--surface-ghost)] p-5">
-        <p className="text-sm font-semibold text-[var(--ink)]">{t('Lá»‹ch sá»­ thanh toĂ¡n')}</p>
+        <p className="text-sm font-semibold text-[var(--ink)]">{t('Lịch sử thanh toán')}</p>
         <p className="mt-1 text-xs text-[var(--muted)]">
-          {t('Danh sĂ¡ch cĂ¡c láº§n ghi nháº­n thanh toĂ¡n cho Ä‘Æ¡n hĂ ng nĂ y.')}
+          {t('Danh sách các lần ghi nhận thanh toán cho đơn hàng này.')}
         </p>
         {paymentsError && (
           <div className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">
@@ -604,32 +604,32 @@ function OrderDetailPage() {
           </div>
         )}
         {payments.length === 0 && !paymentsError ? (
-          <p className={`mt-3 text-sm ${tableMetaClass}`}>{t('ChÆ°a cĂ³ lá»‹ch sá»­ thanh toĂ¡n.')}</p>
+          <p className={`mt-3 text-sm ${tableMetaClass}`}>{t('Chưa có lịch sử thanh toán.')}</p>
         ) : payments.length > 0 ? (
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
                 <tr className={tableHeadClass}>
-                  <th className="px-3 py-2 font-semibold">{t('Sá»‘ tiá»n')}</th>
-                  <th className="px-3 py-2 font-semibold">{t('PhÆ°Æ¡ng thá»©c')}</th>
-                  <th className="px-3 py-2 font-semibold">{t('KĂªnh')}</th>
-                  <th className="px-3 py-2 font-semibold">{t('MĂ£ giao dá»‹ch')}</th>
-                  <th className="px-3 py-2 font-semibold">{t('Ghi chĂº')}</th>
-                  <th className="px-3 py-2 font-semibold">{t('NgÆ°á»i ghi')}</th>
-                  <th className="px-3 py-2 font-semibold">{t('Thá»i gian')}</th>
+                  <th className="px-3 py-2 font-semibold">{t('Số tiền')}</th>
+                  <th className="px-3 py-2 font-semibold">{t('Phương thức')}</th>
+                  <th className="px-3 py-2 font-semibold">{t('Kênh')}</th>
+                  <th className="px-3 py-2 font-semibold">{t('Mã giao dịch')}</th>
+                  <th className="px-3 py-2 font-semibold">{t('Ghi chú')}</th>
+                  <th className="px-3 py-2 font-semibold">{t('Người ghi')}</th>
+                  <th className="px-3 py-2 font-semibold">{t('Thời gian')}</th>
                 </tr>
               </thead>
               <tbody>
                 {payments.map((payment) => (
                   <tr key={payment.id} className={tableRowClass}>
                     <td className="px-3 py-2 font-semibold text-[var(--tone-success-ink,#16a34a)]">{formatCurrency(Number(payment.amount ?? 0))}</td>
-                    <td className="px-3 py-2 text-[var(--ink)]">{payment.method ?? 'â€”'}</td>
-                    <td className="px-3 py-2 text-[var(--ink)]">{payment.channel ?? 'â€”'}</td>
-                    <td className={`px-3 py-2 ${tableMetaClass}`}>{payment.transactionCode || 'â€”'}</td>
-                    <td className="px-3 py-2 max-w-xs break-words text-[var(--ink)]">{payment.note || 'â€”'}</td>
-                    <td className="px-3 py-2 text-[var(--ink)]">{payment.recordedBy || 'â€”'}</td>
+                    <td className="px-3 py-2 text-[var(--ink)]">{payment.method ?? '—'}</td>
+                    <td className="px-3 py-2 text-[var(--ink)]">{payment.channel ?? '—'}</td>
+                    <td className={`px-3 py-2 ${tableMetaClass}`}>{payment.transactionCode || '—'}</td>
+                    <td className="px-3 py-2 max-w-xs break-words text-[var(--ink)]">{payment.note || '—'}</td>
+                    <td className="px-3 py-2 text-[var(--ink)]">{payment.recordedBy || '—'}</td>
                     <td className="px-3 py-2 whitespace-nowrap text-[var(--ink)]">
-                      {payment.paidAt ? formatDateTime(payment.paidAt) : payment.createdAt ? formatDateTime(payment.createdAt) : 'â€”'}
+                      {payment.paidAt ? formatDateTime(payment.paidAt) : payment.createdAt ? formatDateTime(payment.createdAt) : '—'}
                     </td>
                   </tr>
                 ))}
@@ -640,9 +640,9 @@ function OrderDetailPage() {
       </div>
 
       <div className="mt-6 rounded-3xl border border-[var(--border)] bg-[var(--surface-ghost)] p-5">
-        <p className="text-sm font-semibold text-[var(--ink)]">{t('Äiá»u chá»‰nh tĂ i chĂ­nh')}</p>
+        <p className="text-sm font-semibold text-[var(--ink)]">{t('Điều chỉnh tài chính')}</p>
         <p className="mt-1 text-xs text-[var(--muted)]">
-          {t('Ghi nháº­n Ä‘iá»u chá»‰nh, bĂ¹ trá»« hoáº·c hoĂ n tiá»n cho Ä‘Æ¡n hĂ ng. Sá»‘ Ă¢m lĂ m giáº£m Ä‘Ă£ thu, sá»‘ dÆ°Æ¡ng bá»• sung Ä‘Ă£ thu.')}
+          {t('Ghi nhận điều chỉnh, bù trừ hoặc hoàn tiền cho đơn hàng. Số âm làm giảm đã thu, số dương bổ sung đã thu.')}
         </p>
 
         {adjustmentsError && (
@@ -655,12 +655,12 @@ function OrderDetailPage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className={tableHeadClass}>
-                  <th className="px-3 py-2 font-semibold">{t('Loáº¡i')}</th>
-                  <th className="px-3 py-2 font-semibold">{t('Sá»‘ tiá»n')}</th>
-                  <th className="px-3 py-2 font-semibold">{t('LĂ½ do')}</th>
-                  <th className="px-3 py-2 font-semibold">{t('MĂ£ tham chiáº¿u')}</th>
-                  <th className="px-3 py-2 font-semibold">{t('NgÆ°á»i táº¡o')}</th>
-                  <th className="px-3 py-2 font-semibold">{t('Thá»i gian')}</th>
+                  <th className="px-3 py-2 font-semibold">{t('Loại')}</th>
+                  <th className="px-3 py-2 font-semibold">{t('Số tiền')}</th>
+                  <th className="px-3 py-2 font-semibold">{t('Lý do')}</th>
+                  <th className="px-3 py-2 font-semibold">{t('Mã tham chiếu')}</th>
+                  <th className="px-3 py-2 font-semibold">{t('Người tạo')}</th>
+                  <th className="px-3 py-2 font-semibold">{t('Thời gian')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -669,9 +669,9 @@ function OrderDetailPage() {
                     <td className={`px-3 py-2 font-medium ${tableValueClass}`}>{adjTypeLabel[adj.type] ?? adj.type}</td>
                     <td className="px-3 py-2 text-[var(--ink)]">{formatCurrency(Number(adj.amount))}</td>
                     <td className="px-3 py-2 max-w-xs break-words text-[var(--ink)]">{adj.reason}</td>
-                    <td className={`px-3 py-2 ${tableMetaClass}`}>{adj.referenceCode || 'â€”'}</td>
-                    <td className="px-3 py-2 text-[var(--ink)]">{adj.createdBy || 'â€”'}</td>
-                    <td className="px-3 py-2 whitespace-nowrap text-[var(--ink)]">{adj.createdAt ? formatDateTime(adj.createdAt) : 'â€”'}</td>
+                    <td className={`px-3 py-2 ${tableMetaClass}`}>{adj.referenceCode || '—'}</td>
+                    <td className="px-3 py-2 text-[var(--ink)]">{adj.createdBy || '—'}</td>
+                    <td className="px-3 py-2 whitespace-nowrap text-[var(--ink)]">{adj.createdAt ? formatDateTime(adj.createdAt) : '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -681,25 +681,25 @@ function OrderDetailPage() {
 
         <details className="mt-5">
           <summary className="cursor-pointer select-none list-none rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm font-semibold text-[var(--ink)] transition hover:bg-[var(--surface-muted)] [&::-webkit-details-marker]:hidden">
-            {t('ThĂªm Ä‘iá»u chá»‰nh tĂ i chĂ­nh')}
+            {t('Thêm điều chỉnh tài chính')}
           </summary>
           <div className="mt-3">
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="space-y-1">
-                <span className={labelClass}>{t('Loáº¡i Ä‘iá»u chá»‰nh')}</span>
+                <span className={labelClass}>{t('Loại điều chỉnh')}</span>
                 <select
                   className={inputClass}
                   value={adjType}
                   onChange={(e) => setAdjType(e.target.value as BackendOrderAdjustmentType)}
                 >
-                  <option value="CORRECTION">{t('Äiá»u chá»‰nh')}</option>
-                  <option value="WRITE_OFF">{t('XĂ³a ná»£')}</option>
-                  <option value="CREDIT_NOTE">{t('Ghi cĂ³')}</option>
-                  <option value="REFUND_RECORD">{t('Ghi nháº­n hoĂ n tiá»n')}</option>
+                  <option value="CORRECTION">{t('Điều chỉnh')}</option>
+                  <option value="WRITE_OFF">{t('Xóa nợ')}</option>
+                  <option value="CREDIT_NOTE">{t('Ghi có')}</option>
+                  <option value="REFUND_RECORD">{t('Ghi nhận hoàn tiền')}</option>
                 </select>
               </label>
               <label className="space-y-1">
-                <span className={labelClass}>{t('Sá»‘ tiá»n')}</span>
+                <span className={labelClass}>{t('Số tiền')}</span>
                 <input
                   className={inputClass}
                   step="1"
@@ -709,7 +709,7 @@ function OrderDetailPage() {
                 />
               </label>
               <label className="space-y-1 sm:col-span-2">
-                <span className={labelClass}>{t('LĂ½ do (tá»‘i thiá»ƒu 10 kĂ½ tá»±)')}</span>
+                <span className={labelClass}>{t('Lý do (tối thiểu 10 ký tự)')}</span>
                 <textarea
                   className="min-h-20 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                   value={adjReason}
@@ -717,7 +717,7 @@ function OrderDetailPage() {
                 />
               </label>
               <label className="space-y-1 sm:col-span-2">
-                <span className={labelClass}>{t('MĂ£ tham chiáº¿u (tuá»³ chá»n)')}</span>
+                <span className={labelClass}>{t('Mã tham chiếu (tuỳ chọn)')}</span>
                 <input
                   className={inputClass}
                   value={adjRef}
@@ -733,7 +733,7 @@ function OrderDetailPage() {
                     type="checkbox"
                   />
                   <span>
-                    {t('ÄÆ¡n hĂ ng Ä‘Ă£ hoĂ n táº¥t. XĂ¡c nháº­n Ä‘á»ƒ táº¡o Ä‘iá»u chá»‰nh tĂ i chĂ­nh.')}
+                    {t('Đơn hàng đã hoàn tất. Xác nhận để tạo điều chỉnh tài chính.')}
                   </span>
                 </label>
               ) : null}
@@ -751,15 +751,15 @@ function OrderDetailPage() {
                   if (!accessToken) return
                   const amount = Number(adjAmount)
                   if (Number.isNaN(amount) || amount === 0) {
-                    setAdjError(t('Sá»‘ tiá»n pháº£i khĂ¡c 0'))
+                    setAdjError(t('Số tiền phải khác 0'))
                     return
                   }
                   if (order?.status === 'completed' && !adjConfirmOverride) {
-                    setAdjError(t('Cáº§n xĂ¡c nháº­n trÆ°á»›c khi Ä‘iá»u chá»‰nh Ä‘Æ¡n Ä‘Ă£ hoĂ n táº¥t'))
+                    setAdjError(t('Cần xác nhận trước khi điều chỉnh đơn đã hoàn tất'))
                     return
                   }
                   if (adjReason.trim().length < 10) {
-                    setAdjError(t('LĂ½ do pháº£i cĂ³ Ă­t nháº¥t 10 kĂ½ tá»±'))
+                    setAdjError(t('Lý do phải có ít nhất 10 ký tự'))
                     return
                   }
                   setAdjError('')
@@ -778,15 +778,15 @@ function OrderDetailPage() {
                     setAdjRef('')
                     setAdjConfirmOverride(false)
                     void reloadResource('orders')
-                    notify(t('ÄĂ£ thĂªm Ä‘iá»u chá»‰nh tĂ i chĂ­nh'), { title: t('Äiá»u chá»‰nh'), variant: 'success' })
+                    notify(t('Đã thêm điều chỉnh tài chính'), { title: t('Điều chỉnh'), variant: 'success' })
                   } catch (err) {
-                    setAdjError(err instanceof Error ? err.message : t('KhĂ´ng thĂªm Ä‘Æ°á»£c Ä‘iá»u chá»‰nh'))
+                    setAdjError(err instanceof Error ? err.message : t('Không thêm được điều chỉnh'))
                   } finally {
                     setAdjSubmitting(false)
                   }
                 }}
               >
-                {t('ThĂªm Ä‘iá»u chá»‰nh')}
+                {t('Thêm điều chỉnh')}
               </PrimaryButton>
             </div>
           </div>

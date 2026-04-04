@@ -378,62 +378,63 @@ class _DashboardTexts {
       return 'Dashboard is summarized from synced orders and warranty activity.';
     }
     if (orderSyncAt != null && warrantySyncAt != null) {
-      return 'BĂ¡ÂºÂ£ng tĂ¡Â»â€¢ng quan Ă„â€˜Ă†Â°Ă¡Â»Â£c tĂ¡Â»â€¢ng hĂ¡Â»Â£p tĂ¡Â»Â« Ă„â€˜Ă†Â¡n hÄ‚Â ng vÄ‚Â  hoĂ¡ÂºÂ¡t Ă„â€˜Ă¡Â»â„¢ng bĂ¡ÂºÂ£o hÄ‚Â nh Ă„â€˜Ä‚Â£ Ă„â€˜Ă¡Â»â€œng bĂ¡Â»â„¢. Ă„ÂĂ†Â¡n hÄ‚Â ng Ă„â€˜Ă¡Â»â€œng bĂ¡Â»â„¢ lÄ‚Âºc $orderSyncAt, bĂ¡ÂºÂ£o hÄ‚Â nh Ă„â€˜Ă¡Â»â€œng bĂ¡Â»â„¢ lÄ‚Âºc $warrantySyncAt.';
+      return 'Bảng tổng quan được tổng hợp từ đơn hàng và hoạt động bảo hành đã đồng bộ. Đơn hàng đồng bộ lúc $orderSyncAt, bảo hành đồng bộ lúc $warrantySyncAt.';
     }
-    return 'BĂ¡ÂºÂ£ng tĂ¡Â»â€¢ng quan Ă„â€˜Ă†Â°Ă¡Â»Â£c tĂ¡Â»â€¢ng hĂ¡Â»Â£p tĂ¡Â»Â« Ă„â€˜Ă†Â¡n hÄ‚Â ng vÄ‚Â  hoĂ¡ÂºÂ¡t Ă„â€˜Ă¡Â»â„¢ng bĂ¡ÂºÂ£o hÄ‚Â nh Ă„â€˜Ä‚Â£ Ă„â€˜Ă¡Â»â€œng bĂ¡Â»â„¢.';
+    return 'Bảng tổng quan được tổng hợp từ đơn hàng và hoạt động bảo hành đã đồng bộ.';
   }
 
   String warrantyRangeLabel(int dayCount) =>
-      isEnglish ? '$dayCount days' : '$dayCount ngÄ‚Â y';
+      isEnglish ? '$dayCount days' : '$dayCount ngày';
 
   String get loadErrorMessage => isEnglish
       ? 'Unable to load dashboard data. Please try again.'
-      : 'KhÄ‚Â´ng thĂ¡Â»Æ’ tĂ¡ÂºÂ£i dĂ¡Â»Â¯ liĂ¡Â»â€¡u bĂ¡ÂºÂ£ng tĂ¡Â»â€¢ng quan. Vui lÄ‚Â²ng thĂ¡Â»Â­ lĂ¡ÂºÂ¡i.';
+      : 'Không thể tải dữ liệu bảng tổng quan. Vui lòng thử lại.';
   String get quickActionsTitle =>
-      isEnglish ? 'Quick actions' : 'Thao tÄ‚Â¡c nhanh';
+      isEnglish ? 'Quick actions' : 'Thao tác nhanh';
   String get quickActionsSubtitle => isEnglish
       ? 'Keep common dealer tasks within one tap instead of switching between tabs.'
-      : 'Ă†Â¯u tiÄ‚Âªn cÄ‚Â¡c tÄ‚Â¡c vĂ¡Â»Â¥ Ă„â€˜Ă¡ÂºÂ¡i lÄ‚Â½ dÄ‚Â¹ng thĂ†Â°Ă¡Â»Âng xuyÄ‚Âªn Ă„â€˜Ă¡Â»Æ’ giĂ¡ÂºÂ£m sĂ¡Â»â€˜ lĂ¡ÂºÂ§n chuyĂ¡Â»Æ’n tab.';
-  String get createOrderLabel => isEnglish ? 'New order' : 'TĂ¡ÂºÂ¡o Ă„â€˜Ă†Â¡n';
-  String get debtLabel => isEnglish ? 'Credit' : 'Credit';
+      : 'Giữ các tác vụ đại lý thường dùng trong một chạm thay vì phải chuyển tab.';
+  String get createOrderLabel => isEnglish ? 'New order' : 'Tạo đơn';
+  String get debtLabel => isEnglish ? 'Credit' : 'Công nợ';
   String get inventoryLabel => isEnglish ? 'Inventory' : 'Kho';
-  String get warrantyLabel => isEnglish ? 'Warranty' : 'BĂ¡ÂºÂ£o hÄ‚Â nh';
+  String get warrantyLabel => isEnglish ? 'Warranty' : 'Bảo hành';
   String get trackingSectionTitle =>
-      isEnglish ? 'Operational insights' : 'HiĂ¡Â»â€¡u suĂ¡ÂºÂ¥t theo dÄ‚Âµi';
+      isEnglish ? 'Operational insights' : 'Góc nhìn vận hành';
   String get mobileInsightsTitle =>
-      isEnglish ? 'Inventory and warranty' : 'Kho vÄ‚Â  bĂ¡ÂºÂ£o hÄ‚Â nh';
+      isEnglish ? 'Inventory and warranty' : 'Kho và bảo hành';
   String get mobileInsightsSubtitle => isEnglish
       ? 'Secondary charts stay collapsed on mobile, but remain available when needed.'
-      : 'Ă¡ÂºÂ¨n bĂ¡Â»â€ºt biĂ¡Â»Æ’u Ă„â€˜Ă¡Â»â€œ phĂ¡Â»Â¥ trÄ‚Âªn mobile, nhĂ†Â°ng vĂ¡ÂºÂ«n giĂ¡Â»Â¯ Ă„â€˜Ă¡Â»Â§ insight khi cĂ¡ÂºÂ§n.';
+      : 'Các biểu đồ phụ được thu gọn trên mobile nhưng vẫn sẵn sàng khi cần.';
   String get recentOrdersTitle =>
-      isEnglish ? 'Recent orders' : 'Ă„ÂĂ†Â¡n hÄ‚Â ng gĂ¡ÂºÂ§n Ă„â€˜Ä‚Â¢y';
-  String get viewAllAction => isEnglish ? 'View all' : 'Xem tĂ¡ÂºÂ¥t cĂ¡ÂºÂ£';
+      isEnglish ? 'Recent orders' : 'Đơn hàng gần đây';
+  String get viewAllAction => isEnglish ? 'View all' : 'Xem tất cả';
   String get recentOrdersEmptyMessage => isEnglish
       ? 'There are no orders in the selected period yet.'
-      : 'BĂ¡ÂºÂ¡n chĂ†Â°a cÄ‚Â³ Ă„â€˜Ă†Â¡n hÄ‚Â ng nÄ‚Â o trong kĂ¡Â»Â³ Ă„â€˜Ä‚Â£ chĂ¡Â»Ân.';
+      : 'Chưa có đơn hàng nào trong kỳ đã chọn.';
   String get recentOrdersEmptyDescription => isEnglish
       ? 'Create a new order to start tracking activity.'
-      : 'HÄ‚Â£y tĂ¡ÂºÂ¡o Ă„â€˜Ă†Â¡n hÄ‚Â ng mĂ¡Â»â€ºi Ă„â€˜Ă¡Â»Æ’ bĂ¡ÂºÂ¯t Ă„â€˜Ă¡ÂºÂ§u theo dÄ‚Âµi.';
-  String get createOrderAction => isEnglish ? 'Create order' : 'TĂ¡ÂºÂ¡o Ă„â€˜Ă†Â¡n hÄ‚Â ng';
+      : 'Hãy tạo đơn hàng mới để bắt đầu theo dõi hoạt động.';
+  String get createOrderAction => isEnglish ? 'Create order' : 'Tạo đơn hàng';
   String get createOrderSemanticLabel =>
-      isEnglish ? 'Create a new order' : 'TĂ¡ÂºÂ¡o Ă„â€˜Ă†Â¡n hÄ‚Â ng mĂ¡Â»â€ºi';
-  String get appBarTitle => isEnglish ? 'Overview' : 'TĂ¡Â»â€¢ng quan';
+      isEnglish ? 'Create a new order' : 'Tạo đơn hàng mới';
+  String get appBarTitle => isEnglish ? 'Overview' : 'Tổng quan';
   String get previousPeriodTooltip =>
-      isEnglish ? 'Previous period' : 'KĂ¡Â»Â³ trĂ†Â°Ă¡Â»â€ºc';
+      isEnglish ? 'Previous period' : 'Kỳ trước';
   String get timeFilterTooltip =>
-      isEnglish ? 'Filter time range' : 'LĂ¡Â»Âc thĂ¡Â»Âi gian';
-  String get nextPeriodTooltip => isEnglish ? 'Next period' : 'KĂ¡Â»Â³ sau';
+      isEnglish ? 'Filter time range' : 'Lọc thời gian';
+  String get nextPeriodTooltip => isEnglish ? 'Next period' : 'Kỳ sau';
   String revenueChipLabel(int amount) => isEnglish
       ? 'Revenue ${_formatCompactVnd(amount)}'
       : 'Doanh thu ${_formatCompactVnd(amount)}';
   String orderCountChipLabel(int count) =>
-      isEnglish ? '$count orders' : '$count Ă„â€˜Ă†Â¡n';
+      isEnglish ? '$count orders' : '$count đơn';
+
   String periodUnitLabel(_DashboardTimeFilter filter) {
     switch (filter) {
       case _DashboardTimeFilter.month:
-        return isEnglish ? 'month' : 'thÄ‚Â¡ng';
+        return isEnglish ? 'month' : 'tháng';
       case _DashboardTimeFilter.quarter:
-        return isEnglish ? 'quarter' : 'quÄ‚Â½';
+        return isEnglish ? 'quarter' : 'quý';
     }
   }
 
@@ -441,214 +442,215 @@ class _DashboardTexts {
     if (filter == _DashboardTimeFilter.month) {
       return isEnglish
           ? 'Month ${date.month}/${date.year}'
-          : 'ThÄ‚Â¡ng ${date.month}/${date.year}';
+          : 'Tháng ${date.month}/${date.year}';
     }
     final quarter = ((date.month - 1) ~/ 3) + 1;
     return isEnglish
         ? 'Quarter $quarter/${date.year}'
-        : 'QuÄ‚Â½ $quarter/${date.year}';
+        : 'Quý $quarter/${date.year}';
   }
 
   String get overviewTitle =>
-      isEnglish ? 'Operational overview' : 'TĂ¡Â»â€¢ng quan vĂ¡ÂºÂ­n hÄ‚Â nh';
+      isEnglish ? 'Operational overview' : 'Tổng quan vận hành';
   String overviewContext(String contextLabel) => isEnglish
       ? 'Data window: $contextLabel'
-      : 'BĂ¡Â»â€˜i cĂ¡ÂºÂ£nh dĂ¡Â»Â¯ liĂ¡Â»â€¡u: $contextLabel';
+      : 'Bối cảnh dữ liệu: $contextLabel';
   String overviewRevenueLabel(String periodUnitLabel) => isEnglish
       ? 'Purchase value this $periodUnitLabel'
-      : 'GiÄ‚Â¡ trĂ¡Â»â€¹ nhĂ¡ÂºÂ­p hÄ‚Â ng trong $periodUnitLabel';
+      : 'Giá trị nhập hàng trong $periodUnitLabel';
   String get overviewDebtLabel =>
-      isEnglish ? 'Open receivables' : 'Open receivables';
+      isEnglish ? 'Open receivables' : 'Công nợ phải thu';
   String overviewOrdersLabel(String periodUnitLabel) =>
-      isEnglish ? 'Orders this $periodUnitLabel' : 'Ă„ÂĂ†Â¡n trong $periodUnitLabel';
+      isEnglish ? 'Orders this $periodUnitLabel' : 'Đơn trong $periodUnitLabel';
+
   String completionRateLabel(int completed, int total) {
     if (total == 0) {
-      return isEnglish ? 'Completion rate' : 'TĂ¡Â»Â· lĂ¡Â»â€¡ hoÄ‚Â n thÄ‚Â nh';
+      return isEnglish ? 'Completion rate' : 'Tỷ lệ hoàn thành';
     }
     return isEnglish
         ? 'Completion rate ($completed/$total)'
-        : 'TĂ¡Â»Â· lĂ¡Â»â€¡ hoÄ‚Â n thÄ‚Â nh ($completed/$total)';
+        : 'Tỷ lệ hoàn thành ($completed/$total)';
   }
 
   String get dashboardErrorTitle => isEnglish
       ? 'Unable to load dashboard data'
-      : 'KhÄ‚Â´ng thĂ¡Â»Æ’ tĂ¡ÂºÂ£i dĂ¡Â»Â¯ liĂ¡Â»â€¡u bĂ¡ÂºÂ£ng tĂ¡Â»â€¢ng quan';
+      : 'Không thể tải dữ liệu bảng tổng quan';
   String get dashboardErrorDescription => isEnglish
       ? 'Please try again or check your network connection.'
-      : 'Vui lÄ‚Â²ng thĂ¡Â»Â­ lĂ¡ÂºÂ¡i hoĂ¡ÂºÂ·c kiĂ¡Â»Æ’m tra kĂ¡ÂºÂ¿t nĂ¡Â»â€˜i mĂ¡ÂºÂ¡ng.';
-  String get retryAction => isEnglish ? 'Retry' : 'ThĂ¡Â»Â­ lĂ¡ÂºÂ¡i';
+      : 'Vui lòng thử lại hoặc kiểm tra kết nối mạng.';
+  String get retryAction => isEnglish ? 'Retry' : 'Thử lại';
   String get retryDashboardSemantic => isEnglish
       ? 'Retry loading dashboard data'
-      : 'ThĂ¡Â»Â­ tĂ¡ÂºÂ£i lĂ¡ÂºÂ¡i dĂ¡Â»Â¯ liĂ¡Â»â€¡u bĂ¡ÂºÂ£ng tĂ¡Â»â€¢ng quan';
+      : 'Thử tải lại dữ liệu bảng tổng quan';
 
-  String get filterSheetTitle => isEnglish ? 'Time filter' : 'LĂ¡Â»Âc thĂ¡Â»Âi gian';
-  String get filterByMonthLabel => isEnglish ? 'By month' : 'Theo thÄ‚Â¡ng';
-  String get filterByQuarterLabel => isEnglish ? 'By quarter' : 'Theo quÄ‚Â½';
-  String get previousPeriodLabel => isEnglish ? 'Previous period' : 'KĂ¡Â»Â³ trĂ†Â°Ă¡Â»â€ºc';
-  String get nextPeriodLabel => isEnglish ? 'Next period' : 'KĂ¡Â»Â³ sau';
-  String get pickMonthLabel => isEnglish ? 'Pick month' : 'ChĂ¡Â»Ân thÄ‚Â¡ng';
-  String get pickQuarterLabel => isEnglish ? 'Pick quarter' : 'ChĂ¡Â»Ân quÄ‚Â½';
+  String get filterSheetTitle => isEnglish ? 'Time filter' : 'Lọc thời gian';
+  String get filterByMonthLabel => isEnglish ? 'By month' : 'Theo tháng';
+  String get filterByQuarterLabel => isEnglish ? 'By quarter' : 'Theo quý';
+  String get previousPeriodLabel => isEnglish ? 'Previous period' : 'Kỳ trước';
+  String get nextPeriodLabel => isEnglish ? 'Next period' : 'Kỳ sau';
+  String get pickMonthLabel => isEnglish ? 'Pick month' : 'Chọn tháng';
+  String get pickQuarterLabel => isEnglish ? 'Pick quarter' : 'Chọn quý';
   String get pickFromCalendarLabel =>
-      isEnglish ? 'Pick from calendar' : 'ChĂ¡Â»Ân tĂ¡Â»Â« lĂ¡Â»â€¹ch';
+      isEnglish ? 'Pick from calendar' : 'Chọn từ lịch';
   String get backToCurrentLabel =>
-      isEnglish ? 'Back to current' : 'VĂ¡Â»Â hiĂ¡Â»â€¡n tĂ¡ÂºÂ¡i';
-  String get applyAction => isEnglish ? 'Apply' : 'Ä‚Âp dĂ¡Â»Â¥ng';
+      isEnglish ? 'Back to current' : 'Về hiện tại';
+  String get applyAction => isEnglish ? 'Apply' : 'Áp dụng';
 
   String orderStatusLabel(OrderStatus status) {
     switch (status) {
       case OrderStatus.pending:
-        return isEnglish ? 'Pending' : 'ChĂ¡Â»Â xĂ¡Â»Â­ lÄ‚Â½';
+        return isEnglish ? 'Pending' : 'Chờ xử lý';
       case OrderStatus.confirmed:
-        return isEnglish ? 'Confirmed' : 'Ă„ÂÄ‚Â£ xÄ‚Â¡c nhĂ¡ÂºÂ­n';
+        return isEnglish ? 'Confirmed' : 'Đã xác nhận';
       case OrderStatus.shipping:
-        return isEnglish ? 'Shipping' : 'Ă„Âang giao';
+        return isEnglish ? 'Shipping' : 'Đang giao';
       case OrderStatus.completed:
-        return isEnglish ? 'Completed' : 'HoÄ‚Â n thÄ‚Â nh';
+        return isEnglish ? 'Completed' : 'Hoàn thành';
       case OrderStatus.cancelled:
-        return isEnglish ? 'Cancelled' : 'Ă„ÂÄ‚Â£ hĂ¡Â»Â§y';
+        return isEnglish ? 'Cancelled' : 'Đã hủy';
     }
   }
 
   String paymentStatusShort(OrderPaymentStatus status) {
     switch (status) {
       case OrderPaymentStatus.cancelled:
-        return isEnglish ? 'Cancelled' : 'Ă„ÂÄ‚Â£ hĂ¡Â»Â§y';
+        return isEnglish ? 'Cancelled' : 'Đã hủy';
       case OrderPaymentStatus.failed:
-        return isEnglish ? 'Failed' : 'ThĂ¡ÂºÂ¥t bĂ¡ÂºÂ¡i';
+        return isEnglish ? 'Failed' : 'Thất bại';
       case OrderPaymentStatus.pending:
-        return isEnglish ? 'Unpaid' : 'ChĂ†Â°a thanh toÄ‚Â¡n';
+        return isEnglish ? 'Unpaid' : 'Chưa thanh toán';
       case OrderPaymentStatus.paid:
-        return isEnglish ? 'Paid' : 'Ă„ÂÄ‚Â£ thanh toÄ‚Â¡n';
+        return isEnglish ? 'Paid' : 'Đã thanh toán';
       case OrderPaymentStatus.debtRecorded:
-        return isEnglish ? 'Receivable' : 'Receivable';
+        return isEnglish ? 'Receivable' : 'Phải thu';
     }
   }
 
   String recentOrderItemsLabel(int count) =>
-      isEnglish ? '$count items' : '$count sĂ¡ÂºÂ£n phĂ¡ÂºÂ©m';
+      isEnglish ? '$count items' : '$count sản phẩm';
 
   String recentOrderMeta(
     DateTime createdAt,
     int totalItems,
     OrderPaymentStatus paymentStatus,
   ) {
-    return '${_formatRecentOrderMetaDate(createdAt)} Ă¢â‚¬Â¢ ${recentOrderItemsLabel(totalItems)} Ă¢â‚¬Â¢ ${paymentStatusShort(paymentStatus)}';
+    return '${_formatRecentOrderMetaDate(createdAt)} • ${recentOrderItemsLabel(totalItems)} • ${paymentStatusShort(paymentStatus)}';
   }
 
   String get lowStockThresholdLabel =>
-      isEnglish ? 'Stock / Threshold' : 'TĂ¡Â»â€œn / NgĂ†Â°Ă¡Â»Â¡ng';
+      isEnglish ? 'Stock / Threshold' : 'Tồn / Ngưỡng';
 
   String lowStockStatusLabel(int shortage) => shortage > 0
       ? (isEnglish
             ? 'Missing $shortage against threshold $_lowStockAlertThreshold'
-            : 'ThiĂ¡ÂºÂ¿u $shortage so vĂ¡Â»â€ºi ngĂ†Â°Ă¡Â»Â¡ng $_lowStockAlertThreshold')
-      : (isEnglish ? 'At warning threshold' : 'ChĂ¡ÂºÂ¡m ngĂ†Â°Ă¡Â»Â¡ng cĂ¡ÂºÂ£nh bÄ‚Â¡o');
+            : 'Thiếu $shortage so với ngưỡng $_lowStockAlertThreshold')
+      : (isEnglish ? 'At warning threshold' : 'Chạm ngưỡng cảnh báo');
 
   String lowStockMinimumLabel(int minimumTarget, int shortageToMinimum) =>
       shortageToMinimum > 0
       ? (isEnglish
             ? 'Min $minimumTarget (missing $shortageToMinimum)'
-            : 'Min $minimumTarget (thiĂ¡ÂºÂ¿u $shortageToMinimum)')
+            : 'Min $minimumTarget (thiếu $shortageToMinimum)')
       : 'Min: $minimumTarget';
 
   String lowStockHeaderTitle(bool hasAlerts) => hasAlerts
-      ? (isEnglish ? 'Low-stock alerts' : 'CĂ¡ÂºÂ£nh bÄ‚Â¡o tĂ¡Â»â€œn kho thĂ¡ÂºÂ¥p')
-      : (isEnglish ? 'Inventory is stable' : 'TĂ¡Â»â€œn kho Ă¡Â»â€¢n Ă„â€˜Ă¡Â»â€¹nh');
+      ? (isEnglish ? 'Low-stock alerts' : 'Cảnh báo tồn kho thấp')
+      : (isEnglish ? 'Inventory is stable' : 'Tồn kho ổn định');
 
   String lowStockHeaderSubtitle(bool hasAlerts) => hasAlerts
       ? (isEnglish
             ? 'High priority, inventory replenishment is needed soon.'
-            : 'MĂ¡Â»Â©c Ă†Â°u tiÄ‚Âªn cao, cĂ¡ÂºÂ§n bĂ¡Â»â€¢ sung hÄ‚Â ng ngay.')
+            : 'Mức ưu tiên cao, cần bổ sung hàng sớm.')
       : (isEnglish
             ? 'No SKU is currently below the warning threshold.'
-            : 'ChĂ†Â°a cÄ‚Â³ SKU nÄ‚Â o dĂ†Â°Ă¡Â»â€ºi ngĂ†Â°Ă¡Â»Â¡ng cĂ¡ÂºÂ£nh bÄ‚Â¡o.');
+            : 'Hiện chưa có SKU nào dưới ngưỡng cảnh báo.');
 
   String get lowStockEmptyTitle =>
-      isEnglish ? 'No alerts need attention' : 'KhÄ‚Â´ng cÄ‚Â³ cĂ¡ÂºÂ£nh bÄ‚Â¡o cĂ¡ÂºÂ§n xĂ¡Â»Â­ lÄ‚Â½';
+      isEnglish ? 'No alerts need attention' : 'Không có cảnh báo cần xử lý';
   String get lowStockEmptyMessage => isEnglish
       ? 'No product is currently below the warning threshold.'
-      : 'HiĂ¡Â»â€¡n chĂ†Â°a cÄ‚Â³ sĂ¡ÂºÂ£n phĂ¡ÂºÂ©m nÄ‚Â o dĂ†Â°Ă¡Â»â€ºi ngĂ†Â°Ă¡Â»Â¡ng cĂ¡ÂºÂ£nh bÄ‚Â¡o.';
+      : 'Hiện chưa có sản phẩm nào dưới ngưỡng cảnh báo.';
   String get lowStockEmptyDescription => isEnglish
       ? 'You can open detailed inventory to review it regularly.'
-      : 'BĂ¡ÂºÂ¡n cÄ‚Â³ thĂ¡Â»Æ’ xem tĂ¡Â»â€œn kho chi tiĂ¡ÂºÂ¿t Ă„â€˜Ă¡Â»Æ’ kiĂ¡Â»Æ’m tra Ă„â€˜Ă¡Â»â€¹nh kĂ¡Â»Â³.';
+      : 'Bạn có thể mở tồn kho chi tiết để kiểm tra định kỳ.';
   String get viewInventoryAction =>
-      isEnglish ? 'View inventory' : 'Xem tĂ¡Â»â€œn kho';
+      isEnglish ? 'View inventory' : 'Xem tồn kho';
   String get openInventorySemantic =>
-      isEnglish ? 'Open inventory list' : 'MĂ¡Â»Å¸ danh sÄ‚Â¡ch tĂ¡Â»â€œn kho';
+      isEnglish ? 'Open inventory list' : 'Mở danh sách tồn kho';
   String get replenishNowAction =>
-      isEnglish ? 'Replenish now' : 'NhĂ¡ÂºÂ­p thÄ‚Âªm ngay';
+      isEnglish ? 'Replenish now' : 'Nhập thêm ngay';
   String lowStockSkuCountLabel(int count) => '$count SKU';
 
   String get orderDistributionTitle =>
-      isEnglish ? 'Order status distribution' : 'PhÄ‚Â¢n bĂ¡Â»â€˜ trĂ¡ÂºÂ¡ng thÄ‚Â¡i Ă„â€˜Ă†Â¡n';
+      isEnglish ? 'Order status distribution' : 'Phân bố trạng thái đơn';
   String get orderDistributionHint => isEnglish
       ? 'Tap each status to view the corresponding order list.'
-      : 'ChĂ¡ÂºÂ¡m vÄ‚Â o tĂ¡Â»Â«ng trĂ¡ÂºÂ¡ng thÄ‚Â¡i Ă„â€˜Ă¡Â»Æ’ xem danh sÄ‚Â¡ch Ă„â€˜Ă†Â¡n tĂ†Â°Ă†Â¡ng Ă¡Â»Â©ng.';
+      : 'Chạm vào từng trạng thái để xem danh sách đơn tương ứng.';
   String get orderDistributionEmptyMessage => isEnglish
       ? 'You do not have any orders yet.'
-      : 'BĂ¡ÂºÂ¡n chĂ†Â°a cÄ‚Â³ Ă„â€˜Ă†Â¡n hÄ‚Â ng nÄ‚Â o.';
+      : 'Bạn chưa có đơn hàng nào.';
   String get orderDistributionEmptyDescription => isEnglish
       ? 'Create a new order to start tracking status.'
-      : 'HÄ‚Â£y tĂ¡ÂºÂ¡o Ă„â€˜Ă†Â¡n hÄ‚Â ng mĂ¡Â»â€ºi Ă„â€˜Ă¡Â»Æ’ bĂ¡ÂºÂ¯t Ă„â€˜Ă¡ÂºÂ§u theo dÄ‚Âµi.';
+      : 'Hãy tạo đơn hàng mới để bắt đầu theo dõi trạng thái.';
   String get createOrderToTrackSemantic => isEnglish
       ? 'Create a new order to track status'
-      : 'TĂ¡ÂºÂ¡o Ă„â€˜Ă†Â¡n hÄ‚Â ng mĂ¡Â»â€ºi Ă„â€˜Ă¡Â»Æ’ theo dÄ‚Âµi trĂ¡ÂºÂ¡ng thÄ‚Â¡i';
+      : 'Tạo đơn hàng mới để theo dõi trạng thái';
   String orderCountPercentLabel(int count, int percent) =>
-      isEnglish ? '$count orders ($percent%)' : '$count Ă„â€˜Ă†Â¡n ($percent%)';
+      isEnglish ? '$count orders ($percent%)' : '$count đơn ($percent%)';
   String get selectedStatusListDescription => isEnglish
       ? 'Orders in the selected status'
-      : 'Danh sÄ‚Â¡ch Ă„â€˜Ă†Â¡n theo trĂ¡ÂºÂ¡ng thÄ‚Â¡i Ă„â€˜Ä‚Â£ chĂ¡Â»Ân';
+      : 'Danh sách đơn theo trạng thái đã chọn';
   String get noMatchingOrdersTitle =>
-      isEnglish ? 'No matching orders' : 'ChĂ†Â°a cÄ‚Â³ Ă„â€˜Ă†Â¡n phÄ‚Â¹ hĂ¡Â»Â£p';
+      isEnglish ? 'No matching orders' : 'Chưa có đơn phù hợp';
   String get noMatchingOrdersMessage => isEnglish
       ? 'There are no orders in this status.'
-      : 'KhÄ‚Â´ng cÄ‚Â³ Ă„â€˜Ă†Â¡n nÄ‚Â o Ă¡Â»Å¸ trĂ¡ÂºÂ¡ng thÄ‚Â¡i nÄ‚Â y.';
+      : 'Không có đơn nào ở trạng thái này.';
   String get noMatchingOrdersDescription => isEnglish
       ? 'Choose another status or switch the tracking period.'
-      : 'HÄ‚Â£y chĂ¡Â»Ân trĂ¡ÂºÂ¡ng thÄ‚Â¡i khÄ‚Â¡c hoĂ¡ÂºÂ·c chuyĂ¡Â»Æ’n kĂ¡Â»Â³ theo dÄ‚Âµi.';
+      : 'Hãy chọn trạng thái khác hoặc chuyển kỳ theo dõi.';
 
   String get debtAgingTitle =>
-      isEnglish ? 'Debt by age' : 'CÄ‚Â´ng nĂ¡Â»Â£ theo tuĂ¡Â»â€¢i nĂ¡Â»Â£';
-  String get viewDebtListAction => isEnglish ? 'View list' : 'Xem danh sÄ‚Â¡ch';
+      isEnglish ? 'Debt by age' : 'Công nợ theo tuổi nợ';
+  String get viewDebtListAction => isEnglish ? 'View list' : 'Xem danh sách';
   String totalDebtLabel(int total) => isEnglish
       ? 'Total debt: ${formatVnd(total)}'
-      : 'TĂ¡Â»â€¢ng cÄ‚Â´ng nĂ¡Â»Â£: ${formatVnd(total)}';
+      : 'Tổng công nợ: ${formatVnd(total)}';
   String get debtAgingHint => isEnglish
       ? 'Debt aging is grouped by order creation date for orders that still have an outstanding balance.'
-      : 'TuĂ¡Â»â€¢i nĂ¡Â»Â£ Ă„â€˜Ă†Â°Ă¡Â»Â£c nhÄ‚Â³m theo ngÄ‚Â y tĂ¡ÂºÂ¡o Ă„â€˜Ă†Â¡n vĂ¡Â»â€ºi cÄ‚Â¡c Ă„â€˜Ă†Â¡n vĂ¡ÂºÂ«n cÄ‚Â²n dĂ†Â° nĂ¡Â»Â£.';
+      : 'Tuổi nợ được nhóm theo ngày tạo đơn với các đơn vẫn còn dư nợ.';
   String get debtAgingEmptyMessage => isEnglish
       ? 'No debt has been recorded yet.'
-      : 'HiĂ¡Â»â€¡n chĂ†Â°a cÄ‚Â³ cÄ‚Â´ng nĂ¡Â»Â£ phÄ‚Â¡t sinh.';
+      : 'Hiện chưa có công nợ phát sinh.';
   String get debtAgingEmptyDescription => isEnglish
       ? 'Debt will appear after transactions are recorded.'
-      : 'CÄ‚Â´ng nĂ¡Â»Â£ sĂ¡ÂºÂ½ hiĂ¡Â»Æ’n thĂ¡Â»â€¹ sau khi cÄ‚Â³ giao dĂ¡Â»â€¹ch.';
+      : 'Công nợ sẽ hiển thị sau khi có giao dịch.';
   String get openDebtListAction =>
-      isEnglish ? 'Open debt list' : 'MĂ¡Â»Å¸ danh sÄ‚Â¡ch cÄ‚Â´ng nĂ¡Â»Â£';
+      isEnglish ? 'Open debt list' : 'Mở danh sách công nợ';
   String get openDebtListSemantic =>
-      isEnglish ? 'Open debt list' : 'MĂ¡Â»Å¸ danh sÄ‚Â¡ch cÄ‚Â´ng nĂ¡Â»Â£';
+      isEnglish ? 'Open debt list' : 'Mở danh sách công nợ';
   String bucketValueLabel(int amount) => isEnglish
       ? 'Value: ${formatVnd(amount)}'
-      : 'GiÄ‚Â¡ trĂ¡Â»â€¹: ${formatVnd(amount)}';
+      : 'Giá trị: ${formatVnd(amount)}';
 
   String bucketDescription(_DebtBucket bucket) {
     if (bucket.minDay >= 91) {
       return isEnglish
           ? 'This overdue bucket is high risk and should be prioritized for follow-up.'
-          : 'NhÄ‚Â³m nĂ¡Â»Â£ quÄ‚Â¡ hĂ¡ÂºÂ¡n cao, cĂ¡ÂºÂ§n Ă†Â°u tiÄ‚Âªn theo dÄ‚Âµi vÄ‚Â  thu hĂ¡Â»â€œi.';
+          : 'Nhóm nợ quá hạn cao, cần ưu tiên theo dõi và thu hồi.';
     }
     return isEnglish
         ? 'This bucket includes debts from ${bucket.minDay} to ${bucket.maxDay} days.'
-        : 'NhÄ‚Â³m nÄ‚Â y bao gĂ¡Â»â€œm cÄ‚Â¡c khoĂ¡ÂºÂ£n nĂ¡Â»Â£ tĂ¡Â»Â« ${bucket.minDay} Ă„â€˜Ă¡ÂºÂ¿n ${bucket.maxDay} ngÄ‚Â y.';
+        : 'Nhóm này bao gồm các khoản nợ từ ${bucket.minDay} đến ${bucket.maxDay} ngày.';
   }
 
   String get over90DayNote => isEnglish
       ? '>90 days includes all overdue debt from 91 days onward.'
-      : '>90 ngÄ‚Â y bao gĂ¡Â»â€œm toÄ‚Â n bĂ¡Â»â„¢ cÄ‚Â´ng nĂ¡Â»Â£ quÄ‚Â¡ hĂ¡ÂºÂ¡n tĂ¡Â»Â« 91 ngÄ‚Â y trĂ¡Â»Å¸ lÄ‚Âªn.';
+      : '>90 ngày bao gồm toàn bộ công nợ quá hạn từ 91 ngày trở lên.';
 
   String get warrantyStatusTitle =>
-      isEnglish ? 'Serial status' : 'TrĂ¡ÂºÂ¡ng thÄ‚Â¡i serial';
+      isEnglish ? 'Serial status' : 'Trạng thái serial';
   String get metricUnavailableLabel =>
-      isEnglish ? 'Unavailable' : 'ChĂ†Â°a cÄ‚Â³ dĂ¡Â»Â¯ liĂ¡Â»â€¡u thĂ¡ÂºÂ­t';
+      isEnglish ? 'Unavailable' : 'Chưa có dữ liệu';
   String warrantyStatusUnavailableMessage(int activationCount) {
     if (isEnglish) {
       return activationCount > 0
@@ -656,19 +658,19 @@ class _DashboardTexts {
           : 'There is no real serial-status breakdown for this dashboard card yet.';
     }
     return activationCount > 0
-        ? 'Ă„ÂÄ‚Â£ cÄ‚Â³ $activationCount lĂ†Â°Ă¡Â»Â£t kÄ‚Â­ch hoĂ¡ÂºÂ¡t bĂ¡ÂºÂ£o hÄ‚Â nh, nhĂ†Â°ng chĂ†Â°a cÄ‚Â³ dĂ¡Â»Â¯ liĂ¡Â»â€¡u trĂ¡ÂºÂ¡ng thÄ‚Â¡i serial thĂ¡Â»Â±c Ă„â€˜Ă¡Â»Æ’ tĂ¡Â»â€¢ng hĂ¡Â»Â£p cho thĂ¡ÂºÂ» nÄ‚Â y.'
-        : 'ChĂ†Â°a cÄ‚Â³ dĂ¡Â»Â¯ liĂ¡Â»â€¡u trĂ¡ÂºÂ¡ng thÄ‚Â¡i serial thĂ¡Â»Â±c Ă„â€˜Ă¡Â»Æ’ tĂ¡Â»â€¢ng hĂ¡Â»Â£p cho thĂ¡ÂºÂ» nÄ‚Â y.';
+        ? 'Đã có $activationCount lượt kích hoạt bảo hành, nhưng chưa có dữ liệu trạng thái serial thực để tổng hợp cho thẻ này.'
+        : 'Chưa có dữ liệu trạng thái serial thực để tổng hợp cho thẻ này.';
   }
 
   String get warrantyStatusUnavailableDescription => isEnglish
       ? 'The app currently has activation history, but backend data for real serial-status categories is not available here.'
-      : 'HiĂ¡Â»â€¡n app chĂ¡Â»â€° cÄ‚Â³ lĂ¡Â»â€¹ch sĂ¡Â»Â­ kÄ‚Â­ch hoĂ¡ÂºÂ¡t; backend chĂ†Â°a cung cĂ¡ÂºÂ¥p nhÄ‚Â³m trĂ¡ÂºÂ¡ng thÄ‚Â¡i serial thĂ¡Â»Â±c cho mÄ‚Â n hÄ‚Â¬nh nÄ‚Â y.';
+      : 'Ứng dụng hiện có lịch sử kích hoạt, nhưng backend chưa cung cấp nhóm trạng thái serial thực cho màn hình này.';
 
   String debtBucketRangeLabel(int minDay, int maxDay) {
     if (maxDay >= 9999) {
-      return isEnglish ? '>90 days' : '>90 ngÄ‚Â y';
+      return isEnglish ? '>90 days' : '>90 ngày';
     }
-    return isEnglish ? '$minDay-$maxDay days' : '$minDay-$maxDay ngÄ‚Â y';
+    return isEnglish ? '$minDay-$maxDay days' : '$minDay-$maxDay ngày';
   }
 }
 
@@ -688,7 +690,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   _DashboardTimeFilter _timeFilter = _DashboardTimeFilter.month;
   DateTime _selectedPeriod = DateTime.now();
 
-  // Snapshot cache Ă¢â‚¬â€ avoids recomputation when inputs haven't changed.
+  // Snapshot cache avoids recomputation when inputs have not changed.
   _DashboardSnapshot? _cachedSnapshot;
   List<Order>? _lastSnapshotOrders;
   List<WarrantyActivationRecord>? _lastSnapshotActivations;
@@ -1894,7 +1896,7 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
                     child: Text(
                       isEnglish
                           ? 'Showing all 12 months. $zeroValueMonthCount months without data are displayed as 0.'
-                          : 'HiĂ¡Â»Æ’n thĂ¡Â»â€¹ Ă„â€˜Ă¡Â»Â§ 12 thÄ‚Â¡ng, $zeroValueMonthCount thÄ‚Â¡ng chĂ†Â°a cÄ‚Â³ dĂ¡Â»Â¯ liĂ¡Â»â€¡u Ă„â€˜ang Ă„â€˜Ă†Â°Ă¡Â»Â£c hiĂ¡Â»Æ’n thĂ¡Â»â€¹ lÄ‚Â  0.',
+                          : 'Hiển thị đủ 12 tháng, $zeroValueMonthCount tháng chưa có dữ liệu đang được hiển thị là 0.',
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: colorScheme.onPrimaryContainer,
                         fontWeight: FontWeight.w600,
@@ -1936,7 +1938,7 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
                   Text(
                     isEnglish
                         ? 'No purchase orders have been recorded in $displayYear yet.'
-                        : 'BĂ¡ÂºÂ¡n chĂ†Â°a cÄ‚Â³ Ă„â€˜Ă†Â¡n nhĂ¡ÂºÂ­p nÄ‚Â o trong nĂ„Æ’m $displayYear.',
+                        : 'Bạn chưa có đơn nhập nào trong năm $displayYear.',
                     style: theme.textTheme.titleSmall?.copyWith(
                       color: theme.colorScheme.onSurface,
                       fontWeight: FontWeight.w700,
@@ -1947,7 +1949,7 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
                   Text(
                     isEnglish
                         ? 'Create a new order to start tracking monthly purchase value.'
-                        : 'HÄ‚Â£y tĂ¡ÂºÂ¡o Ă„â€˜Ă†Â¡n hÄ‚Â ng mĂ¡Â»â€ºi Ă„â€˜Ă¡Â»Æ’ bĂ¡ÂºÂ¯t Ă„â€˜Ă¡ÂºÂ§u theo dÄ‚Âµi giÄ‚Â¡ trĂ¡Â»â€¹ nhĂ¡ÂºÂ­p theo thÄ‚Â¡ng.',
+                        : 'Hãy tạo đơn hàng mới để bắt đầu theo dõi giá trị nhập theo tháng.',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: _dashboardMutedText(context),
                       fontWeight: FontWeight.w500,
@@ -1961,7 +1963,7 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
                       button: true,
                       label: isEnglish
                           ? 'Create a new order to track monthly purchase value'
-                          : 'TĂ¡ÂºÂ¡o Ă„â€˜Ă†Â¡n hÄ‚Â ng mĂ¡Â»â€ºi Ă„â€˜Ă¡Â»Æ’ theo dÄ‚Âµi giÄ‚Â¡ trĂ¡Â»â€¹ nhĂ¡ÂºÂ­p hÄ‚Â ng theo thÄ‚Â¡ng',
+                          : 'Tạo đơn hàng mới để theo dõi giá trị nhập hàng theo tháng',
                       child: FilledButton.icon(
                         onPressed: widget.onCreateOrder,
                         style: FilledButton.styleFrom(
@@ -2067,7 +2069,7 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
                           return SideTitleWidget(
                             axisSide: meta.axisSide,
                             child: Text(
-                              '${_formatCompactValue(amount / 1000000)}M Ă¢â€Â«',
+                              '${_formatCompactValue(amount / 1000000)}M đ',
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: const Color(0xFF334155),
                                 fontWeight: FontWeight.w700,
@@ -2092,7 +2094,7 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
                           return SideTitleWidget(
                             axisSide: meta.axisSide,
                             child: Text(
-                              '${_formatCompactValue(value / 1000000)}M Ă¢â€Â«',
+                              '${_formatCompactValue(value / 1000000)}M đ',
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: _dashboardMutedText(context),
                                 fontWeight: FontWeight.w600,
@@ -3828,13 +3830,13 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
       return _EmptyCard(
         title: isEnglish
             ? 'No activation data yet'
-            : 'ChĂ†Â°a cÄ‚Â³ dĂ¡Â»Â¯ liĂ¡Â»â€¡u kÄ‚Â­ch hoĂ¡ÂºÂ¡t',
+            : 'Chưa có dữ liệu kích hoạt',
         message: isEnglish
             ? 'No activation has been recorded in the last $windowDays days.'
-            : 'ChĂ†Â°a ghi nhĂ¡ÂºÂ­n lĂ†Â°Ă¡Â»Â£t kÄ‚Â­ch hoĂ¡ÂºÂ¡t nÄ‚Â o trong $windowDays ngÄ‚Â y gĂ¡ÂºÂ§n Ă„â€˜Ä‚Â¢y.',
+            : 'Chưa ghi nhận lượt kích hoạt nào trong $windowDays ngày gần đây.',
         description: isEnglish
             ? 'Complete orders and process serials to start tracking.'
-            : 'HÄ‚Â£y hoÄ‚Â n tĂ¡ÂºÂ¥t Ă„â€˜Ă†Â¡n vÄ‚Â  xĂ¡Â»Â­ lÄ‚Â½ serial Ă„â€˜Ă¡Â»Æ’ bĂ¡ÂºÂ¯t Ă„â€˜Ă¡ÂºÂ§u theo dÄ‚Âµi.',
+            : 'Hãy hoàn tất đơn và xử lý serial để bắt đầu theo dõi.',
         icon: Icons.show_chart_outlined,
       );
     }
@@ -3898,7 +3900,7 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
             Text(
               isEnglish
                   ? 'Serial processing in the last $windowDays days'
-                  : 'XĂ¡Â»Â­ lÄ‚Â½ serial $windowDays ngÄ‚Â y gĂ¡ÂºÂ§n nhĂ¡ÂºÂ¥t',
+                  : 'Xử lý serial $windowDays ngày gần nhất',
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
@@ -3908,10 +3910,10 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
               useWeeklyBuckets
                   ? (isEnglish
                         ? 'Weekly activation volume'
-                        : 'SĂ¡Â»â€˜ lĂ†Â°Ă¡Â»Â£t kÄ‚Â­ch hoĂ¡ÂºÂ¡t theo tuĂ¡ÂºÂ§n')
+                        : 'Số lượt kích hoạt theo tuần')
                   : (isEnglish
                         ? 'Daily activation volume'
-                        : 'SĂ¡Â»â€˜ lĂ†Â°Ă¡Â»Â£t kÄ‚Â­ch hoĂ¡ÂºÂ¡t theo tĂ¡Â»Â«ng ngÄ‚Â y'),
+                        : 'Số lượt kích hoạt theo từng ngày'),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: secondaryTextColor,
                 fontWeight: FontWeight.w500,
@@ -3919,7 +3921,7 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
             ),
             const SizedBox(height: 8),
             Text(
-              isEnglish ? 'Unit: activations/day' : 'Ă„ÂĂ†Â¡n vĂ¡Â»â€¹: lĂ†Â°Ă¡Â»Â£t/ngÄ‚Â y',
+              isEnglish ? 'Unit: activations/day' : 'Đơn vị: lượt/ngày',
               style: theme.textTheme.labelSmall?.copyWith(
                 color: secondaryTextColor,
                 fontWeight: FontWeight.w600,
@@ -3940,7 +3942,7 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
                 child: Text(
                   isEnglish
                       ? 'Grouped by week for easier reading on mobile.'
-                      : 'Ă„Âang gĂ¡Â»â„¢p dĂ¡Â»Â¯ liĂ¡Â»â€¡u theo tuĂ¡ÂºÂ§n Ă„â€˜Ă¡Â»Æ’ dĂ¡Â»â€¦ Ă„â€˜Ă¡Â»Âc trÄ‚Âªn mobile.',
+                      : 'Đang gộp dữ liệu theo tuần để dễ đọc trên mobile.',
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: theme.colorScheme.onPrimaryContainer,
                     fontWeight: FontWeight.w700,
@@ -4051,8 +4053,8 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
                           }
                           return LineTooltipItem(
                             isEnglish
-                                ? '${_formatPointLabel(data[idx])} Ă¢â‚¬Â¢ ${spot.y.toInt()} activations'
-                                : '${_formatPointLabel(data[idx])} Ă¢â‚¬Â¢ ${spot.y.toInt()} lĂ†Â°Ă¡Â»Â£t',
+                                ? '${_formatPointLabel(data[idx])} - ${spot.y.toInt()} activations'
+                                : '${_formatPointLabel(data[idx])} - ${spot.y.toInt()} l??t',
                             const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
@@ -4198,17 +4200,17 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
                 _MiniKpi(
                   label: isEnglish
                       ? 'Total $windowDays days'
-                      : 'TĂ¡Â»â€¢ng $windowDays ngÄ‚Â y',
+                      : 'Tổng $windowDays ngày',
                   value: '$totalActivations',
                 ),
                 _MiniKpi(
-                  label: isEnglish ? 'Average / day' : 'Trung bÄ‚Â¬nh/ngÄ‚Â y',
+                  label: isEnglish ? 'Average / day' : 'Trung bình/ngày',
                   value: averagePerDay.toStringAsFixed(1),
                 ),
                 _MiniKpi(
                   label: isEnglish
                       ? '${useWeeklyBuckets ? 'Peak week' : 'Peak'} ($peakLabel)'
-                      : '${useWeeklyBuckets ? 'Ă„ÂĂ¡Â»â€°nh tuĂ¡ÂºÂ§n' : 'Ă„ÂĂ¡Â»â€°nh'} ($peakLabel)',
+                      : '${useWeeklyBuckets ? 'Đỉnh tuần' : 'Đỉnh'} ($peakLabel)',
                   value: '${peakPoint.count}',
                 ),
               ],
@@ -4381,7 +4383,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
                   ? texts.metricUnavailableLabel
                   : (isEnglish
                         ? 'Total: $total serial-processing orders'
-                        : 'TĂ¡Â»â€¢ng: $total Ă„â€˜Ă†Â¡n xĂ¡Â»Â­ lÄ‚Â½ serial'),
+                        : 'Tổng: $total đơn xử lý serial'),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: _dashboardMutedText(context),
               ),
@@ -4694,7 +4696,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
               ),
               const SizedBox(height: 2),
               Text(
-                isEnglish ? 'Total' : 'TĂ¡Â»â€¢ng',
+                isEnglish ? 'Total' : 'Tổng',
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: _dashboardMutedText(context),
                   fontWeight: FontWeight.w600,
@@ -4964,7 +4966,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
       }
     }
 
-    final otherLabel = isEnglish ? 'Other' : 'KhÄ‚Â¡c';
+    final otherLabel = isEnglish ? 'Other' : 'Khác';
 
     if (groupedCount > 0) {
       visibleStats.add(
@@ -5199,7 +5201,7 @@ class _TopCustomerCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${stat.orderCount} Ă„â€˜Ă†Â¡n Ă¢â‚¬Â¢ ${formatVnd(stat.total)}',
+                  '${stat.orderCount} đơn • ${formatVnd(stat.total)}',
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: theme.colorScheme.onSurface,
                   ),
@@ -5218,7 +5220,7 @@ class _TopCustomerCard extends StatelessWidget {
                 ),
               ),
               Text(
-                'TB/Ă„â€˜Ă†Â¡n: ${formatVnd(stat.avgOrder)}',
+                'TB/đơn: ${formatVnd(stat.avgOrder)}',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: _dashboardMutedText(context),
                 ),

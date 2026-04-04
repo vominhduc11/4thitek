@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { articleJsonLd, createBaseMetadata, localBusinessJsonLd, organizationJsonLd, productJsonLd, websiteJsonLd } from './seo';
+import {
+    articleJsonLd,
+    createBaseMetadata,
+    localBusinessJsonLd,
+    organizationJsonLd,
+    productJsonLd,
+    websiteJsonLd
+} from './seo';
 
 describe('seo helpers', () => {
     it('builds canonical metadata without fake hreflang alternates', () => {
@@ -48,9 +55,10 @@ describe('seo helpers', () => {
             mainEntityOfPage: 'https://4thitek.vn/blogs/99-review'
         });
         expect(localBusinessJsonLd()).toMatchObject({
-            description: '4T HITEK la don vi phan phoi va ho tro san pham cong nghe ket noi cho hanh trinh duong dai tai Viet Nam.',
+            description:
+                '4T HITEK là đơn vị phân phối và hỗ trợ sản phẩm công nghệ kết nối cho hành trình đường dài tại Việt Nam.',
             address: {
-                streetAddress: '79/30/52 Âu Cơ, Phương Hoà Bình, TP. Hồ Chí Minh'
+                streetAddress: '79/30/52 Âu Cơ, Phường Hòa Bình, TP. Hồ Chí Minh'
             }
         });
     });

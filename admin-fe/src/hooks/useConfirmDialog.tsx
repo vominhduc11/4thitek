@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Modal from 'react-modal'
 import { GhostButton, PrimaryButton, panelClass, type BadgeTone } from '../components/ui-kit'
+import { useLanguage } from '../context/LanguageContext'
 
 type ConfirmTone = Extract<BadgeTone, 'warning' | 'danger' | 'info'>
 
@@ -54,6 +55,7 @@ const modalStyles = {
 } as const
 
 export const useConfirmDialog = () => {
+  const { language, t } = useLanguage()
   const [pending, setPending] = useState<PendingConfirm | null>(null)
   const [pendingPrompt, setPendingPrompt] = useState<PendingPrompt | null>(null)
   const [promptValue, setPromptValue] = useState('')
@@ -89,27 +91,27 @@ export const useConfirmDialog = () => {
   const confirm = useCallback((options: ConfirmOptions) => {
     return new Promise<boolean>((resolve) => {
       setPending({
-        confirmLabel: 'Xác nhận',
-        cancelLabel: 'Hủy',
+        confirmLabel: t('Xác nhận'),
+        cancelLabel: t('Hủy thao tác'),
         tone: 'info',
         ...options,
         resolve,
       })
     })
-  }, [])
+  }, [t])
 
   const prompt = useCallback((options: PromptOptions) => {
     setPromptValue('')
     return new Promise<string | null>((resolve) => {
       setPendingPrompt({
-        confirmLabel: 'Xác nhận',
-        cancelLabel: 'Hủy',
+        confirmLabel: t('Xác nhận'),
+        cancelLabel: t('Hủy thao tác'),
         tone: 'info',
         ...options,
         resolve,
       })
     })
-  }, [])
+  }, [t])
 
   const dialog = useMemo(
     () => (
@@ -117,7 +119,7 @@ export const useConfirmDialog = () => {
         isOpen={Boolean(pending)}
         onRequestClose={() => close(false)}
         style={modalStyles}
-        contentLabel={pending?.title ?? 'Confirm action'}
+        contentLabel={pending?.title ?? (language === 'vi' ? 'Xác nhận thao tác' : 'Confirm action')}
       >
         {pending ? (
           <div className={`${panelClass} w-full space-y-5 overflow-hidden p-5 sm:p-6`}>
@@ -165,7 +167,7 @@ export const useConfirmDialog = () => {
         isOpen={Boolean(pendingPrompt)}
         onRequestClose={() => closePrompt(false)}
         style={modalStyles}
-        contentLabel={pendingPrompt?.title ?? 'Input required'}
+        contentLabel={pendingPrompt?.title ?? (language === 'vi' ? 'Yêu cầu nhập liệu' : 'Input required')}
         onAfterOpen={() => inputRef.current?.focus()}
       >
         {pendingPrompt ? (
@@ -219,7 +221,7 @@ export const useConfirmDialog = () => {
         ) : null}
       </Modal>
     ),
-    [closePrompt, pendingPrompt, promptValue],
+    [closePrompt, language, pendingPrompt, promptValue],
   )
 
   return { confirm, prompt, confirmDialog: dialog, promptDialog }

@@ -1077,7 +1077,7 @@ function ProductDetailPage() {
                   onClick={handleCancelEdit}
                 >
                   <X className="h-4 w-4" />
-                  {t('Hủy')}
+                  {t('Hủy thao tác')}
                 </button>
                 <button
                   className="inline-flex items-center gap-2 rounded-2xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(37,99,235,0.35)] transition hover:-translate-y-0.5 hover:bg-[var(--accent-strong)] active:translate-y-0"

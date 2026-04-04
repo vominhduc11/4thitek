@@ -2,8 +2,7 @@ const normalizeVietnamese = (value: string) =>
     value
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[đĐ]/g, 'd')
-        .replace(/Ä‘/gi, 'd');
+        .replace(/[đĐ]/g, 'd');
 
 export const slugify = (value: string) =>
     normalizeVietnamese(value)

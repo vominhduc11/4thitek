@@ -108,7 +108,7 @@ function ProductsToolbar({
 
       <label className="space-y-2 lg:hidden">
         <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
-          {t('Sáº¯p xáº¿p')}
+          {t('Sắp xếp')}
         </span>
         <select
           className={`${inputClass} w-full`}
@@ -122,14 +122,14 @@ function ProductsToolbar({
           }}
           value={`${sortField}|${sortDir}`}
         >
-          <option value="updatedAt|desc">{t('Má»›i nháº¥t')}</option>
-          <option value="updatedAt|asc">{`${t('Má»›i nháº¥t')} â†‘`}</option>
-          <option value="name|asc">{`${t('TĂªn')} A-Z`}</option>
-          <option value="name|desc">{`${t('TĂªn')} Z-A`}</option>
-          <option value="retailPrice|desc">{`${t('GiĂ¡')} â†“`}</option>
-          <option value="retailPrice|asc">{`${t('GiĂ¡')} â†‘`}</option>
-          <option value="availableStock|desc">{`${t('Tá»“n kho')} â†“`}</option>
-          <option value="availableStock|asc">{`${t('Tá»“n kho')} â†‘`}</option>
+          <option value="updatedAt|desc">{t('Mới nhất')}</option>
+          <option value="updatedAt|asc">{`${t('Mới nhất')} ↑`}</option>
+          <option value="name|asc">{`${t('Tên')} A-Z`}</option>
+          <option value="name|desc">{`${t('Tên')} Z-A`}</option>
+          <option value="retailPrice|desc">{`${t('Giá')} ↓`}</option>
+          <option value="retailPrice|asc">{`${t('Giá')} ↑`}</option>
+          <option value="availableStock|desc">{`${t('Tồn kho')} ↓`}</option>
+          <option value="availableStock|asc">{`${t('Tồn kho')} ↑`}</option>
         </select>
       </label>
 

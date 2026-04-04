@@ -72,7 +72,7 @@ export default function ContactInfo() {
             {error && !data && (
                 <p className="mb-10 text-center text-sm text-[var(--destructive-text)]">
                     {language === 'vi'
-                        ? 'KhĂ´ng thá»ƒ táº£i thĂ´ng tin liĂªn há»‡.'
+                        ? 'Không thể tải thông tin liên hệ.'
                         : 'Unable to load contact details.'}
                 </p>
             )}

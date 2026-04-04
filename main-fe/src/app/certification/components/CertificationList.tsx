@@ -35,7 +35,7 @@ export default function CertificationList() {
                     {error && !data && (
                         <p className="mt-4 text-sm text-[var(--destructive-text)]">
                             {language === 'vi'
-                                ? 'KhĂ´ng thá»ƒ táº£i ná»™i dung chá»©ng nháº­n.'
+                                ? 'Không thể tải nội dung chứng nhận.'
                                 : 'Unable to load certification content.'}
                         </p>
                     )}

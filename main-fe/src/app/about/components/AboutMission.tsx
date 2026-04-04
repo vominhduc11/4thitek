@@ -58,7 +58,7 @@ export default function AboutMission() {
                             {error && !data && (
                                 <p className="text-sm text-[var(--destructive-text)]">
                                     {language === 'vi'
-                                        ? 'KhĂ´ng thá»ƒ táº£i ná»™i dung trang giá»›i thiá»‡u.'
+                                        ? 'Không thể tải nội dung trang giới thiệu.'
                                         : 'Unable to load about content.'}
                                 </p>
                             )}

@@ -84,7 +84,7 @@ export const organizationJsonLd = () => ({
     sameAs: [SITE_URL]
 });
 
-export const localBusinessJsonLd = () => ({
+export const localBusinessJsonLd = (locale: SupportedLocale = 'vi') => ({
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
     name: SITE_NAME,
@@ -94,7 +94,10 @@ export const localBusinessJsonLd = () => ({
         url: `${SITE_URL}/logo.png`
     },
     image: `${SITE_URL}/logo.png`,
-    description: '4T HITEK la don vi phan phoi va ho tro san pham cong nghe ket noi cho hanh trinh duong dai tai Viet Nam.',
+    description:
+        locale === 'vi'
+            ? '4T HITEK là đơn vị phân phối và hỗ trợ sản phẩm công nghệ kết nối cho hành trình đường dài tại Việt Nam.'
+            : '4T HITEK distributes and supports connected technology products for long-distance travel in Vietnam.',
     address: {
         '@type': 'PostalAddress',
         streetAddress: REGISTERED_ADDRESS,
