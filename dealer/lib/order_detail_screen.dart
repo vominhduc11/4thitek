@@ -913,6 +913,28 @@ class OrderDetailScreen extends StatelessWidget {
                           isWarning: true,
                         ),
                       ],
+                      if (order.reservedCreditAmount > 0) ...[
+                        const SizedBox(height: 8),
+                        _InfoRow(
+                          label: texts.reservedCreditAmountLabel,
+                          value: formatVnd(order.reservedCreditAmount),
+                        ),
+                      ],
+                      if (order.openReceivableAmount > 0) ...[
+                        const SizedBox(height: 8),
+                        _InfoRow(
+                          label: texts.openReceivableAmountLabel,
+                          value: formatVnd(order.openReceivableAmount),
+                          isWarning: true,
+                        ),
+                      ],
+                      if (order.creditExposureAmount > 0) ...[
+                        const SizedBox(height: 8),
+                        _InfoRow(
+                          label: texts.creditExposureAmountLabel,
+                          value: formatVnd(order.creditExposureAmount),
+                        ),
+                      ],
                       const Divider(height: 20),
                       _InfoRow(
                         label: texts.totalLabel,
@@ -975,153 +997,159 @@ class _OrderDetailTexts {
 
   static const int proofRequiredThreshold = 10000000;
 
-  String get screenTitle => isEnglish ? 'Order details' : 'Chi tiết đơn hàng';
+  String get screenTitle => isEnglish ? 'Order details' : 'Chi tiáº¿t Ä‘Æ¡n hĂ ng';
   String get orderNotFoundMessage =>
-      isEnglish ? 'Order not found.' : 'Không tìm thấy đơn hàng.';
+      isEnglish ? 'Order not found.' : 'KhĂ´ng tĂ¬m tháº¥y Ä‘Æ¡n hĂ ng.';
   String get orderNotFoundDescription => isEnglish
       ? 'This order may have been removed or is no longer available in the current session.'
-      : 'Đơn hàng này có thể đã bị xóa hoặc không còn khả dụng trong phiên làm việc hiện tại.';
+      : 'ÄÆ¡n hĂ ng nĂ y cĂ³ thá»ƒ Ä‘Ă£ bá»‹ xĂ³a hoáº·c khĂ´ng cĂ²n kháº£ dá»¥ng trong phiĂªn lĂ m viá»‡c hiá»‡n táº¡i.';
   String get updateOrderStatusFailedMessage => isEnglish
       ? 'Unable to update the order status. Please try again.'
-      : 'Không thể cập nhật trạng thái đơn hàng. Vui lòng thử lại.';
+      : 'KhĂ´ng thá»ƒ cáº­p nháº­t tráº¡ng thĂ¡i Ä‘Æ¡n hĂ ng. Vui lĂ²ng thá»­ láº¡i.';
   String get confirmCancelTitle =>
-      isEnglish ? 'Confirm order cancellation' : 'Xác nhận hủy đơn';
+      isEnglish ? 'Confirm order cancellation' : 'XĂ¡c nháº­n há»§y Ä‘Æ¡n';
   String orderCodeSummary(String orderId) =>
-      isEnglish ? 'Order: #$orderId' : 'Đơn hàng: #$orderId';
+      isEnglish ? 'Order: #$orderId' : 'ÄÆ¡n hĂ ng: #$orderId';
   String totalAmountSummary(String amount) =>
-      isEnglish ? 'Total amount: $amount' : 'Tổng tiền: $amount';
+      isEnglish ? 'Total amount: $amount' : 'Tá»•ng tiá»n: $amount';
   String itemCountSummary(int count) =>
-      isEnglish ? '$count items' : '$count sản phẩm';
+      isEnglish ? '$count items' : '$count sáº£n pháº©m';
   String get irreversibleWarning => isEnglish
       ? 'This action cannot be undone.'
-      : 'Hành động này không thể hoàn tác.';
-  String get noAction => isEnglish ? 'No' : 'Không';
-  String get cancelOrderAction => isEnglish ? 'Cancel order' : 'Hủy đơn';
+      : 'HĂ nh Ä‘á»™ng nĂ y khĂ´ng thá»ƒ hoĂ n tĂ¡c.';
+  String get noAction => isEnglish ? 'No' : 'KhĂ´ng';
+  String get cancelOrderAction => isEnglish ? 'Cancel order' : 'Há»§y Ä‘Æ¡n';
   String get confirmReceivedTitle =>
-      isEnglish ? 'Confirm delivery received' : 'Xác nhận đã nhận hàng';
+      isEnglish ? 'Confirm delivery received' : 'XĂ¡c nháº­n Ä‘Ă£ nháº­n hĂ ng';
   String get paymentWillBeMarkedCompleteMessage => isEnglish
       ? 'Payment will be marked complete for this order.'
-      : 'Thanh toán sẽ được đánh dấu hoàn tất cho đơn hàng này.';
-  String get confirmAction => isEnglish ? 'Confirm' : 'Xác nhận';
+      : 'Thanh toĂ¡n sáº½ Ä‘Æ°á»£c Ä‘Ă¡nh dáº¥u hoĂ n táº¥t cho Ä‘Æ¡n hĂ ng nĂ y.';
+  String get confirmAction => isEnglish ? 'Confirm' : 'XĂ¡c nháº­n';
   String get confirmReceivedAction =>
-      isEnglish ? 'Confirm received' : 'Xác nhận đã nhận hàng';
+      isEnglish ? 'Confirm received' : 'XĂ¡c nháº­n Ä‘Ă£ nháº­n hĂ ng';
   String get cannotOpenPhoneAppMessage => isEnglish
       ? 'Unable to open the phone app on this device.'
-      : 'Không thể mở trình gọi điện trên thiết bị này.';
+      : 'KhĂ´ng thá»ƒ má»Ÿ trĂ¬nh gá»i Ä‘iá»‡n trĂªn thiáº¿t bá»‹ nĂ y.';
   String get cannotOpenMapAppMessage => isEnglish
       ? 'Unable to open the map application.'
-      : 'Không thể mở ứng dụng bản đồ.';
+      : 'KhĂ´ng thá»ƒ má»Ÿ á»©ng dá»¥ng báº£n Ä‘á»“.';
   String get reorderNoneAddedMessage => isEnglish
       ? 'No products were added to the cart because they are out of stock.'
-      : 'Không có sản phẩm nào được thêm vào giỏ vì đã hết hàng.';
+      : 'KhĂ´ng cĂ³ sáº£n pháº©m nĂ o Ä‘Æ°á»£c thĂªm vĂ o giá» vĂ¬ Ä‘Ă£ háº¿t hĂ ng.';
   String get reorderAllAddedMessage => isEnglish
       ? 'All products were added to the cart.'
-      : 'Đã thêm tất cả sản phẩm vào giỏ hàng.';
+      : 'ÄĂ£ thĂªm táº¥t cáº£ sáº£n pháº©m vĂ o giá» hĂ ng.';
   String reorderPartialAddedMessage(int addedCount, List<String> skipped) =>
       isEnglish
       ? 'Added $addedCount products. Skipped: ${skipped.join(', ')} (out of stock or over stock limit).'
-      : 'Đã thêm $addedCount sản phẩm. Bỏ qua: ${skipped.join(', ')} (hết hàng hoặc vượt tồn kho).';
-  String get openCartAction => isEnglish ? 'Open cart' : 'Mở giỏ hàng';
+      : 'ÄĂ£ thĂªm $addedCount sáº£n pháº©m. Bá» qua: ${skipped.join(', ')} (háº¿t hĂ ng hoáº·c vÆ°á»£t tá»“n kho).';
+  String get openCartAction => isEnglish ? 'Open cart' : 'Má»Ÿ giá» hĂ ng';
   String copiedLabelMessage(String label) =>
-      isEnglish ? 'Copied $label' : 'Đã sao chép $label';
+      isEnglish ? 'Copied $label' : 'ÄĂ£ sao chĂ©p $label';
   String cannotLoadBankTransferMessage(Object error) => isEnglish
       ? bankTransferLoadErrorMessage(error, isEnglish: true)
       : bankTransferLoadErrorMessage(error, isEnglish: false);
   String get recordPaymentTitle =>
-      isEnglish ? 'Record payment' : 'Ghi nhận thanh toán';
+      isEnglish ? 'Record payment' : 'Ghi nháº­n thanh toĂ¡n';
   String outstandingOrderSummary(String orderId, String amount) => isEnglish
       ? 'Order $orderId has an outstanding amount of $amount'
-      : 'Đơn $orderId còn nợ $amount';
-  String get amountLabel => isEnglish ? 'Amount' : 'Số tiền';
+      : 'ÄÆ¡n $orderId cĂ²n ná»£ $amount';
+  String get amountLabel => isEnglish ? 'Amount' : 'Sá»‘ tiá»n';
   String amountHint(String maxAmount) =>
-      isEnglish ? 'Maximum $maxAmount' : 'Tối đa $maxAmount';
+      isEnglish ? 'Maximum $maxAmount' : 'Tá»‘i Ä‘a $maxAmount';
   String get paymentChannelLabel =>
-      isEnglish ? 'Payment channel' : 'Kênh thanh toán';
+      isEnglish ? 'Payment channel' : 'KĂªnh thanh toĂ¡n';
   String get attachProofButton =>
-      isEnglish ? 'Attach payment proof' : 'Đính kèm chứng từ';
+      isEnglish ? 'Attach payment proof' : 'ÄĂ­nh kĂ¨m chá»©ng tá»«';
   String get attachingProofLabel =>
-      isEnglish ? 'Uploading proof...' : 'Đang tải chứng từ...';
-  String get closeAction => isEnglish ? 'Close' : 'Đóng';
-  String get backAction => isEnglish ? 'Back' : 'Quay lại';
+      isEnglish ? 'Uploading proof...' : 'Äang táº£i chá»©ng tá»«...';
+  String get closeAction => isEnglish ? 'Close' : 'ÄĂ³ng';
+  String get backAction => isEnglish ? 'Back' : 'Quay láº¡i';
   String get invalidAmountMessage =>
-      isEnglish ? 'Invalid amount.' : 'Số tiền không hợp lệ.';
+      isEnglish ? 'Invalid amount.' : 'Sá»‘ tiá»n khĂ´ng há»£p lá»‡.';
   String get amountExceedsDebtMessage => isEnglish
       ? 'The amount exceeds the remaining outstanding balance.'
-      : 'Số tiền vượt quá công nợ còn lại.';
+      : 'Sá»‘ tiá»n vÆ°á»£t quĂ¡ cĂ´ng ná»£ cĂ²n láº¡i.';
   String get recordPaymentScreenNote => isEnglish
       ? 'Recorded from the order detail screen.'
-      : 'Ghi nhận từ màn hình chi tiết đơn hàng.';
+      : 'Ghi nháº­n tá»« mĂ n hĂ¬nh chi tiáº¿t Ä‘Æ¡n hĂ ng.';
   String proofRequiredHint(String threshold) => isEnglish
       ? 'Proof is required for orders with outstanding amount from $threshold.'
-      : 'Bắt buộc đính kèm chứng từ khi đơn còn nợ từ $threshold.';
+      : 'Báº¯t buá»™c Ä‘Ă­nh kĂ¨m chá»©ng tá»« khi Ä‘Æ¡n cĂ²n ná»£ tá»« $threshold.';
   String proofRequiredForLargeOutstandingMessage(String threshold) => isEnglish
       ? 'Attach payment proof before recording this payment. Required from $threshold outstanding.'
-      : 'Vui lòng đính kèm chứng từ trước khi ghi nhận thanh toán. Áp dụng khi còn nợ từ $threshold.';
+      : 'Vui lĂ²ng Ä‘Ă­nh kĂ¨m chá»©ng tá»« trÆ°á»›c khi ghi nháº­n thanh toĂ¡n. Ăp dá»¥ng khi cĂ²n ná»£ tá»« $threshold.';
   String proofAttachedSuccess(String fileName) => isEnglish
       ? 'Attached proof $fileName.'
-      : 'Đã đính kèm chứng từ $fileName.';
+      : 'ÄĂ£ Ä‘Ă­nh kĂ¨m chá»©ng tá»« $fileName.';
   String proofUploadFailed(Object error) =>
       uploadServiceErrorMessage(error, isEnglish: isEnglish);
   String get cannotRecordPaymentMessage => isEnglish
       ? 'Unable to record the payment. Please check again.'
-      : 'Không thể ghi nhận thanh toán. Vui lòng kiểm tra lại.';
+      : 'KhĂ´ng thá»ƒ ghi nháº­n thanh toĂ¡n. Vui lĂ²ng kiá»ƒm tra láº¡i.';
   String paymentRecordedMessage(String amount, String orderId) => isEnglish
       ? 'Recorded $amount for order $orderId.'
-      : 'Đã ghi nhận $amount cho đơn $orderId.';
-  String get recordAction => isEnglish ? 'Record' : 'Ghi nhận';
-  String get reorderAction => isEnglish ? 'Reorder' : 'Đặt lại đơn cũ';
+      : 'ÄĂ£ ghi nháº­n $amount cho Ä‘Æ¡n $orderId.';
+  String get recordAction => isEnglish ? 'Record' : 'Ghi nháº­n';
+  String get reorderAction => isEnglish ? 'Reorder' : 'Äáº·t láº¡i Ä‘Æ¡n cÅ©';
   String get bankTransferInfoAction =>
-      isEnglish ? 'Bank transfer info' : 'Thông tin chuyển khoản';
+      isEnglish ? 'Bank transfer info' : 'ThĂ´ng tin chuyá»ƒn khoáº£n';
   String get recordPaymentAction =>
-      isEnglish ? 'Record payment' : 'Ghi nhận thanh toán';
+      isEnglish ? 'Record payment' : 'Ghi nháº­n thanh toĂ¡n';
   String get processSerialAction =>
-      isEnglish ? 'Process serials' : 'Xử lý serial';
+      isEnglish ? 'Process serials' : 'Xá»­ lĂ½ serial';
   String get orderInfoTitle =>
-      isEnglish ? 'Order information' : 'Thông tin đơn';
-  String get orderIdLabel => isEnglish ? 'Order ID' : 'Mã đơn';
+      isEnglish ? 'Order information' : 'ThĂ´ng tin Ä‘Æ¡n';
+  String get orderIdLabel => isEnglish ? 'Order ID' : 'MĂ£ Ä‘Æ¡n';
   String copiedOrderIdMessage(String orderId) =>
-      isEnglish ? 'Copied order ID $orderId' : 'Đã sao chép mã đơn $orderId';
-  String get orderDateLabel => isEnglish ? 'Order date' : 'Ngày đặt';
+      isEnglish ? 'Copied order ID $orderId' : 'ÄĂ£ sao chĂ©p mĂ£ Ä‘Æ¡n $orderId';
+  String get orderDateLabel => isEnglish ? 'Order date' : 'NgĂ y Ä‘áº·t';
   String get orderStatusRowLabel =>
-      isEnglish ? 'Order status' : 'Trạng thái đơn';
+      isEnglish ? 'Order status' : 'Tráº¡ng thĂ¡i Ä‘Æ¡n';
   String get paymentMethodRowLabel =>
-      isEnglish ? 'Payment method' : 'Phương thức thanh toán';
+      isEnglish ? 'Payment method' : 'PhÆ°Æ¡ng thá»©c thanh toĂ¡n';
   String get paymentStatusRowLabel =>
-      isEnglish ? 'Payment status' : 'Trạng thái thanh toán';
+      isEnglish ? 'Payment status' : 'Tráº¡ng thĂ¡i thanh toĂ¡n';
   String get shippingInfoTitle =>
-      isEnglish ? 'Shipping information' : 'Thông tin nhận hàng';
-  String noteValue(String note) => isEnglish ? 'Note: $note' : 'Ghi chú: $note';
+      isEnglish ? 'Shipping information' : 'ThĂ´ng tin nháº­n hĂ ng';
+  String noteValue(String note) => isEnglish ? 'Note: $note' : 'Ghi chĂº: $note';
   String productsTitle(int count) =>
-      isEnglish ? 'Products ($count)' : 'Sản phẩm ($count)';
-  String get paymentTitle => isEnglish ? 'Payment' : 'Thanh toán';
-  String get subtotalLabel => isEnglish ? 'Subtotal' : 'Tạm tính';
+      isEnglish ? 'Products ($count)' : 'Sáº£n pháº©m ($count)';
+  String get paymentTitle => isEnglish ? 'Payment' : 'Thanh toĂ¡n';
+  String get subtotalLabel => isEnglish ? 'Subtotal' : 'Táº¡m tĂ­nh';
   String discountLabel(int percent) =>
-      isEnglish ? 'Discount ($percent%)' : 'Chiết khấu ($percent%)';
+      isEnglish ? 'Discount ($percent%)' : 'Chiáº¿t kháº¥u ($percent%)';
   String get afterDiscountLabel =>
-      isEnglish ? 'After discount' : 'Sau chiết khấu';
+      isEnglish ? 'After discount' : 'Sau chiáº¿t kháº¥u';
   String vatLabel(int percent) =>
       isEnglish ? 'VAT ($percent%)' : 'VAT ($percent%)';
-  String get paidAmountLabel => isEnglish ? 'Paid amount' : 'Đã thanh toán';
-  String get outstandingAmountLabel => isEnglish ? 'Outstanding' : 'Còn nợ';
-  String get totalLabel => isEnglish ? 'Total' : 'Tổng cộng';
+  String get paidAmountLabel => isEnglish ? 'Paid amount' : 'Paid amount';
+  String get outstandingAmountLabel => isEnglish ? 'Outstanding' : 'Outstanding';
+  String get reservedCreditAmountLabel =>
+      isEnglish ? 'Credit reserved' : 'Credit reserved';
+  String get openReceivableAmountLabel =>
+      isEnglish ? 'Open receivable' : 'Open receivable';
+  String get creditExposureAmountLabel =>
+      isEnglish ? 'Credit exposure' : 'Credit exposure';
+  String get totalLabel => isEnglish ? 'Total' : 'Total';
   String get paymentHistoryTitle =>
-      isEnglish ? 'Payment history' : 'Lịch sử thanh toán';
+      isEnglish ? 'Payment history' : 'Lá»‹ch sá»­ thanh toĂ¡n';
   String get totalRecordedLabel =>
-      isEnglish ? 'Total recorded' : 'Tổng đã ghi nhận';
-  String get copyTooltip => isEnglish ? 'Copy' : 'Sao chép';
+      isEnglish ? 'Total recorded' : 'Tá»•ng Ä‘Ă£ ghi nháº­n';
+  String get copyTooltip => isEnglish ? 'Copy' : 'Sao chĂ©p';
 
   String orderStatusLabel(OrderStatus status) {
     switch (status) {
       case OrderStatus.pending:
-        return isEnglish ? 'Pending' : 'Chờ xử lý';
+        return isEnglish ? 'Pending' : 'Chá» xá»­ lĂ½';
       case OrderStatus.confirmed:
-        return isEnglish ? 'Confirmed' : 'Đã xác nhận';
+        return isEnglish ? 'Confirmed' : 'ÄĂ£ xĂ¡c nháº­n';
       case OrderStatus.shipping:
-        return isEnglish ? 'Shipping' : 'Đang giao';
+        return isEnglish ? 'Shipping' : 'Äang giao';
       case OrderStatus.completed:
-        return isEnglish ? 'Completed' : 'Hoàn thành';
+        return isEnglish ? 'Completed' : 'HoĂ n thĂ nh';
       case OrderStatus.cancelled:
-        return isEnglish ? 'Cancelled' : 'Đã hủy';
+        return isEnglish ? 'Cancelled' : 'ÄĂ£ há»§y';
     }
   }
 
@@ -1131,37 +1159,37 @@ class _OrderDetailTexts {
   String orderPaymentStatusLabel(OrderPaymentStatus status) {
     switch (status) {
       case OrderPaymentStatus.cancelled:
-        return isEnglish ? 'Cancelled' : 'Đã hủy';
+        return isEnglish ? 'Cancelled' : 'ÄĂ£ há»§y';
       case OrderPaymentStatus.failed:
-        return isEnglish ? 'Failed' : 'Thất bại';
+        return isEnglish ? 'Failed' : 'Tháº¥t báº¡i';
       case OrderPaymentStatus.pending:
-        return isEnglish ? 'Unpaid' : 'Chưa thanh toán';
+        return isEnglish ? 'Unpaid' : 'ChÆ°a thanh toĂ¡n';
       case OrderPaymentStatus.paid:
-        return isEnglish ? 'Paid' : 'Đã thanh toán';
+        return isEnglish ? 'Paid' : 'ÄĂ£ thanh toĂ¡n';
       case OrderPaymentStatus.debtRecorded:
-        return isEnglish ? 'Debt recorded' : 'Công nợ';
+        return isEnglish ? 'Open receivable' : 'Open receivable';
     }
   }
 
-  String get bankTransferChannelValue => 'Chuyển khoản';
-  String get cashChannelValue => 'Tiền mặt';
-  String get debtOffsetChannelValue => 'Bù trừ công nợ';
+  String get bankTransferChannelValue => 'Chuyá»ƒn khoáº£n';
+  String get cashChannelValue => 'Tiá»n máº·t';
+  String get debtOffsetChannelValue => 'BĂ¹ trá»« cĂ´ng ná»£';
 
   String paymentChannelDisplay(String value) {
     final normalized = value.trim().toLowerCase();
-    if (normalized.contains('chuyển khoản') ||
+    if (normalized.contains('chuyá»ƒn khoáº£n') ||
         normalized.contains('transfer') ||
         normalized.contains('bank')) {
-      return isEnglish ? 'Bank transfer' : 'Chuyển khoản';
+      return isEnglish ? 'Bank transfer' : 'Chuyá»ƒn khoáº£n';
     }
-    if (normalized.contains('tiền mặt') || normalized.contains('cash')) {
-      return isEnglish ? 'Cash' : 'Tiền mặt';
+    if (normalized.contains('tiá»n máº·t') || normalized.contains('cash')) {
+      return isEnglish ? 'Cash' : 'Tiá»n máº·t';
     }
-    if (normalized.contains('bù trừ') ||
-        normalized.contains('công nợ') ||
+    if (normalized.contains('bĂ¹ trá»«') ||
+        normalized.contains('cĂ´ng ná»£') ||
         normalized.contains('debt') ||
         normalized.contains('offset')) {
-      return isEnglish ? 'Debt offset' : 'Bù trừ công nợ';
+      return isEnglish ? 'Debt offset' : 'BĂ¹ trá»« cĂ´ng ná»£';
     }
     return value;
   }
@@ -1601,16 +1629,16 @@ class _PaymentHistoryTile extends StatelessWidget {
 
   IconData _iconForChannel(String channel) {
     final normalized = channel.toLowerCase();
-    if (normalized.contains('chuyển khoản') ||
+    if (normalized.contains('chuyá»ƒn khoáº£n') ||
         normalized.contains('transfer') ||
         normalized.contains('bank')) {
       return Icons.account_balance_outlined;
     }
-    if (normalized.contains('tiền mặt') || normalized.contains('cash')) {
+    if (normalized.contains('tiá»n máº·t') || normalized.contains('cash')) {
       return Icons.money_outlined;
     }
-    if (normalized.contains('bù trừ') ||
-        normalized.contains('công nợ') ||
+    if (normalized.contains('bĂ¹ trá»«') ||
+        normalized.contains('cĂ´ng ná»£') ||
         normalized.contains('debt') ||
         normalized.contains('offset')) {
       return Icons.swap_horiz_outlined;

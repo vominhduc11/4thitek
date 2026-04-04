@@ -1450,83 +1450,83 @@ class _OrdersTexts {
 
   final bool isEnglish;
 
-  String get screenTitle => isEnglish ? 'Orders' : 'Đơn hàng';
+  String get screenTitle => isEnglish ? 'Orders' : 'Ă„ÂĂ†Â¡n hÄ‚Â ng';
   String get searchHint => isEnglish
       ? 'Search order ID, customer, phone, product...'
-      : 'Tìm mã đơn, tên khách, SĐT, sản phẩm...';
-  String get clearSearchTooltip => isEnglish ? 'Clear search' : 'Xóa tìm kiếm';
-  String get statusFilterLabel => isEnglish ? 'Status' : 'Trạng thái';
-  String get paymentFilterLabel => isEnglish ? 'Payment' : 'Thanh toán';
-  String get allFilterOption => isEnglish ? 'All' : 'Tất cả';
-  String get filteredBadgeLabel => isEnglish ? 'Filtered' : 'Đang lọc';
-  String get clearFiltersTooltip => isEnglish ? 'Clear filters' : 'Xóa bộ lọc';
-  String get sortTooltip => isEnglish ? 'Sort orders' : 'Sắp xếp đơn hàng';
-  String get createOrderAction => isEnglish ? 'Create order' : 'Tạo đơn';
+      : 'TÄ‚Â¬m mÄ‚Â£ Ă„â€˜Ă†Â¡n, tÄ‚Âªn khÄ‚Â¡ch, SĂ„ÂT, sĂ¡ÂºÂ£n phĂ¡ÂºÂ©m...';
+  String get clearSearchTooltip => isEnglish ? 'Clear search' : 'XÄ‚Â³a tÄ‚Â¬m kiĂ¡ÂºÂ¿m';
+  String get statusFilterLabel => isEnglish ? 'Status' : 'TrĂ¡ÂºÂ¡ng thÄ‚Â¡i';
+  String get paymentFilterLabel => isEnglish ? 'Payment' : 'Thanh toÄ‚Â¡n';
+  String get allFilterOption => isEnglish ? 'All' : 'TĂ¡ÂºÂ¥t cĂ¡ÂºÂ£';
+  String get filteredBadgeLabel => isEnglish ? 'Filtered' : 'Ă„Âang lĂ¡Â»Âc';
+  String get clearFiltersTooltip => isEnglish ? 'Clear filters' : 'XÄ‚Â³a bĂ¡Â»â„¢ lĂ¡Â»Âc';
+  String get sortTooltip => isEnglish ? 'Sort orders' : 'SĂ¡ÂºÂ¯p xĂ¡ÂºÂ¿p Ă„â€˜Ă†Â¡n hÄ‚Â ng';
+  String get createOrderAction => isEnglish ? 'Create order' : 'TĂ¡ÂºÂ¡o Ă„â€˜Ă†Â¡n';
   String get createFirstOrderAction =>
-      isEnglish ? 'Create your first order' : 'Tạo đơn hàng đầu tiên';
+      isEnglish ? 'Create your first order' : 'TĂ¡ÂºÂ¡o Ă„â€˜Ă†Â¡n hÄ‚Â ng Ă„â€˜Ă¡ÂºÂ§u tiÄ‚Âªn';
   String get emptyOrdersTitle =>
-      isEnglish ? 'No orders yet' : 'Chưa có đơn hàng';
+      isEnglish ? 'No orders yet' : 'ChĂ†Â°a cÄ‚Â³ Ă„â€˜Ă†Â¡n hÄ‚Â ng';
   String get emptyOrdersDescription => isEnglish
       ? 'Place an order to see your order history here.'
-      : 'Hãy đặt hàng để xem lịch sử đơn hàng của bạn.';
-  String get retryAction => isEnglish ? 'Retry' : 'Thử lại';
+      : 'HÄ‚Â£y Ă„â€˜Ă¡ÂºÂ·t hÄ‚Â ng Ă„â€˜Ă¡Â»Æ’ xem lĂ¡Â»â€¹ch sĂ¡Â»Â­ Ă„â€˜Ă†Â¡n hÄ‚Â ng cĂ¡Â»Â§a bĂ¡ÂºÂ¡n.';
+  String get retryAction => isEnglish ? 'Retry' : 'ThĂ¡Â»Â­ lĂ¡ÂºÂ¡i';
   String get emptyFilteredTitle => isEnglish
       ? 'No matching orders found'
-      : 'Không tìm thấy đơn hàng phù hợp';
+      : 'KhÄ‚Â´ng tÄ‚Â¬m thĂ¡ÂºÂ¥y Ă„â€˜Ă†Â¡n hÄ‚Â ng phÄ‚Â¹ hĂ¡Â»Â£p';
   String get emptyFilteredDescription => isEnglish
       ? 'Try adjusting your keyword or filters.'
-      : 'Thử thay đổi từ khóa hoặc bộ lọc trạng thái.';
+      : 'ThĂ¡Â»Â­ thay Ă„â€˜Ă¡Â»â€¢i tĂ¡Â»Â« khÄ‚Â³a hoĂ¡ÂºÂ·c bĂ¡Â»â„¢ lĂ¡Â»Âc trĂ¡ÂºÂ¡ng thÄ‚Â¡i.';
   String get clearFiltersAndSearchAction =>
-      isEnglish ? 'Clear filters and search' : 'Xóa bộ lọc và tìm kiếm';
+      isEnglish ? 'Clear filters and search' : 'XÄ‚Â³a bĂ¡Â»â„¢ lĂ¡Â»Âc vÄ‚Â  tÄ‚Â¬m kiĂ¡ÂºÂ¿m';
   String get loadOrdersFailedMessage => isEnglish
       ? 'Unable to load orders.'
-      : 'Không thể tải danh sách đơn hàng.';
+      : 'KhÄ‚Â´ng thĂ¡Â»Æ’ tĂ¡ÂºÂ£i danh sÄ‚Â¡ch Ă„â€˜Ă†Â¡n hÄ‚Â ng.';
   String get loadMoreOrdersFailedMessage => isEnglish
       ? 'Unable to load more orders.'
-      : 'Không thể tải thêm đơn hàng.';
-  String get outstandingCriteriaLabel => isEnglish ? 'Outstanding' : 'Còn nợ';
+      : 'KhÄ‚Â´ng thĂ¡Â»Æ’ tĂ¡ÂºÂ£i thÄ‚Âªm Ă„â€˜Ă†Â¡n hÄ‚Â ng.';
+  String get outstandingCriteriaLabel => isEnglish ? 'Remaining balance' : 'Remaining balance';
   String get confirmCancelTitle =>
-      isEnglish ? 'Confirm cancellation' : 'Xác nhận hủy đơn';
-  String get noAction => isEnglish ? 'No' : 'Không';
-  String get cancelOrderAction => isEnglish ? 'Cancel order' : 'Hủy đơn';
+      isEnglish ? 'Confirm cancellation' : 'XÄ‚Â¡c nhĂ¡ÂºÂ­n hĂ¡Â»Â§y Ă„â€˜Ă†Â¡n';
+  String get noAction => isEnglish ? 'No' : 'KhÄ‚Â´ng';
+  String get cancelOrderAction => isEnglish ? 'Cancel order' : 'HĂ¡Â»Â§y Ă„â€˜Ă†Â¡n';
   String get updateOrderStatusFailedMessage => isEnglish
       ? 'Unable to update the order status. Please try again.'
-      : 'Không thể cập nhật trạng thái đơn hàng. Vui lòng thử lại.';
+      : 'KhÄ‚Â´ng thĂ¡Â»Æ’ cĂ¡ÂºÂ­p nhĂ¡ÂºÂ­t trĂ¡ÂºÂ¡ng thÄ‚Â¡i Ă„â€˜Ă†Â¡n hÄ‚Â ng. Vui lÄ‚Â²ng thĂ¡Â»Â­ lĂ¡ÂºÂ¡i.';
   String get openOrderDetailsHint =>
-      isEnglish ? 'Open order details' : 'Mở chi tiết đơn hàng';
+      isEnglish ? 'Open order details' : 'MĂ¡Â»Å¸ chi tiĂ¡ÂºÂ¿t Ă„â€˜Ă†Â¡n hÄ‚Â ng';
   String get paymentStatusLabel =>
-      isEnglish ? 'Payment status:' : 'Trạng thái TT:';
+      isEnglish ? 'Payment status:' : 'TrĂ¡ÂºÂ¡ng thÄ‚Â¡i TT:';
 
   String get paymentStatusMetricLabel =>
-      isEnglish ? 'Payment status' : 'Thanh toán';
-  String get totalAmountMetricLabel => isEnglish ? 'Order total' : 'Tổng đơn';
-  String get amountPaidMetricLabel => isEnglish ? 'Collected' : 'Đã thu';
+      isEnglish ? 'Payment status' : 'Thanh toÄ‚Â¡n';
+  String get totalAmountMetricLabel => isEnglish ? 'Order total' : 'TĂ¡Â»â€¢ng Ă„â€˜Ă†Â¡n';
+  String get amountPaidMetricLabel => isEnglish ? 'Collected' : 'Ă„ÂÄ‚Â£ thu';
   String get serialProgressSectionLabel =>
-      isEnglish ? 'Serial progress' : 'Tiến độ serial';
+      isEnglish ? 'Serial progress' : 'TiĂ¡ÂºÂ¿n Ă„â€˜Ă¡Â»â„¢ serial';
 
   String sortLabel(OrderSortOption sort) {
     switch (sort) {
       case OrderSortOption.newest:
-        return isEnglish ? 'Newest first' : 'Mới nhất';
+        return isEnglish ? 'Newest first' : 'MĂ¡Â»â€ºi nhĂ¡ÂºÂ¥t';
       case OrderSortOption.highestValue:
-        return isEnglish ? 'Highest value' : 'Giá trị cao';
+        return isEnglish ? 'Highest value' : 'GiÄ‚Â¡ trĂ¡Â»â€¹ cao';
       case OrderSortOption.debtFirst:
-        return isEnglish ? 'Outstanding first' : 'Còn nợ trước';
+        return isEnglish ? 'Outstanding first' : 'CÄ‚Â²n nĂ¡Â»Â£ trĂ†Â°Ă¡Â»â€ºc';
     }
   }
 
   String orderStatusLabel(OrderStatus status) {
     switch (status) {
       case OrderStatus.pending:
-        return isEnglish ? 'Pending' : 'Chờ xử lý';
+        return isEnglish ? 'Pending' : 'ChĂ¡Â»Â xĂ¡Â»Â­ lÄ‚Â½';
       case OrderStatus.confirmed:
-        return isEnglish ? 'Confirmed' : 'Đã xác nhận';
+        return isEnglish ? 'Confirmed' : 'Ă„ÂÄ‚Â£ xÄ‚Â¡c nhĂ¡ÂºÂ­n';
       case OrderStatus.shipping:
-        return isEnglish ? 'Shipping' : 'Đang giao';
+        return isEnglish ? 'Shipping' : 'Ă„Âang giao';
       case OrderStatus.completed:
-        return isEnglish ? 'Completed' : 'Hoàn thành';
+        return isEnglish ? 'Completed' : 'HoÄ‚Â n thÄ‚Â nh';
       case OrderStatus.cancelled:
-        return isEnglish ? 'Cancelled' : 'Đã hủy';
+        return isEnglish ? 'Cancelled' : 'Ă„ÂÄ‚Â£ hĂ¡Â»Â§y';
     }
   }
 
@@ -1536,45 +1536,45 @@ class _OrdersTexts {
   String orderPaymentStatusLabel(OrderPaymentStatus status) {
     switch (status) {
       case OrderPaymentStatus.cancelled:
-        return isEnglish ? 'Cancelled' : 'Đã hủy';
+        return isEnglish ? 'Cancelled' : 'Ă„ÂÄ‚Â£ hĂ¡Â»Â§y';
       case OrderPaymentStatus.failed:
-        return isEnglish ? 'Failed' : 'Thất bại';
+        return isEnglish ? 'Failed' : 'ThĂ¡ÂºÂ¥t bĂ¡ÂºÂ¡i';
       case OrderPaymentStatus.pending:
-        return isEnglish ? 'Unpaid' : 'Chưa thanh toán';
+        return isEnglish ? 'Unpaid' : 'ChĂ†Â°a thanh toÄ‚Â¡n';
       case OrderPaymentStatus.paid:
-        return isEnglish ? 'Paid' : 'Đã thanh toán';
+        return isEnglish ? 'Paid' : 'Ă„ÂÄ‚Â£ thanh toÄ‚Â¡n';
       case OrderPaymentStatus.debtRecorded:
-        return isEnglish ? 'Debt recorded' : 'Công nợ';
+        return isEnglish ? 'Open receivable' : 'Open receivable';
     }
   }
 
   String statusCriteriaLabel(OrderStatus status) =>
-      '${isEnglish ? 'Status' : 'Trạng thái'}: ${orderStatusLabel(status)}';
+      '${isEnglish ? 'Status' : 'TrĂ¡ÂºÂ¡ng thÄ‚Â¡i'}: ${orderStatusLabel(status)}';
 
   String paymentCriteriaLabel(OrderPaymentStatus status) =>
-      '${isEnglish ? 'Payment' : 'Thanh toán'}: '
+      '${isEnglish ? 'Payment' : 'Thanh toÄ‚Â¡n'}: '
       '${orderPaymentStatusLabel(status)}';
 
   String keywordCriteriaLabel(String value) =>
-      '${isEnglish ? 'Keyword' : 'Từ khóa'}: "$value"';
+      '${isEnglish ? 'Keyword' : 'TĂ¡Â»Â« khÄ‚Â³a'}: "$value"';
 
   String confirmCancelDescription(String orderId) => isEnglish
       ? 'Are you sure you want to cancel order $orderId?'
-      : 'Bạn có chắc muốn hủy đơn hàng $orderId?';
+      : 'BĂ¡ÂºÂ¡n cÄ‚Â³ chĂ¡ÂºÂ¯c muĂ¡Â»â€˜n hĂ¡Â»Â§y Ă„â€˜Ă†Â¡n hÄ‚Â ng $orderId?';
 
   String orderSemanticsLabel(Order order) {
     final count = itemCountLabel(order.totalItems);
     return isEnglish
         ? 'Order ${order.id}, ${order.receiverName}, total ${formatVnd(order.total)}, $count'
-        : 'Đơn ${order.id}, ${order.receiverName}, tổng ${formatVnd(order.total)}, $count';
+        : 'Ă„ÂĂ†Â¡n ${order.id}, ${order.receiverName}, tĂ¡Â»â€¢ng ${formatVnd(order.total)}, $count';
   }
 
   String placedAt(DateTime value) =>
-      '${isEnglish ? 'Placed' : 'Đặt'} ${relativeTimeLabel(value)}';
+      '${isEnglish ? 'Placed' : 'Ă„ÂĂ¡ÂºÂ·t'} ${relativeTimeLabel(value)}';
 
   String itemCountLabel(int count) {
     if (!isEnglish) {
-      return '$count sản phẩm';
+      return '$count sĂ¡ÂºÂ£n phĂ¡ÂºÂ©m';
     }
     return '$count ${count == 1 ? 'item' : 'items'}';
   }
@@ -1583,7 +1583,7 @@ class _OrdersTexts {
     BuildContext context,
     OrderPaymentMethod method,
   ) =>
-      '${isEnglish ? 'Payment' : 'Thanh toán'}: '
+      '${isEnglish ? 'Payment' : 'Thanh toÄ‚Â¡n'}: '
       '${paymentMethodLabel(context, method)}';
 
   String serialProgressLabel(int processedCount, int totalCount) => isEnglish
@@ -1592,15 +1592,15 @@ class _OrdersTexts {
 
   String outstandingAmountLabel(int amount) => isEnglish
       ? 'Outstanding: ${formatVnd(amount)}'
-      : 'Còn nợ: ${formatVnd(amount)}';
+      : 'CÄ‚Â²n nĂ¡Â»Â£: ${formatVnd(amount)}';
 
   String pendingCountLabel(int count) => isEnglish
       ? '$count ${count == 1 ? 'pending order' : 'pending orders'}'
-      : '$count đơn chờ xử lý';
+      : '$count Ă„â€˜Ă†Â¡n chĂ¡Â»Â xĂ¡Â»Â­ lÄ‚Â½';
 
   String outstandingOrderCountLabel(int count) => isEnglish
-      ? '$count ${count == 1 ? 'order with outstanding debt' : 'orders with outstanding debt'}'
-      : '$count đơn còn nợ';
+      ? '$count ${count == 1 ? 'order with open receivable' : 'orders with open receivable'}'
+      : '$count Ă„â€˜Ă†Â¡n cÄ‚Â²n nĂ¡Â»Â£';
 
   String relativeTimeLabel(DateTime value, {DateTime? now}) {
     final current = (now ?? DateTime.now()).toLocal();
@@ -1611,19 +1611,19 @@ class _OrdersTexts {
       return formatDateTime(target);
     }
     if (diff.inMinutes < 1) {
-      return isEnglish ? 'just now' : 'vừa xong';
+      return isEnglish ? 'just now' : 'vĂ¡Â»Â«a xong';
     }
     if (diff.inHours < 1) {
       final minutes = diff.inMinutes;
       return isEnglish
           ? '$minutes ${minutes == 1 ? 'minute' : 'minutes'} ago'
-          : '$minutes phút trước';
+          : '$minutes phÄ‚Âºt trĂ†Â°Ă¡Â»â€ºc';
     }
     if (diff.inDays < 1) {
       final hours = diff.inHours;
       return isEnglish
           ? '$hours ${hours == 1 ? 'hour' : 'hours'} ago'
-          : '$hours giờ trước';
+          : '$hours giĂ¡Â»Â trĂ†Â°Ă¡Â»â€ºc';
     }
 
     final currentDate = DateTime(current.year, current.month, current.day);
@@ -1633,12 +1633,12 @@ class _OrdersTexts {
     if (dayDiff == 1) {
       final time =
           '${target.hour.toString().padLeft(2, '0')}:${target.minute.toString().padLeft(2, '0')}';
-      return isEnglish ? 'yesterday $time' : 'hôm qua $time';
+      return isEnglish ? 'yesterday $time' : 'hÄ‚Â´m qua $time';
     }
     if (dayDiff < 7) {
       return isEnglish
           ? '$dayDiff ${dayDiff == 1 ? 'day' : 'days'} ago'
-          : '$dayDiff ngày trước';
+          : '$dayDiff ngÄ‚Â y trĂ†Â°Ă¡Â»â€ºc';
     }
     return formatDateTime(target);
   }

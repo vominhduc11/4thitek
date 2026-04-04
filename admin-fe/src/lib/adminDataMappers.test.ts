@@ -12,6 +12,7 @@ describe('adminDataMappers', () => {
       paymentMethod: 'BANK_TRANSFER',
       paymentStatus: 'PENDING',
       paidAmount: 'NaN',
+      outstandingAmount: 'NaN',
       itemCount: 2,
       address: '123 Test',
       note: null,
@@ -22,6 +23,9 @@ describe('adminDataMappers', () => {
     expect(mapped.total).toBe(0)
     expect(mapped.paidAmount).toBe(0)
     expect(mapped.outstandingAmount).toBe(0)
+    expect(mapped.reservedCreditAmount).toBe(0)
+    expect(mapped.openReceivableAmount).toBe(0)
+    expect(mapped.creditExposureAmount).toBe(0)
     expect(mapped.orderCode).toBe('SCS-42')
     expect(mapped.allowedTransitions).toEqual(['pending', 'confirmed', 'cancelled'])
   })

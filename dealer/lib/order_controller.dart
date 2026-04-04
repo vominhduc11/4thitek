@@ -125,7 +125,7 @@ String resolveOrderControllerMessage(
       case 'Debt payment is not available for this dealer':
         return 'Tài khoản chưa được cấp hạn mức công nợ.';
       case 'Credit limit exceeded':
-        return 'Vượt hạn mức công nợ. Vui lòng kiểm tra lại tổng công nợ hiện tại trước khi đặt đơn.';
+        return 'Vượt hạn mức công nợ. Vui lòng kiểm tra lại tổng credit exposure hiện tại trước khi đặt đơn.';
       default:
         if (dynamicMessage != null) {
           return dynamicMessage;
@@ -182,8 +182,8 @@ String resolveOrderControllerMessage(
           : 'Tài khoản chưa được cấp hạn mức công nợ.';
     case 'Credit limit exceeded':
       return isEnglish
-          ? 'Credit limit exceeded. Please review the current outstanding debt before placing the order.'
-          : 'Vượt hạn mức công nợ. Vui lòng kiểm tra lại tổng công nợ hiện tại trước khi đặt đơn.';
+          ? 'Credit limit exceeded. Please review the current credit exposure before placing the order.'
+          : 'Vượt hạn mức công nợ. Vui lòng kiểm tra lại tổng credit exposure hiện tại trước khi đặt đơn.';
     default:
       if (dynamicMessage != null) {
         return dynamicMessage;
@@ -365,8 +365,7 @@ class OrderController extends ChangeNotifier {
           _orders
               .where(
                 (order) =>
-                    order.paymentMethod == OrderPaymentMethod.debt &&
-                    order.outstandingAmount > 0 &&
+                    order.openReceivableAmount > 0 &&
                     order.status != OrderStatus.cancelled,
               )
               .toList(growable: false)
@@ -380,12 +379,40 @@ class OrderController extends ChangeNotifier {
   int get totalOutstandingDebt {
     return _orders
         .where(
-          (order) =>
-              order.paymentMethod == OrderPaymentMethod.debt &&
-              order.outstandingAmount > 0 &&
-              order.status != OrderStatus.cancelled,
+          (order) => order.openReceivableAmount > 0,
         )
-        .fold<int>(0, (sum, order) => sum + order.outstandingAmount);
+        .fold<int>(0, (sum, order) => sum + order.openReceivableAmount);
+  }
+
+  List<Order> get reservedCreditOrders {
+    final list =
+        _orders
+            .where(
+              (order) =>
+                  order.reservedCreditAmount > 0 &&
+                  order.status != OrderStatus.cancelled,
+            )
+            .toList(growable: false)
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return List<Order>.unmodifiable(list);
+  }
+
+  int get totalReservedCredit {
+    return _orders.fold<int>(
+      0,
+      (sum, order) => sum + order.reservedCreditAmount,
+    );
+  }
+
+  int get totalOpenReceivable {
+    return totalOutstandingDebt;
+  }
+
+  int get totalCreditExposure {
+    return _orders.fold<int>(
+      0,
+      (sum, order) => sum + order.creditExposureAmount,
+    );
   }
 
   List<DebtPaymentRecord> get paymentHistory {
@@ -867,6 +894,9 @@ class OrderController extends ChangeNotifier {
       vatPercentOverride: _parseInt(json['vatPercent'], fallback: kVatPercent),
       vatAmountOverride: _parsePrice(json['vatAmount']),
       totalAmountOverride: _parsePrice(json['totalAmount']),
+      reservedCreditAmountOverride: _parsePrice(json['reservedCreditAmount']),
+      openReceivableAmountOverride: _parsePrice(json['openReceivableAmount']),
+      creditExposureAmountOverride: _parsePrice(json['creditExposureAmount']),
     );
   }
 

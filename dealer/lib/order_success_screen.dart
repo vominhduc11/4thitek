@@ -384,38 +384,38 @@ class _OrderSuccessTexts {
   final bool isEnglish;
 
   String get screenTitle =>
-      isEnglish ? 'Order placed successfully' : 'Đặt hàng thành công';
+      isEnglish ? 'Order placed successfully' : 'Äáº·t hĂ ng thĂ nh cĂ´ng';
   String get orderRecordedTitle =>
-      isEnglish ? 'Your order has been recorded' : 'Đơn hàng đã được ghi nhận';
+      isEnglish ? 'Your order has been recorded' : 'ÄÆ¡n hĂ ng Ä‘Ă£ Ä‘Æ°á»£c ghi nháº­n';
   String orderIdSummary(String orderId) =>
-      isEnglish ? 'Order ID: $orderId' : 'Mã đơn hàng: $orderId';
+      isEnglish ? 'Order ID: $orderId' : 'MĂ£ Ä‘Æ¡n hĂ ng: $orderId';
   String get paymentConfirmedMessage => isEnglish
       ? 'Payment has been confirmed!'
-      : 'Thanh toán đã được xác nhận!';
+      : 'Thanh toĂ¡n Ä‘Ă£ Ä‘Æ°á»£c xĂ¡c nháº­n!';
   String get pendingMessage => isEnglish
       ? 'The order is pending confirmation.'
-      : 'Đơn hàng đang chờ xác nhận.';
+      : 'ÄÆ¡n hĂ ng Ä‘ang chá» xĂ¡c nháº­n.';
   String get debtRecordedMessage => isEnglish
-      ? 'The order has been recorded as debt and is pending confirmation.'
-      : 'Đơn hàng đã được ghi nhận công nợ và đang chờ xác nhận.';
+      ? 'The order has been created and the matching credit limit is reserved. Any unpaid balance becomes a receivable only after completion.'
+      : 'The order has been created and the matching credit limit is reserved. Any unpaid balance becomes a receivable only after completion.';
   String get sepayConfirmedMessage => isEnglish
       ? 'SePay has confirmed the payment. Your order is pending confirmation.'
-      : 'SePay đã xác nhận thanh toán. Đơn hàng đang chờ xác nhận.';
+      : 'SePay Ä‘Ă£ xĂ¡c nháº­n thanh toĂ¡n. ÄÆ¡n hĂ ng Ä‘ang chá» xĂ¡c nháº­n.';
   String get pendingTransferMessage => isEnglish
       ? 'The order has been created. Please transfer using the correct order ID; the SePay webhook will update payment automatically once the bank confirms the transaction.'
-      : 'Đơn đã được tạo. Hãy chuyển khoản đúng mã đơn hàng, SePay webhook sẽ tự động cập nhật thanh toán khi ngân hàng ghi nhận giao dịch.';
+      : 'ÄÆ¡n Ä‘Ă£ Ä‘Æ°á»£c táº¡o. HĂ£y chuyá»ƒn khoáº£n Ä‘Ăºng mĂ£ Ä‘Æ¡n hĂ ng, SePay webhook sáº½ tá»± Ä‘á»™ng cáº­p nháº­t thanh toĂ¡n khi ngĂ¢n hĂ ng ghi nháº­n giao dá»‹ch.';
   String get viewOrderDetailAction =>
-      isEnglish ? 'View order details' : 'Xem chi tiết đơn hàng';
+      isEnglish ? 'View order details' : 'Xem chi tiáº¿t Ä‘Æ¡n hĂ ng';
   String get continueShoppingAction =>
-      isEnglish ? 'Continue shopping' : 'Tiếp tục mua hàng';
-  String get itemCountLabel => isEnglish ? 'Item count' : 'Số lượng sản phẩm';
+      isEnglish ? 'Continue shopping' : 'Tiáº¿p tá»¥c mua hĂ ng';
+  String get itemCountLabel => isEnglish ? 'Item count' : 'Sá»‘ lÆ°á»£ng sáº£n pháº©m';
   String get paymentMethodRowLabel =>
-      isEnglish ? 'Payment method' : 'Phương thức thanh toán';
+      isEnglish ? 'Payment method' : 'PhÆ°Æ¡ng thá»©c thanh toĂ¡n';
   String get paymentStatusRowLabel =>
-      isEnglish ? 'Payment status' : 'Trạng thái thanh toán';
-  String get noteLabel => isEnglish ? 'Note' : 'Ghi chú';
+      isEnglish ? 'Payment status' : 'Tráº¡ng thĂ¡i thanh toĂ¡n';
+  String get noteLabel => isEnglish ? 'Note' : 'Ghi chĂº';
   String get totalPaymentLabel =>
-      isEnglish ? 'Total payment' : 'Tổng thanh toán';
+      isEnglish ? 'Total payment' : 'Tá»•ng thanh toĂ¡n';
 
   String paymentMethodLabel(BuildContext context, OrderPaymentMethod method) =>
       method.localizedLabel(context);
@@ -423,15 +423,15 @@ class _OrderSuccessTexts {
   String paymentStatusLabel(OrderPaymentStatus status) {
     switch (status) {
       case OrderPaymentStatus.cancelled:
-        return isEnglish ? 'Cancelled' : 'Đã hủy';
+        return isEnglish ? 'Cancelled' : 'ÄĂ£ há»§y';
       case OrderPaymentStatus.failed:
-        return isEnglish ? 'Failed' : 'Thất bại';
+        return isEnglish ? 'Failed' : 'Tháº¥t báº¡i';
       case OrderPaymentStatus.pending:
-        return isEnglish ? 'Unpaid' : 'Chưa thanh toán';
+        return isEnglish ? 'Unpaid' : 'ChÆ°a thanh toĂ¡n';
       case OrderPaymentStatus.paid:
-        return isEnglish ? 'Paid' : 'Đã thanh toán';
+        return isEnglish ? 'Paid' : 'ÄĂ£ thanh toĂ¡n';
       case OrderPaymentStatus.debtRecorded:
-        return isEnglish ? 'Debt recorded' : 'Công nợ';
+        return isEnglish ? 'Open receivable' : 'Open receivable';
     }
   }
 }

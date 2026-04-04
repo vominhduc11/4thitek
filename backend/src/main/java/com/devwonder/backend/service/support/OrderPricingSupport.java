@@ -86,7 +86,7 @@ public final class OrderPricingSupport {
         if (paidAmount.compareTo(totalAmount) >= 0 && totalAmount.compareTo(BigDecimal.ZERO) > 0) {
             return PaymentStatus.PAID;
         }
-        if (defaultPaymentMethod(order) == PaymentMethod.DEBT) {
+        if (OrderFinancialSupport.openReceivableAmount(order, rules, vatPercent).compareTo(BigDecimal.ZERO) > 0) {
             return PaymentStatus.DEBT_RECORDED;
         }
         return PaymentStatus.PENDING;

@@ -352,15 +352,15 @@ class _TabletBrandPanel extends StatelessWidget {
             children: const [
               _BrandPill(
                 icon: Icons.inventory_2_outlined,
-                text: 'Quản lý đơn nhập',
+                text: 'QuĂ¡ÂºÂ£n lÄ‚Â½ Ă„â€˜Ă†Â¡n nhĂ¡ÂºÂ­p',
               ),
               _BrandPill(
                 icon: Icons.account_balance_wallet_outlined,
-                text: 'Theo dõi công nợ',
+                text: 'Theo dÄ‚Âµi cÄ‚Â´ng nĂ¡Â»Â£',
               ),
               _BrandPill(
                 icon: Icons.verified_user_outlined,
-                text: 'Xử lý bảo hành',
+                text: 'XĂ¡Â»Â­ lÄ‚Â½ bĂ¡ÂºÂ£o hÄ‚Â nh',
               ),
             ],
           ),
@@ -1130,67 +1130,67 @@ class _LoginTexts {
   final bool isEnglish;
 
   String get brandSubtitle => isEnglish
-      ? 'Sign in to manage orders, debt, and warranties with 4T HITEK.'
-      : 'Đăng nhập để quản lý đơn nhập, công nợ và bảo hành cùng 4T HITEK.';
+      ? 'Sign in to manage orders, credit, and warranties with 4T HITEK.'
+      : 'Ă„ÂĂ„Æ’ng nhĂ¡ÂºÂ­p Ă„â€˜Ă¡Â»Æ’ quĂ¡ÂºÂ£n lÄ‚Â½ Ă„â€˜Ă†Â¡n nhĂ¡ÂºÂ­p, cÄ‚Â´ng nĂ¡Â»Â£ vÄ‚Â  bĂ¡ÂºÂ£o hÄ‚Â nh cÄ‚Â¹ng 4T HITEK.';
   String get brandPillOrders =>
-      isEnglish ? 'Manage orders' : 'Quản lý đơn nhập';
-  String get brandPillDebt => isEnglish ? 'Track debt' : 'Theo dõi công nợ';
+      isEnglish ? 'Manage orders' : 'QuĂ¡ÂºÂ£n lÄ‚Â½ Ă„â€˜Ă†Â¡n nhĂ¡ÂºÂ­p';
+  String get brandPillDebt => isEnglish ? 'Track credit' : 'Track credit';
   String get brandPillWarranty =>
-      isEnglish ? 'Process warranties' : 'Xử lý bảo hành';
-  String get loginTitle => isEnglish ? 'Dealer sign in' : 'Đăng nhập đại lý';
+      isEnglish ? 'Process warranties' : 'XĂ¡Â»Â­ lÄ‚Â½ bĂ¡ÂºÂ£o hÄ‚Â nh';
+  String get loginTitle => isEnglish ? 'Dealer sign in' : 'Ă„ÂĂ„Æ’ng nhĂ¡ÂºÂ­p Ă„â€˜Ă¡ÂºÂ¡i lÄ‚Â½';
   String get loginSubtitle => isEnglish
       ? 'Enter your email and password to continue.'
-      : 'Nhập email và mật khẩu để tiếp tục.';
+      : 'NhĂ¡ÂºÂ­p email vÄ‚Â  mĂ¡ÂºÂ­t khĂ¡ÂºÂ©u Ă„â€˜Ă¡Â»Æ’ tiĂ¡ÂºÂ¿p tĂ¡Â»Â¥c.';
   String get emailLabel => 'Email';
-  String get passwordLabel => isEnglish ? 'Password' : 'Mật khẩu';
+  String get passwordLabel => isEnglish ? 'Password' : 'MĂ¡ÂºÂ­t khĂ¡ÂºÂ©u';
   String get emailRequiredMessage =>
-      isEnglish ? 'Email is required.' : 'Email không được để trống.';
+      isEnglish ? 'Email is required.' : 'Email khÄ‚Â´ng Ă„â€˜Ă†Â°Ă¡Â»Â£c Ă„â€˜Ă¡Â»Æ’ trĂ¡Â»â€˜ng.';
   String get invalidEmailMessage =>
-      isEnglish ? 'Email is invalid.' : 'Email không hợp lệ.';
+      isEnglish ? 'Email is invalid.' : 'Email khÄ‚Â´ng hĂ¡Â»Â£p lĂ¡Â»â€¡.';
   String get passwordRequiredMessage =>
-      isEnglish ? 'Password is required.' : 'Mật khẩu không được để trống.';
+      isEnglish ? 'Password is required.' : 'MĂ¡ÂºÂ­t khĂ¡ÂºÂ©u khÄ‚Â´ng Ă„â€˜Ă†Â°Ă¡Â»Â£c Ă„â€˜Ă¡Â»Æ’ trĂ¡Â»â€˜ng.';
   String get passwordMinLengthMessage => isEnglish
       ? 'Password must be at least 6 characters.'
-      : 'Mật khẩu tối thiểu 6 ký tự.';
+      : 'MĂ¡ÂºÂ­t khĂ¡ÂºÂ©u tĂ¡Â»â€˜i thiĂ¡Â»Æ’u 6 kÄ‚Â½ tĂ¡Â»Â±.';
   String get passwordMinLengthHint =>
-      isEnglish ? 'At least 6 characters' : 'Tối thiểu 6 ký tự';
+      isEnglish ? 'At least 6 characters' : 'TĂ¡Â»â€˜i thiĂ¡Â»Æ’u 6 kÄ‚Â½ tĂ¡Â»Â±';
   String get showPasswordTooltip =>
-      isEnglish ? 'Show password' : 'Hiện mật khẩu';
-  String get hidePasswordTooltip => isEnglish ? 'Hide password' : 'Ẩn mật khẩu';
+      isEnglish ? 'Show password' : 'HiĂ¡Â»â€¡n mĂ¡ÂºÂ­t khĂ¡ÂºÂ©u';
+  String get hidePasswordTooltip => isEnglish ? 'Hide password' : 'Ă¡ÂºÂ¨n mĂ¡ÂºÂ­t khĂ¡ÂºÂ©u';
   String authErrorSemanticsLabel(String message) =>
-      isEnglish ? 'Login error: $message' : 'Lỗi đăng nhập: $message';
+      isEnglish ? 'Login error: $message' : 'LĂ¡Â»â€”i Ă„â€˜Ă„Æ’ng nhĂ¡ÂºÂ­p: $message';
   String get forgotPasswordAction =>
-      isEnglish ? 'Forgot password?' : 'Quên mật khẩu?';
+      isEnglish ? 'Forgot password?' : 'QuÄ‚Âªn mĂ¡ÂºÂ­t khĂ¡ÂºÂ©u?';
   String get rememberEmailLabel =>
-      isEnglish ? 'Remember email' : 'Ghi nhớ email';
-  String get loginAction => isEnglish ? 'Sign in' : 'Đăng nhập';
+      isEnglish ? 'Remember email' : 'Ghi nhĂ¡Â»â€º email';
+  String get loginAction => isEnglish ? 'Sign in' : 'Ă„ÂĂ„Æ’ng nhĂ¡ÂºÂ­p';
   String get loggingInLabel =>
-      isEnglish ? 'Signing in...' : 'Đang đăng nhập...';
+      isEnglish ? 'Signing in...' : 'Ă„Âang Ă„â€˜Ă„Æ’ng nhĂ¡ÂºÂ­p...';
   String get noAccountPrompt =>
-      isEnglish ? 'No account yet? ' : 'Chưa có tài khoản? ';
+      isEnglish ? 'No account yet? ' : 'ChĂ†Â°a cÄ‚Â³ tÄ‚Â i khoĂ¡ÂºÂ£n? ';
   String get registerOnWebsiteAction =>
-      isEnglish ? 'Register on website' : 'Đăng ký trên website';
+      isEnglish ? 'Register on website' : 'Ă„ÂĂ„Æ’ng kÄ‚Â½ trÄ‚Âªn website';
   String get invalidCredentialsMessage => isEnglish
       ? 'Email or password is incorrect.'
-      : 'Email hoặc mật khẩu không đúng.';
+      : 'Email hoĂ¡ÂºÂ·c mĂ¡ÂºÂ­t khĂ¡ÂºÂ©u khÄ‚Â´ng Ă„â€˜Ä‚Âºng.';
   String get cannotConnectServerMessage => isEnglish
       ? 'Unable to connect to the server. Please try again.'
-      : 'Không thể kết nối máy chủ. Vui lòng thử lại.';
+      : 'KhÄ‚Â´ng thĂ¡Â»Æ’ kĂ¡ÂºÂ¿t nĂ¡Â»â€˜i mÄ‚Â¡y chĂ¡Â»Â§. Vui lÄ‚Â²ng thĂ¡Â»Â­ lĂ¡ÂºÂ¡i.';
   String get loginFailedMessage => isEnglish
       ? 'Sign in failed. Please try again.'
-      : 'Đăng nhập thất bại. Vui lòng thử lại.';
+      : 'Ă„ÂĂ„Æ’ng nhĂ¡ÂºÂ­p thĂ¡ÂºÂ¥t bĂ¡ÂºÂ¡i. Vui lÄ‚Â²ng thĂ¡Â»Â­ lĂ¡ÂºÂ¡i.';
   String get cannotCreateSessionMessage => isEnglish
       ? 'Unable to create a login session. Please try again.'
-      : 'Không thể tạo phiên đăng nhập. Vui lòng thử lại.';
+      : 'KhÄ‚Â´ng thĂ¡Â»Æ’ tĂ¡ÂºÂ¡o phiÄ‚Âªn Ă„â€˜Ă„Æ’ng nhĂ¡ÂºÂ­p. Vui lÄ‚Â²ng thĂ¡Â»Â­ lĂ¡ÂºÂ¡i.';
   String get loginTimeoutMessage => isEnglish
       ? 'The sign-in request timed out. Please try again.'
-      : 'Yêu cầu đăng nhập hết thời gian. Vui lòng thử lại.';
+      : 'YÄ‚Âªu cĂ¡ÂºÂ§u Ă„â€˜Ă„Æ’ng nhĂ¡ÂºÂ­p hĂ¡ÂºÂ¿t thĂ¡Â»Âi gian. Vui lÄ‚Â²ng thĂ¡Â»Â­ lĂ¡ÂºÂ¡i.';
   String get unknownLoginErrorMessage => isEnglish
       ? 'An unknown error occurred. Please try again.'
-      : 'Đã xảy ra lỗi không xác định. Vui lòng thử lại.';
+      : 'Ă„ÂÄ‚Â£ xĂ¡ÂºÂ£y ra lĂ¡Â»â€”i khÄ‚Â´ng xÄ‚Â¡c Ă„â€˜Ă¡Â»â€¹nh. Vui lÄ‚Â²ng thĂ¡Â»Â­ lĂ¡ÂºÂ¡i.';
   String get cannotOpenRegistrationPageMessage => isEnglish
       ? 'Unable to open the dealer registration page on the website.'
-      : 'Không thể mở trang đăng ký đại lý trên website.';
+      : 'KhÄ‚Â´ng thĂ¡Â»Æ’ mĂ¡Â»Å¸ trang Ă„â€˜Ă„Æ’ng kÄ‚Â½ Ă„â€˜Ă¡ÂºÂ¡i lÄ‚Â½ trÄ‚Âªn website.';
 }
 
 class _TextureLayer extends StatelessWidget {

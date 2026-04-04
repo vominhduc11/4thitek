@@ -10,7 +10,7 @@ public enum PaymentStatus {
      */
     PAID,
     /**
-     * Order-level debt was recorded successfully.
+     * A receivable was recognized for a completed debt order that still has unpaid balance.
      */
     DEBT_RECORDED,
     /**

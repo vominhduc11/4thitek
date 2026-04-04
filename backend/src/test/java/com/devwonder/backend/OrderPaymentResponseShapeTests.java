@@ -126,6 +126,9 @@ class OrderPaymentResponseShapeTests {
                 .andExpect(jsonPath("$.data[0].shippingFee").value(0))
                 .andExpect(jsonPath("$.data[0].totalAmount").isNumber())
                 .andExpect(jsonPath("$.data[0].outstandingAmount").isNumber())
+                .andExpect(jsonPath("$.data[0].reservedCreditAmount").isNumber())
+                .andExpect(jsonPath("$.data[0].openReceivableAmount").isNumber())
+                .andExpect(jsonPath("$.data[0].creditExposureAmount").isNumber())
                 .andExpect(jsonPath("$.data[0].receiverName").value("Dealer Receiver"))
                 .andExpect(jsonPath("$.data[0].receiverAddress").value("123 Contract Street"))
                 .andExpect(jsonPath("$.data[0].receiverPhone").value("0900000000"))
@@ -182,6 +185,10 @@ class OrderPaymentResponseShapeTests {
                 .andExpect(jsonPath("$.data[0].createdAt").exists())
                 .andExpect(jsonPath("$.data[0].updatedAt").exists())
                 .andExpect(jsonPath("$.data[0].totalAmount").isNumber())
+                .andExpect(jsonPath("$.data[0].outstandingAmount").isNumber())
+                .andExpect(jsonPath("$.data[0].reservedCreditAmount").isNumber())
+                .andExpect(jsonPath("$.data[0].openReceivableAmount").isNumber())
+                .andExpect(jsonPath("$.data[0].creditExposureAmount").isNumber())
                 .andExpect(jsonPath("$.data[0].itemCount").value(1))
                 .andExpect(jsonPath("$.data[0].address").value("123 Contract Street"))
                 .andExpect(jsonPath("$.data[0].note").value("Shape test order note"))
@@ -221,6 +228,10 @@ class OrderPaymentResponseShapeTests {
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
                 .andExpect(jsonPath("$.data[0].id").value(dealer.getId()))
+                .andExpect(jsonPath("$.data[0].reservedCredit").isNumber())
+                .andExpect(jsonPath("$.data[0].openReceivable").isNumber())
+                .andExpect(jsonPath("$.data[0].totalCreditExposure").isNumber())
+                .andExpect(jsonPath("$.data[0].availableCredit").isNumber())
                 .andExpect(jsonPath("$.data[0].allowedTransitions").isArray())
                 .andExpect(jsonPath("$.data[0].allowedTransitions[0]").value("ACTIVE"))
                 .andExpect(jsonPath("$.data[0].allowedTransitions[1]").value("SUSPENDED"));
@@ -388,7 +399,7 @@ class OrderPaymentResponseShapeTests {
         debtOrder.setOrderCode(orderCode);
         debtOrder.setStatus(OrderStatus.PENDING);
         debtOrder.setPaymentMethod(PaymentMethod.DEBT);
-        debtOrder.setPaymentStatus(PaymentStatus.DEBT_RECORDED);
+        debtOrder.setPaymentStatus(PaymentStatus.PENDING);
         debtOrder.setPaidAmount(BigDecimal.valueOf(50_000));
         debtOrder.setIsDeleted(false);
         debtOrder.setReceiverName("Debt Dealer Receiver");

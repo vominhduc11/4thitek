@@ -14,6 +14,7 @@ import com.devwonder.backend.repository.BulkDiscountRepository;
 import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
+import com.devwonder.backend.service.support.OrderFinancialSupport;
 import com.devwonder.backend.service.support.OrderPricingSupport;
 import com.devwonder.backend.service.support.WarrantyDateSupport;
 import com.devwonder.backend.service.support.WarrantyStatusSupport;
@@ -114,6 +115,10 @@ public class AdminReportingService {
                         safeEnum(order.getPaymentStatus()),
                         formatMoney(calculateTotalAmount(order, activeDiscountRules)),
                         formatMoney(order.getPaidAmount()),
+                        formatMoney(OrderFinancialSupport.paymentDueAmount(order, activeDiscountRules, adminSettingsService.getVatPercent())),
+                        formatMoney(OrderFinancialSupport.reservedCreditAmount(order, activeDiscountRules, adminSettingsService.getVatPercent())),
+                        formatMoney(OrderFinancialSupport.openReceivableAmount(order, activeDiscountRules, adminSettingsService.getVatPercent())),
+                        formatMoney(OrderFinancialSupport.creditExposureAmount(order, activeDiscountRules, adminSettingsService.getVatPercent())),
                         String.valueOf(order.getOrderItems() == null ? 0 : order.getOrderItems().size()),
                         formatDate(order.getCreatedAt())
                 ))
@@ -121,7 +126,20 @@ public class AdminReportingService {
 
         return new TableReport(
                 "Orders Report",
-                List.of("Order Code", "Dealer", "Status", "Payment", "Total", "Paid", "Items", "Created At"),
+                List.of(
+                        "Order Code",
+                        "Dealer",
+                        "Status",
+                        "Payment",
+                        "Total",
+                        "Paid",
+                        "Amount Due",
+                        "Reserved Credit",
+                        "Open Receivable",
+                        "Credit Exposure",
+                        "Items",
+                        "Created At"
+                ),
                 rows
         );
     }
@@ -140,12 +158,20 @@ public class AdminReportingService {
                             dealer == null ? "N/A" : dealerName(dealer),
                             BigDecimal.ZERO,
                             BigDecimal.ZERO,
+                            BigDecimal.ZERO,
+                            BigDecimal.ZERO,
                             0,
                             null
                     )
             );
             row.totalAmount = row.totalAmount.add(calculateTotalAmount(order, activeDiscountRules));
             row.paidAmount = row.paidAmount.add(nullSafe(order.getPaidAmount()));
+            row.reservedCredit = row.reservedCredit.add(
+                    OrderFinancialSupport.reservedCreditAmount(order, activeDiscountRules, adminSettingsService.getVatPercent())
+            );
+            row.openReceivable = row.openReceivable.add(
+                    OrderFinancialSupport.openReceivableAmount(order, activeDiscountRules, adminSettingsService.getVatPercent())
+            );
             row.orderCount += 1;
             if (order.getCreatedAt() != null && (row.lastOrderAt == null || order.getCreatedAt().isAfter(row.lastOrderAt))) {
                 row.lastOrderAt = order.getCreatedAt();
@@ -159,14 +185,25 @@ public class AdminReportingService {
                         String.valueOf(row.orderCount),
                         formatMoney(row.totalAmount),
                         formatMoney(row.paidAmount),
-                        formatMoney(row.totalAmount.subtract(row.paidAmount)),
+                        formatMoney(row.reservedCredit),
+                        formatMoney(row.openReceivable),
+                        formatMoney(row.reservedCredit.add(row.openReceivable)),
                         formatDate(row.lastOrderAt)
                 ))
                 .toList();
 
         return new TableReport(
                 "Revenue Report",
-                List.of("Dealer", "Orders", "Gross Revenue", "Paid Revenue", "Outstanding", "Last Order"),
+                List.of(
+                        "Dealer",
+                        "Orders",
+                        "Gross Revenue",
+                        "Paid Revenue",
+                        "Reserved Credit",
+                        "Open Receivable",
+                        "Credit Exposure",
+                        "Last Order"
+                ),
                 rows
         );
     }
@@ -375,6 +412,8 @@ public class AdminReportingService {
         private final String dealerName;
         private BigDecimal totalAmount;
         private BigDecimal paidAmount;
+        private BigDecimal reservedCredit;
+        private BigDecimal openReceivable;
         private int orderCount;
         private Instant lastOrderAt;
 
@@ -382,12 +421,16 @@ public class AdminReportingService {
                 String dealerName,
                 BigDecimal totalAmount,
                 BigDecimal paidAmount,
+                BigDecimal reservedCredit,
+                BigDecimal openReceivable,
                 int orderCount,
                 Instant lastOrderAt
         ) {
             this.dealerName = dealerName;
             this.totalAmount = totalAmount;
             this.paidAmount = paidAmount;
+            this.reservedCredit = reservedCredit;
+            this.openReceivable = openReceivable;
             this.orderCount = orderCount;
             this.lastOrderAt = lastOrderAt;
         }

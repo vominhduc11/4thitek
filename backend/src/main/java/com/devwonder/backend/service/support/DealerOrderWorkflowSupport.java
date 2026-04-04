@@ -189,21 +189,19 @@ public class DealerOrderWorkflowSupport {
                         PaymentMethod.DEBT
                 )
                 .stream()
-                .map(order -> outstandingAmount(order, activeDiscountRules))
+                .map(order -> creditExposureAmount(order, activeDiscountRules))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal projectedOutstandingDebt = currentOutstandingDebt.add(outstandingAmount(draftOrder, activeDiscountRules));
+        BigDecimal projectedOutstandingDebt = currentOutstandingDebt.add(creditExposureAmount(draftOrder, activeDiscountRules));
         if (projectedOutstandingDebt.compareTo(creditLimit) > 0) {
             throw new BadRequestException("Credit limit exceeded");
         }
     }
 
-    private BigDecimal outstandingAmount(
+    private BigDecimal creditExposureAmount(
             Order order,
             List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules
     ) {
-        return OrderPricingSupport.computeTotalAmount(order, activeDiscountRules, currentVatPercent())
-                .subtract(DealerOrderSupport.zeroIfNull(order.getPaidAmount()))
-                .max(BigDecimal.ZERO);
+        return OrderFinancialSupport.creditExposureAmount(order, activeDiscountRules, currentVatPercent());
     }
 
     private BigDecimal zeroIfNull(BigDecimal value) {

@@ -386,7 +386,9 @@ class OrderWorkflowLogicTests {
         );
 
         assertThat(debtOrder.paymentMethod()).isEqualTo(PaymentMethod.DEBT);
-        assertThat(debtOrder.paymentStatus()).isEqualTo(PaymentStatus.DEBT_RECORDED);
+        assertThat(debtOrder.paymentStatus()).isEqualTo(PaymentStatus.PENDING);
+        assertThat(debtOrder.reservedCreditAmount()).isGreaterThan(BigDecimal.ZERO);
+        assertThat(debtOrder.openReceivableAmount()).isEqualByComparingTo(BigDecimal.ZERO);
     }
 
     @Test

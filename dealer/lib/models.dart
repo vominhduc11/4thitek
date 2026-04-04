@@ -213,7 +213,7 @@ extension OrderPaymentStatusLabel on OrderPaymentStatus {
       case OrderPaymentStatus.paid:
         return '\u0110\u00E3 thanh to\u00E1n';
       case OrderPaymentStatus.debtRecorded:
-        return 'Ghi nh\u1EADn c\u00F4ng n\u1EE3';
+        return 'M\u1EDF c\u00F4ng n\u1EE3 ph\u1EA3i thu';
     }
   }
 }
@@ -357,6 +357,9 @@ class Order {
     this.vatPercentOverride,
     this.vatAmountOverride,
     this.totalAmountOverride,
+    this.reservedCreditAmountOverride,
+    this.openReceivableAmountOverride,
+    this.creditExposureAmountOverride,
   });
 
   final String id;
@@ -377,6 +380,9 @@ class Order {
   final int? vatPercentOverride;
   final int? vatAmountOverride;
   final int? totalAmountOverride;
+  final int? reservedCreditAmountOverride;
+  final int? openReceivableAmountOverride;
+  final int? creditExposureAmountOverride;
 
   int get totalItems {
     return items.fold<int>(0, (sum, item) => sum + item.quantity);
@@ -412,6 +418,41 @@ class Order {
     return outstanding;
   }
 
+  bool get isDebtOrder => paymentMethod == OrderPaymentMethod.debt;
+
+  int get reservedCreditAmount {
+    if (!isDebtOrder || status == OrderStatus.cancelled) {
+      return 0;
+    }
+    if (reservedCreditAmountOverride != null) {
+      return reservedCreditAmountOverride! < 0 ? 0 : reservedCreditAmountOverride!;
+    }
+    if (status == OrderStatus.completed) {
+      return 0;
+    }
+    return outstandingAmount;
+  }
+
+  int get openReceivableAmount {
+    if (!isDebtOrder || status != OrderStatus.completed) {
+      return 0;
+    }
+    if (openReceivableAmountOverride != null) {
+      return openReceivableAmountOverride! < 0 ? 0 : openReceivableAmountOverride!;
+    }
+    return outstandingAmount;
+  }
+
+  int get creditExposureAmount {
+    if (!isDebtOrder || status == OrderStatus.cancelled) {
+      return 0;
+    }
+    if (creditExposureAmountOverride != null) {
+      return creditExposureAmountOverride! < 0 ? 0 : creditExposureAmountOverride!;
+    }
+    return reservedCreditAmount + openReceivableAmount;
+  }
+
   Order copyWith({
     OrderStatus? status,
     OrderPaymentMethod? paymentMethod,
@@ -429,6 +470,9 @@ class Order {
     int? vatPercentOverride,
     int? vatAmountOverride,
     int? totalAmountOverride,
+    int? reservedCreditAmountOverride,
+    int? openReceivableAmountOverride,
+    int? creditExposureAmountOverride,
   }) {
     return Order(
       id: id,
@@ -451,6 +495,12 @@ class Order {
       vatPercentOverride: vatPercentOverride ?? this.vatPercentOverride,
       vatAmountOverride: vatAmountOverride ?? this.vatAmountOverride,
       totalAmountOverride: totalAmountOverride ?? this.totalAmountOverride,
+      reservedCreditAmountOverride:
+          reservedCreditAmountOverride ?? this.reservedCreditAmountOverride,
+      openReceivableAmountOverride:
+          openReceivableAmountOverride ?? this.openReceivableAmountOverride,
+      creditExposureAmountOverride:
+          creditExposureAmountOverride ?? this.creditExposureAmountOverride,
     );
   }
 }

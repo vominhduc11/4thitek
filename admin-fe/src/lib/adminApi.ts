@@ -133,6 +133,10 @@ export type BackendOrderResponse = {
   paymentStatus?: BackendPaymentStatus | null
   paidAmount?: number | string | null
   totalAmount?: number | string | null
+  outstandingAmount?: number | string | null
+  reservedCreditAmount?: number | string | null
+  openReceivableAmount?: number | string | null
+  creditExposureAmount?: number | string | null
   itemCount?: number | null
   address?: string | null
   note?: string | null
@@ -188,7 +192,10 @@ export type BackendDealerAccountResponse = {
   lastOrderAt?: string | null
   revenue?: number | string | null
   creditLimit?: number | string | null
-  outstandingDebt?: number | string | null
+  reservedCredit?: number | string | null
+  openReceivable?: number | string | null
+  totalCreditExposure?: number | string | null
+  availableCredit?: number | string | null
   email?: string | null
   phone?: string | null
   allowedTransitions?: BackendDealerAccountStatus[] | null

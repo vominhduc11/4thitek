@@ -209,6 +209,10 @@ const parseFiniteNumber = (value: unknown, fallback = 0) => {
 export const mapOrder = (order: BackendOrderResponse): Order => {
   const totalAmount = parseFiniteNumber(order.totalAmount)
   const paidAmount = parseFiniteNumber(order.paidAmount)
+  const outstandingAmount =
+    order.outstandingAmount === undefined
+      ? Math.max(0, totalAmount - paidAmount)
+      : parseFiniteNumber(order.outstandingAmount)
 
   return {
     id: String(order.id),
@@ -219,7 +223,10 @@ export const mapOrder = (order: BackendOrderResponse): Order => {
     paymentMethod: mapBackendPaymentMethod(order.paymentMethod),
     paymentStatus: mapBackendPaymentStatus(order.paymentStatus),
     paidAmount,
-    outstandingAmount: Math.max(0, totalAmount - paidAmount),
+    outstandingAmount,
+    reservedCreditAmount: parseFiniteNumber(order.reservedCreditAmount),
+    openReceivableAmount: parseFiniteNumber(order.openReceivableAmount),
+    creditExposureAmount: parseFiniteNumber(order.creditExposureAmount),
     items: Number(order.itemCount ?? 0),
     address: order.address || '',
     note: order.note || '',
@@ -263,7 +270,10 @@ export const mapDealer = (dealer: BackendDealerAccountResponse): Dealer => ({
   lastOrderAt: dealer.lastOrderAt || '',
   revenue: Number(dealer.revenue ?? 0),
   creditLimit: Number(dealer.creditLimit ?? 0),
-  outstandingDebt: Number(dealer.outstandingDebt ?? 0),
+  reservedCredit: Number(dealer.reservedCredit ?? 0),
+  openReceivable: Number(dealer.openReceivable ?? 0),
+  totalCreditExposure: Number(dealer.totalCreditExposure ?? 0),
+  availableCredit: Number(dealer.availableCredit ?? 0),
   email: dealer.email || '',
   phone: dealer.phone || '',
   allowedTransitions: mapAllowedDealerTransitions(

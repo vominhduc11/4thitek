@@ -1,0 +1,81 @@
+﻿S:\project\4thitek\dealer\lib\account_screen.dart:21: class AccountScreen extends StatefulWidget {
+S:\project\4thitek\dealer\lib\account_settings_screen.dart:15: class AccountSettingsScreen extends StatefulWidget {
+S:\project\4thitek\dealer\lib\app_preferences_screen.dart:9: class AppPreferencesScreen extends StatelessWidget {
+S:\project\4thitek\dealer\lib\app_router.dart:34: GoRoute(path: '/', redirect: (context, state) => '/launch'),
+S:\project\4thitek\dealer\lib\app_router.dart:35: GoRoute(
+S:\project\4thitek\dealer\lib\app_router.dart:39: GoRoute(
+S:\project\4thitek\dealer\lib\app_router.dart:45: GoRoute(
+S:\project\4thitek\dealer\lib\app_router.dart:49: GoRoute(
+S:\project\4thitek\dealer\lib\app_router.dart:53: GoRoute(
+S:\project\4thitek\dealer\lib\app_router.dart:57: GoRoute(
+S:\project\4thitek\dealer\lib\app_router.dart:67: GoRoute(
+S:\project\4thitek\dealer\lib\app_router.dart:71: GoRoute(
+S:\project\4thitek\dealer\lib\app_router.dart:81: GoRoute(
+S:\project\4thitek\dealer\lib\app_router.dart:85: GoRoute(
+S:\project\4thitek\dealer\lib\app_router.dart:98: GoRoute(
+S:\project\4thitek\dealer\lib\app_router.dart:102: GoRoute(
+S:\project\4thitek\dealer\lib\app_router.dart:106: GoRoute(
+S:\project\4thitek\dealer\lib\app_router.dart:112: GoRoute(
+S:\project\4thitek\dealer\lib\app_router.dart:126: GoRoute(
+S:\project\4thitek\dealer\lib\app_router.dart:130: GoRoute(
+S:\project\4thitek\dealer\lib\app_router.dart:134: GoRoute(
+S:\project\4thitek\dealer\lib\app_router.dart:138: GoRoute(path: '/cart', builder: (context, state) => const CartScreen()),
+S:\project\4thitek\dealer\lib\app_router.dart:139: GoRoute(
+S:\project\4thitek\dealer\lib\app_router.dart:172: class _LaunchRouteScreen extends StatelessWidget {
+S:\project\4thitek\dealer\lib\app_router.dart:240: class _ProductDetailRouteScreen extends StatefulWidget {
+S:\project\4thitek\dealer\lib\app_router.dart:287: class _RouteNotFoundScreen extends StatelessWidget {
+S:\project\4thitek\dealer\lib\cart_screen.dart:20: class CartScreen extends StatefulWidget {
+S:\project\4thitek\dealer\lib\cart_screen.dart:140: await Navigator.of(context).push(
+S:\project\4thitek\dealer\lib\change_password_screen.dart:15: class ChangePasswordScreen extends StatefulWidget {
+S:\project\4thitek\dealer\lib\checkout_screen.dart:23: class CheckoutScreen extends StatefulWidget {
+S:\project\4thitek\dealer\lib\checkout_screen.dart:854: Navigator.of(context).pushReplacement(
+S:\project\4thitek\dealer\lib\dashboard_screen.dart:675: class DashboardScreen extends StatefulWidget {
+S:\project\4thitek\dealer\lib\dashboard_screen.dart:803: Navigator.of(context).push(
+S:\project\4thitek\dealer\lib\dashboard_screen.dart:823: Navigator.of(context).push(
+S:\project\4thitek\dealer\lib\dashboard_screen.dart:1214: Navigator.of(context).push(
+S:\project\4thitek\dealer\lib\dashboard_screen.dart:5100: class _DonutTooltipPositionDelegate extends SingleChildLayoutDelegate {
+S:\project\4thitek\dealer\lib\debt_tracking_screen.dart:17: class DebtTrackingScreen extends StatefulWidget {
+S:\project\4thitek\dealer\lib\debt_tracking_screen.dart:986: Navigator.of(context).push(
+S:\project\4thitek\dealer\lib\forgot_password_screen.dart:13: class ForgotPasswordScreen extends StatefulWidget {
+S:\project\4thitek\dealer\lib\global_search.dart:72: class _GlobalSearchDelegate extends SearchDelegate<void> {
+S:\project\4thitek\dealer\lib\global_search.dart:273: Navigator.of(launchContext).push(
+S:\project\4thitek\dealer\lib\global_search.dart:281: Navigator.of(launchContext).push(
+S:\project\4thitek\dealer\lib\home_shell.dart:13: class DealerHomeShell extends StatefulWidget {
+S:\project\4thitek\dealer\lib\inventory_product_detail_screen.dart:30: class InventoryProductDetailScreen extends StatefulWidget {
+S:\project\4thitek\dealer\lib\inventory_product_detail_screen.dart:315: Navigator.of(this.context).push(
+S:\project\4thitek\dealer\lib\inventory_product_detail_screen.dart:472: Navigator.of(context).push(
+S:\project\4thitek\dealer\lib\inventory_product_detail_screen.dart:552: await Navigator.of(context).push(
+S:\project\4thitek\dealer\lib\inventory_screen.dart:43: class InventoryScreen extends StatefulWidget {
+S:\project\4thitek\dealer\lib\inventory_screen.dart:508: Navigator.of(context).push(
+S:\project\4thitek\dealer\lib\inventory_screen.dart:537: Navigator.of(context).push(
+S:\project\4thitek\dealer\lib\inventory_screen.dart:776: await Navigator.of(context).push(
+S:\project\4thitek\dealer\lib\login_screen.dart:27: class LoginScreen extends StatefulWidget {
+S:\project\4thitek\dealer\lib\login_screen.dart:149: Navigator.of(context).push(
+S:\project\4thitek\dealer\lib\notifications_screen.dart:19: class NotificationsScreen extends StatefulWidget {
+S:\project\4thitek\dealer\lib\orders_screen.dart:31: class OrdersScreen extends StatefulWidget {
+S:\project\4thitek\dealer\lib\orders_screen.dart:150: Navigator.of(context).push(
+S:\project\4thitek\dealer\lib\orders_screen.dart:587: Navigator.of(context).push(
+S:\project\4thitek\dealer\lib\order_detail_screen.dart:25: class OrderDetailScreen extends StatelessWidget {
+S:\project\4thitek\dealer\lib\order_detail_screen.dart:576: Navigator.of(context).push(
+S:\project\4thitek\dealer\lib\order_detail_screen.dart:587: Navigator.of(context).push(
+S:\project\4thitek\dealer\lib\order_success_screen.dart:12: class OrderSuccessScreen extends StatefulWidget {
+S:\project\4thitek\dealer\lib\order_success_screen.dart:70: Navigator.of(context).pushReplacement(
+S:\project\4thitek\dealer\lib\order_success_screen.dart:144: Navigator.of(context).pushAndRemoveUntil(
+S:\project\4thitek\dealer\lib\product_detail_screen.dart:32: class ProductDetailScreen extends StatefulWidget {
+S:\project\4thitek\dealer\lib\product_detail_screen.dart:161: Navigator.of(context).push(
+S:\project\4thitek\dealer\lib\product_detail_screen.dart:586: Navigator.of(context).push(
+S:\project\4thitek\dealer\lib\product_list_screen.dart:36: class ProductListScreen extends StatefulWidget {
+S:\project\4thitek\dealer\lib\product_list_screen.dart:145: Navigator.of(context).push(
+S:\project\4thitek\dealer\lib\product_list_screen.dart:153: Navigator.of(context).push(
+S:\project\4thitek\dealer\lib\product_list_screen.dart:1350: Navigator.of(context).push(
+S:\project\4thitek\dealer\lib\product_list_screen.dart:2200: class _PinnedHeaderDelegate extends SliverPersistentHeaderDelegate {
+S:\project\4thitek\dealer\lib\serial_scan_screen.dart:111: class SerialScanScreen extends StatefulWidget {
+S:\project\4thitek\dealer\lib\support_screen.dart:18: class SupportScreen extends StatefulWidget {
+S:\project\4thitek\dealer\lib\warranty_activation_screen.dart:25: class WarrantyActivationScreen extends StatefulWidget {
+S:\project\4thitek\dealer\lib\warranty_export_screen.dart:24: class WarrantyExportScreen extends StatefulWidget {
+S:\project\4thitek\dealer\lib\warranty_hub_screen.dart:18: class WarrantyHubScreen extends StatelessWidget {
+S:\project\4thitek\dealer\lib\warranty_hub_screen.dart:52: Navigator.of(context).push(
+S:\project\4thitek\dealer\lib\warranty_hub_screen.dart:213: Navigator.of(context).push(
+S:\project\4thitek\dealer\lib\warranty_hub_screen.dart:278: Navigator.of(context).push(
+S:\project\4thitek\dealer\lib\warranty_serial_inventory_screen.dart:18: class WarrantySerialInventoryScreen extends StatefulWidget {
+S:\project\4thitek\dealer\lib\warranty_serial_inventory_screen.dart:623: Navigator.of(context).push(

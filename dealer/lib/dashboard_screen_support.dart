@@ -146,12 +146,8 @@ _DashboardSnapshot _buildDashboardSnapshot({
 
 int _calculateTotalOutstandingDebt(List<Order> orders) {
   return orders
-      .where(
-        (order) =>
-            order.paymentMethod == OrderPaymentMethod.debt &&
-            order.status != OrderStatus.cancelled,
-      )
-      .fold<int>(0, (sum, order) => sum + order.outstandingAmount);
+      .where((order) => order.openReceivableAmount > 0)
+      .fold<int>(0, (sum, order) => sum + order.openReceivableAmount);
 }
 
 class _DashboardLowStockItem {
@@ -528,9 +524,8 @@ List<_DebtBucket> _buildDebtBuckets(
   final amounts = List<int>.filled(buckets.length, 0);
 
   for (final order in orders) {
-    if (order.paymentMethod != OrderPaymentMethod.debt ||
-        order.status == OrderStatus.cancelled ||
-        order.outstandingAmount <= 0) {
+    if (order.openReceivableAmount <= 0 ||
+        order.status == OrderStatus.cancelled) {
       continue;
     }
     final createdAt = DateTime(
@@ -543,7 +538,7 @@ List<_DebtBucket> _buildDebtBuckets(
       (bucket) => ageInDays >= bucket.minDay && ageInDays <= bucket.maxDay,
     );
     if (index >= 0) {
-      amounts[index] += order.outstandingAmount;
+      amounts[index] += order.openReceivableAmount;
     }
   }
 

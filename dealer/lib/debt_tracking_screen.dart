@@ -69,7 +69,8 @@ class _DebtTrackingScreenState extends State<DebtTrackingScreen> {
         .where((payment) => debtOrderIds.contains(payment.orderId))
         .toList(growable: false);
 
-    final totalOutstandingDebt = orderController.totalOutstandingDebt;
+    final totalOutstandingDebt = orderController.totalOpenReceivable;
+    final totalCreditExposure = orderController.totalCreditExposure;
     final creditLimit = _profile.creditLimit;
     final averageOutstandingDebt = debtOrders.isEmpty
         ? 0
@@ -83,7 +84,7 @@ class _DebtTrackingScreenState extends State<DebtTrackingScreen> {
 
     final creditUsageRatio = creditLimit <= 0
         ? 0.0
-        : (totalOutstandingDebt / creditLimit).clamp(0.0, 1.0);
+        : (totalCreditExposure / creditLimit).clamp(0.0, 1.0);
 
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isTablet = AppBreakpoints.isTablet(context);
@@ -1839,17 +1840,17 @@ class _PaymentHistoryCard extends StatelessWidget {
   IconData _iconForChannel(String channel) {
     final normalized = channel.toLowerCase();
     if (normalized.contains('bank transfer') ||
-        normalized.contains('chuyển khoản')) {
+        normalized.contains('chuyÄ‚Â¡Ă‚Â»Ă†â€™n khoÄ‚Â¡Ă‚ÂºĂ‚Â£n')) {
       return Icons.account_balance_outlined;
     }
     if (normalized.contains('cash') ||
-        normalized.contains('tiền mặt') ||
+        normalized.contains('tiÄ‚Â¡Ă‚Â»Ă‚Ân mÄ‚Â¡Ă‚ÂºĂ‚Â·t') ||
         normalized.contains('tien mat')) {
       return Icons.money_outlined;
     }
     if (normalized.contains('offset') ||
         normalized.contains('debt') ||
-        normalized.contains('bù trừ') ||
+        normalized.contains('bĂ„â€Ă‚Â¹ trÄ‚Â¡Ă‚Â»Ă‚Â«') ||
         normalized.contains('bu tru')) {
       return Icons.swap_horiz_outlined;
     }
@@ -2066,64 +2067,64 @@ class _DebtTexts {
 
   final bool isEnglish;
 
-  String get screenTitle => isEnglish ? 'Debt tracking' : 'Công nợ';
+  String get screenTitle => isEnglish ? 'Receivables' : 'Receivables';
 
   String get heroTitle =>
-      isEnglish ? 'Track outstanding debt' : 'Theo dõi công nợ hiện tại';
+      isEnglish ? 'Track receivables' : 'Track receivables';
 
   String get heroSubtitle => isEnglish
       ? 'Review outstanding orders, record incoming payments and monitor credit usage in one place.'
-      : 'Theo dõi đơn còn nợ, ghi nhận thanh toán và kiểm soát hạn mức công nợ tại một nơi.';
+      : 'Theo dĂ„â€Ă‚Âµi Ä‚â€Ă¢â‚¬ËœÄ‚â€ Ă‚Â¡n cĂ„â€Ă‚Â²n nÄ‚Â¡Ă‚Â»Ă‚Â£, ghi nhÄ‚Â¡Ă‚ÂºĂ‚Â­n thanh toĂ„â€Ă‚Â¡n vĂ„â€Ă‚Â  kiÄ‚Â¡Ă‚Â»Ă†â€™m soĂ„â€Ă‚Â¡t hÄ‚Â¡Ă‚ÂºĂ‚Â¡n mÄ‚Â¡Ă‚Â»Ă‚Â©c cĂ„â€Ă‚Â´ng nÄ‚Â¡Ă‚Â»Ă‚Â£ tÄ‚Â¡Ă‚ÂºĂ‚Â¡i mÄ‚Â¡Ă‚Â»Ă¢â€Â¢t nÄ‚â€ Ă‚Â¡i.';
 
   String get insightPanelTitle =>
-      isEnglish ? 'Debt insights' : 'Tóm tắt công nợ';
+      isEnglish ? 'Receivable insights' : 'Receivable insights';
 
   String get insightPanelSubtitle => isEnglish
       ? 'Use these indicators to understand exposure, average debt size and payment activity.'
-      : 'Dùng các chỉ số này để theo dõi mức dư nợ, giá trị nợ trung bình và hoạt động thanh toán.';
+      : 'DĂ„â€Ă‚Â¹ng cĂ„â€Ă‚Â¡c chÄ‚Â¡Ă‚Â»Ă¢â‚¬Â° sÄ‚Â¡Ă‚Â»Ă¢â‚¬Ëœ nĂ„â€Ă‚Â y Ä‚â€Ă¢â‚¬ËœÄ‚Â¡Ă‚Â»Ă†â€™ theo dĂ„â€Ă‚Âµi mÄ‚Â¡Ă‚Â»Ă‚Â©c dÄ‚â€ Ă‚Â° nÄ‚Â¡Ă‚Â»Ă‚Â£, giĂ„â€Ă‚Â¡ trÄ‚Â¡Ă‚Â»Ă¢â‚¬Â¹ nÄ‚Â¡Ă‚Â»Ă‚Â£ trung bĂ„â€Ă‚Â¬nh vĂ„â€Ă‚Â  hoÄ‚Â¡Ă‚ÂºĂ‚Â¡t Ä‚â€Ă¢â‚¬ËœÄ‚Â¡Ă‚Â»Ă¢â€Â¢ng thanh toĂ„â€Ă‚Â¡n.';
 
   String get debtOrdersSectionTitle =>
-      isEnglish ? 'Outstanding orders' : 'Đơn hàng còn nợ';
+      isEnglish ? 'Open receivable orders' : 'Open receivable orders';
 
   String get debtOrdersSectionSubtitle => isEnglish
-      ? 'Orders using debt payment that still have an unpaid balance.'
-      : 'Các đơn dùng phương thức công nợ vẫn còn số dư chưa thanh toán.';
+      ? 'Completed credit orders that still have an unpaid receivable.'
+      : 'CĂ„â€Ă‚Â¡c Ä‚â€Ă¢â‚¬ËœÄ‚â€ Ă‚Â¡n dĂ„â€Ă‚Â¹ng phÄ‚â€ Ă‚Â°Ä‚â€ Ă‚Â¡ng thÄ‚Â¡Ă‚Â»Ă‚Â©c cĂ„â€Ă‚Â´ng nÄ‚Â¡Ă‚Â»Ă‚Â£ vÄ‚Â¡Ă‚ÂºĂ‚Â«n cĂ„â€Ă‚Â²n sÄ‚Â¡Ă‚Â»Ă¢â‚¬Ëœ dÄ‚â€ Ă‚Â° chÄ‚â€ Ă‚Â°a thanh toĂ„â€Ă‚Â¡n.';
 
   String get paymentHistorySectionTitle =>
-      isEnglish ? 'Payment history' : 'Lịch sử thanh toán';
+      isEnglish ? 'Payment history' : 'LÄ‚Â¡Ă‚Â»Ă¢â‚¬Â¹ch sÄ‚Â¡Ă‚Â»Ă‚Â­ thanh toĂ„â€Ă‚Â¡n';
 
   String get paymentHistorySectionSubtitle => isEnglish
-      ? 'Recorded debt payments linked to debt orders will appear here.'
-      : 'Các khoản thanh toán đã ghi nhận cho đơn công nợ sẽ hiển thị tại đây.';
+      ? 'Recorded payments for credit orders will appear here.'
+      : 'CĂ„â€Ă‚Â¡c khoÄ‚Â¡Ă‚ÂºĂ‚Â£n thanh toĂ„â€Ă‚Â¡n Ä‚â€Ă¢â‚¬ËœĂ„â€Ă‚Â£ ghi nhÄ‚Â¡Ă‚ÂºĂ‚Â­n cho Ä‚â€Ă¢â‚¬ËœÄ‚â€ Ă‚Â¡n cĂ„â€Ă‚Â´ng nÄ‚Â¡Ă‚Â»Ă‚Â£ sÄ‚Â¡Ă‚ÂºĂ‚Â½ hiÄ‚Â¡Ă‚Â»Ă†â€™n thÄ‚Â¡Ă‚Â»Ă¢â‚¬Â¹ tÄ‚Â¡Ă‚ÂºĂ‚Â¡i Ä‚â€Ă¢â‚¬ËœĂ„â€Ă‚Â¢y.';
 
   String get debtOrdersEmptyTitle =>
-      isEnglish ? 'No outstanding orders' : 'Không còn đơn nợ';
+      isEnglish ? 'No outstanding orders' : 'KhĂ„â€Ă‚Â´ng cĂ„â€Ă‚Â²n Ä‚â€Ă¢â‚¬ËœÄ‚â€ Ă‚Â¡n nÄ‚Â¡Ă‚Â»Ă‚Â£';
 
   String get debtOrdersEmptySubtitle => isEnglish
       ? 'All eligible orders are fully paid.'
-      : 'Tất cả đơn hàng đủ điều kiện đã được thanh toán.';
+      : 'TÄ‚Â¡Ă‚ÂºĂ‚Â¥t cÄ‚Â¡Ă‚ÂºĂ‚Â£ Ä‚â€Ă¢â‚¬ËœÄ‚â€ Ă‚Â¡n hĂ„â€Ă‚Â ng Ä‚â€Ă¢â‚¬ËœÄ‚Â¡Ă‚Â»Ă‚Â§ Ä‚â€Ă¢â‚¬ËœiÄ‚Â¡Ă‚Â»Ă‚Âu kiÄ‚Â¡Ă‚Â»Ă¢â‚¬Â¡n Ä‚â€Ă¢â‚¬ËœĂ„â€Ă‚Â£ Ä‚â€Ă¢â‚¬ËœÄ‚â€ Ă‚Â°Ä‚Â¡Ă‚Â»Ă‚Â£c thanh toĂ„â€Ă‚Â¡n.';
 
   String get paymentHistoryEmptyTitle =>
-      isEnglish ? 'No payment history' : 'Chưa có lịch sử thanh toán';
+      isEnglish ? 'No payment history' : 'ChÄ‚â€ Ă‚Â°a cĂ„â€Ă‚Â³ lÄ‚Â¡Ă‚Â»Ă¢â‚¬Â¹ch sÄ‚Â¡Ă‚Â»Ă‚Â­ thanh toĂ„â€Ă‚Â¡n';
 
   String get paymentHistoryEmptySubtitle => isEnglish
-      ? 'Recorded debt payments will appear here.'
-      : 'Các giao dịch ghi nhận thanh toán sẽ hiển thị tại đây.';
+      ? 'Recorded payments will appear here.'
+      : 'CĂ„â€Ă‚Â¡c giao dÄ‚Â¡Ă‚Â»Ă¢â‚¬Â¹ch ghi nhÄ‚Â¡Ă‚ÂºĂ‚Â­n thanh toĂ„â€Ă‚Â¡n sÄ‚Â¡Ă‚ÂºĂ‚Â½ hiÄ‚Â¡Ă‚Â»Ă†â€™n thÄ‚Â¡Ă‚Â»Ă¢â‚¬Â¹ tÄ‚Â¡Ă‚ÂºĂ‚Â¡i Ä‚â€Ă¢â‚¬ËœĂ„â€Ă‚Â¢y.';
 
   String get totalDebtMetricLabel =>
-      isEnglish ? 'Outstanding debt' : 'Tổng dư nợ';
+      isEnglish ? 'Open receivable' : 'Open receivable';
 
   String get averageDebtMetricLabel =>
-      isEnglish ? 'Average debt / order' : 'Nợ trung bình / đơn';
+      isEnglish ? 'Average receivable / order' : 'Average receivable / order';
 
   String get recordedPaymentsMetricLabel =>
-      isEnglish ? 'Recorded payments' : 'Số lượt thanh toán';
+      isEnglish ? 'Recorded payments' : 'SÄ‚Â¡Ă‚Â»Ă¢â‚¬Ëœ lÄ‚â€ Ă‚Â°Ä‚Â¡Ă‚Â»Ă‚Â£t thanh toĂ„â€Ă‚Â¡n';
 
   String recordedPaymentsValue(int count) =>
-      isEnglish ? '$count entries' : '$count lượt';
+      isEnglish ? '$count entries' : '$count lÄ‚â€ Ă‚Â°Ä‚Â¡Ă‚Â»Ă‚Â£t';
 
   String get creditUtilizationLabel =>
-      isEnglish ? 'Credit utilization' : 'Mức sử dụng hạn mức';
+      isEnglish ? 'Credit utilization' : 'MÄ‚Â¡Ă‚Â»Ă‚Â©c sÄ‚Â¡Ă‚Â»Ă‚Â­ dÄ‚Â¡Ă‚Â»Ă‚Â¥ng hÄ‚Â¡Ă‚ÂºĂ‚Â¡n mÄ‚Â¡Ă‚Â»Ă‚Â©c';
 
   String creditUtilizationDescription({
     required int creditLimit,
@@ -2132,95 +2133,95 @@ class _DebtTexts {
     if (creditLimit <= 0) {
       return isEnglish
           ? 'Credit limit has not been configured for this dealer profile yet.'
-          : 'Hồ sơ đại lý hiện chưa được cấu hình hạn mức công nợ.';
+          : 'HÄ‚Â¡Ă‚Â»Ă¢â‚¬Å“ sÄ‚â€ Ă‚Â¡ Ä‚â€Ă¢â‚¬ËœÄ‚Â¡Ă‚ÂºĂ‚Â¡i lĂ„â€Ă‚Â½ hiÄ‚Â¡Ă‚Â»Ă¢â‚¬Â¡n chÄ‚â€ Ă‚Â°a Ä‚â€Ă¢â‚¬ËœÄ‚â€ Ă‚Â°Ä‚Â¡Ă‚Â»Ă‚Â£c cÄ‚Â¡Ă‚ÂºĂ‚Â¥u hĂ„â€Ă‚Â¬nh hÄ‚Â¡Ă‚ÂºĂ‚Â¡n mÄ‚Â¡Ă‚Â»Ă‚Â©c cĂ„â€Ă‚Â´ng nÄ‚Â¡Ă‚Â»Ă‚Â£.';
     }
     return isEnglish
         ? 'Using $ratioPercent% of the configured credit limit.'
-        : 'Đang sử dụng $ratioPercent% hạn mức công nợ đã cấu hình.';
+        : 'Ä‚â€Ă‚Âang sÄ‚Â¡Ă‚Â»Ă‚Â­ dÄ‚Â¡Ă‚Â»Ă‚Â¥ng $ratioPercent% hÄ‚Â¡Ă‚ÂºĂ‚Â¡n mÄ‚Â¡Ă‚Â»Ă‚Â©c cĂ„â€Ă‚Â´ng nÄ‚Â¡Ă‚Â»Ă‚Â£ Ä‚â€Ă¢â‚¬ËœĂ„â€Ă‚Â£ cÄ‚Â¡Ă‚ÂºĂ‚Â¥u hĂ„â€Ă‚Â¬nh.';
   }
 
-  String get metricUnavailableValue => isEnglish ? 'Unavailable' : 'Chưa có';
+  String get metricUnavailableValue => isEnglish ? 'Unavailable' : 'ChÄ‚â€ Ă‚Â°a cĂ„â€Ă‚Â³';
 
-  String get orderDateLabel => isEnglish ? 'Order date' : 'Ngày đặt';
+  String get orderDateLabel => isEnglish ? 'Order date' : 'NgĂ„â€Ă‚Â y Ä‚â€Ă¢â‚¬ËœÄ‚Â¡Ă‚ÂºĂ‚Â·t';
 
-  String get paymentMethodLabel => isEnglish ? 'Payment method' : 'Phương thức';
+  String get paymentMethodLabel => isEnglish ? 'Payment method' : 'PhÄ‚â€ Ă‚Â°Ä‚â€ Ă‚Â¡ng thÄ‚Â¡Ă‚Â»Ă‚Â©c';
 
-  String get totalAmountLabel => isEnglish ? 'Order total' : 'Tổng đơn';
+  String get totalAmountLabel => isEnglish ? 'Order total' : 'TÄ‚Â¡Ă‚Â»Ă¢â‚¬Â¢ng Ä‚â€Ă¢â‚¬ËœÄ‚â€ Ă‚Â¡n';
 
-  String get paidAmountLabel => isEnglish ? 'Paid amount' : 'Đã thanh toán';
+  String get paidAmountLabel => isEnglish ? 'Paid amount' : 'Ä‚â€Ă‚ÂĂ„â€Ă‚Â£ thanh toĂ„â€Ă‚Â¡n';
 
-  String get viewOrderButton => isEnglish ? 'View order' : 'Xem đơn';
+  String get viewOrderButton => isEnglish ? 'View order' : 'Xem Ä‚â€Ă¢â‚¬ËœÄ‚â€ Ă‚Â¡n';
 
   String get recordPaymentButton =>
-      isEnglish ? 'Record payment' : 'Ghi nhận thanh toán';
+      isEnglish ? 'Record payment' : 'Ghi nhÄ‚Â¡Ă‚ÂºĂ‚Â­n thanh toĂ„â€Ă‚Â¡n';
 
   String get recordPaymentDialogTitle =>
-      isEnglish ? 'Record debt payment' : 'Ghi nhận thanh toán';
+      isEnglish ? 'Record debt payment' : 'Ghi nhÄ‚Â¡Ă‚ÂºĂ‚Â­n thanh toĂ„â€Ă‚Â¡n';
 
   String get paymentAmountLabel =>
-      isEnglish ? 'Payment amount' : 'Số tiền thanh toán';
+      isEnglish ? 'Payment amount' : 'SÄ‚Â¡Ă‚Â»Ă¢â‚¬Ëœ tiÄ‚Â¡Ă‚Â»Ă‚Ân thanh toĂ„â€Ă‚Â¡n';
 
   String get paymentChannelLabel =>
-      isEnglish ? 'Payment channel' : 'Kênh thanh toán';
+      isEnglish ? 'Payment channel' : 'KĂ„â€Ă‚Âªnh thanh toĂ„â€Ă‚Â¡n';
 
-  String get noteLabel => isEnglish ? 'Note' : 'Ghi chú';
+  String get noteLabel => isEnglish ? 'Note' : 'Ghi chĂ„â€Ă‚Âº';
 
   String get proofSectionTitle =>
-      isEnglish ? 'Payment proof' : 'Chứng từ thanh toán';
+      isEnglish ? 'Payment proof' : 'ChÄ‚Â¡Ă‚Â»Ă‚Â©ng tÄ‚Â¡Ă‚Â»Ă‚Â« thanh toĂ„â€Ă‚Â¡n';
 
   String get proofSectionSubtitle => isEnglish
       ? 'Attach an image file if you want to keep supporting proof for this payment entry.'
-      : 'Đính kèm hình ảnh nếu bạn muốn lưu chứng từ hỗ trợ cho lần ghi nhận thanh toán này.';
+      : 'Ä‚â€Ă‚ÂĂ„â€Ă‚Â­nh kĂ„â€Ă‚Â¨m hĂ„â€Ă‚Â¬nh Ä‚Â¡Ă‚ÂºĂ‚Â£nh nÄ‚Â¡Ă‚ÂºĂ‚Â¿u bÄ‚Â¡Ă‚ÂºĂ‚Â¡n muÄ‚Â¡Ă‚Â»Ă¢â‚¬Ëœn lÄ‚â€ Ă‚Â°u chÄ‚Â¡Ă‚Â»Ă‚Â©ng tÄ‚Â¡Ă‚Â»Ă‚Â« hÄ‚Â¡Ă‚Â»Ă¢â‚¬â€ trÄ‚Â¡Ă‚Â»Ă‚Â£ cho lÄ‚Â¡Ă‚ÂºĂ‚Â§n ghi nhÄ‚Â¡Ă‚ÂºĂ‚Â­n thanh toĂ„â€Ă‚Â¡n nĂ„â€Ă‚Â y.';
 
   String get attachProofButton =>
-      isEnglish ? 'Attach payment proof' : 'Đính kèm chứng từ';
+      isEnglish ? 'Attach payment proof' : 'Ä‚â€Ă‚ÂĂ„â€Ă‚Â­nh kĂ„â€Ă‚Â¨m chÄ‚Â¡Ă‚Â»Ă‚Â©ng tÄ‚Â¡Ă‚Â»Ă‚Â«';
 
   String get attachingProofLabel =>
-      isEnglish ? 'Uploading proof...' : 'Đang tải chứng từ...';
+      isEnglish ? 'Uploading proof...' : 'Ä‚â€Ă‚Âang tÄ‚Â¡Ă‚ÂºĂ‚Â£i chÄ‚Â¡Ă‚Â»Ă‚Â©ng tÄ‚Â¡Ă‚Â»Ă‚Â«...';
 
   String proofStoredLabel(String fileName) =>
-      isEnglish ? 'Stored proof: $fileName' : 'Chứng từ đã lưu: $fileName';
+      isEnglish ? 'Stored proof: $fileName' : 'ChÄ‚Â¡Ă‚Â»Ă‚Â©ng tÄ‚Â¡Ă‚Â»Ă‚Â« Ä‚â€Ă¢â‚¬ËœĂ„â€Ă‚Â£ lÄ‚â€ Ă‚Â°u: $fileName';
 
-  String get cancelButton => isEnglish ? 'Cancel' : 'Hủy';
+  String get cancelButton => isEnglish ? 'Cancel' : 'HÄ‚Â¡Ă‚Â»Ă‚Â§y';
 
-  String get confirmButton => isEnglish ? 'Confirm' : 'Xác nhận';
+  String get confirmButton => isEnglish ? 'Confirm' : 'XĂ„â€Ă‚Â¡c nhÄ‚Â¡Ă‚ÂºĂ‚Â­n';
 
-  String get continueButton => isEnglish ? 'Continue' : 'Tiếp tục';
+  String get continueButton => isEnglish ? 'Continue' : 'TiÄ‚Â¡Ă‚ÂºĂ‚Â¿p tÄ‚Â¡Ă‚Â»Ă‚Â¥c';
 
-  String get amountPreviewPlaceholder => '0 ₫';
+  String get amountPreviewPlaceholder => '0 Ä‚Â¢Ă¢â‚¬ÂĂ‚Â«';
 
   String get amountMustBePositive =>
-      isEnglish ? 'Amount must be greater than 0.' : 'Số tiền phải lớn hơn 0.';
+      isEnglish ? 'Amount must be greater than 0.' : 'SÄ‚Â¡Ă‚Â»Ă¢â‚¬Ëœ tiÄ‚Â¡Ă‚Â»Ă‚Ân phÄ‚Â¡Ă‚ÂºĂ‚Â£i lÄ‚Â¡Ă‚Â»Ă¢â‚¬Âºn hÄ‚â€ Ă‚Â¡n 0.';
 
   String get largePaymentConfirmTitle =>
-      isEnglish ? 'Confirm large payment' : 'Xác nhận khoản thanh toán lớn';
+      isEnglish ? 'Confirm large payment' : 'XĂ„â€Ă‚Â¡c nhÄ‚Â¡Ă‚ÂºĂ‚Â­n khoÄ‚Â¡Ă‚ÂºĂ‚Â£n thanh toĂ„â€Ă‚Â¡n lÄ‚Â¡Ă‚Â»Ă¢â‚¬Âºn';
 
-  String get creditLimitLabel => isEnglish ? 'Credit limit' : 'Hạn mức công nợ';
+  String get creditLimitLabel => isEnglish ? 'Credit limit' : 'HÄ‚Â¡Ă‚ÂºĂ‚Â¡n mÄ‚Â¡Ă‚Â»Ă‚Â©c cĂ„â€Ă‚Â´ng nÄ‚Â¡Ă‚Â»Ă‚Â£';
 
   String creditLimitValue(int amount) {
     if (amount <= 0) {
-      return isEnglish ? 'Not set' : 'Chưa cài đặt';
+      return isEnglish ? 'Not set' : 'ChÄ‚â€ Ă‚Â°a cĂ„â€Ă‚Â i Ä‚â€Ă¢â‚¬ËœÄ‚Â¡Ă‚ÂºĂ‚Â·t';
     }
     return formatVnd(amount);
   }
 
   String creditLimitHeroLabel(int amount) {
     if (amount <= 0) {
-      return isEnglish ? 'Credit limit not set' : 'Chưa có hạn mức công nợ';
+      return isEnglish ? 'Credit limit not set' : 'ChÄ‚â€ Ă‚Â°a cĂ„â€Ă‚Â³ hÄ‚Â¡Ă‚ÂºĂ‚Â¡n mÄ‚Â¡Ă‚Â»Ă‚Â©c cĂ„â€Ă‚Â´ng nÄ‚Â¡Ă‚Â»Ă‚Â£';
     }
     return isEnglish
         ? 'Credit limit ${formatVnd(amount)}'
-        : 'Hạn mức ${formatVnd(amount)}';
+        : 'HÄ‚Â¡Ă‚ÂºĂ‚Â¡n mÄ‚Â¡Ă‚Â»Ă‚Â©c ${formatVnd(amount)}';
   }
 
   String latestPaymentLabel(String value) =>
-      isEnglish ? 'Latest payment $value' : 'Thanh toán gần nhất $value';
+      isEnglish ? 'Latest payment $value' : 'Thanh toĂ„â€Ă‚Â¡n gÄ‚Â¡Ă‚ÂºĂ‚Â§n nhÄ‚Â¡Ă‚ÂºĂ‚Â¥t $value';
 
   String summarySemantics({required String amount, required int orderCount}) {
     if (isEnglish) {
-      return 'Outstanding debt $amount across $orderCount orders.';
+      return 'Open receivable $amount across $orderCount orders.';
     }
-    return 'Tổng công nợ $amount, gồm $orderCount đơn hàng.';
+    return 'TÄ‚Â¡Ă‚Â»Ă¢â‚¬Â¢ng cĂ„â€Ă‚Â´ng nÄ‚Â¡Ă‚Â»Ă‚Â£ $amount, gÄ‚Â¡Ă‚Â»Ă¢â‚¬Å“m $orderCount Ä‚â€Ă¢â‚¬ËœÄ‚â€ Ă‚Â¡n hĂ„â€Ă‚Â ng.';
   }
 
   String debtCardSemantics({
@@ -2230,7 +2231,7 @@ class _DebtTexts {
     if (isEnglish) {
       return 'Order $orderId has outstanding amount $outstanding.';
     }
-    return 'Đơn $orderId còn nợ $outstanding.';
+    return 'Ä‚â€Ă‚ÂÄ‚â€ Ă‚Â¡n $orderId cĂ„â€Ă‚Â²n nÄ‚Â¡Ă‚Â»Ă‚Â£ $outstanding.';
   }
 
   String paymentHistorySemantics({
@@ -2241,14 +2242,14 @@ class _DebtTexts {
     if (isEnglish) {
       return 'Payment $amount for order $orderId via $channel.';
     }
-    return 'Thanh toán $amount cho đơn $orderId qua kênh $channel.';
+    return 'Thanh toĂ„â€Ă‚Â¡n $amount cho Ä‚â€Ă¢â‚¬ËœÄ‚â€ Ă‚Â¡n $orderId qua kĂ„â€Ă‚Âªnh $channel.';
   }
 
   String outstandingOrdersLabel(int count) {
     if (isEnglish) {
       return '$count outstanding orders';
     }
-    return '$count đơn hàng còn nợ';
+    return '$count Ä‚â€Ă¢â‚¬ËœÄ‚â€ Ă‚Â¡n hĂ„â€Ă‚Â ng cĂ„â€Ă‚Â²n nÄ‚Â¡Ă‚Â»Ă‚Â£';
   }
 
   String outstandingAmountLabel(int amount) {
@@ -2256,28 +2257,28 @@ class _DebtTexts {
     if (isEnglish) {
       return 'Outstanding: $value';
     }
-    return 'Còn nợ: $value';
+    return 'CĂ„â€Ă‚Â²n nÄ‚Â¡Ă‚Â»Ă‚Â£: $value';
   }
 
   String paymentProgress({required String paid, required String total}) {
     if (isEnglish) {
       return 'Paid $paid / $total';
     }
-    return 'Đã thanh toán $paid / $total';
+    return 'Ä‚â€Ă‚ÂĂ„â€Ă‚Â£ thanh toĂ„â€Ă‚Â¡n $paid / $total';
   }
 
   String orderPrefix(String orderId) {
     if (isEnglish) {
       return 'Order $orderId';
     }
-    return 'Đơn $orderId';
+    return 'Ä‚â€Ă‚ÂÄ‚â€ Ă‚Â¡n $orderId';
   }
 
   String noteValue(String note) {
     if (isEnglish) {
       return 'Note: $note';
     }
-    return 'Ghi chú: $note';
+    return 'Ghi chĂ„â€Ă‚Âº: $note';
   }
 
   String orderIdAndOutstanding({
@@ -2287,28 +2288,28 @@ class _DebtTexts {
     if (isEnglish) {
       return 'Order: $orderId\nOutstanding: $outstanding';
     }
-    return 'Đơn: $orderId\nCòn nợ: $outstanding';
+    return 'Ä‚â€Ă‚ÂÄ‚â€ Ă‚Â¡n: $orderId\nCĂ„â€Ă‚Â²n nÄ‚Â¡Ă‚Â»Ă‚Â£: $outstanding';
   }
 
   String maxAmountHint(String maxAmount) {
     if (isEnglish) {
       return 'Maximum $maxAmount';
     }
-    return 'Tối đa $maxAmount';
+    return 'TÄ‚Â¡Ă‚Â»Ă¢â‚¬Ëœi Ä‚â€Ă¢â‚¬Ëœa $maxAmount';
   }
 
   String amountPreview(String value) {
     if (isEnglish) {
       return 'Formatted amount: $value';
     }
-    return 'Số tiền đã định dạng: $value';
+    return 'SÄ‚Â¡Ă‚Â»Ă¢â‚¬Ëœ tiÄ‚Â¡Ă‚Â»Ă‚Ân Ä‚â€Ă¢â‚¬ËœĂ„â€Ă‚Â£ Ä‚â€Ă¢â‚¬ËœÄ‚Â¡Ă‚Â»Ă¢â‚¬Â¹nh dÄ‚Â¡Ă‚ÂºĂ‚Â¡ng: $value';
   }
 
   String amountExceeded(String maxAmount) {
     if (isEnglish) {
       return 'Amount cannot exceed $maxAmount.';
     }
-    return 'Số tiền không được vượt quá $maxAmount.';
+    return 'SÄ‚Â¡Ă‚Â»Ă¢â‚¬Ëœ tiÄ‚Â¡Ă‚Â»Ă‚Ân khĂ„â€Ă‚Â´ng Ä‚â€Ă¢â‚¬ËœÄ‚â€ Ă‚Â°Ä‚Â¡Ă‚Â»Ă‚Â£c vÄ‚â€ Ă‚Â°Ä‚Â¡Ă‚Â»Ă‚Â£t quĂ„â€Ă‚Â¡ $maxAmount.';
   }
 
   String paymentRecordedSuccess({
@@ -2318,14 +2319,14 @@ class _DebtTexts {
     if (isEnglish) {
       return 'Recorded payment $amount for order $orderId.';
     }
-    return 'Đã ghi nhận thanh toán $amount cho đơn $orderId.';
+    return 'Ä‚â€Ă‚ÂĂ„â€Ă‚Â£ ghi nhÄ‚Â¡Ă‚ÂºĂ‚Â­n thanh toĂ„â€Ă‚Â¡n $amount cho Ä‚â€Ă¢â‚¬ËœÄ‚â€ Ă‚Â¡n $orderId.';
   }
 
   String proofAttachedSuccess(String fileName) {
     if (isEnglish) {
       return 'Attached proof $fileName.';
     }
-    return 'Đã đính kèm chứng từ $fileName.';
+    return 'Ä‚â€Ă‚ÂĂ„â€Ă‚Â£ Ä‚â€Ă¢â‚¬ËœĂ„â€Ă‚Â­nh kĂ„â€Ă‚Â¨m chÄ‚Â¡Ă‚Â»Ă‚Â©ng tÄ‚Â¡Ă‚Â»Ă‚Â« $fileName.';
   }
 
   String proofUploadFailed(Object error) => isEnglish
@@ -2339,7 +2340,7 @@ class _DebtTexts {
     if (isEnglish) {
       return 'You are recording a large payment of $amount for order $orderId. Continue?';
     }
-    return 'Bạn đang ghi nhận khoản thanh toán lớn $amount cho đơn $orderId. Tiếp tục?';
+    return 'BÄ‚Â¡Ă‚ÂºĂ‚Â¡n Ä‚â€Ă¢â‚¬Ëœang ghi nhÄ‚Â¡Ă‚ÂºĂ‚Â­n khoÄ‚Â¡Ă‚ÂºĂ‚Â£n thanh toĂ„â€Ă‚Â¡n lÄ‚Â¡Ă‚Â»Ă¢â‚¬Âºn $amount cho Ä‚â€Ă¢â‚¬ËœÄ‚â€ Ă‚Â¡n $orderId. TiÄ‚Â¡Ă‚ÂºĂ‚Â¿p tÄ‚Â¡Ă‚Â»Ă‚Â¥c?';
   }
 
   String paymentStatusLabel(OrderPaymentStatus status) {
@@ -2354,7 +2355,7 @@ class _DebtTexts {
         case OrderPaymentStatus.paid:
           return 'Paid';
         case OrderPaymentStatus.debtRecorded:
-          return 'Debt recorded';
+          return 'Open receivable';
       }
     }
     return status.label;
@@ -2369,17 +2370,17 @@ class _DebtTexts {
     }
     final normalized = channel.trim().toLowerCase();
     if (normalized.contains('bank transfer') ||
-        normalized.contains('chuyển khoản')) {
+        normalized.contains('chuyÄ‚Â¡Ă‚Â»Ă†â€™n khoÄ‚Â¡Ă‚ÂºĂ‚Â£n')) {
       return 'Bank transfer';
     }
     if (normalized.contains('cash') ||
-        normalized.contains('tiền mặt') ||
+        normalized.contains('tiÄ‚Â¡Ă‚Â»Ă‚Ân mÄ‚Â¡Ă‚ÂºĂ‚Â·t') ||
         normalized.contains('tien mat')) {
       return 'Cash';
     }
     if (normalized.contains('offset') ||
         normalized.contains('debt') ||
-        normalized.contains('bù trừ') ||
+        normalized.contains('bĂ„â€Ă‚Â¹ trÄ‚Â¡Ă‚Â»Ă‚Â«') ||
         normalized.contains('bu tru')) {
       return 'Debt offset';
     }
@@ -2387,12 +2388,12 @@ class _DebtTexts {
   }
 
   String showAllPaymentsLabel(int count) =>
-      isEnglish ? 'Show all ($count)' : 'Xem tất cả ($count)';
+      isEnglish ? 'Show all ($count)' : 'Xem tÄ‚Â¡Ă‚ÂºĂ‚Â¥t cÄ‚Â¡Ă‚ÂºĂ‚Â£ ($count)';
 
   List<String> get paymentChannels {
     if (isEnglish) {
       return const <String>['Bank transfer', 'Cash', 'Debt offset'];
     }
-    return const <String>['Chuyển khoản', 'Tiền mặt', 'Bù trừ công nợ'];
+    return const <String>['ChuyÄ‚Â¡Ă‚Â»Ă†â€™n khoÄ‚Â¡Ă‚ÂºĂ‚Â£n', 'TiÄ‚Â¡Ă‚Â»Ă‚Ân mÄ‚Â¡Ă‚ÂºĂ‚Â·t', 'BĂ„â€Ă‚Â¹ trÄ‚Â¡Ă‚Â»Ă‚Â« cĂ„â€Ă‚Â´ng nÄ‚Â¡Ă‚Â»Ă‚Â£'];
   }
 }

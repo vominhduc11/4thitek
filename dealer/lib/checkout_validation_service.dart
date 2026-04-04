@@ -38,27 +38,27 @@ class CheckoutValidationRequest {
     required this.items,
     required this.paymentMethod,
     required this.isCartSyncing,
-    required this.currentOutstandingDebt,
+    required this.currentCreditExposure,
     required this.creditLimit,
   });
 
   final List<CheckoutValidationItem> items;
   final OrderPaymentMethod paymentMethod;
   final bool isCartSyncing;
-  final int currentOutstandingDebt;
+  final int currentCreditExposure;
   final int creditLimit;
 
   int get totalAmount {
     return items.fold<int>(0, (sum, item) => sum + item.lineTotal);
   }
 
-  int get projectedOutstandingDebt => currentOutstandingDebt + totalAmount;
+  int get projectedCreditExposure => currentCreditExposure + totalAmount;
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'paymentMethod': paymentMethod.name,
       'items': items.map((item) => item.toJson()).toList(growable: false),
-      'currentOutstandingDebt': currentOutstandingDebt,
+      'currentCreditExposure': currentCreditExposure,
       'creditLimit': creditLimit,
     };
   }
@@ -70,7 +70,7 @@ class CheckoutValidationIssue {
     this.productId,
     this.productName,
     this.availableStock,
-    this.projectedOutstandingDebt,
+    this.projectedCreditExposure,
     this.creditLimit,
   });
 
@@ -78,7 +78,7 @@ class CheckoutValidationIssue {
   final String? productId;
   final String? productName;
   final int? availableStock;
-  final int? projectedOutstandingDebt;
+  final int? projectedCreditExposure;
   final int? creditLimit;
 }
 
@@ -174,11 +174,11 @@ class LocalCheckoutValidationDataSource
             code: CheckoutValidationIssueCode.debtPaymentUnavailable,
           ),
         );
-      } else if (request.projectedOutstandingDebt > request.creditLimit) {
+      } else if (request.projectedCreditExposure > request.creditLimit) {
         issues.add(
           CheckoutValidationIssue(
             code: CheckoutValidationIssueCode.debtLimitExceeded,
-            projectedOutstandingDebt: request.projectedOutstandingDebt,
+            projectedCreditExposure: request.projectedCreditExposure,
             creditLimit: request.creditLimit,
           ),
         );

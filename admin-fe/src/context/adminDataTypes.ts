@@ -26,6 +26,9 @@ export type Order = {
   paymentStatus: PaymentStatus
   paidAmount: number
   outstandingAmount: number
+  reservedCreditAmount: number
+  openReceivableAmount: number
+  creditExposureAmount: number
   items: number
   address: string
   note: string
@@ -59,7 +62,10 @@ export type Dealer = {
   lastOrderAt: string
   revenue: number
   creditLimit: number
-  outstandingDebt: number
+  reservedCredit: number
+  openReceivable: number
+  totalCreditExposure: number
+  availableCredit: number
   email: string
   phone: string
   allowedTransitions?: DealerStatus[]

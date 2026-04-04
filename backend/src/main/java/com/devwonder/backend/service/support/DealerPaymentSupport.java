@@ -161,10 +161,7 @@ public class DealerPaymentSupport {
             Order order,
             List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules
     ) {
-        BigDecimal totalAmount = OrderPricingSupport.computeTotalAmount(order, activeDiscountRules, adminSettingsService.getVatPercent());
-        BigDecimal paidAmount = DealerOrderSupport.zeroIfNull(order.getPaidAmount());
-        BigDecimal outstandingAmount = totalAmount.subtract(paidAmount);
-        return outstandingAmount.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : outstandingAmount;
+        return OrderFinancialSupport.paymentDueAmount(order, activeDiscountRules, adminSettingsService.getVatPercent());
     }
 
     private boolean isSepayEnabled() {
