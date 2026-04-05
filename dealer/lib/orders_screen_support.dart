@@ -241,7 +241,10 @@ extension _OrdersScreenSupport on _OrdersScreenState {
     }
     _searchDebounce?.cancel();
     _searchController.clear();
-    setState(() => _query = const OrderListQuery());
+    setState(() {
+      _query = const OrderListQuery();
+      _compactFiltersExpanded = false;
+    });
     _refreshOrders();
   }
 

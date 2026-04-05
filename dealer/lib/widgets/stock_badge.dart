@@ -10,6 +10,7 @@ class StockBadge extends StatelessWidget {
     this.iconTextSpacing = 4,
     this.showInStockQuantity = false,
     this.useColonForLowStock = false,
+    this.subtle = false,
   });
 
   final int remainingStock;
@@ -19,6 +20,7 @@ class StockBadge extends StatelessWidget {
   final double iconTextSpacing;
   final bool showInStockQuantity;
   final bool useColonForLowStock;
+  final bool subtle;
 
   @override
   Widget build(BuildContext context) {
@@ -29,11 +31,13 @@ class StockBadge extends StatelessWidget {
     late final String label;
     late final Color textColor;
     late final Color background;
+    late final double borderAlpha;
 
     if (remainingStock <= 0) {
       label = isEnglish ? 'Out of stock' : 'Hết hàng';
       textColor = colors.error;
-      background = colors.errorContainer.withValues(alpha: 0.42);
+      background = colors.errorContainer.withValues(alpha: subtle ? 0.2 : 0.42);
+      borderAlpha = subtle ? 0.12 : 0.18;
     } else if (remainingStock <= lowStockThreshold) {
       label = useColonForLowStock
           ? (isEnglish
@@ -44,9 +48,10 @@ class StockBadge extends StatelessWidget {
                 : 'Sắp hết ($remainingStock)');
       textColor = const Color(0xFFBDF919);
       background = Color.alphaBlend(
-        const Color(0xFFBDF919).withValues(alpha: 0.12),
+        const Color(0xFFBDF919).withValues(alpha: subtle ? 0.06 : 0.12),
         colors.surfaceContainerHigh,
       );
+      borderAlpha = subtle ? 0.1 : 0.18;
     } else {
       label = showInStockQuantity
           ? (isEnglish
@@ -54,7 +59,10 @@ class StockBadge extends StatelessWidget {
                 : 'Còn hàng: $remainingStock')
           : (isEnglish ? 'In stock' : 'Còn hàng');
       textColor = colors.primary;
-      background = colors.primaryContainer.withValues(alpha: 0.48);
+      background = colors.primaryContainer.withValues(
+        alpha: subtle ? 0.22 : 0.48,
+      );
+      borderAlpha = subtle ? 0.12 : 0.18;
     }
 
     return Container(
@@ -62,7 +70,7 @@ class StockBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: textColor.withValues(alpha: 0.18)),
+        border: Border.all(color: textColor.withValues(alpha: borderAlpha)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -81,7 +89,7 @@ class StockBadge extends StatelessWidget {
             label,
             style: style?.copyWith(
               color: textColor,
-              fontWeight: FontWeight.w700,
+              fontWeight: subtle ? FontWeight.w600 : FontWeight.w700,
             ),
           ),
         ],

@@ -46,11 +46,21 @@ class _OrdersScreenState extends State<OrdersScreen> {
   Timer? _orderRefreshDebounce;
   String _lastOrderSnapshot = '';
   bool _hasInitializedSnapshot = false;
+  bool _compactFiltersExpanded = false;
   OrderController? _observedOrderController;
   OrderQueryRepository? _orderQueryRepository;
   int _queryRevision = 0;
 
   OrderListQuery _query = const OrderListQuery();
+
+  int get _activeFilterCount {
+    var count = 0;
+    if (_query.onlyOutstanding) count++;
+    if (_query.status != null) count++;
+    if (_query.paymentStatus != null) count++;
+    if (_query.sort != OrderSortOption.newest) count++;
+    return count;
+  }
 
   @override
   void initState() {
@@ -238,6 +248,22 @@ class _OrdersScreenState extends State<OrdersScreen> {
     required List<OrderStatus?> statusFilters,
     required List<OrderPaymentStatus?> paymentFilters,
   }) {
+    if (layout.isCompact) {
+      return _buildCompactOverviewPanel(
+        context: context,
+        texts: texts,
+        colors: colors,
+        resultCount: resultCount,
+        pendingCount: pendingCount,
+        debtOrderCount: debtOrderCount,
+        hasActiveSearch: hasActiveSearch,
+        hasActiveCriteria: hasActiveCriteria,
+        activeCriteriaSummary: activeCriteriaSummary,
+        statusFilters: statusFilters,
+        paymentFilters: paymentFilters,
+      );
+    }
+
     return Container(
       padding: EdgeInsets.fromLTRB(
         layout.isCompact ? 16 : 20,
@@ -347,36 +373,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
           ),
           if (hasActiveCriteria && activeCriteriaSummary.isNotEmpty) ...[
             const SizedBox(height: 14),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: colors.surface.withValues(alpha: 0.55),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: colors.outlineVariant.withValues(alpha: 0.35),
-                ),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.filter_alt_rounded,
-                    size: 18,
-                    color: colors.primary,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      activeCriteriaSummary,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: colors.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            _buildActiveCriteriaBanner(
+              context,
+              colors: colors,
+              summary: activeCriteriaSummary,
             ),
           ],
           const SizedBox(height: 16),
@@ -402,6 +402,242 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 ? texts.allFilterOption
                 : texts.orderPaymentStatusLabel(status),
             useWrapLayout: layout.useWrapFilters,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactOverviewPanel({
+    required BuildContext context,
+    required _OrdersTexts texts,
+    required ColorScheme colors,
+    required int resultCount,
+    required int pendingCount,
+    required int debtOrderCount,
+    required bool hasActiveSearch,
+    required bool hasActiveCriteria,
+    required String activeCriteriaSummary,
+    required List<OrderStatus?> statusFilters,
+    required List<OrderPaymentStatus?> paymentFilters,
+  }) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerLow.withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: colors.outlineVariant.withValues(alpha: 0.45),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: texts.searchHint,
+              prefixIcon: const Icon(Icons.search_outlined),
+              suffixIcon: hasActiveSearch
+                  ? IconButton(
+                      onPressed: _clearSearch,
+                      tooltip: texts.clearSearchTooltip,
+                      icon: const Icon(Icons.close),
+                    )
+                  : null,
+              filled: true,
+              fillColor: colors.surface.withValues(alpha: 0.78),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+            ),
+            onChanged: _onSearchChanged,
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _OrdersCompactStatChip(
+                icon: Icons.receipt_long_outlined,
+                value: '$resultCount',
+                label: texts.screenTitle,
+              ),
+              if (pendingCount > 0)
+                _OrdersCompactStatChip(
+                  icon: Icons.hourglass_top_rounded,
+                  value: '$pendingCount',
+                  label: texts.orderStatusLabel(OrderStatus.pending),
+                  isActive: _query.status == OrderStatus.pending,
+                  onTap: () => _setStatusFilter(
+                    _query.status == OrderStatus.pending
+                        ? null
+                        : OrderStatus.pending,
+                  ),
+                ),
+              if (debtOrderCount > 0)
+                _OrdersCompactStatChip(
+                  icon: Icons.account_balance_wallet_outlined,
+                  value: '$debtOrderCount',
+                  label: texts.outstandingCriteriaLabel,
+                  isActive: _query.onlyOutstanding,
+                  onTap: _toggleOutstandingQuickFilter,
+                ),
+              PopupMenuButton<OrderSortOption>(
+                tooltip: texts.sortTooltip,
+                onSelected: _setSort,
+                itemBuilder: (context) => OrderSortOption.values
+                    .map(
+                      (sort) => PopupMenuItem<OrderSortOption>(
+                        value: sort,
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 22,
+                              child: _query.sort == sort
+                                  ? Icon(
+                                      Icons.check,
+                                      size: 18,
+                                      color: colors.primary,
+                                    )
+                                  : null,
+                            ),
+                            Text(texts.sortLabel(sort)),
+                          ],
+                        ),
+                      ),
+                    )
+                    .toList(),
+                child: _OrdersCompactActionChip(
+                  icon: Icons.swap_vert_rounded,
+                  label: texts.sortLabel(_query.sort),
+                  isActive: _query.sort != OrderSortOption.newest,
+                ),
+              ),
+              _OrdersCompactActionChip(
+                icon: _compactFiltersExpanded
+                    ? Icons.expand_less_rounded
+                    : Icons.tune_rounded,
+                label: _activeFilterCount > 0
+                    ? '${texts.isEnglish ? 'Filters' : 'Bộ lọc'} ($_activeFilterCount)'
+                    : (texts.isEnglish ? 'Filters' : 'Bộ lọc'),
+                isActive: _compactFiltersExpanded || _activeFilterCount > 0,
+                onTap: () {
+                  setState(
+                    () => _compactFiltersExpanded = !_compactFiltersExpanded,
+                  );
+                },
+              ),
+              if (hasActiveCriteria)
+                _OrdersCompactActionChip(
+                  icon: Icons.filter_alt_off_outlined,
+                  label: texts.isEnglish ? 'Clear' : 'Xóa',
+                  onTap: _clearAllCriteria,
+                ),
+            ],
+          ),
+          if (hasActiveCriteria &&
+              activeCriteriaSummary.isNotEmpty &&
+              !_compactFiltersExpanded) ...[
+            const SizedBox(height: 10),
+            _buildActiveCriteriaBanner(
+              context,
+              colors: colors,
+              summary: activeCriteriaSummary,
+              compact: true,
+            ),
+          ],
+          AnimatedSize(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            child: _compactFiltersExpanded
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (hasActiveCriteria &&
+                            activeCriteriaSummary.isNotEmpty) ...[
+                          _buildActiveCriteriaBanner(
+                            context,
+                            colors: colors,
+                            summary: activeCriteriaSummary,
+                            compact: true,
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                        _buildFilterChips<OrderStatus>(
+                          context: context,
+                          label: texts.statusFilterLabel,
+                          options: statusFilters,
+                          selected: _query.status,
+                          onSelected: _setStatusFilter,
+                          labelFor: (status) => status == null
+                              ? texts.allFilterOption
+                              : texts.orderStatusLabel(status),
+                          useWrapLayout: false,
+                        ),
+                        const SizedBox(height: 12),
+                        _buildFilterChips<OrderPaymentStatus>(
+                          context: context,
+                          label: texts.paymentFilterLabel,
+                          options: paymentFilters,
+                          selected: _query.paymentStatus,
+                          onSelected: _setPaymentStatusFilter,
+                          labelFor: (status) => status == null
+                              ? texts.allFilterOption
+                              : texts.orderPaymentStatusLabel(status),
+                          useWrapLayout: false,
+                        ),
+                      ],
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActiveCriteriaBanner(
+    BuildContext context, {
+    required ColorScheme colors,
+    required String summary,
+    bool compact = false,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 10 : 12,
+        vertical: compact ? 9 : 10,
+      ),
+      decoration: BoxDecoration(
+        color: colors.surface.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(compact ? 14 : 16),
+        border: Border.all(
+          color: colors.outlineVariant.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.filter_alt_rounded,
+            size: compact ? 16 : 18,
+            color: colors.primary,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              summary,
+              maxLines: compact ? 2 : null,
+              overflow: compact ? TextOverflow.ellipsis : null,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: colors.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
@@ -906,7 +1142,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  layout.isCompact ? 8 : 12,
+                  16,
+                  0,
+                ),
                 child: _buildOverviewPanel(
                   context: context,
                   texts: texts,
@@ -922,7 +1163,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   paymentFilters: paymentFilters,
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: layout.isCompact ? 8 : 12),
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: () async {
@@ -937,7 +1178,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           pagingController: _pagingController,
                           padding: EdgeInsets.fromLTRB(
                             20,
-                            8,
+                            layout.isCompact ? 4 : 8,
                             20,
                             layout.listBottomPadding,
                           ),
@@ -957,7 +1198,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           pagingController: _pagingController,
                           padding: EdgeInsets.fromLTRB(
                             20,
-                            8,
+                            layout.isCompact ? 4 : 8,
                             20,
                             layout.listBottomPadding,
                           ),
@@ -1276,6 +1517,144 @@ class _OrdersActionChip extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: chip,
+      ),
+    );
+  }
+}
+
+class _OrdersCompactStatChip extends StatelessWidget {
+  const _OrdersCompactStatChip({
+    required this.icon,
+    required this.value,
+    required this.label,
+    this.isActive = false,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String value;
+  final String label;
+  final bool isActive;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final chip = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: isActive
+            ? colors.primaryContainer.withValues(alpha: 0.94)
+            : colors.surface.withValues(alpha: 0.76),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isActive
+              ? colors.primary.withValues(alpha: 0.22)
+              : colors.outlineVariant.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 16,
+            color: isActive ? colors.onPrimaryContainer : colors.primary,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: isActive ? colors.onPrimaryContainer : colors.onSurface,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: isActive
+                  ? colors.onPrimaryContainer.withValues(alpha: 0.82)
+                  : colors.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+    if (onTap == null) {
+      return chip;
+    }
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: chip,
+      ),
+    );
+  }
+}
+
+class _OrdersCompactActionChip extends StatelessWidget {
+  const _OrdersCompactActionChip({
+    required this.icon,
+    required this.label,
+    this.isActive = false,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool isActive;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final chip = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: isActive
+            ? colors.secondaryContainer.withValues(alpha: 0.82)
+            : colors.surface.withValues(alpha: 0.76),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isActive
+              ? colors.secondary.withValues(alpha: 0.22)
+              : colors.outlineVariant.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 16,
+            color: isActive ? colors.onSecondaryContainer : colors.primary,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: isActive
+                  ? colors.onSecondaryContainer
+                  : colors.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+    if (onTap == null) {
+      return chip;
+    }
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
         onTap: onTap,
         child: chip,
       ),

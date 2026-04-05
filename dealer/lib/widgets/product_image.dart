@@ -14,6 +14,7 @@ class ProductImage extends StatelessWidget {
     this.fit = BoxFit.cover,
     this.contentPadding = EdgeInsets.zero,
     this.iconSize = 24,
+    this.showSurfaceDecoration = true,
   });
 
   final Product product;
@@ -23,6 +24,7 @@ class ProductImage extends StatelessWidget {
   final BoxFit fit;
   final EdgeInsetsGeometry contentPadding;
   final double iconSize;
+  final bool showSurfaceDecoration;
 
   @override
   Widget build(BuildContext context) {
@@ -30,35 +32,38 @@ class ProductImage extends StatelessWidget {
     final imageUrl = product.imageUrl?.trim().isNotEmpty == true
         ? resolveFileReference(product.imageUrl!.trim())
         : null;
+    final imageContent = SizedBox(
+      width: width,
+      height: height,
+      child: imageUrl == null
+          ? _fallback(context)
+          : Padding(
+              padding: contentPadding,
+              child: LazyNetworkImage(
+                url: imageUrl,
+                width: width,
+                height: height,
+                fit: fit,
+                filterQuality: FilterQuality.medium,
+                placeholderBuilder: (context) => _fallback(context),
+                errorBuilder: (context, error, stackTrace) =>
+                    _fallback(context),
+              ),
+            ),
+    );
     return ClipRRect(
       borderRadius: borderRadius,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: colors.surfaceContainerLow,
-          border: Border.all(
-            color: colors.outlineVariant.withValues(alpha: 0.4),
-          ),
-        ),
-        child: SizedBox(
-          width: width,
-          height: height,
-          child: imageUrl == null
-              ? _fallback(context)
-              : Padding(
-                  padding: contentPadding,
-                  child: LazyNetworkImage(
-                    url: imageUrl,
-                    width: width,
-                    height: height,
-                    fit: fit,
-                    filterQuality: FilterQuality.medium,
-                    placeholderBuilder: (context) => _fallback(context),
-                    errorBuilder: (context, error, stackTrace) =>
-                        _fallback(context),
-                  ),
+      child: showSurfaceDecoration
+          ? DecoratedBox(
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerLow,
+                border: Border.all(
+                  color: colors.outlineVariant.withValues(alpha: 0.4),
                 ),
-        ),
-      ),
+              ),
+              child: imageContent,
+            )
+          : imageContent,
     );
   }
 
@@ -69,10 +74,7 @@ class ProductImage extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            colors.surfaceContainerHigh,
-            colors.surfaceContainerLow,
-          ],
+          colors: [colors.surfaceContainerHigh, colors.surfaceContainerLow],
         ),
       ),
       child: Center(
