@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import AvoidSidebar from '@/components/ui/AvoidSidebar';
 import { HeroSection, WarrantyForm, WarrantyResult } from './components';
 import { WarrantyInfo, WarrantyCheckData } from '@/types/warranty';
 import { apiService } from '@/services/apiService';
@@ -91,31 +92,37 @@ const WarrantyCheckPage = () => {
         <div className="brand-section min-h-screen text-white flex flex-col">
             <HeroSection />
 
-            <div className="brand-shell py-8 sm:ml-16 sm:py-12 md:ml-20 md:py-16">
-                <AnimatePresence mode="wait">
-                    {!showResult ? (
-                        <motion.div
-                            key="form"
-                            initial={{ opacity: 0, x: -50 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 50 }}
-                            transition={{ duration: 0.5, ease: 'easeInOut' }}
-                        >
-                            <WarrantyForm onSubmit={handleFormSubmit} />
-                        </motion.div>
-                    ) : (
-                        <motion.div
-                            key="result"
-                            initial={{ opacity: 0, x: 50 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -50 }}
-                            transition={{ duration: 0.5, ease: 'easeInOut' }}
-                        >
-                            <WarrantyResult warrantyInfo={warrantyInfo} errorInfo={errorInfo} onReset={handleReset} />
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
+            <AvoidSidebar>
+                <div className="brand-shell py-8 sm:py-12 md:py-16">
+                    <AnimatePresence mode="wait">
+                        {!showResult ? (
+                            <motion.div
+                                key="form"
+                                initial={{ opacity: 0, x: -50 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: 50 }}
+                                transition={{ duration: 0.5, ease: 'easeInOut' }}
+                            >
+                                <WarrantyForm onSubmit={handleFormSubmit} />
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="result"
+                                initial={{ opacity: 0, x: 50 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -50 }}
+                                transition={{ duration: 0.5, ease: 'easeInOut' }}
+                            >
+                                <WarrantyResult
+                                    warrantyInfo={warrantyInfo}
+                                    errorInfo={errorInfo}
+                                    onReset={handleReset}
+                                />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            </AvoidSidebar>
         </div>
     );
 };

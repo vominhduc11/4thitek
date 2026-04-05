@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FiChevronDown, FiSearch } from 'react-icons/fi';
 import { BlogCategory as ApiCategory } from '@/types/api';
+import AvoidSidebar from '@/components/ui/AvoidSidebar';
 import { useLanguage } from '@/context/LanguageContext';
 
 interface BlogBreadcrumbProps {
@@ -67,118 +68,123 @@ const BlogBreadcrumb = ({
 
     return (
         <div className="relative z-20 -mt-16 py-6 sm:-mt-20 sm:py-8 lg:-mt-24 lg:py-10">
-            <div className="brand-shell sm:ml-16 md:ml-20">
-                <motion.div
-                    className="brand-card rounded-[30px] p-6 sm:p-8"
-                    initial={{ opacity: 0, y: 24 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
-                >
-                    <motion.h1
-                        className={`font-serif text-3xl font-semibold sm:text-4xl lg:text-5xl ${
-                            selectedCategory === 'ALL' ? 'text-[var(--text-primary)]' : 'text-[var(--brand-blue)]'
-                        }`}
-                        key={selectedCategory}
-                        initial={{ opacity: 0, y: 14 }}
+            <AvoidSidebar>
+                <div className="brand-shell">
+                    <motion.div
+                        className="brand-card rounded-[30px] p-6 sm:p-8"
+                        initial={{ opacity: 0, y: 24 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.35 }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
                     >
-                        {getDisplayTitle()}
-                    </motion.h1>
+                        <motion.h1
+                            className={`font-serif text-3xl font-semibold sm:text-4xl lg:text-5xl ${
+                                selectedCategory === 'ALL' ? 'text-[var(--text-primary)]' : 'text-[var(--brand-blue)]'
+                            }`}
+                            key={selectedCategory}
+                            initial={{ opacity: 0, y: 14 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.35 }}
+                        >
+                            {getDisplayTitle()}
+                        </motion.h1>
 
-                    <div className="mt-3 text-sm text-[var(--text-secondary)] sm:text-base">
-                        {selectedCategory === 'ALL' ? (
-                            <span>
-                                {t('blog.list.showingAll')}{' '}
-                                <span className="font-semibold text-[var(--brand-blue)]">{totalBlogs}</span>{' '}
-                                {t('blog.list.articles')}
-                            </span>
-                        ) : (
-                            <span>
-                                {t('blog.list.showingFiltered')}{' '}
-                                <span className="font-semibold text-[var(--brand-blue)]">{filteredCount}</span>{' '}
-                                {t('blog.list.articlesIn')}
-                                <span className="font-semibold text-[var(--text-primary)]"> {getDisplayTitle()}</span>
-                            </span>
-                        )}
-                    </div>
-
-                    <div className="mt-6 hidden items-center justify-between gap-6 xl:flex">
-                        <div className="flex flex-wrap items-center gap-2">
-                            {visibleCategories.map((category) => {
-                                const categoryKey = category.id === 'ALL' ? 'ALL' : String(category.id);
-                                const isSelected =
-                                    selectedCategory === categoryKey || selectedCategory === category.name;
-
-                                return (
-                                    <motion.button
-                                        key={categoryKey}
-                                        className={`rounded-full px-4 py-2 text-sm font-semibold uppercase tracking-[0.12em] transition-all duration-200 ${
-                                            isSelected
-                                                ? 'bg-[rgba(41,171,226,0.12)] text-[var(--brand-blue)]'
-                                                : 'text-[var(--text-secondary)] hover:text-white'
-                                        }`}
-                                        whileHover={{ scale: 1.03 }}
-                                        whileTap={{ scale: 0.97 }}
-                                        onClick={() => onCategoryClick(categoryKey)}
-                                    >
-                                        {category.id === 'ALL' ? t('blog.list.allCategories') : category.name}
-                                    </motion.button>
-                                );
-                            })}
+                        <div className="mt-3 text-sm text-[var(--text-secondary)] sm:text-base">
+                            {selectedCategory === 'ALL' ? (
+                                <span>
+                                    {t('blog.list.showingAll')}{' '}
+                                    <span className="font-semibold text-[var(--brand-blue)]">{totalBlogs}</span>{' '}
+                                    {t('blog.list.articles')}
+                                </span>
+                            ) : (
+                                <span>
+                                    {t('blog.list.showingFiltered')}{' '}
+                                    <span className="font-semibold text-[var(--brand-blue)]">{filteredCount}</span>{' '}
+                                    {t('blog.list.articlesIn')}
+                                    <span className="font-semibold text-[var(--text-primary)]">
+                                        {' '}
+                                        {getDisplayTitle()}
+                                    </span>
+                                </span>
+                            )}
                         </div>
 
-                        <div className="relative ml-auto" ref={dropdownRef}>
-                            {dropdownCategories.length > 0 ? (
-                                <button
-                                    className="brand-button-secondary flex items-center gap-2 rounded-full px-4 py-2 text-sm text-[var(--text-primary)]"
-                                    onClick={() => setIsDropdownOpen((value) => !value)}
-                                >
-                                    {t('blog.list.moreCategories')}
-                                    <FiChevronDown
-                                        className={`transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
-                                    />
-                                </button>
-                            ) : null}
+                        <div className="mt-6 hidden items-center justify-between gap-6 xl:flex">
+                            <div className="flex flex-wrap items-center gap-2">
+                                {visibleCategories.map((category) => {
+                                    const categoryKey = category.id === 'ALL' ? 'ALL' : String(category.id);
+                                    const isSelected =
+                                        selectedCategory === categoryKey || selectedCategory === category.name;
 
-                            <AnimatePresence>
-                                {isDropdownOpen && dropdownCategories.length > 0 ? (
-                                    <motion.div
-                                        className="brand-card absolute right-0 mt-2 w-56 rounded-[22px] p-2 shadow-2xl"
-                                        initial={{ opacity: 0, y: 8 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: 8 }}
+                                    return (
+                                        <motion.button
+                                            key={categoryKey}
+                                            className={`rounded-full px-4 py-2 text-sm font-semibold uppercase tracking-[0.12em] transition-all duration-200 ${
+                                                isSelected
+                                                    ? 'bg-[rgba(41,171,226,0.12)] text-[var(--brand-blue)]'
+                                                    : 'text-[var(--text-secondary)] hover:text-white'
+                                            }`}
+                                            whileHover={{ scale: 1.03 }}
+                                            whileTap={{ scale: 0.97 }}
+                                            onClick={() => onCategoryClick(categoryKey)}
+                                        >
+                                            {category.id === 'ALL' ? t('blog.list.allCategories') : category.name}
+                                        </motion.button>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="relative ml-auto" ref={dropdownRef}>
+                                {dropdownCategories.length > 0 ? (
+                                    <button
+                                        className="brand-button-secondary flex items-center gap-2 rounded-full px-4 py-2 text-sm text-[var(--text-primary)]"
+                                        onClick={() => setIsDropdownOpen((value) => !value)}
                                     >
-                                        {dropdownCategories.map((category) => (
-                                            <button
-                                                key={String(category.id)}
-                                                className="block w-full rounded-2xl px-3 py-2 text-left text-sm text-[var(--text-primary)] transition hover:bg-[rgba(41,171,226,0.12)]"
-                                                onClick={() => {
-                                                    onCategoryClick(String(category.id));
-                                                    setIsDropdownOpen(false);
-                                                }}
-                                            >
-                                                {category.name}
-                                            </button>
-                                        ))}
-                                    </motion.div>
+                                        {t('blog.list.moreCategories')}
+                                        <FiChevronDown
+                                            className={`transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
+                                        />
+                                    </button>
                                 ) : null}
-                            </AnimatePresence>
-                        </div>
-                    </div>
 
-                    <div className="relative mt-6 max-w-2xl">
-                        <FiSearch className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
-                        <input
-                            type="search"
-                            value={searchQuery}
-                            onChange={(event) => onSearchChange(event.target.value)}
-                            placeholder={t('blog.list.searchPlaceholder')}
-                            className="brand-input h-12 w-full rounded-full pl-12 pr-4 text-sm text-white outline-none transition focus:border-[var(--brand-blue)]"
-                        />
-                    </div>
-                </motion.div>
-            </div>
+                                <AnimatePresence>
+                                    {isDropdownOpen && dropdownCategories.length > 0 ? (
+                                        <motion.div
+                                            className="brand-card absolute right-0 mt-2 w-56 rounded-[22px] p-2 shadow-2xl"
+                                            initial={{ opacity: 0, y: 8 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: 8 }}
+                                        >
+                                            {dropdownCategories.map((category) => (
+                                                <button
+                                                    key={String(category.id)}
+                                                    className="block w-full rounded-2xl px-3 py-2 text-left text-sm text-[var(--text-primary)] transition hover:bg-[rgba(41,171,226,0.12)]"
+                                                    onClick={() => {
+                                                        onCategoryClick(String(category.id));
+                                                        setIsDropdownOpen(false);
+                                                    }}
+                                                >
+                                                    {category.name}
+                                                </button>
+                                            ))}
+                                        </motion.div>
+                                    ) : null}
+                                </AnimatePresence>
+                            </div>
+                        </div>
+
+                        <div className="relative mt-6 max-w-2xl">
+                            <FiSearch className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                            <input
+                                type="search"
+                                value={searchQuery}
+                                onChange={(event) => onSearchChange(event.target.value)}
+                                placeholder={t('blog.list.searchPlaceholder')}
+                                className="brand-input h-12 w-full rounded-full pl-12 pr-4 text-sm text-white outline-none transition focus:border-[var(--brand-blue)]"
+                            />
+                        </div>
+                    </motion.div>
+                </div>
+            </AvoidSidebar>
         </div>
     );
 };

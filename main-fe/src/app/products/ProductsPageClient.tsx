@@ -93,7 +93,7 @@ export default function ProductsPageClient({ initialProducts }: ProductsPageClie
                 <ProductsHero />
                 <ProductsSimpleHeader totalProducts={0} />
                 <AvoidSidebar>
-                    <main className="brand-shell flex justify-center py-8 sm:ml-16 md:ml-20">
+                    <main className="brand-shell flex justify-center py-8">
                         <div className="w-full">
                             <GridSkeleton count={8} columns={4} backgroundColor="#132230" foregroundColor="#22384d" />
                         </div>
@@ -198,7 +198,7 @@ export default function ProductsPageClient({ initialProducts }: ProductsPageClie
 
             <section className="relative pb-6">
                 <AvoidSidebar>
-                    <div className="brand-shell flex justify-center sm:ml-16 md:ml-20">
+                    <div className="brand-shell flex justify-center">
                         <div className="brand-card w-full max-w-3xl rounded-[30px] p-4 md:p-6">
                             <div className="flex flex-col gap-4 sm:flex-row">
                                 <label className="block flex-1">
@@ -230,7 +230,7 @@ export default function ProductsPageClient({ initialProducts }: ProductsPageClie
             </section>
 
             <AvoidSidebar>
-                <main className="brand-shell relative py-8 sm:ml-16 md:ml-20">
+                <main className="brand-shell relative py-8">
                     {products.length === 0 && !loading ? (
                         <div className="brand-card-muted flex flex-col items-center justify-center rounded-[30px] px-4 py-20 text-center">
                             <svg

@@ -1,3 +1,4 @@
+import AvoidSidebar from '@/components/ui/AvoidSidebar';
 import { ContactHero, ContactHeader, ContactInfo } from './components';
 
 export default function ContactPage() {
@@ -11,10 +12,12 @@ export default function ContactPage() {
 
             {/* Main Content */}
             <section className="pt-8 pb-16 text-white">
-                <div className="brand-shell sm:ml-16 md:ml-20">
-                    {/* Contact Info Cards */}
-                    <ContactInfo />
-                </div>
+                <AvoidSidebar>
+                    <div className="brand-shell">
+                        {/* Contact Info Cards */}
+                        <ContactInfo />
+                    </div>
+                </AvoidSidebar>
             </section>
         </div>
     );

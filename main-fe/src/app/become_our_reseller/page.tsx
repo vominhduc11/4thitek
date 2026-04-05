@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Hero from '@/components/ui/Hero';
+import AvoidSidebar from '@/components/ui/AvoidSidebar';
 import { useLanguage } from '@/context/LanguageContext';
 import { FiCheckCircle, FiMail } from 'react-icons/fi';
 import { motion } from 'framer-motion';
@@ -430,422 +431,430 @@ export default function BecomeOurReseller() {
 
             {/* Application Form Section */}
             <section className="py-8 sm:py-12 md:py-16">
-                <div className="brand-shell max-w-4xl sm:ml-16 md:ml-20">
-                    <motion.div
-                        className="text-center mb-12"
-                        initial={{ opacity: 0, y: 30 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, ease: 'easeOut' }}
-                        viewport={{ once: true }}
-                    >
-                        <h2 className="font-serif text-3xl md:text-4xl font-semibold text-[var(--text-primary)] mb-4">
-                            {t('becomeReseller.form.title')}
-                        </h2>
-                        <p className="text-lg text-[var(--text-secondary)]">{t('becomeReseller.form.subtitle')}</p>
-                    </motion.div>
+                <AvoidSidebar>
+                    <div className="brand-shell max-w-4xl">
+                        <motion.div
+                            className="text-center mb-12"
+                            initial={{ opacity: 0, y: 30 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, ease: 'easeOut' }}
+                            viewport={{ once: true }}
+                        >
+                            <h2 className="font-serif text-3xl md:text-4xl font-semibold text-[var(--text-primary)] mb-4">
+                                {t('becomeReseller.form.title')}
+                            </h2>
+                            <p className="text-lg text-[var(--text-secondary)]">{t('becomeReseller.form.subtitle')}</p>
+                        </motion.div>
 
-                    <motion.div
-                        className="brand-card mb-8 rounded-[28px] p-6 text-left"
-                        initial={{ opacity: 0, y: 24 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.75, delay: 0.1, ease: 'easeOut' }}
-                        viewport={{ once: true }}
-                    >
-                        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--brand-blue)]">
-                            {t('becomeReseller.form.portalBadge')}
-                        </p>
-                        <h3 className="mt-3 text-xl font-semibold text-white md:text-2xl">
-                            {t('becomeReseller.form.portalTitle')}
-                        </h3>
-                        <p className="mt-3 text-sm leading-7 text-[var(--text-secondary)] md:text-base">
-                            {t('becomeReseller.form.portalDescription')}
-                        </p>
-                        <p className="mt-4 text-sm font-medium leading-6 text-[var(--text-primary)] md:text-base">
-                            {t('becomeReseller.form.portalFootnote')}
-                        </p>
-                    </motion.div>
+                        <motion.div
+                            className="brand-card mb-8 rounded-[28px] p-6 text-left"
+                            initial={{ opacity: 0, y: 24 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.75, delay: 0.1, ease: 'easeOut' }}
+                            viewport={{ once: true }}
+                        >
+                            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--brand-blue)]">
+                                {t('becomeReseller.form.portalBadge')}
+                            </p>
+                            <h3 className="mt-3 text-xl font-semibold text-white md:text-2xl">
+                                {t('becomeReseller.form.portalTitle')}
+                            </h3>
+                            <p className="mt-3 text-sm leading-7 text-[var(--text-secondary)] md:text-base">
+                                {t('becomeReseller.form.portalDescription')}
+                            </p>
+                            <p className="mt-4 text-sm font-medium leading-6 text-[var(--text-primary)] md:text-base">
+                                {t('becomeReseller.form.portalFootnote')}
+                            </p>
+                        </motion.div>
 
-                    <motion.div
-                        initial={{ opacity: 0, y: 40 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
-                        viewport={{ once: true }}
-                    >
-                        <Card className="brand-card rounded-[30px] shadow-2xl transition-all duration-300">
-                            <CardContent className="p-8">
-                                {submitStatus === 'success' && (
-                                    <div className="mb-8 rounded-[24px] border border-[rgba(43,224,134,0.24)] bg-[rgba(43,224,134,0.1)] p-6 text-[#c9f8e0]">
-                                        <div className="flex items-center gap-3">
-                                            <FiCheckCircle className="w-6 h-6" />
-                                            <div>
-                                                <h3 className="font-semibold">
-                                                    {t('becomeReseller.form.successTitle')}
-                                                </h3>
-                                                <p className="text-sm opacity-90">
-                                                    {t('becomeReseller.form.successMessage')}
-                                                </p>
+                        <motion.div
+                            initial={{ opacity: 0, y: 40 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
+                            viewport={{ once: true }}
+                        >
+                            <Card className="brand-card rounded-[30px] shadow-2xl transition-all duration-300">
+                                <CardContent className="p-8">
+                                    {submitStatus === 'success' && (
+                                        <div className="mb-8 rounded-[24px] border border-[rgba(43,224,134,0.24)] bg-[rgba(43,224,134,0.1)] p-6 text-[#c9f8e0]">
+                                            <div className="flex items-center gap-3">
+                                                <FiCheckCircle className="w-6 h-6" />
+                                                <div>
+                                                    <h3 className="font-semibold">
+                                                        {t('becomeReseller.form.successTitle')}
+                                                    </h3>
+                                                    <p className="text-sm opacity-90">
+                                                        {t('becomeReseller.form.successMessage')}
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
 
-                                {submitStatus === 'error' && (
-                                    <div className="mb-8 rounded-[24px] border border-[rgba(239,95,120,0.24)] bg-[rgba(239,95,120,0.1)] p-6 text-[var(--destructive-text)]">
-                                        <div className="flex items-center gap-3">
-                                            <FiMail className="w-6 h-6" />
-                                            <div>
-                                                <h3 className="font-semibold">{t('becomeReseller.form.errorTitle')}</h3>
-                                                <p className="text-sm opacity-90">
-                                                    {errorMessage || t('becomeReseller.form.errorMessage')}
-                                                </p>
+                                    {submitStatus === 'error' && (
+                                        <div className="mb-8 rounded-[24px] border border-[rgba(239,95,120,0.24)] bg-[rgba(239,95,120,0.1)] p-6 text-[var(--destructive-text)]">
+                                            <div className="flex items-center gap-3">
+                                                <FiMail className="w-6 h-6" />
+                                                <div>
+                                                    <h3 className="font-semibold">
+                                                        {t('becomeReseller.form.errorTitle')}
+                                                    </h3>
+                                                    <p className="text-sm opacity-90">
+                                                        {errorMessage || t('becomeReseller.form.errorMessage')}
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
 
-                                <form onSubmit={handleSubmit} className="space-y-6" noValidate>
-                                    {/* Reseller Registration Form */}
-                                    <div className="space-y-6">
-                                        <h3 className="border-b border-[var(--brand-border)] pb-3 font-serif text-2xl font-semibold text-[var(--text-primary)]">
-                                            {t('becomeReseller.form.resellerRegistration')}
-                                        </h3>
-                                        {resellerContentError && (
-                                            <p className="text-sm text-[var(--destructive-text)]">
-                                                {language === 'vi'
-                                                    ? 'Không thể tải danh sách tỉnh/thành từ hệ thống.'
-                                                    : 'Unable to load the city list from the server.'}
-                                            </p>
-                                        )}
+                                    <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+                                        {/* Reseller Registration Form */}
+                                        <div className="space-y-6">
+                                            <h3 className="border-b border-[var(--brand-border)] pb-3 font-serif text-2xl font-semibold text-[var(--text-primary)]">
+                                                {t('becomeReseller.form.resellerRegistration')}
+                                            </h3>
+                                            {resellerContentError && (
+                                                <p className="text-sm text-[var(--destructive-text)]">
+                                                    {language === 'vi'
+                                                        ? 'Không thể tải danh sách tỉnh/thành từ hệ thống.'
+                                                        : 'Unable to load the city list from the server.'}
+                                                </p>
+                                            )}
 
-                                        <div
-                                            className={`grid grid-cols-1 sm:grid-cols-2 ${ultraWideSpacing['grid-gap-md']}`}
-                                        >
-                                            {/* Company Name */}
-                                            <div className="md:col-span-2">
-                                                <label
-                                                    htmlFor="name"
-                                                    className="block text-sm font-medium text-[var(--text-primary)] mb-2"
-                                                >
-                                                    {t('becomeReseller.form.nameRequired')}
-                                                </label>
-                                                <Input
-                                                    id="name"
-                                                    name="name"
-                                                    type="text"
-                                                    value={formData.name}
-                                                    onChange={handleInputChange}
-                                                    placeholder={t('becomeReseller.form.namePlaceholder')}
-                                                    className={`rounded-[1.2rem] ${
-                                                        validationErrors.name
-                                                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                                                            : ''
-                                                    }`}
-                                                />
-                                                {validationErrors.name && (
-                                                    <p className="text-[var(--destructive-text)] text-sm mt-1">
-                                                        {validationErrors.name}
-                                                    </p>
-                                                )}
-                                            </div>
+                                            <div
+                                                className={`grid grid-cols-1 sm:grid-cols-2 ${ultraWideSpacing['grid-gap-md']}`}
+                                            >
+                                                {/* Company Name */}
+                                                <div className="md:col-span-2">
+                                                    <label
+                                                        htmlFor="name"
+                                                        className="block text-sm font-medium text-[var(--text-primary)] mb-2"
+                                                    >
+                                                        {t('becomeReseller.form.nameRequired')}
+                                                    </label>
+                                                    <Input
+                                                        id="name"
+                                                        name="name"
+                                                        type="text"
+                                                        value={formData.name}
+                                                        onChange={handleInputChange}
+                                                        placeholder={t('becomeReseller.form.namePlaceholder')}
+                                                        className={`rounded-[1.2rem] ${
+                                                            validationErrors.name
+                                                                ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                                                : ''
+                                                        }`}
+                                                    />
+                                                    {validationErrors.name && (
+                                                        <p className="text-[var(--destructive-text)] text-sm mt-1">
+                                                            {validationErrors.name}
+                                                        </p>
+                                                    )}
+                                                </div>
 
-                                            {/* Full Name */}
-                                            <div>
-                                                <label
-                                                    htmlFor="fullName"
-                                                    className="block text-sm font-medium text-[var(--text-primary)] mb-2"
-                                                >
-                                                    {t('becomeReseller.form.fullName')}
-                                                </label>
-                                                <Input
-                                                    id="fullName"
-                                                    name="fullName"
-                                                    type="text"
-                                                    value={formData.fullName}
-                                                    onChange={handleInputChange}
-                                                    placeholder={t('becomeReseller.form.fullNamePlaceholder')}
-                                                    className={`rounded-[1.2rem] ${
-                                                        validationErrors.fullName
-                                                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                                                            : ''
-                                                    }`}
-                                                />
-                                                {validationErrors.fullName && (
-                                                    <p className="text-[var(--destructive-text)] text-sm mt-1">
-                                                        {validationErrors.fullName}
-                                                    </p>
-                                                )}
-                                            </div>
+                                                {/* Full Name */}
+                                                <div>
+                                                    <label
+                                                        htmlFor="fullName"
+                                                        className="block text-sm font-medium text-[var(--text-primary)] mb-2"
+                                                    >
+                                                        {t('becomeReseller.form.fullName')}
+                                                    </label>
+                                                    <Input
+                                                        id="fullName"
+                                                        name="fullName"
+                                                        type="text"
+                                                        value={formData.fullName}
+                                                        onChange={handleInputChange}
+                                                        placeholder={t('becomeReseller.form.fullNamePlaceholder')}
+                                                        className={`rounded-[1.2rem] ${
+                                                            validationErrors.fullName
+                                                                ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                                                : ''
+                                                        }`}
+                                                    />
+                                                    {validationErrors.fullName && (
+                                                        <p className="text-[var(--destructive-text)] text-sm mt-1">
+                                                            {validationErrors.fullName}
+                                                        </p>
+                                                    )}
+                                                </div>
 
-                                            {/* Tax Code */}
-                                            <div>
-                                                <label
-                                                    htmlFor="taxCode"
-                                                    className="block text-sm font-medium text-[var(--text-primary)] mb-2"
-                                                >
-                                                    {t('becomeReseller.form.taxCode')}
-                                                </label>
-                                                <Input
-                                                    id="taxCode"
-                                                    name="taxCode"
-                                                    type="text"
-                                                    value={formData.taxCode}
-                                                    onChange={handleInputChange}
-                                                    placeholder={t('becomeReseller.form.taxCodePlaceholder')}
-                                                    className={`rounded-[1.2rem] ${
-                                                        validationErrors.taxCode
-                                                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                                                            : ''
-                                                    }`}
-                                                />
-                                                {validationErrors.taxCode && (
-                                                    <p className="text-[var(--destructive-text)] text-sm mt-1">
-                                                        {validationErrors.taxCode}
-                                                    </p>
-                                                )}
-                                            </div>
+                                                {/* Tax Code */}
+                                                <div>
+                                                    <label
+                                                        htmlFor="taxCode"
+                                                        className="block text-sm font-medium text-[var(--text-primary)] mb-2"
+                                                    >
+                                                        {t('becomeReseller.form.taxCode')}
+                                                    </label>
+                                                    <Input
+                                                        id="taxCode"
+                                                        name="taxCode"
+                                                        type="text"
+                                                        value={formData.taxCode}
+                                                        onChange={handleInputChange}
+                                                        placeholder={t('becomeReseller.form.taxCodePlaceholder')}
+                                                        className={`rounded-[1.2rem] ${
+                                                            validationErrors.taxCode
+                                                                ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                                                : ''
+                                                        }`}
+                                                    />
+                                                    {validationErrors.taxCode && (
+                                                        <p className="text-[var(--destructive-text)] text-sm mt-1">
+                                                            {validationErrors.taxCode}
+                                                        </p>
+                                                    )}
+                                                </div>
 
-                                            {/* Phone */}
-                                            <div>
-                                                <label
-                                                    htmlFor="phone"
-                                                    className="block text-sm font-medium text-[var(--text-primary)] mb-2"
-                                                >
-                                                    {t('becomeReseller.form.phoneRequired')}
-                                                </label>
-                                                <Input
-                                                    id="phone"
-                                                    name="phone"
-                                                    type="tel"
-                                                    value={formData.phone}
-                                                    onChange={handleInputChange}
-                                                    placeholder={t('becomeReseller.form.phonePlaceholder')}
-                                                    className={`rounded-[1.2rem] ${
-                                                        validationErrors.phone
-                                                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                                                            : ''
-                                                    }`}
-                                                />
-                                                {validationErrors.phone && (
-                                                    <p className="text-[var(--destructive-text)] text-sm mt-1">
-                                                        {validationErrors.phone}
-                                                    </p>
-                                                )}
-                                            </div>
+                                                {/* Phone */}
+                                                <div>
+                                                    <label
+                                                        htmlFor="phone"
+                                                        className="block text-sm font-medium text-[var(--text-primary)] mb-2"
+                                                    >
+                                                        {t('becomeReseller.form.phoneRequired')}
+                                                    </label>
+                                                    <Input
+                                                        id="phone"
+                                                        name="phone"
+                                                        type="tel"
+                                                        value={formData.phone}
+                                                        onChange={handleInputChange}
+                                                        placeholder={t('becomeReseller.form.phonePlaceholder')}
+                                                        className={`rounded-[1.2rem] ${
+                                                            validationErrors.phone
+                                                                ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                                                : ''
+                                                        }`}
+                                                    />
+                                                    {validationErrors.phone && (
+                                                        <p className="text-[var(--destructive-text)] text-sm mt-1">
+                                                            {validationErrors.phone}
+                                                        </p>
+                                                    )}
+                                                </div>
 
-                                            {/* Email */}
-                                            <div className="md:col-span-2">
-                                                <label
-                                                    htmlFor="email"
-                                                    className="block text-sm font-medium text-[var(--text-primary)] mb-2"
-                                                >
-                                                    {t('becomeReseller.form.emailRequired')}
-                                                </label>
-                                                <Input
-                                                    id="email"
-                                                    name="email"
-                                                    type="email"
-                                                    value={formData.email}
-                                                    onChange={handleInputChange}
-                                                    placeholder={t('becomeReseller.form.emailPlaceholder')}
-                                                    className={`rounded-[1.2rem] ${
-                                                        validationErrors.email
-                                                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                                                            : ''
-                                                    }`}
-                                                />
-                                                {validationErrors.email && (
-                                                    <p className="text-[var(--destructive-text)] text-sm mt-1">
-                                                        {validationErrors.email}
-                                                    </p>
-                                                )}
-                                            </div>
+                                                {/* Email */}
+                                                <div className="md:col-span-2">
+                                                    <label
+                                                        htmlFor="email"
+                                                        className="block text-sm font-medium text-[var(--text-primary)] mb-2"
+                                                    >
+                                                        {t('becomeReseller.form.emailRequired')}
+                                                    </label>
+                                                    <Input
+                                                        id="email"
+                                                        name="email"
+                                                        type="email"
+                                                        value={formData.email}
+                                                        onChange={handleInputChange}
+                                                        placeholder={t('becomeReseller.form.emailPlaceholder')}
+                                                        className={`rounded-[1.2rem] ${
+                                                            validationErrors.email
+                                                                ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                                                : ''
+                                                        }`}
+                                                    />
+                                                    {validationErrors.email && (
+                                                        <p className="text-[var(--destructive-text)] text-sm mt-1">
+                                                            {validationErrors.email}
+                                                        </p>
+                                                    )}
+                                                </div>
 
-                                            <div>
-                                                <label
-                                                    htmlFor="password"
-                                                    className="block text-sm font-medium text-[var(--text-primary)] mb-2"
-                                                >
-                                                    {t('becomeReseller.form.passwordRequired')}
-                                                </label>
-                                                <Input
-                                                    id="password"
-                                                    name="password"
-                                                    type="password"
-                                                    value={formData.password}
-                                                    onChange={handleInputChange}
-                                                    placeholder={t('becomeReseller.form.passwordPlaceholder')}
-                                                    autoComplete="new-password"
-                                                    className={`rounded-[1.2rem] ${
-                                                        validationErrors.password
-                                                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                                                            : ''
-                                                    }`}
-                                                />
-                                                {validationErrors.password && (
-                                                    <p className="text-[var(--destructive-text)] text-sm mt-1">
-                                                        {validationErrors.password}
-                                                    </p>
-                                                )}
-                                            </div>
+                                                <div>
+                                                    <label
+                                                        htmlFor="password"
+                                                        className="block text-sm font-medium text-[var(--text-primary)] mb-2"
+                                                    >
+                                                        {t('becomeReseller.form.passwordRequired')}
+                                                    </label>
+                                                    <Input
+                                                        id="password"
+                                                        name="password"
+                                                        type="password"
+                                                        value={formData.password}
+                                                        onChange={handleInputChange}
+                                                        placeholder={t('becomeReseller.form.passwordPlaceholder')}
+                                                        autoComplete="new-password"
+                                                        className={`rounded-[1.2rem] ${
+                                                            validationErrors.password
+                                                                ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                                                : ''
+                                                        }`}
+                                                    />
+                                                    {validationErrors.password && (
+                                                        <p className="text-[var(--destructive-text)] text-sm mt-1">
+                                                            {validationErrors.password}
+                                                        </p>
+                                                    )}
+                                                </div>
 
-                                            <div>
-                                                <label
-                                                    htmlFor="confirmPassword"
-                                                    className="block text-sm font-medium text-[var(--text-primary)] mb-2"
-                                                >
-                                                    {t('becomeReseller.form.confirmPasswordRequired')}
-                                                </label>
-                                                <Input
-                                                    id="confirmPassword"
-                                                    name="confirmPassword"
-                                                    type="password"
-                                                    value={formData.confirmPassword}
-                                                    onChange={handleInputChange}
-                                                    placeholder={t('becomeReseller.form.confirmPasswordPlaceholder')}
-                                                    autoComplete="new-password"
-                                                    className={`rounded-[1.2rem] ${
-                                                        validationErrors.confirmPassword
-                                                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                                                            : ''
-                                                    }`}
-                                                />
-                                                {validationErrors.confirmPassword && (
-                                                    <p className="text-[var(--destructive-text)] text-sm mt-1">
-                                                        {validationErrors.confirmPassword}
-                                                    </p>
-                                                )}
-                                            </div>
+                                                <div>
+                                                    <label
+                                                        htmlFor="confirmPassword"
+                                                        className="block text-sm font-medium text-[var(--text-primary)] mb-2"
+                                                    >
+                                                        {t('becomeReseller.form.confirmPasswordRequired')}
+                                                    </label>
+                                                    <Input
+                                                        id="confirmPassword"
+                                                        name="confirmPassword"
+                                                        type="password"
+                                                        value={formData.confirmPassword}
+                                                        onChange={handleInputChange}
+                                                        placeholder={t(
+                                                            'becomeReseller.form.confirmPasswordPlaceholder'
+                                                        )}
+                                                        autoComplete="new-password"
+                                                        className={`rounded-[1.2rem] ${
+                                                            validationErrors.confirmPassword
+                                                                ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                                                : ''
+                                                        }`}
+                                                    />
+                                                    {validationErrors.confirmPassword && (
+                                                        <p className="text-[var(--destructive-text)] text-sm mt-1">
+                                                            {validationErrors.confirmPassword}
+                                                        </p>
+                                                    )}
+                                                </div>
 
-                                            {/* Address */}
-                                            <div className="md:col-span-2">
-                                                <label
-                                                    htmlFor="address"
-                                                    className="block text-sm font-medium text-[var(--text-primary)] mb-2"
-                                                >
-                                                    {t('becomeReseller.form.streetAddressRequired')}
-                                                </label>
-                                                <Input
-                                                    id="address"
-                                                    name="address"
-                                                    type="text"
-                                                    value={formData.address}
-                                                    onChange={handleInputChange}
-                                                    placeholder={t('becomeReseller.form.streetAddressPlaceholder')}
-                                                    className={`rounded-[1.2rem] ${
-                                                        validationErrors.address
-                                                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                                                            : ''
-                                                    }`}
-                                                />
-                                                {validationErrors.address && (
-                                                    <p className="text-[var(--destructive-text)] text-sm mt-1">
-                                                        {validationErrors.address}
-                                                    </p>
-                                                )}
-                                            </div>
+                                                {/* Address */}
+                                                <div className="md:col-span-2">
+                                                    <label
+                                                        htmlFor="address"
+                                                        className="block text-sm font-medium text-[var(--text-primary)] mb-2"
+                                                    >
+                                                        {t('becomeReseller.form.streetAddressRequired')}
+                                                    </label>
+                                                    <Input
+                                                        id="address"
+                                                        name="address"
+                                                        type="text"
+                                                        value={formData.address}
+                                                        onChange={handleInputChange}
+                                                        placeholder={t('becomeReseller.form.streetAddressPlaceholder')}
+                                                        className={`rounded-[1.2rem] ${
+                                                            validationErrors.address
+                                                                ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                                                : ''
+                                                        }`}
+                                                    />
+                                                    {validationErrors.address && (
+                                                        <p className="text-[var(--destructive-text)] text-sm mt-1">
+                                                            {validationErrors.address}
+                                                        </p>
+                                                    )}
+                                                </div>
 
-                                            {/* District */}
-                                            <div>
-                                                <label
-                                                    htmlFor="district"
-                                                    className="block text-sm font-medium text-[var(--text-primary)] mb-2"
-                                                >
-                                                    {t('becomeReseller.form.districtRequired')}
-                                                </label>
-                                                <select
-                                                    id="district"
-                                                    name="district"
-                                                    value={formData.district}
-                                                    onChange={handleInputChange}
-                                                    disabled={!formData.city}
-                                                    className={`brand-input w-full rounded-[1.2rem] px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-[var(--brand-blue)] disabled:opacity-50 disabled:cursor-not-allowed ${
-                                                        validationErrors.district
-                                                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                                                            : ''
-                                                    }`}
-                                                >
-                                                    <option value="" className="bg-[#06111B]">
-                                                        {formData.city
-                                                            ? t('becomeReseller.form.districtPlaceholder')
-                                                            : t('becomeReseller.form.citySelectFirst')}
-                                                    </option>
-                                                    {formData.city &&
-                                                        getDistrictsForCity(formData.city).map((district) => (
-                                                            <option
-                                                                key={district}
-                                                                value={district}
-                                                                className="bg-[#06111B]"
-                                                            >
-                                                                {district}
+                                                {/* District */}
+                                                <div>
+                                                    <label
+                                                        htmlFor="district"
+                                                        className="block text-sm font-medium text-[var(--text-primary)] mb-2"
+                                                    >
+                                                        {t('becomeReseller.form.districtRequired')}
+                                                    </label>
+                                                    <select
+                                                        id="district"
+                                                        name="district"
+                                                        value={formData.district}
+                                                        onChange={handleInputChange}
+                                                        disabled={!formData.city}
+                                                        className={`brand-input w-full rounded-[1.2rem] px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-[var(--brand-blue)] disabled:opacity-50 disabled:cursor-not-allowed ${
+                                                            validationErrors.district
+                                                                ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                                                : ''
+                                                        }`}
+                                                    >
+                                                        <option value="" className="bg-[#06111B]">
+                                                            {formData.city
+                                                                ? t('becomeReseller.form.districtPlaceholder')
+                                                                : t('becomeReseller.form.citySelectFirst')}
+                                                        </option>
+                                                        {formData.city &&
+                                                            getDistrictsForCity(formData.city).map((district) => (
+                                                                <option
+                                                                    key={district}
+                                                                    value={district}
+                                                                    className="bg-[#06111B]"
+                                                                >
+                                                                    {district}
+                                                                </option>
+                                                            ))}
+                                                    </select>
+                                                    {validationErrors.district && (
+                                                        <p className="text-[var(--destructive-text)] text-sm mt-1">
+                                                            {validationErrors.district}
+                                                        </p>
+                                                    )}
+                                                </div>
+
+                                                {/* City */}
+                                                <div>
+                                                    <label
+                                                        htmlFor="city"
+                                                        className="block text-sm font-medium text-[var(--text-primary)] mb-2"
+                                                    >
+                                                        {t('becomeReseller.form.cityRequired')}
+                                                    </label>
+                                                    <select
+                                                        id="city"
+                                                        name="city"
+                                                        value={formData.city}
+                                                        onChange={handleInputChange}
+                                                        className={`brand-input w-full rounded-[1.2rem] px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-[var(--brand-blue)] ${
+                                                            validationErrors.city
+                                                                ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                                                : ''
+                                                        }`}
+                                                    >
+                                                        <option value="" className="bg-[#06111B]">
+                                                            {t('becomeReseller.form.cityPlaceholder')}
+                                                        </option>
+                                                        {allCities.map((city) => (
+                                                            <option key={city} value={city} className="bg-[#06111B]">
+                                                                {city}
                                                             </option>
                                                         ))}
-                                                </select>
-                                                {validationErrors.district && (
-                                                    <p className="text-[var(--destructive-text)] text-sm mt-1">
-                                                        {validationErrors.district}
-                                                    </p>
-                                                )}
-                                            </div>
-
-                                            {/* City */}
-                                            <div>
-                                                <label
-                                                    htmlFor="city"
-                                                    className="block text-sm font-medium text-[var(--text-primary)] mb-2"
-                                                >
-                                                    {t('becomeReseller.form.cityRequired')}
-                                                </label>
-                                                <select
-                                                    id="city"
-                                                    name="city"
-                                                    value={formData.city}
-                                                    onChange={handleInputChange}
-                                                    className={`brand-input w-full rounded-[1.2rem] px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-[var(--brand-blue)] ${
-                                                        validationErrors.city
-                                                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                                                            : ''
-                                                    }`}
-                                                >
-                                                    <option value="" className="bg-[#06111B]">
-                                                        {t('becomeReseller.form.cityPlaceholder')}
-                                                    </option>
-                                                    {allCities.map((city) => (
-                                                        <option key={city} value={city} className="bg-[#06111B]">
-                                                            {city}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                                {validationErrors.city && (
-                                                    <p className="text-[var(--destructive-text)] text-sm mt-1">
-                                                        {validationErrors.city}
-                                                    </p>
-                                                )}
+                                                    </select>
+                                                    {validationErrors.city && (
+                                                        <p className="text-[var(--destructive-text)] text-sm mt-1">
+                                                            {validationErrors.city}
+                                                        </p>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    <div className="flex flex-col sm:flex-row gap-4 justify-end pt-6">
-                                        <Button
-                                            type="submit"
-                                            disabled={isSubmitting}
-                                            className="brand-button-primary px-12 py-3 text-lg font-semibold text-[var(--text-primary)]"
-                                        >
-                                            {isSubmitting
-                                                ? t('becomeReseller.form.submittingButton')
-                                                : t('becomeReseller.form.submitButton')}
-                                        </Button>
-                                    </div>
-                                </form>
-                            </CardContent>
-                        </Card>
-                    </motion.div>
-                </div>
+                                        <div className="flex flex-col sm:flex-row gap-4 justify-end pt-6">
+                                            <Button
+                                                type="submit"
+                                                disabled={isSubmitting}
+                                                className="brand-button-primary px-12 py-3 text-lg font-semibold text-[var(--text-primary)]"
+                                            >
+                                                {isSubmitting
+                                                    ? t('becomeReseller.form.submittingButton')
+                                                    : t('becomeReseller.form.submitButton')}
+                                            </Button>
+                                        </div>
+                                    </form>
+                                </CardContent>
+                            </Card>
+                        </motion.div>
+                    </div>
+                </AvoidSidebar>
             </section>
 
             <section className="py-2">
-                <div className="brand-shell mx-auto max-w-6xl sm:ml-16 md:ml-20">
-                    <DealerNetworkSection />
-                </div>
+                <AvoidSidebar>
+                    <div className="brand-shell mx-auto max-w-6xl">
+                        <DealerNetworkSection />
+                    </div>
+                </AvoidSidebar>
             </section>
         </div>
     );

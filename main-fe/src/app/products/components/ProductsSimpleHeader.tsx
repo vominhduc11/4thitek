@@ -13,7 +13,7 @@ export default function ProductsSimpleHeader({ totalProducts = 0 }: ProductsSimp
     return (
         <section className="pb-6 pt-8 text-white">
             <AvoidSidebar>
-                <div className="brand-shell flex justify-center sm:ml-16 md:ml-20">
+                <div className="brand-shell flex justify-center">
                     <div className="mx-auto w-full max-w-5xl text-center">
                         <span className="brand-badge mb-4">{t('products.featured.product')}</span>
                         <h1 className="font-serif text-3xl font-semibold text-[var(--text-primary)] sm:text-4xl md:text-5xl">
