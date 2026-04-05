@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -12,6 +11,7 @@ import 'order_controller.dart';
 import 'serial_scan_screen.dart';
 import 'utils.dart';
 import 'warranty_export_screen.dart';
+import 'warranty_hub_screen.dart';
 import 'warranty_controller.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/product_image.dart';
@@ -20,8 +20,6 @@ part 'inventory_screen_support.dart';
 
 const int _lowStockThreshold = kLowStockThreshold;
 const double _inventoryMinTapTarget = 48;
-const int _inventoryPageSize = 12;
-const double _inventorySectionSpacingLarge = 20;
 const double _inventoryListItemSpacing = 10;
 
 _InventoryTexts _inventoryTexts(BuildContext context) => _InventoryTexts(
@@ -66,14 +64,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
   InventoryStockFilter _stockFilter = InventoryStockFilter.all;
   InventorySortOption _sortOption = InventorySortOption.importedDate;
   InventorySortDirection _sortDirection = InventorySortDirection.descending;
-  int _visibleItemCount = _inventoryPageSize;
-  int _filteredItemCount = 0;
 
   @override
   void initState() {
     super.initState();
     _stockFilter = widget.initialStockFilter;
-    _scrollController.addListener(_handleListScroll);
   }
 
   @override
@@ -107,9 +102,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     _observedOrderController?.removeListener(_markInventoryCacheDirty);
     _observedWarrantyController?.removeListener(_markInventoryCacheDirty);
     _searchController.dispose();
-    _scrollController
-      ..removeListener(_handleListScroll)
-      ..dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -129,7 +122,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final warrantyController = WarrantyScope.of(context);
     setState(() {
       _loadState = InventoryLoadState.loading;
-      _visibleItemCount = _inventoryPageSize;
       _syncWarningMessage = null;
       _loadErrorMessage = null;
     });
@@ -172,7 +164,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
     setState(() {
       _inventoryCacheDirty = true;
-      _visibleItemCount = _inventoryPageSize;
       _syncWarningMessage = warningMessage;
       _loadErrorMessage = shouldShowError
           ? (warningMessage ?? texts.loadInventoryErrorMessage)
@@ -180,25 +171,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       _loadState = shouldShowError
           ? InventoryLoadState.error
           : InventoryLoadState.ready;
-    });
-  }
-
-  void _handleListScroll() {
-    if (_loadState != InventoryLoadState.ready ||
-        !_scrollController.hasClients) {
-      return;
-    }
-    if (_visibleItemCount >= _filteredItemCount) {
-      return;
-    }
-    if (_scrollController.position.extentAfter > 280) {
-      return;
-    }
-    setState(() {
-      _visibleItemCount = math.min(
-        _visibleItemCount + _inventoryPageSize,
-        _filteredItemCount,
-      );
     });
   }
 
@@ -225,7 +197,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
   void _applySearchQuery(String value) {
     setState(() {
       _query = value;
-      _visibleItemCount = _inventoryPageSize;
     });
     _jumpToTop();
   }
@@ -233,7 +204,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
   void _onStockFilterChanged(InventoryStockFilter value) {
     setState(() {
       _stockFilter = value;
-      _visibleItemCount = _inventoryPageSize;
     });
     _jumpToTop();
   }
@@ -244,7 +214,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
         _sortOption = value;
         _sortDirection = _defaultSortDirectionFor(value);
       }
-      _visibleItemCount = _inventoryPageSize;
     });
     _jumpToTop();
   }
@@ -254,7 +223,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       _sortDirection = _sortDirection == InventorySortDirection.ascending
           ? InventorySortDirection.descending
           : InventorySortDirection.ascending;
-      _visibleItemCount = _inventoryPageSize;
     });
     _jumpToTop();
   }
@@ -309,9 +277,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
       sortOption: _sortOption,
       sortAscending: _sortDirection == InventorySortDirection.ascending,
     );
-
     final summary = _buildSummary(inventoryItems);
     final sortLabel = texts.sortLabel(_sortOption);
+    final filteredLowStockCount = filteredItems
+        .where((item) => item.stockStatus == InventoryStockStatus.lowStock)
+        .length;
     final heroMetrics = <Widget>[
       _SummaryChip(
         label: texts.totalProductsLabel,
@@ -341,9 +311,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         _stockFilter != InventoryStockFilter.all ||
         _sortOption != InventorySortOption.importedDate ||
         _sortDirection != InventorySortDirection.descending;
-    _filteredItemCount = filteredItems.length;
-    final visibleItemCount = math.min(_visibleItemCount, filteredItems.length);
-    final listBottomPadding = 28 + MediaQuery.paddingOf(context).bottom;
+    final listBottomPadding = 24 + MediaQuery.paddingOf(context).bottom;
     final layout = _InventoryLayoutConfig.fromContext(context);
 
     return Scaffold(
@@ -364,338 +332,186 @@ class _InventoryScreenState extends State<InventoryScreen> {
               message: _loadErrorMessage,
               details: _syncWarningMessage,
             ),
-            InventoryLoadState.ready => RefreshIndicator(
-              onRefresh: _reload,
-              child: ListView(
-                controller: _scrollController,
-                physics: const AlwaysScrollableScrollPhysics(),
-                keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
-                padding: EdgeInsets.fromLTRB(16, 16, 16, listBottomPadding),
+            InventoryLoadState.ready => Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Column(
                 children: [
-                  _InventoryHeroCard(
-                    headline: texts.heroTitle,
-                    summary: texts.inventorySourceSummary(
-                      warrantyController.lastRemoteSyncAt == null
-                          ? null
-                          : formatDateTime(
-                              warrantyController.lastRemoteSyncAt!,
-                            ),
-                    ),
-                    warningMessage: warningMessage,
-                    metrics: heroMetrics,
-                    primaryActionLabel: texts.exportAction,
-                    primaryActionIcon: Icons.local_shipping_outlined,
-                    onPrimaryAction: () =>
-                        unawaited(_handleQuickAction('export')),
-                    secondaryActionLabel: texts.scanQrBarcodeAction,
-                    secondaryActionIcon: Icons.qr_code_scanner_outlined,
-                    onSecondaryAction: () =>
-                        unawaited(_handleQuickAction('scan')),
+                  _InventoryControlsCard(
+                    key: const ValueKey<String>('inventory-controls-panel'),
+                    layout: layout,
+                    texts: texts,
+                    filteredCount: filteredItems.length,
+                    totalCount: inventoryItems.length,
+                    searchController: _searchController,
+                    sortLabel: sortLabel,
+                    sortDirection: _sortDirection,
+                    stockFilter: _stockFilter,
+                    hasActiveFilters: hasActiveFilters,
+                    onSearchChanged: _onSearchChanged,
+                    onClearSearch: _clearSearchQuery,
+                    onSortChanged: _onSortChanged,
+                    onToggleSortDirection: _toggleSortDirection,
+                    onStockFilterChanged: _onStockFilterChanged,
+                    onClearFilters: _clearFilters,
                   ),
-                  const SizedBox(height: _inventorySectionSpacingLarge),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: colorScheme.surfaceContainerLow.withValues(
-                        alpha: 0.92,
-                      ),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: colorScheme.outlineVariant.withValues(
-                          alpha: 0.86,
-                        ),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    texts.controlPanelLabel,
-                                    style: theme.textTheme.labelLarge?.copyWith(
-                                      color: colorScheme.primary,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    texts.inventoryResultsSummary(
-                                      filteredItems.length,
-                                      inventoryItems.length,
-                                    ),
-                                    style: theme.textTheme.titleSmall?.copyWith(
-                                      color: colorScheme.onSurface,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ],
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: _reload,
+                      child: CustomScrollView(
+                        key: const ValueKey<String>('inventory-scroll-view'),
+                        controller: _scrollController,
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        keyboardDismissBehavior:
+                            ScrollViewKeyboardDismissBehavior.onDrag,
+                        slivers: <Widget>[
+                          if (inventoryItems.isNotEmpty) ...<Widget>[
+                            SliverToBoxAdapter(
+                              child: _InventoryOverviewCard(
+                                layout: layout,
+                                headline: texts.heroTitle,
+                                summary: texts.inventorySourceSummary(
+                                  warrantyController.lastRemoteSyncAt == null
+                                      ? null
+                                      : formatDateTime(
+                                          warrantyController.lastRemoteSyncAt!,
+                                        ),
+                                ),
+                                warningMessage: warningMessage,
+                                metrics: heroMetrics,
+                                importActionLabel: texts.importStockAction,
+                                exportActionLabel: texts.exportAction,
+                                scanActionLabel: texts.scanQrBarcodeAction,
+                                onImportAction: () =>
+                                    unawaited(_handleQuickAction('import')),
+                                onExportAction: () =>
+                                    unawaited(_handleQuickAction('export')),
+                                onScanAction: () =>
+                                    unawaited(_handleQuickAction('scan')),
                               ),
                             ),
-                            if (hasActiveFilters)
-                              TextButton.icon(
-                                onPressed: _clearFilters,
-                                icon: const Icon(Icons.restart_alt_rounded),
-                                label: Text(texts.clearFiltersAction),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        Semantics(
-                          textField: true,
-                          label: texts.searchSemantic,
-                          child: TextField(
-                            controller: _searchController,
-                            onChanged: _onSearchChanged,
-                            decoration: InputDecoration(
-                              prefixIcon: const Icon(Icons.search),
-                              hintText: texts.searchHint,
-                              suffixIcon: _query.isNotEmpty
-                                  ? IconButton(
-                                      tooltip: texts.clearSearchTooltip,
-                                      onPressed: _clearSearchQuery,
-                                      icon: const Icon(Icons.close_rounded),
-                                    )
-                                  : null,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _MenuFilterButton(
-                                label:
-                                    '$sortLabel ${_sortDirection == InventorySortDirection.ascending ? '↑' : '↓'}',
-                                items: [
-                                  PopupMenuItem<String>(
-                                    value: 'name',
-                                    child: Text(texts.sortByNameOption),
-                                  ),
-                                  PopupMenuItem<String>(
-                                    value: 'quantity',
-                                    child: Text(texts.sortByQuantityOption),
-                                  ),
-                                  PopupMenuItem<String>(
-                                    value: 'importedDate',
-                                    child: Text(texts.sortByImportedDateOption),
-                                  ),
-                                ],
-                                onSelected: (value) {
-                                  _onSortChanged(switch (value) {
-                                    'name' => InventorySortOption.name,
-                                    'quantity' => InventorySortOption.quantity,
-                                    _ => InventorySortOption.importedDate,
-                                  });
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            _SortDirectionButton(
-                              ascending:
-                                  _sortDirection ==
-                                  InventorySortDirection.ascending,
-                              onTap: _toggleSortDirection,
+                            const SliverToBoxAdapter(
+                              child: SizedBox(height: 12),
                             ),
                           ],
-                        ),
-                        const SizedBox(height: 14),
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              _FilterChip(
-                                label: texts.filterAllLabel,
-                                selected:
-                                    _stockFilter == InventoryStockFilter.all,
-                                onTap: () => _onStockFilterChanged(
-                                  InventoryStockFilter.all,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              _FilterChip(
-                                label: texts.filterInStockLabel,
-                                selected:
-                                    _stockFilter ==
-                                    InventoryStockFilter.inStock,
-                                onTap: () => _onStockFilterChanged(
-                                  InventoryStockFilter.inStock,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              _FilterChip(
-                                label: texts.filterLowStockLabel,
-                                selected:
-                                    _stockFilter ==
-                                    InventoryStockFilter.lowStock,
-                                onTap: () => _onStockFilterChanged(
-                                  InventoryStockFilter.lowStock,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              _FilterChip(
-                                label: texts.filterOutOfStockLabel,
-                                selected:
-                                    _stockFilter ==
-                                    InventoryStockFilter.outOfStock,
-                                onTap: () => _onStockFilterChanged(
-                                  InventoryStockFilter.outOfStock,
-                                ),
-                              ),
-                            ],
+                          ..._buildInventoryContentSlivers(
+                            texts: texts,
+                            theme: theme,
+                            colorScheme: colorScheme,
+                            layout: layout,
+                            inventoryItems: inventoryItems,
+                            filteredItems: filteredItems,
+                            filteredLowStockCount: filteredLowStockCount,
+                            bottomPadding: listBottomPadding,
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: _inventorySectionSpacingLarge),
-                  if (inventoryItems.isEmpty)
-                    _InventoryEmptyView(
-                      onImport: () => unawaited(_handleQuickAction('import')),
-                    )
-                  else if (filteredItems.isEmpty)
-                    _InventoryFilteredEmptyView(onClear: _clearFilters)
-                  else ...[
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                texts.catalogSectionTitle,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  color: colorScheme.onSurface,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                texts.catalogSectionSubtitle(
-                                  filteredItems.length,
-                                ),
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                  height: 1.4,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (summary.lowStockProducts > 0)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(
-                                0xFFB45309,
-                              ).withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(
-                                color: const Color(
-                                  0xFFB45309,
-                                ).withValues(alpha: 0.3),
-                              ),
-                            ),
-                            child: Text(
-                              texts.lowStockHighlight(summary.lowStockProducts),
-                              style: theme.textTheme.labelMedium?.copyWith(
-                                color: const Color(0xFFF6AD55),
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    if (layout.showWideGrid)
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: visibleItemCount,
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: layout.tileColumnCount,
-                          mainAxisSpacing: _inventoryListItemSpacing,
-                          crossAxisSpacing: 12,
-                          mainAxisExtent: 214,
-                        ),
-                        itemBuilder: (context, index) {
-                          final item = filteredItems[index];
-                          return _InventoryProductTile(
-                            item: item,
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => InventoryProductDetailScreen(
-                                    product: item.product,
-                                    readyQuantity: item.readyQuantity,
-                                    importedQuantity: item.importedQuantity,
-                                    warrantyQuantity: item.warrantyQuantity,
-                                    issueQuantity: item.issueQuantity,
-                                    orderIds: item.orderIds.toList(
-                                      growable: false,
-                                    ),
-                                    latestImportedAt: item.latestImportedAt,
-                                  ),
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      )
-                    else
-                      for (var index = 0; index < visibleItemCount; index++)
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            bottom: _inventoryListItemSpacing,
-                          ),
-                          child: _InventoryProductTile(
-                            item: filteredItems[index],
-                            onTap: () {
-                              final item = filteredItems[index];
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => InventoryProductDetailScreen(
-                                    product: item.product,
-                                    readyQuantity: item.readyQuantity,
-                                    importedQuantity: item.importedQuantity,
-                                    warrantyQuantity: item.warrantyQuantity,
-                                    issueQuantity: item.issueQuantity,
-                                    orderIds: item.orderIds.toList(
-                                      growable: false,
-                                    ),
-                                    latestImportedAt: item.latestImportedAt,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                    if (visibleItemCount < filteredItems.length)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 4, bottom: 4),
-                        child: Center(
-                          child: SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        ),
-                      ),
-                  ],
                 ],
               ),
             ),
           },
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildInventoryContentSlivers({
+    required _InventoryTexts texts,
+    required ThemeData theme,
+    required ColorScheme colorScheme,
+    required _InventoryLayoutConfig layout,
+    required List<InventoryProductItem> inventoryItems,
+    required List<InventoryProductItem> filteredItems,
+    required int filteredLowStockCount,
+    required double bottomPadding,
+  }) {
+    if (inventoryItems.isEmpty) {
+      return <Widget>[
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Padding(
+            padding: EdgeInsets.only(bottom: bottomPadding),
+            child: _InventoryEmptyView(
+              onImport: () => unawaited(_handleQuickAction('import')),
+            ),
+          ),
+        ),
+      ];
+    }
+
+    if (filteredItems.isEmpty) {
+      return <Widget>[
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Padding(
+            padding: EdgeInsets.only(bottom: bottomPadding),
+            child: _InventoryFilteredEmptyView(onClear: _clearFilters),
+          ),
+        ),
+      ];
+    }
+
+    return <Widget>[
+      SliverToBoxAdapter(
+        child: _InventoryCatalogHeader(
+          texts: texts,
+          theme: theme,
+          colorScheme: colorScheme,
+          filteredCount: filteredItems.length,
+          lowStockCount: filteredLowStockCount,
+        ),
+      ),
+      SliverPadding(
+        padding: EdgeInsets.fromLTRB(0, 12, 0, bottomPadding),
+        sliver: layout.useGrid
+            ? SliverGrid(
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final item = filteredItems[index];
+                  return _InventoryProductTile(
+                    item: item,
+                    onTap: () => _openInventoryDetail(item),
+                  );
+                }, childCount: filteredItems.length),
+                gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: layout.gridMaxTileWidth,
+                  mainAxisSpacing: _inventoryListItemSpacing,
+                  crossAxisSpacing: 12,
+                  mainAxisExtent: layout.gridTileExtent,
+                ),
+              )
+            : SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final item = filteredItems[index];
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      bottom: index == filteredItems.length - 1
+                          ? 0
+                          : _inventoryListItemSpacing,
+                    ),
+                    child: _InventoryProductTile(
+                      item: item,
+                      onTap: () => _openInventoryDetail(item),
+                    ),
+                  );
+                }, childCount: filteredItems.length),
+              ),
+      ),
+    ];
+  }
+
+  void _openInventoryDetail(InventoryProductItem item) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => InventoryProductDetailScreen(
+          product: item.product,
+          readyQuantity: item.readyQuantity,
+          importedQuantity: item.importedQuantity,
+          warrantyQuantity: item.warrantyQuantity,
+          issueQuantity: item.issueQuantity,
+          orderIds: item.orderIds.toList(growable: false),
+          latestImportedAt: item.latestImportedAt,
         ),
       ),
     );
@@ -709,7 +525,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       _stockFilter = InventoryStockFilter.all;
       _sortOption = InventorySortOption.importedDate;
       _sortDirection = InventorySortDirection.descending;
-      _visibleItemCount = _inventoryPageSize;
     });
     _jumpToTop();
   }
@@ -719,14 +534,16 @@ class _InventoryScreenState extends State<InventoryScreen> {
       return;
     }
     switch (action) {
+      case 'import':
+        await Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const WarrantyHubScreen()));
+        return;
       case 'scan':
         await _handleScanSerial();
         return;
       case 'export':
-        if (!mounted) {
-          return;
-        }
-        Navigator.of(
+        await Navigator.of(
           context,
         ).push(MaterialPageRoute(builder: (_) => const WarrantyExportScreen()));
         return;
@@ -795,14 +612,14 @@ class _SummaryChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: colorScheme.surface.withValues(alpha: 0.46),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: color.withValues(alpha: 0.22)),
       ),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 104, minWidth: 132),
+        constraints: const BoxConstraints(minHeight: 88, minWidth: 126),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -834,22 +651,22 @@ class _SummaryChip extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Text(
               value,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
                 color: color,
-                fontSize: 24,
+                fontSize: 22,
                 fontWeight: FontWeight.w800,
                 height: 1.1,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(
               helperText,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.94),
-                fontSize: 11,
+                fontSize: 10.5,
                 height: 1.35,
               ),
             ),
@@ -1048,227 +865,272 @@ class _InventoryProductTile extends StatelessWidget {
         statusIcon = Icons.remove_circle_outline;
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isCompact = constraints.maxWidth <= 380;
-        return Semantics(
-          button: true,
-          label: texts.productTileSemantic(
-            item.product.name,
-            item.product.sku,
-            item.readyQuantity,
-            status,
-          ),
-          child: Card(
-            elevation: 1,
-            shadowColor: colorScheme.shadow.withValues(alpha: 0.1),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
-              side: BorderSide(color: statusColor.withValues(alpha: 0.16)),
-            ),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(18),
-              onTap: onTap,
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Semantics(
-                          image: true,
-                          label: texts.productImageLabel(item.product.name),
-                          child: ExcludeSemantics(
-                            child: ProductImage(
-                              product: item.product,
-                              width: 84,
-                              height: 84,
-                              borderRadius: BorderRadius.circular(14),
-                              fit: BoxFit.cover,
-                              iconSize: 22,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item.product.name,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  color: colorScheme.onSurface,
-                                  fontSize: 18,
-                                  height: 1.2,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: colorScheme.surfaceContainerLow
-                                      .withValues(alpha: 0.82),
-                                  borderRadius: BorderRadius.circular(999),
-                                  border: Border.all(
-                                    color: colorScheme.outlineVariant
-                                        .withValues(alpha: 0.76),
-                                  ),
-                                ),
-                                child: Text(
-                                  'SKU: ${item.product.sku}',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: colorScheme.onSurfaceVariant,
-                                    fontSize: 11.5,
-                                    height: 1.2,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.schedule_rounded,
-                                    size: 14,
-                                    color: colorScheme.onSurfaceVariant,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                      texts.latestImportedLabel(
-                                        formatDate(item.latestImportedAt),
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            color: colorScheme.onSurfaceVariant,
-                                            fontSize: 12,
-                                          ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
-                              ),
-                              constraints: BoxConstraints(
-                                maxWidth: isCompact ? 120 : 150,
-                              ),
-                              decoration: BoxDecoration(
-                                color: statusColor.withValues(alpha: 0.08),
-                                borderRadius: BorderRadius.circular(999),
-                                border: Border.all(
-                                  color: statusColor.withValues(alpha: 0.24),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    statusIcon,
-                                    size: 13,
-                                    color: statusColor,
-                                  ),
-                                  const SizedBox(width: 5),
-                                  Flexible(
-                                    child: Text(
-                                      status,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            color: statusColor,
-                                            fontSize: 11.5,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 22),
-                            Container(
-                              width: 34,
-                              height: 34,
-                              decoration: BoxDecoration(
-                                color: colorScheme.surfaceContainerLow
-                                    .withValues(alpha: 0.88),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: colorScheme.outlineVariant.withValues(
-                                    alpha: 0.76,
-                                  ),
-                                ),
-                              ),
-                              alignment: Alignment.center,
-                              child: Icon(
-                                Icons.arrow_outward_rounded,
-                                size: 18,
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+    return Semantics(
+      button: true,
+      label: texts.productTileSemantic(
+        item.product.name,
+        item.product.sku,
+        item.readyQuantity,
+        status,
+      ),
+      child: Card(
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        shadowColor: colorScheme.shadow.withValues(alpha: 0.08),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: statusColor.withValues(alpha: 0.18)),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final showSidePanel = constraints.maxWidth >= 320;
+                final compactTile = constraints.maxWidth < 360;
+                final imageSize = showSidePanel
+                    ? (compactTile ? 60.0 : 72.0)
+                    : 72.0;
+                final supportingMetrics = <Widget>[
+                  _InventoryInlineMetric(
+                    icon: Icons.schedule_rounded,
+                    label: formatDate(item.latestImportedAt),
+                  ),
+                  if (item.issueQuantity > 0)
+                    _InventoryInlineMetric(
+                      icon: Icons.report_gmailerrorred_outlined,
+                      label: '${texts.issueMetricLabel}: ${item.issueQuantity}',
+                      accentColor: const Color(0xFFB45309),
                     ),
-                    const SizedBox(height: 14),
+                  if (item.warrantyQuantity > 0)
+                    _InventoryInlineMetric(
+                      icon: Icons.verified_outlined,
+                      label:
+                          '${texts.warrantyMetricLabel}: ${item.warrantyQuantity}',
+                      accentColor: const Color(0xFF0F9D8B),
+                    ),
+                  if (!compactTile &&
+                      item.importedQuantity > 0 &&
+                      item.importedQuantity != item.readyQuantity)
+                    _InventoryInlineMetric(
+                      icon: Icons.stacked_bar_chart_outlined,
+                      label:
+                          '${texts.importedMetricLabel}: ${item.importedQuantity}',
+                    ),
+                ];
+                final identityBlock = Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.product.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.w800,
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'SKU: ${item.product.sku}',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.1,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     Wrap(
-                      spacing: 8,
+                      spacing: 10,
                       runSpacing: 8,
-                      children: [
-                        _InventoryMetricTag(
-                          icon: Icons.inventory_2_outlined,
-                          label: texts.stockMetricLabel,
-                          value: '${item.readyQuantity}',
-                          accentColor: const Color(0xFF1D4ED8),
-                        ),
-                        if (item.warrantyQuantity > 0)
-                          _InventoryMetricTag(
-                            icon: Icons.verified_outlined,
-                            label: texts.warrantyMetricLabel,
-                            value: '${item.warrantyQuantity}',
-                            accentColor: const Color(0xFF0F9D8B),
-                          ),
-                        if (item.issueQuantity > 0)
-                          _InventoryMetricTag(
-                            icon: Icons.report_gmailerrorred_outlined,
-                            label: texts.issueMetricLabel,
-                            value: '${item.issueQuantity}',
-                            accentColor: const Color(0xFFB45309),
-                          ),
-                        if (item.importedQuantity > 0 &&
-                            item.importedQuantity != item.readyQuantity)
-                          _InventoryMetricTag(
-                            icon: Icons.stacked_bar_chart_outlined,
-                            label: texts.importedMetricLabel,
-                            value: '${item.importedQuantity}',
-                            accentColor: colorScheme.onSurfaceVariant,
-                          ),
-                      ],
+                      children: supportingMetrics,
                     ),
                   ],
-                ),
-              ),
+                );
+                final readyPanel = _InventoryReadyQuantityPanel(
+                  label: texts.stockMetricLabel,
+                  quantity: item.readyQuantity,
+                  status: status,
+                  statusColor: statusColor,
+                  statusIcon: statusIcon,
+                );
+
+                return showSidePanel
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Semantics(
+                            image: true,
+                            label: texts.productImageLabel(item.product.name),
+                            child: ExcludeSemantics(
+                              child: ProductImage(
+                                product: item.product,
+                                width: imageSize,
+                                height: imageSize,
+                                borderRadius: BorderRadius.circular(16),
+                                fit: BoxFit.cover,
+                                iconSize: 22,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(child: identityBlock),
+                          const SizedBox(width: 16),
+                          SizedBox(
+                            width: compactTile ? 108 : 132,
+                            child: readyPanel,
+                          ),
+                        ],
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Semantics(
+                                image: true,
+                                label: texts.productImageLabel(
+                                  item.product.name,
+                                ),
+                                child: ExcludeSemantics(
+                                  child: ProductImage(
+                                    product: item.product,
+                                    width: imageSize,
+                                    height: imageSize,
+                                    borderRadius: BorderRadius.circular(16),
+                                    fit: BoxFit.cover,
+                                    iconSize: 22,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(child: identityBlock),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          readyPanel,
+                        ],
+                      );
+              },
             ),
           ),
-        );
-      },
+        ),
+      ),
+    );
+  }
+}
+
+class _InventoryReadyQuantityPanel extends StatelessWidget {
+  const _InventoryReadyQuantityPanel({
+    required this.label,
+    required this.quantity,
+    required this.status,
+    required this.statusColor,
+    required this.statusIcon,
+  });
+
+  final String label;
+  final int quantity;
+  final String status;
+  final Color statusColor;
+  final IconData statusIcon;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            statusColor.withValues(alpha: 0.16),
+            colorScheme.surfaceContainerLow.withValues(alpha: 0.96),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: statusColor.withValues(alpha: 0.24)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '$quantity',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              color: colorScheme.onSurface,
+              fontWeight: FontWeight.w900,
+              height: 1,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(statusIcon, size: 15, color: statusColor),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  status,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: statusColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InventoryInlineMetric extends StatelessWidget {
+  const _InventoryInlineMetric({
+    required this.icon,
+    required this.label,
+    this.accentColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color? accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final resolvedColor = accentColor ?? colorScheme.onSurfaceVariant;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: resolvedColor),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: resolvedColor,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1282,17 +1144,17 @@ class _InventoryLoadingView extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       physics: const NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPadding),
+      padding: EdgeInsets.fromLTRB(16, 12, 16, bottomPadding),
       children: [
-        const _SkeletonBox(height: 220, radius: 24),
-        const SizedBox(height: _inventorySectionSpacingLarge),
-        const _SkeletonBox(height: 192, radius: 24),
-        const SizedBox(height: _inventorySectionSpacingLarge),
+        const _SkeletonBox(height: 156, radius: 24),
+        const SizedBox(height: 12),
+        const _SkeletonBox(height: 170, radius: 24),
+        const SizedBox(height: 12),
         ...List.generate(
           5,
           (_) => const Padding(
             padding: EdgeInsets.only(bottom: _inventoryListItemSpacing),
-            child: _SkeletonBox(height: 174, radius: 18),
+            child: _SkeletonBox(height: 166, radius: 20),
           ),
         ),
       ],
@@ -1300,30 +1162,373 @@ class _InventoryLoadingView extends StatelessWidget {
   }
 }
 
-class _InventoryHeroCard extends StatelessWidget {
-  const _InventoryHeroCard({
+class _InventoryCatalogHeader extends StatelessWidget {
+  const _InventoryCatalogHeader({
+    required this.texts,
+    required this.theme,
+    required this.colorScheme,
+    required this.filteredCount,
+    required this.lowStockCount,
+  });
+
+  final _InventoryTexts texts;
+  final ThemeData theme;
+  final ColorScheme colorScheme;
+  final int filteredCount;
+  final int lowStockCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final highlight = lowStockCount > 0
+        ? Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFB45309).withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: const Color(0xFFB45309).withValues(alpha: 0.3),
+              ),
+            ),
+            child: Text(
+              texts.lowStockHighlight(lowStockCount),
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: const Color(0xFFF6AD55),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          )
+        : null;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final titleBlock = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              texts.catalogSectionTitle,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              texts.catalogSectionSubtitle(filteredCount),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                height: 1.4,
+              ),
+            ),
+          ],
+        );
+        if (highlight == null || constraints.maxWidth < 560) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              titleBlock,
+              if (highlight != null) ...[const SizedBox(height: 10), highlight],
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: titleBlock),
+            const SizedBox(width: 12),
+            highlight,
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _InventoryControlsCard extends StatelessWidget {
+  const _InventoryControlsCard({
+    super.key,
+    required this.layout,
+    required this.texts,
+    required this.filteredCount,
+    required this.totalCount,
+    required this.searchController,
+    required this.sortLabel,
+    required this.sortDirection,
+    required this.stockFilter,
+    required this.hasActiveFilters,
+    required this.onSearchChanged,
+    required this.onClearSearch,
+    required this.onSortChanged,
+    required this.onToggleSortDirection,
+    required this.onStockFilterChanged,
+    required this.onClearFilters,
+  });
+
+  final _InventoryLayoutConfig layout;
+  final _InventoryTexts texts;
+  final int filteredCount;
+  final int totalCount;
+  final TextEditingController searchController;
+  final String sortLabel;
+  final InventorySortDirection sortDirection;
+  final InventoryStockFilter stockFilter;
+  final bool hasActiveFilters;
+  final ValueChanged<String> onSearchChanged;
+  final VoidCallback onClearSearch;
+  final ValueChanged<InventorySortOption> onSortChanged;
+  final VoidCallback onToggleSortDirection;
+  final ValueChanged<InventoryStockFilter> onStockFilterChanged;
+  final VoidCallback onClearFilters;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLow.withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.82),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      texts.controlPanelLabel,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      texts.inventoryResultsSummary(filteredCount, totalCount),
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (hasActiveFilters)
+                TextButton.icon(
+                  onPressed: onClearFilters,
+                  icon: const Icon(Icons.restart_alt_rounded),
+                  label: Text(texts.clearFiltersAction),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (layout.showWideControls)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: _InventorySearchField(
+                    texts: texts,
+                    controller: searchController,
+                    onChanged: onSearchChanged,
+                    onClear: onClearSearch,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: _MenuFilterButton(
+                    label: sortLabel,
+                    items: [
+                      PopupMenuItem<String>(
+                        value: 'name',
+                        child: Text(texts.sortByNameOption),
+                      ),
+                      PopupMenuItem<String>(
+                        value: 'quantity',
+                        child: Text(texts.sortByQuantityOption),
+                      ),
+                      PopupMenuItem<String>(
+                        value: 'importedDate',
+                        child: Text(texts.sortByImportedDateOption),
+                      ),
+                    ],
+                    onSelected: (value) {
+                      onSortChanged(switch (value) {
+                        'name' => InventorySortOption.name,
+                        'quantity' => InventorySortOption.quantity,
+                        _ => InventorySortOption.importedDate,
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(width: 10),
+                _SortDirectionButton(
+                  ascending: sortDirection == InventorySortDirection.ascending,
+                  onTap: onToggleSortDirection,
+                ),
+              ],
+            )
+          else ...[
+            _InventorySearchField(
+              texts: texts,
+              controller: searchController,
+              onChanged: onSearchChanged,
+              onClear: onClearSearch,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _MenuFilterButton(
+                    label: sortLabel,
+                    items: [
+                      PopupMenuItem<String>(
+                        value: 'name',
+                        child: Text(texts.sortByNameOption),
+                      ),
+                      PopupMenuItem<String>(
+                        value: 'quantity',
+                        child: Text(texts.sortByQuantityOption),
+                      ),
+                      PopupMenuItem<String>(
+                        value: 'importedDate',
+                        child: Text(texts.sortByImportedDateOption),
+                      ),
+                    ],
+                    onSelected: (value) {
+                      onSortChanged(switch (value) {
+                        'name' => InventorySortOption.name,
+                        'quantity' => InventorySortOption.quantity,
+                        _ => InventorySortOption.importedDate,
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(width: 10),
+                _SortDirectionButton(
+                  ascending: sortDirection == InventorySortDirection.ascending,
+                  onTap: onToggleSortDirection,
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 12),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _FilterChip(
+                  label: texts.filterAllLabel,
+                  selected: stockFilter == InventoryStockFilter.all,
+                  onTap: () => onStockFilterChanged(InventoryStockFilter.all),
+                ),
+                const SizedBox(width: 8),
+                _FilterChip(
+                  label: texts.filterInStockLabel,
+                  selected: stockFilter == InventoryStockFilter.inStock,
+                  onTap: () =>
+                      onStockFilterChanged(InventoryStockFilter.inStock),
+                ),
+                const SizedBox(width: 8),
+                _FilterChip(
+                  label: texts.filterLowStockLabel,
+                  selected: stockFilter == InventoryStockFilter.lowStock,
+                  onTap: () =>
+                      onStockFilterChanged(InventoryStockFilter.lowStock),
+                ),
+                const SizedBox(width: 8),
+                _FilterChip(
+                  label: texts.filterOutOfStockLabel,
+                  selected: stockFilter == InventoryStockFilter.outOfStock,
+                  onTap: () =>
+                      onStockFilterChanged(InventoryStockFilter.outOfStock),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InventorySearchField extends StatelessWidget {
+  const _InventorySearchField({
+    required this.texts,
+    required this.controller,
+    required this.onChanged,
+    required this.onClear,
+  });
+
+  final _InventoryTexts texts;
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: controller,
+      builder: (context, value, _) {
+        return Semantics(
+          textField: true,
+          label: texts.searchSemantic,
+          child: TextField(
+            controller: controller,
+            onChanged: onChanged,
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.search),
+              hintText: texts.searchHint,
+              suffixIcon: value.text.trim().isNotEmpty
+                  ? IconButton(
+                      tooltip: texts.clearSearchTooltip,
+                      onPressed: onClear,
+                      icon: const Icon(Icons.close_rounded),
+                    )
+                  : null,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _InventoryOverviewCard extends StatelessWidget {
+  const _InventoryOverviewCard({
+    required this.layout,
     required this.headline,
     required this.summary,
     required this.metrics,
-    required this.primaryActionLabel,
-    required this.primaryActionIcon,
-    required this.onPrimaryAction,
-    required this.secondaryActionLabel,
-    required this.secondaryActionIcon,
-    required this.onSecondaryAction,
+    required this.importActionLabel,
+    required this.exportActionLabel,
+    required this.scanActionLabel,
+    required this.onImportAction,
+    required this.onExportAction,
+    required this.onScanAction,
     this.warningMessage,
   });
 
+  final _InventoryLayoutConfig layout;
   final String headline;
   final String summary;
   final String? warningMessage;
   final List<Widget> metrics;
-  final String primaryActionLabel;
-  final IconData primaryActionIcon;
-  final VoidCallback onPrimaryAction;
-  final String secondaryActionLabel;
-  final IconData secondaryActionIcon;
-  final VoidCallback onSecondaryAction;
+  final String importActionLabel;
+  final String exportActionLabel;
+  final String scanActionLabel;
+  final VoidCallback onImportAction;
+  final VoidCallback onExportAction;
+  final VoidCallback onScanAction;
 
   @override
   Widget build(BuildContext context) {
@@ -1333,7 +1538,36 @@ class _InventoryHeroCard extends StatelessWidget {
     final hasWarning =
         warningMessage != null && warningMessage!.trim().isNotEmpty;
     final accentColor = hasWarning ? colorScheme.error : colorScheme.primary;
-    final metricWidth = MediaQuery.sizeOf(context).width >= 640 ? 176.0 : 148.0;
+    final scanButton = FilledButton.icon(
+      onPressed: onScanAction,
+      icon: const Icon(Icons.qr_code_scanner_outlined),
+      label: Text(scanActionLabel),
+    );
+    final exportButton = OutlinedButton.icon(
+      onPressed: onExportAction,
+      icon: const Icon(Icons.local_shipping_outlined),
+      label: Text(exportActionLabel),
+    );
+    final importButton = TextButton.icon(
+      onPressed: onImportAction,
+      icon: const Icon(Icons.move_to_inbox_outlined),
+      label: Text(importActionLabel),
+    );
+    final actionArea = layout.showInlineOverviewActions
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              scanButton,
+              const SizedBox(height: 8),
+              exportButton,
+              Align(alignment: Alignment.centerLeft, child: importButton),
+            ],
+          )
+        : Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [scanButton, exportButton, importButton],
+          );
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -1345,109 +1579,135 @@ class _InventoryHeroCard extends StatelessWidget {
             (hasWarning
                     ? colorScheme.errorContainer
                     : colorScheme.primaryContainer)
-                .withValues(alpha: hasWarning ? 0.54 : 0.64),
+                .withValues(alpha: hasWarning ? 0.42 : 0.48),
             colorScheme.surfaceContainerHigh.withValues(alpha: 0.96),
           ],
         ),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: accentColor.withValues(alpha: 0.22)),
-        boxShadow: [
-          BoxShadow(
-            color: colorScheme.shadow.withValues(alpha: 0.2),
-            blurRadius: 24,
-            offset: const Offset(0, 14),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: accentColor.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _InventoryStatusPill(
-                icon: Icons.sync_rounded,
-                label: texts.liveSyncLabel,
-                accentColor: accentColor,
-              ),
-              if (hasWarning)
-                _InventoryStatusPill(
-                  icon: Icons.priority_high_rounded,
-                  label: texts.syncAttentionLabel,
-                  accentColor: colorScheme.error,
+          if (layout.showInlineOverviewActions)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _InventoryOverviewCopy(
+                    texts: texts,
+                    headline: headline,
+                    summary: summary,
+                    warningMessage: warningMessage,
+                    hasWarning: hasWarning,
+                    accentColor: accentColor,
+                  ),
                 ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(
-            headline,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              color: colorScheme.onSurface,
-              fontWeight: FontWeight.w800,
-              height: 1.15,
+                const SizedBox(width: 18),
+                SizedBox(width: 280, child: actionArea),
+              ],
+            )
+          else ...[
+            _InventoryOverviewCopy(
+              texts: texts,
+              headline: headline,
+              summary: summary,
+              warningMessage: warningMessage,
+              hasWarning: hasWarning,
+              accentColor: accentColor,
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            summary,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-              height: 1.5,
+            const SizedBox(height: 14),
+            actionArea,
+          ],
+          const SizedBox(height: 16),
+          Wrap(spacing: 10, runSpacing: 10, children: metrics),
+        ],
+      ),
+    );
+  }
+}
+
+class _InventoryOverviewCopy extends StatelessWidget {
+  const _InventoryOverviewCopy({
+    required this.texts,
+    required this.headline,
+    required this.summary,
+    required this.warningMessage,
+    required this.hasWarning,
+    required this.accentColor,
+  });
+
+  final _InventoryTexts texts;
+  final String headline;
+  final String summary;
+  final String? warningMessage;
+  final bool hasWarning;
+  final Color accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _InventoryStatusPill(
+              icon: Icons.sync_rounded,
+              label: texts.liveSyncLabel,
+              accentColor: accentColor,
             ),
+            if (hasWarning)
+              _InventoryStatusPill(
+                icon: Icons.priority_high_rounded,
+                label: texts.syncAttentionLabel,
+                accentColor: colorScheme.error,
+              ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Text(
+          headline,
+          style: theme.textTheme.titleLarge?.copyWith(
+            color: colorScheme.onSurface,
+            fontWeight: FontWeight.w800,
+            height: 1.15,
           ),
-          if (hasWarning) ...[
-            const SizedBox(height: 10),
-            Text(
+        ),
+        const SizedBox(height: 8),
+        Text(
+          summary,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+            height: 1.45,
+          ),
+        ),
+        if (hasWarning) ...[
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: colorScheme.errorContainer.withValues(alpha: 0.52),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: colorScheme.error.withValues(alpha: 0.22),
+              ),
+            ),
+            child: Text(
               warningMessage!,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onErrorContainer,
                 fontWeight: FontWeight.w600,
-                height: 1.45,
+                height: 1.4,
               ),
             ),
-          ],
-          const SizedBox(height: 18),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              for (final metric in metrics)
-                SizedBox(width: metricWidth, child: metric),
-            ],
-          ),
-          const SizedBox(height: 18),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final buttonWidth = constraints.maxWidth >= 520
-                  ? (constraints.maxWidth - 10) / 2
-                  : double.infinity;
-              return Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  SizedBox(
-                    width: buttonWidth,
-                    child: FilledButton.icon(
-                      onPressed: onPrimaryAction,
-                      icon: Icon(primaryActionIcon),
-                      label: Text(primaryActionLabel),
-                    ),
-                  ),
-                  SizedBox(
-                    width: buttonWidth,
-                    child: OutlinedButton.icon(
-                      onPressed: onSecondaryAction,
-                      icon: Icon(secondaryActionIcon),
-                      label: Text(secondaryActionLabel),
-                    ),
-                  ),
-                ],
-              );
-            },
           ),
         ],
-      ),
+      ],
     );
   }
 }
@@ -1652,6 +1912,7 @@ class _InventoryEmptyView extends StatelessWidget {
             button: true,
             label: texts.importStockAction,
             child: ElevatedButton.icon(
+              key: const ValueKey<String>('inventory-import-action'),
               onPressed: onImport,
               style: ElevatedButton.styleFrom(minimumSize: const Size(132, 46)),
               icon: const Icon(Icons.playlist_add_check_circle_outlined),

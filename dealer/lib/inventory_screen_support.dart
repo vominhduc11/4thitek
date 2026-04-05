@@ -3,25 +3,35 @@ part of 'inventory_screen.dart';
 class _InventoryLayoutConfig {
   const _InventoryLayoutConfig({
     required this.contentMaxWidth,
-    required this.tileColumnCount,
+    required this.useGrid,
+    required this.gridMaxTileWidth,
+    required this.gridTileExtent,
+    required this.showWideControls,
+    required this.showInlineOverviewActions,
   });
 
   final double contentMaxWidth;
-  final int tileColumnCount;
-
-  bool get showWideGrid => tileColumnCount > 1;
+  final bool useGrid;
+  final double gridMaxTileWidth;
+  final double gridTileExtent;
+  final bool showWideControls;
+  final bool showInlineOverviewActions;
 
   factory _InventoryLayoutConfig.fromContext(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final isTablet = size.shortestSide >= AppBreakpoints.phone;
-    final isWideDesktop = size.width >= 1180;
+    final isWideDesktop = size.width >= 1280;
     return _InventoryLayoutConfig(
       contentMaxWidth: isWideDesktop
-          ? 1280.0
+          ? 1360.0
           : isTablet
-          ? 1040.0
+          ? 1120.0
           : double.infinity,
-      tileColumnCount: isWideDesktop ? 2 : 1,
+      useGrid: size.width >= 720,
+      gridMaxTileWidth: isWideDesktop ? 380.0 : 460.0,
+      gridTileExtent: isWideDesktop ? 216.0 : 228.0,
+      showWideControls: size.width >= 920,
+      showInlineOverviewActions: size.width >= 1040,
     );
   }
 }
