@@ -5,10 +5,11 @@ import 'package:dealer_hub/notification_controller.dart';
 import 'package:dealer_hub/product_catalog_controller.dart';
 import 'package:dealer_hub/product_list_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_spinbox/flutter_spinbox.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('Product list renders mobile utility grid without overflow', (
+  testWidgets('Product list renders simplified mobile cards without overflow', (
     tester,
   ) async {
     final view = tester.view;
@@ -19,29 +20,7 @@ void main() {
       view.resetDevicePixelRatio();
     });
 
-    final settingsController = AppSettingsController();
-    final catalogController = _FakeProductCatalogController();
-    final cartController = CartController();
-    final notificationController = NotificationController();
-
-    await tester.pumpWidget(
-      AppSettingsScope(
-        controller: settingsController,
-        child: NotificationScope(
-          controller: notificationController,
-          child: ProductCatalogScope(
-            controller: catalogController,
-            child: CartScope(
-              controller: cartController,
-              child: const MaterialApp(home: ProductListScreen()),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    await tester.pump(const Duration(milliseconds: 500));
-    await tester.pumpAndSettle();
+    await _pumpProductListScreen(tester, textScale: 1.2);
 
     final exceptions = <Object>[];
     Object? error;
@@ -51,6 +30,17 @@ void main() {
 
     expect(exceptions, isEmpty, reason: exceptions.join('\n'));
     expect(find.byType(ProductListScreen), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_outward_rounded), findsNothing);
+    expect(find.byIcon(Icons.qr_code_2_rounded), findsNothing);
+    expect(find.byIcon(Icons.tune_rounded), findsNothing);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('mobile-product-primary-action-amp-1')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.byType(SpinBox), findsOneWidget);
   });
 
   testWidgets('Desktop width packs products into a denser grid row', (
@@ -64,29 +54,7 @@ void main() {
       view.resetDevicePixelRatio();
     });
 
-    final settingsController = AppSettingsController();
-    final catalogController = _FakeProductCatalogController();
-    final cartController = CartController();
-    final notificationController = NotificationController();
-
-    await tester.pumpWidget(
-      AppSettingsScope(
-        controller: settingsController,
-        child: NotificationScope(
-          controller: notificationController,
-          child: ProductCatalogScope(
-            controller: catalogController,
-            child: CartScope(
-              controller: cartController,
-              child: const MaterialApp(home: ProductListScreen()),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    await tester.pump(const Duration(milliseconds: 500));
-    await tester.pumpAndSettle();
+    await _pumpProductListScreen(tester);
 
     final ampPosition = tester.getTopLeft(find.text('AMP-8CH'));
     final speakerPosition = tester.getTopLeft(find.text('SPK-2WAY'));
@@ -115,29 +83,7 @@ void main() {
       view.resetDevicePixelRatio();
     });
 
-    final settingsController = AppSettingsController();
-    final catalogController = _FakeProductCatalogController();
-    final cartController = CartController();
-    final notificationController = NotificationController();
-
-    await tester.pumpWidget(
-      AppSettingsScope(
-        controller: settingsController,
-        child: NotificationScope(
-          controller: notificationController,
-          child: ProductCatalogScope(
-            controller: catalogController,
-            child: CartScope(
-              controller: cartController,
-              child: const MaterialApp(home: ProductListScreen()),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    await tester.pump(const Duration(milliseconds: 500));
-    await tester.pumpAndSettle();
+    await _pumpProductListScreen(tester);
 
     await tester.enterText(find.byType(TextField).first, 'no-match-product');
     await tester.pump(const Duration(milliseconds: 350));
@@ -164,6 +110,47 @@ void main() {
 
     expect(exceptions, isEmpty, reason: exceptions.join('\n'));
   });
+}
+
+Future<void> _pumpProductListScreen(
+  WidgetTester tester, {
+  double textScale = 1.0,
+}) async {
+  final settingsController = AppSettingsController();
+  final catalogController = _FakeProductCatalogController();
+  final cartController = CartController();
+  final notificationController = NotificationController();
+
+  await tester.pumpWidget(
+    AppSettingsScope(
+      controller: settingsController,
+      child: NotificationScope(
+        controller: notificationController,
+        child: ProductCatalogScope(
+          controller: catalogController,
+          child: CartScope(
+            controller: cartController,
+            child: MaterialApp(
+              builder: (context, child) {
+                final mediaQuery = MediaQuery.of(context);
+                return MediaQuery(
+                  data: mediaQuery.copyWith(
+                    disableAnimations: true,
+                    textScaler: TextScaler.linear(textScale),
+                  ),
+                  child: child!,
+                );
+              },
+              home: const ProductListScreen(),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  await tester.pump(const Duration(milliseconds: 500));
+  await tester.pumpAndSettle();
 }
 
 class _FakeProductCatalogController extends ProductCatalogController {

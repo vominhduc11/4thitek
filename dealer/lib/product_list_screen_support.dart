@@ -241,6 +241,153 @@ extension _ProductListScreenSupport on _ProductListScreenState {
     final minQty = 1;
     final safeInitial = initialQuantity.clamp(minQty, maxQuantity);
     var selected = safeInitial <= maxQuantity ? safeInitial : maxQuantity;
+
+    if (MediaQuery.sizeOf(context).shortestSide < AppBreakpoints.phone) {
+      final presetQuantities =
+          <int>{minQty, 5, 10, 20, maxQuantity}
+              .where(
+                (quantity) => quantity >= minQty && quantity <= maxQuantity,
+              )
+              .toList()
+            ..sort();
+
+      return showModalBottomSheet<int>(
+        context: context,
+        isScrollControlled: true,
+        showDragHandle: true,
+        requestFocus: true,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        builder: (sheetContext) {
+          return StatefulBuilder(
+            builder: (context, setSheetState) {
+              final theme = Theme.of(context);
+              final colors = theme.colorScheme;
+              final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+
+              return SafeArea(
+                top: false,
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(20, 8, 20, 20 + bottomInset),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: colors.primaryContainer.withValues(
+                                alpha: 0.8,
+                              ),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Icon(
+                              Icons.add_shopping_cart_rounded,
+                              color: colors.onPrimaryContainer,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  texts.chooseQuantityDialogTitle,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  product.name,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: colors.onSurfaceVariant,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        texts.quantityRangeLabel(minQty, maxQuantity),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: presetQuantities.map((quantity) {
+                          final isMaxPreset =
+                              quantity == maxQuantity && maxQuantity > 20;
+                          return ChoiceChip(
+                            label: Text(
+                              isMaxPreset
+                                  ? texts.maxQuantityChipLabel(quantity)
+                                  : quantity.toString(),
+                            ),
+                            selected: selected == quantity,
+                            onSelected: (_) {
+                              setSheetState(() => selected = quantity);
+                            },
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 16),
+                      SpinBox(
+                        min: minQty.toDouble(),
+                        max: maxQuantity.toDouble(),
+                        value: selected.toDouble(),
+                        step: 1,
+                        decimals: 0,
+                        autofocus: true,
+                        onChanged: (val) {
+                          setSheetState(() {
+                            selected = val.round().clamp(minQty, maxQuantity);
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 18),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.of(sheetContext).pop(),
+                              child: Text(texts.cancelAction),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: ElevatedButton(
+                              onPressed: () =>
+                                  Navigator.of(sheetContext).pop(selected),
+                              child: Text(texts.addQuantityAction(selected)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      );
+    }
+
     return showDialog<int>(
       context: context,
       traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
@@ -291,7 +438,7 @@ extension _ProductListScreenSupport on _ProductListScreenState {
             ),
             ElevatedButton(
               onPressed: () => Navigator.of(dialogContext).pop(selected),
-              child: Text(texts.addAction),
+              child: Text(texts.addQuantityAction(selected)),
             ),
           ],
         );

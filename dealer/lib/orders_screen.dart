@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 
 import 'app_settings_controller.dart';
@@ -39,6 +40,9 @@ class OrdersScreen extends StatefulWidget {
 
 class _OrdersScreenState extends State<OrdersScreen> {
   static const int _pageSize = 10;
+  static const double _floatingOverviewCollapsedHeight = 8;
+  static const double _floatingOverviewRevealDistance = 72;
+  static const double _floatingOverviewHideDistance = 132;
 
   late final PagingController<int, Order> _pagingController;
   late final TextEditingController _searchController;
@@ -50,6 +54,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
   OrderController? _observedOrderController;
   OrderQueryRepository? _orderQueryRepository;
   int _queryRevision = 0;
+  double _floatingOverviewReveal = 1;
+  double? _lastObservedScrollPixels;
+  double _overviewSectionHeight = 0;
 
   OrderListQuery _query = const OrderListQuery();
 
@@ -644,6 +651,143 @@ class _OrdersScreenState extends State<OrdersScreen> {
     );
   }
 
+  bool _handleScrollNotification(
+    ScrollNotification notification, {
+    required bool useFloatingOverview,
+  }) {
+    if (!useFloatingOverview || notification.metrics.axis != Axis.vertical) {
+      return false;
+    }
+
+    if (notification.metrics.pixels <= 0) {
+      _lastObservedScrollPixels = notification.metrics.pixels;
+      _setFloatingOverviewReveal(1);
+      return false;
+    }
+
+    if (notification is ScrollUpdateNotification) {
+      final currentPixels = notification.metrics.pixels;
+      final delta =
+          notification.scrollDelta ??
+          (_lastObservedScrollPixels == null
+              ? 0
+              : currentPixels - _lastObservedScrollPixels!);
+      _lastObservedScrollPixels = currentPixels;
+
+      if (delta > 0) {
+        _setFloatingOverviewReveal(
+          _floatingOverviewReveal - (delta / _floatingOverviewHideDistance),
+        );
+      } else if (delta < 0) {
+        _setFloatingOverviewReveal(
+          _floatingOverviewReveal +
+              ((-delta) / _floatingOverviewRevealDistance),
+        );
+      }
+    } else if (notification is ScrollEndNotification) {
+      _lastObservedScrollPixels = notification.metrics.pixels;
+    }
+
+    return false;
+  }
+
+  void _setFloatingOverviewReveal(double value) {
+    final nextValue = value.clamp(0.0, 1.0);
+    if ((_floatingOverviewReveal - nextValue).abs() < 0.001 || !mounted) {
+      return;
+    }
+    setState(() => _floatingOverviewReveal = nextValue);
+  }
+
+  void _setOverviewSectionHeight(Size size) {
+    final nextHeight = size.height;
+    if ((_overviewSectionHeight - nextHeight).abs() < 0.5) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || (_overviewSectionHeight - nextHeight).abs() < 0.5) {
+        return;
+      }
+      setState(() => _overviewSectionHeight = nextHeight);
+    });
+  }
+
+  Widget _buildOverviewHeaderSlot({
+    required BuildContext context,
+    required _OrdersTexts texts,
+    required ColorScheme colors,
+    required _OrdersLayoutConfig layout,
+    required int resultCount,
+    required int pendingCount,
+    required int debtOrderCount,
+    required bool hasActiveSearch,
+    required bool hasActiveCriteria,
+    required String activeCriteriaSummary,
+    required List<OrderStatus?> statusFilters,
+    required List<OrderPaymentStatus?> paymentFilters,
+    required bool enableScrollCollapse,
+  }) {
+    final overviewSection = _MeasureSize(
+      onChange: _setOverviewSectionHeight,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(16, layout.isCompact ? 8 : 12, 16, 0),
+            child: _buildOverviewPanel(
+              context: context,
+              texts: texts,
+              colors: colors,
+              layout: layout,
+              resultCount: resultCount,
+              pendingCount: pendingCount,
+              debtOrderCount: debtOrderCount,
+              hasActiveSearch: hasActiveSearch,
+              hasActiveCriteria: hasActiveCriteria,
+              activeCriteriaSummary: activeCriteriaSummary,
+              statusFilters: statusFilters,
+              paymentFilters: paymentFilters,
+            ),
+          ),
+          SizedBox(height: layout.isCompact ? 8 : 12),
+        ],
+      ),
+    );
+
+    if (!enableScrollCollapse || _overviewSectionHeight <= 0) {
+      return KeyedSubtree(
+        key: const ValueKey<String>('orders-overview-shell'),
+        child: overviewSection,
+      );
+    }
+
+    final reveal = _floatingOverviewReveal.clamp(0.0, 1.0);
+    final visualProgress = Curves.easeOutCubic.transform(reveal);
+    final visibleHeight =
+        _floatingOverviewCollapsedHeight +
+        ((_overviewSectionHeight - _floatingOverviewCollapsedHeight) * reveal);
+
+    return KeyedSubtree(
+      key: const ValueKey<String>('orders-overview-shell'),
+      child: SizedBox(
+        height: visibleHeight,
+        child: ClipRect(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Positioned(
+                top: -(_overviewSectionHeight + 12) * (1 - visualProgress),
+                left: 0,
+                right: 0,
+                child: overviewSection,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final texts = _ordersTexts(context);
@@ -679,6 +823,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final hasActiveCriteria = _query.hasCriteria;
     final activeCriteriaSummary = _activeCriteriaSummary(context);
     final resultCount = querySnapshot.items.length;
+    final useFloatingOverview = layout.isCompact && allOrders.isNotEmpty;
     final orderBuilderDelegate = PagedChildBuilderDelegate<Order>(
       itemBuilder: (context, order, index) {
         final pageIndex = index % _pageSize;
@@ -1121,6 +1266,68 @@ class _OrdersScreenState extends State<OrdersScreen> {
       },
     );
 
+    Widget pagedOrdersView = layout.useGridLayout
+        ? PagedGridView<int, Order>(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            physics: const AlwaysScrollableScrollPhysics(),
+            pagingController: _pagingController,
+            padding: EdgeInsets.fromLTRB(
+              20,
+              layout.isCompact ? 4 : 8,
+              20,
+              layout.listBottomPadding,
+            ),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: layout.gridColumnCount,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              mainAxisExtent: layout.gridItemExtent,
+            ),
+            builderDelegate: orderBuilderDelegate,
+          )
+        : PagedListView<int, Order>(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            physics: const AlwaysScrollableScrollPhysics(),
+            pagingController: _pagingController,
+            padding: EdgeInsets.fromLTRB(
+              20,
+              layout.isCompact ? 4 : 8,
+              20,
+              layout.listBottomPadding,
+            ),
+            builderDelegate: orderBuilderDelegate,
+          );
+
+    if (useFloatingOverview) {
+      pagedOrdersView = NotificationListener<ScrollNotification>(
+        onNotification: (notification) =>
+            _handleScrollNotification(notification, useFloatingOverview: true),
+        child: pagedOrdersView,
+      );
+    }
+
+    final orderListContent = allOrders.isEmpty
+        ? Padding(
+            padding: EdgeInsets.fromLTRB(
+              20,
+              layout.isCompact ? 4 : 8,
+              20,
+              layout.listBottomPadding,
+            ),
+            child: FadeSlideIn(
+              child: _EmptyOrders(
+                onCreateOrder: () => _openCreateOrder(context),
+              ),
+            ),
+          )
+        : RefreshIndicator(
+            onRefresh: () async {
+              await orderController.refresh();
+              _refreshOrders();
+            },
+            child: pagedOrdersView,
+          );
+
     return Scaffold(
       appBar: AppBar(
         title: BrandAppBarTitle(texts.screenTitle),
@@ -1141,71 +1348,22 @@ class _OrdersScreenState extends State<OrdersScreen> {
           constraints: BoxConstraints(maxWidth: layout.contentMaxWidth),
           child: Column(
             children: [
-              Padding(
-                padding: EdgeInsets.fromLTRB(
-                  16,
-                  layout.isCompact ? 8 : 12,
-                  16,
-                  0,
-                ),
-                child: _buildOverviewPanel(
-                  context: context,
-                  texts: texts,
-                  colors: colors,
-                  layout: layout,
-                  resultCount: resultCount,
-                  pendingCount: pendingCount,
-                  debtOrderCount: debtOrderCount,
-                  hasActiveSearch: hasActiveSearch,
-                  hasActiveCriteria: hasActiveCriteria,
-                  activeCriteriaSummary: activeCriteriaSummary,
-                  statusFilters: statusFilters,
-                  paymentFilters: paymentFilters,
-                ),
+              _buildOverviewHeaderSlot(
+                context: context,
+                texts: texts,
+                colors: colors,
+                layout: layout,
+                resultCount: resultCount,
+                pendingCount: pendingCount,
+                debtOrderCount: debtOrderCount,
+                hasActiveSearch: hasActiveSearch,
+                hasActiveCriteria: hasActiveCriteria,
+                activeCriteriaSummary: activeCriteriaSummary,
+                statusFilters: statusFilters,
+                paymentFilters: paymentFilters,
+                enableScrollCollapse: useFloatingOverview,
               ),
-              SizedBox(height: layout.isCompact ? 8 : 12),
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: () async {
-                    await orderController.refresh();
-                    _refreshOrders();
-                  },
-                  child: layout.useGridLayout
-                      ? PagedGridView<int, Order>(
-                          keyboardDismissBehavior:
-                              ScrollViewKeyboardDismissBehavior.onDrag,
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          pagingController: _pagingController,
-                          padding: EdgeInsets.fromLTRB(
-                            20,
-                            layout.isCompact ? 4 : 8,
-                            20,
-                            layout.listBottomPadding,
-                          ),
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: layout.gridColumnCount,
-                                mainAxisSpacing: 12,
-                                crossAxisSpacing: 12,
-                                mainAxisExtent: layout.gridItemExtent,
-                              ),
-                          builderDelegate: orderBuilderDelegate,
-                        )
-                      : PagedListView<int, Order>(
-                          keyboardDismissBehavior:
-                              ScrollViewKeyboardDismissBehavior.onDrag,
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          pagingController: _pagingController,
-                          padding: EdgeInsets.fromLTRB(
-                            20,
-                            layout.isCompact ? 4 : 8,
-                            20,
-                            layout.listBottomPadding,
-                          ),
-                          builderDelegate: orderBuilderDelegate,
-                        ),
-                ),
-              ),
+              Expanded(child: orderListContent),
             ],
           ),
         ),
@@ -1364,6 +1522,43 @@ class _EmptyFilterResult extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _MeasureSize extends SingleChildRenderObjectWidget {
+  const _MeasureSize({required this.onChange, required super.child});
+
+  final ValueChanged<Size> onChange;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) {
+    return _RenderMeasureSize(onChange);
+  }
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    covariant _RenderMeasureSize renderObject,
+  ) {
+    renderObject.onChange = onChange;
+  }
+}
+
+class _RenderMeasureSize extends RenderProxyBox {
+  _RenderMeasureSize(this.onChange);
+
+  ValueChanged<Size> onChange;
+  Size? _previousSize;
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    final newSize = child?.size;
+    if (newSize == null || _previousSize == newSize) {
+      return;
+    }
+    _previousSize = newSize;
+    WidgetsBinding.instance.addPostFrameCallback((_) => onChange(newSize));
   }
 }
 
