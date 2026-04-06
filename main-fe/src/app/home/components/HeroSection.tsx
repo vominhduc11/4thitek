@@ -60,25 +60,19 @@ const createHeroSummary = (value: string) => {
 };
 
 const makeVideoVariants = (animate: boolean): Variants => ({
-    hidden: animate ? { scale: 1.04, opacity: 0 } : { opacity: 0 },
+    hidden: animate ? { scale: 1.02, opacity: 0 } : { opacity: 0 },
     visible: animate
-        ? { scale: 1, opacity: 1, transition: { duration: 0.8, ease: 'easeOut' } }
-        : { opacity: 1, transition: { duration: 0.5 } }
-});
-
-const makeOverlayVariants = (): Variants => ({
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.5 } }
+        ? { scale: 1, opacity: 1, transition: { duration: 0.6, ease: 'easeOut' } }
+        : { opacity: 1, transition: { duration: 0.4 } }
 });
 
 const makeTitleVariants = (animate: boolean): Variants => ({
-    hidden: { y: animate ? -40 : 0, opacity: 0, scale: animate ? 0.95 : 1 },
+    hidden: { y: animate ? -24 : 0, opacity: 0 },
     visible: {
         y: 0,
         opacity: 1,
-        scale: 1,
         transition: animate
-            ? { duration: 0.7, delay: 0.15, type: 'spring', stiffness: 100, damping: 15 }
+            ? { duration: 0.55, delay: 0.12, ease: 'easeOut' }
             : { duration: 0.4 }
     }
 });
@@ -90,15 +84,14 @@ const makeProductVariants = (animate: boolean): Variants => ({
         opacity: 1,
         y: 0,
         transition: animate
-            ? { duration: 0.8, delay: 0.3, type: 'spring', stiffness: 90, damping: 14 }
+            ? { duration: 0.65, delay: 0.22, ease: 'easeOut' }
             : { duration: 0.4 }
     },
     hover: {
-        scale: 1.06,
-        y: -15,
-        rotate: 1.5,
-        filter: 'brightness(1.08) drop-shadow(0 25px 35px rgba(0,113,188,0.28))',
-        transition: { duration: 0.4, ease: 'easeOut' }
+        scale: 1.02,
+        y: -6,
+        filter: 'brightness(1.03) drop-shadow(0 18px 28px rgba(0,113,188,0.2))',
+        transition: { duration: 0.25, ease: 'easeOut' }
     }
 });
 
@@ -108,14 +101,14 @@ const makeContentVariants = (animate: boolean): Variants => ({
 });
 
 const makeButtonVariants = (animate: boolean): Variants => ({
-    hidden: { scale: animate ? 0.96 : 1, opacity: 0 },
+    hidden: { y: animate ? 12 : 0, opacity: 0 },
     visible: {
-        scale: 1,
+        y: 0,
         opacity: 1,
-        transition: animate ? { duration: 0.5, delay: 0.65, type: 'spring', stiffness: 160 } : { duration: 0.3 }
+        transition: animate ? { duration: 0.4, delay: 0.45, ease: 'easeOut' } : { duration: 0.3 }
     },
-    hover: { scale: 1.04, boxShadow: '0 10px 25px rgba(0,113,188,0.35)', transition: { duration: 0.2 } },
-    tap: { scale: 0.97 }
+    hover: { scale: 1.01, boxShadow: '0 12px 24px rgba(0,113,188,0.24)', transition: { duration: 0.18 } },
+    tap: { scale: 0.985 }
 });
 
 interface HeroSectionProps {
@@ -125,13 +118,12 @@ interface HeroSectionProps {
 export default function HeroSection({ initialProduct = null }: HeroSectionProps) {
     const router = useRouter();
     const { t } = useLanguage();
-    const { enableInfiniteAnimations, enableDecorativeAnimations } = useAnimationConfig();
+    const { enableDecorativeAnimations } = useAnimationConfig();
     const product = initialProduct;
     const displayName = product?.name || t('products.title');
     const displayImage = product?.image || '';
 
     const videoVariants = makeVideoVariants(enableDecorativeAnimations);
-    const overlayVariants = makeOverlayVariants();
     const titleVariants = makeTitleVariants(enableDecorativeAnimations);
     const productVariants = makeProductVariants(enableDecorativeAnimations);
     const contentVariants = makeContentVariants(enableDecorativeAnimations);
@@ -159,72 +151,17 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
                 aria-hidden="true"
             />
 
-            <div className="absolute inset-0 bg-topo opacity-40 sm:hidden" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(41,171,226,0.24),_transparent_42%),linear-gradient(180deg,_#09111A_0%,_#07101A_55%,_#03070D_100%)] sm:hidden" />
-
-            <motion.div
-                className="absolute inset-0 bg-black/55 sm:bg-black/28 md:bg-black/24"
-                variants={overlayVariants}
-                initial="hidden"
-                animate="visible"
-                aria-hidden="true"
-            />
-
-            <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(92deg,rgba(7,17,26,0.84)_0%,rgba(7,17,26,0.76)_28%,rgba(7,17,26,0.42)_52%,rgba(7,17,26,0.6)_74%,rgba(7,17,26,0.8)_100%)] sm:bg-[linear-gradient(92deg,rgba(7,17,26,0.92)_0%,rgba(7,17,26,0.72)_26%,rgba(7,17,26,0.2)_50%,rgba(7,17,26,0.46)_72%,rgba(7,17,26,0.78)_100%)]" />
-            <div className="pointer-events-none absolute inset-0 z-10 hidden sm:block bg-[radial-gradient(circle_at_54%_42%,rgba(7,17,26,0.02)_0%,rgba(7,17,26,0.08)_28%,rgba(7,17,26,0.34)_62%,rgba(7,17,26,0.64)_100%)]" />
+            <div className="absolute inset-0 bg-topo opacity-32 sm:hidden" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(41,171,226,0.18),_transparent_42%),linear-gradient(180deg,_#09111A_0%,_#07101A_58%,_#03070D_100%)] sm:hidden" />
+            <div className="absolute inset-0 bg-black/52 sm:bg-black/18 md:bg-black/14" aria-hidden="true" />
+            <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(96deg,rgba(7,17,26,0.9)_0%,rgba(7,17,26,0.8)_26%,rgba(7,17,26,0.34)_52%,rgba(7,17,26,0.52)_76%,rgba(7,17,26,0.72)_100%)] sm:bg-[linear-gradient(96deg,rgba(7,17,26,0.92)_0%,rgba(7,17,26,0.68)_28%,rgba(7,17,26,0.16)_54%,rgba(7,17,26,0.34)_74%,rgba(7,17,26,0.62)_100%)]" />
             <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-36 bg-gradient-to-b from-[#06111B] via-[rgba(6,17,27,0.94)] to-transparent min-[480px]:h-32 sm:h-28 sm:via-[rgba(6,17,27,0.78)] md:h-24 md:via-[rgba(6,17,27,0.68)]" />
             <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-28 bg-gradient-to-t from-[#06111B] via-[rgba(6,17,27,0.88)] to-transparent min-[480px]:h-24 sm:h-32 sm:via-[rgba(6,17,27,0.72)]" />
 
-            <div className="pointer-events-none absolute bottom-[13%] right-4 z-10 hidden opacity-75 md:block md:right-6" aria-hidden="true">
-                <svg
-                    width="260"
-                    height="56"
-                    viewBox="0 0 260 56"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-auto w-[120px] opacity-60 sm:w-[200px] sm:opacity-100 md:w-[260px]"
-                >
-                    <path
-                        d="M0,28 C16,28 16,8 32,8 C48,8 48,48 64,48 C80,48 80,8 96,8 C112,8 112,48 128,48 C144,48 144,8 160,8 C176,8 176,48 192,48 C208,48 208,8 224,8 C240,8 240,48 260,48"
-                        stroke="#29ABE2"
-                        strokeWidth="1.5"
-                        strokeDasharray="600"
-                        strokeDashoffset="600"
-                        className="animate-dash-flow animate-wave-pulse"
-                    />
-                    <path
-                        d="M0,28 C16,28 16,14 32,14 C48,14 48,42 64,42 C80,42 80,14 96,14 C112,14 112,42 128,42 C144,42 144,14 160,14 C176,14 176,42 192,42 C208,42 208,14 224,14 C240,14 240,42 260,42"
-                        stroke="#29ABE2"
-                        strokeWidth="1"
-                        strokeDasharray="600"
-                        strokeDashoffset="600"
-                        className="animate-dash-flow animate-wave-pulse-delayed"
-                        style={{ animationDelay: '1s, 0.6s' }}
-                    />
-                    <path
-                        d="M0,28 C16,28 16,20 32,20 C48,20 48,36 64,36 C80,36 80,20 96,20 C112,20 112,36 128,36 C144,36 144,20 160,20 C176,20 176,36 192,36 C208,36 208,20 224,20 C240,20 240,36 260,36"
-                        stroke="#29ABE2"
-                        strokeWidth="0.6"
-                        opacity="0.5"
-                        strokeDasharray="600"
-                        strokeDashoffset="600"
-                        className="animate-dash-flow-reverse animate-wave-pulse-slow"
-                    />
-                </svg>
-            </div>
-
-            {enableInfiniteAnimations && (
-                <div
-                    className="pointer-events-none absolute left-1/2 top-1/2 z-10 hidden -translate-x-1/2 -translate-y-1/2 lg:block"
-                    aria-hidden="true"
-                >
-                    <div className="relative flex items-center justify-center">
-                        <div className="absolute h-[30vh] w-[30vh] min-h-[200px] min-w-[200px] rounded-full border border-[rgba(41,171,226,0.22)] animate-signal-ring transition-colors duration-500 group-hover:border-[rgba(41,171,226,0.5)]" />
-                        <div className="absolute h-[30vh] w-[30vh] min-h-[200px] min-w-[200px] rounded-full border border-[rgba(41,171,226,0.22)] animate-signal-ring-2 transition-colors duration-500 group-hover:border-[rgba(41,171,226,0.5)]" />
-                        <div className="absolute h-[30vh] w-[30vh] min-h-[200px] min-w-[200px] rounded-full border border-[rgba(41,171,226,0.15)] animate-signal-ring-3 transition-colors duration-500 group-hover:border-[rgba(41,171,226,0.4)]" />
-                    </div>
-                </div>
-            )}
+            <div
+                className="pointer-events-none absolute left-1/2 top-[50%] z-10 hidden h-[30vh] w-[30vh] min-h-[200px] min-w-[200px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[rgba(41,171,226,0.16)] bg-[radial-gradient(circle,_rgba(41,171,226,0.16)_0%,_rgba(41,171,226,0.06)_42%,_transparent_72%)] shadow-[0_0_80px_rgba(0,113,188,0.12)] lg:block"
+                aria-hidden="true"
+            />
 
             <div className="absolute inset-0 z-20 flex flex-col items-center justify-between gap-4 px-4 pb-8 pt-[5.25rem] min-[480px]:items-start min-[480px]:px-6 min-[480px]:pb-9 min-[480px]:pt-[5rem] sm:items-start sm:gap-0 sm:px-6 sm:pb-10 sm:pt-24 md:px-8 md:pb-12 md:pt-28 lg:pl-32 lg:pr-14 xl:pl-36 xl:pr-[4.5rem] 2xl:pl-40 2xl:pr-20">
                 <motion.h1
@@ -243,7 +180,7 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
                     variants={productVariants}
                     initial="hidden"
                     animate="visible"
-                    whileHover="hover"
+                    whileHover={enableDecorativeAnimations ? 'hover' : undefined}
                     onClick={() => router.push(productPath)}
                 >
                     {displayImage ? (
@@ -281,7 +218,7 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
                         variants={buttonVariants}
                         initial="hidden"
                         animate="visible"
-                        whileHover="hover"
+                        whileHover={enableDecorativeAnimations ? 'hover' : undefined}
                         whileTap="tap"
                         onClick={() => router.push(productPath)}
                         aria-label={t('hero.discoverAria').replace('{product}', displayName)}

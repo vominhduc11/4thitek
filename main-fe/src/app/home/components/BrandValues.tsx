@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { FiArrowRight, FiHeadphones, FiMap, FiShield } from 'react-icons/fi';
+import { FiArrowRight, FiArrowUpRight, FiAward, FiHeadphones, FiMapPin, FiShield } from 'react-icons/fi';
 import AvoidSidebar from '@/components/ui/AvoidSidebar';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAnimationConfig } from '@/hooks/useReducedMotion';
@@ -10,31 +10,36 @@ import { useAnimationConfig } from '@/hooks/useReducedMotion';
 const ITEMS = [
     { icon: FiHeadphones, key: 'exclusive' },
     { icon: FiShield, key: 'warranty' },
-    { icon: FiMap, key: 'network' }
+    { icon: FiMapPin, key: 'network' }
 ] as const;
 
-const BRAND_VALUES_VIDEO = '/videos/brand-values-dealer-network-loop.mp4';
+const PROOF_LINKS = [
+    { href: '/certification', icon: FiAward, labelKey: 'certification.title' },
+    { href: '/warranty-check', icon: FiShield, labelKey: 'warrantyCheck.title' },
+    { href: '/reseller_information', icon: FiMapPin, labelKey: 'brandValues.findReseller' }
+] as const;
 
 export default function BrandValues() {
     const { t } = useLanguage();
-    const { enableInfiniteAnimations } = useAnimationConfig();
+    const { enableDecorativeAnimations } = useAnimationConfig();
 
     return (
         <AvoidSidebar>
-            <section className="brand-section-blue py-16 sm:py-20 md:py-24" aria-labelledby="brand-values-heading">
-                <div className="absolute inset-0 bg-topo opacity-35" />
-                <div className="absolute inset-0 bg-dot-grid opacity-20" />
+            <section className="brand-section-blue py-16 sm:py-18 md:py-20" aria-labelledby="brand-values-heading">
+                <div className="absolute inset-0 bg-topo opacity-22" />
+                <div className="absolute inset-0 bg-dot-grid opacity-10" />
+                <div className="absolute left-[-6rem] top-10 h-60 w-60 rounded-full bg-[rgba(41,171,226,0.08)] blur-[100px]" />
 
                 <div className="brand-shell relative z-10 lg:ml-20">
-                    <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.72fr)] lg:items-start xl:grid-cols-[minmax(0,1.02fr)_minmax(360px,0.78fr)] xl:gap-12">
+                    <div className="grid gap-6 lg:grid-cols-[minmax(0,1.02fr)_minmax(320px,0.98fr)] lg:items-center xl:gap-8">
                         <motion.div
                             className="mx-auto max-w-3xl text-center lg:mx-0 lg:max-w-2xl lg:text-left"
-                            initial={{ opacity: 0, y: 24 }}
+                            initial={enableDecorativeAnimations ? { opacity: 0, y: 18 } : false}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
-                            transition={{ duration: 0.6 }}
+                            transition={{ duration: 0.45, ease: 'easeOut' }}
                         >
-                            <span className="brand-badge mb-5">{t('brandValues.eyebrow')}</span>
+                            <span className="brand-badge mb-4">{t('brandValues.eyebrow')}</span>
                             <h2
                                 id="brand-values-heading"
                                 className="font-serif text-3xl font-semibold text-[var(--text-primary)] sm:text-4xl lg:text-5xl"
@@ -46,52 +51,61 @@ export default function BrandValues() {
                             </p>
                         </motion.div>
 
-                        <motion.div
-                            className="brand-card-muted relative hidden overflow-hidden rounded-[30px] border border-[rgba(41,171,226,0.18)] lg:block lg:min-h-[22rem] xl:min-h-[25rem]"
-                            initial={{ opacity: 0, x: 28, scale: 0.98 }}
-                            whileInView={{ opacity: 1, x: 0, scale: 1 }}
+                        <motion.aside
+                            className="brand-card-muted rounded-[30px] border border-[rgba(41,171,226,0.18)] p-5 sm:p-6"
+                            initial={enableDecorativeAnimations ? { opacity: 0, x: 18 } : false}
+                            whileInView={{ opacity: 1, x: 0 }}
                             viewport={{ once: true, amount: 0.35 }}
-                            transition={{ duration: 0.65, ease: 'easeOut' }}
+                            transition={{ duration: 0.45, ease: 'easeOut' }}
+                            aria-label={t('brandValues.eyebrow')}
                         >
-                            <video
-                                src={BRAND_VALUES_VIDEO}
-                                className="absolute inset-0 h-full w-full scale-[1.04] object-cover object-center"
-                                autoPlay
-                                loop
-                                muted
-                                playsInline
-                                preload="metadata"
-                                aria-hidden="true"
-                            />
-                            <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(5,14,22,0.82)_0%,rgba(5,14,22,0.38)_34%,rgba(5,14,22,0.5)_68%,rgba(5,14,22,0.82)_100%)]" />
-                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_24%,rgba(41,171,226,0.12),transparent_36%),radial-gradient(circle_at_78%_72%,rgba(0,113,188,0.12),transparent_40%)]" />
-                            <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#07131f] via-[rgba(7,19,31,0.72)] to-transparent" />
-                            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#07131f] via-[rgba(7,19,31,0.84)] to-transparent" />
-                            <div className="absolute inset-5 rounded-[24px] border border-[rgba(255,255,255,0.06)]" />
-
-                            {enableInfiniteAnimations && (
-                                <div className="pointer-events-none absolute left-6 top-6" aria-hidden="true">
-                                    <div className="relative flex h-20 w-20 items-center justify-center">
-                                        <div className="animate-signal-ring absolute h-full w-full rounded-full border border-[rgba(41,171,226,0.18)]" />
-                                        <div className="animate-signal-ring-2 absolute h-full w-full rounded-full border border-[rgba(0,113,188,0.14)]" />
-                                        <div className="h-2.5 w-2.5 rounded-full bg-[var(--brand-blue)] shadow-[0_0_18px_rgba(41,171,226,0.45)]" />
-                                    </div>
+                            <div className="mb-5 flex items-start justify-between gap-4">
+                                <div>
+                                    <p className="brand-eyebrow text-[0.68rem]">{t('brand.message')}</p>
+                                    <h3 className="mt-2 font-serif text-2xl font-semibold text-[var(--text-primary)]">
+                                        {t('brandValues.title')}
+                                    </h3>
                                 </div>
-                            )}
-                        </motion.div>
+                                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[rgba(41,171,226,0.24)] bg-[rgba(41,171,226,0.14)] text-[var(--brand-blue)]">
+                                    <FiAward className="h-5 w-5" />
+                                </div>
+                            </div>
+
+                            <p className="text-sm leading-7 text-[var(--text-secondary)] sm:text-[15px]">
+                                {t('brand.description')}
+                            </p>
+
+                            <div className="mt-5 space-y-3">
+                                {PROOF_LINKS.map(({ href, icon: Icon, labelKey }) => (
+                                    <Link
+                                        key={href}
+                                        href={href}
+                                        className="group flex items-center justify-between rounded-[22px] border border-[rgba(133,170,197,0.14)] bg-[rgba(7,17,27,0.5)] px-4 py-3 text-sm font-semibold text-[var(--text-primary)] transition-colors duration-200 hover:border-[var(--brand-border-strong)] hover:bg-[rgba(41,171,226,0.06)]"
+                                    >
+                                        <span className="flex items-center gap-3">
+                                            <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[rgba(41,171,226,0.2)] bg-[rgba(41,171,226,0.12)] text-[var(--brand-blue)]">
+                                                <Icon className="h-4 w-4" />
+                                            </span>
+                                            <span>{t(labelKey)}</span>
+                                        </span>
+                                        <FiArrowUpRight className="h-4 w-4 text-[var(--text-muted)] transition-colors duration-200 group-hover:text-[var(--brand-blue)]" />
+                                    </Link>
+                                ))}
+                            </div>
+                        </motion.aside>
                     </div>
 
-                    <div className="mx-auto mt-12 grid max-w-6xl gap-5 md:grid-cols-3 lg:mt-14 lg:max-w-none">
+                    <div className="mx-auto mt-8 grid max-w-6xl gap-4 md:grid-cols-3 lg:max-w-none">
                         {ITEMS.map(({ icon: Icon, key }, index) => (
                             <motion.article
                                 key={key}
-                                className="brand-card group rounded-[28px] p-6 transition-all duration-300 hover:-translate-y-1 hover:border-[var(--brand-border-strong)] hover:shadow-[0_24px_48px_rgba(0,113,188,0.16)]"
-                                initial={{ opacity: 0, y: 32 }}
+                                className="brand-card group rounded-[28px] p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--brand-border-strong)] hover:shadow-[0_18px_34px_rgba(0,113,188,0.12)]"
+                                initial={enableDecorativeAnimations ? { opacity: 0, y: 22 } : false}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
-                                transition={{ duration: 0.5, delay: index * 0.1 }}
+                                transition={{ duration: 0.4, delay: enableDecorativeAnimations ? index * 0.06 : 0 }}
                             >
-                                <div className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--brand-border-strong)] bg-[rgba(41,171,226,0.14)] text-[var(--brand-blue)] transition-transform duration-300 group-hover:scale-105">
+                                <div className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--brand-border-strong)] bg-[rgba(41,171,226,0.14)] text-[var(--brand-blue)]">
                                     <Icon className="h-6 w-6" />
                                 </div>
                                 <h3 className="text-xl font-semibold text-[var(--text-primary)]">
@@ -105,22 +119,22 @@ export default function BrandValues() {
                     </div>
 
                     <motion.div
-                        className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row lg:justify-start"
-                        initial={{ opacity: 0, y: 20 }}
+                        className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row lg:justify-start"
+                        initial={enableDecorativeAnimations ? { opacity: 0, y: 16 } : false}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        transition={{ duration: 0.55, delay: 0.2 }}
+                        transition={{ duration: 0.4, delay: enableDecorativeAnimations ? 0.12 : 0 }}
                     >
                         <Link
                             href="/reseller_information"
-                            className="brand-button-primary inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-[var(--text-primary)] transition hover:-translate-y-0.5 hover:brightness-105"
+                            className="brand-button-primary inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-[var(--text-primary)] transition duration-200 hover:brightness-105"
                         >
                             {t('brandValues.findReseller')}
                             <FiArrowRight className="h-4 w-4" />
                         </Link>
                         <Link
                             href="/become_our_reseller"
-                            className="brand-button-secondary inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-[var(--text-primary)] transition hover:-translate-y-0.5 hover:border-[var(--brand-blue)] hover:bg-[rgba(41,171,226,0.14)]"
+                            className="brand-button-secondary inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-[var(--text-primary)] transition duration-200 hover:border-[var(--brand-blue)] hover:bg-[rgba(41,171,226,0.12)]"
                         >
                             {t('brandValues.becomeReseller')}
                         </Link>

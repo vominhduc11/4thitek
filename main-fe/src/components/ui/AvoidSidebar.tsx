@@ -9,7 +9,7 @@ interface AvoidSidebarProps {
 export default function AvoidSidebar({ children }: AvoidSidebarProps) {
     return (
         <div className="flex">
-            <div className="hidden w-20 flex-shrink-0 lg:block"></div>
+            <div aria-hidden="true" className="hidden w-20 flex-shrink-0 lg:block"></div>
             <div className="flex-1 min-w-0">{children}</div>
         </div>
     );

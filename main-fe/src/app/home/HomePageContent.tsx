@@ -1,4 +1,4 @@
-import { FeaturedProductsCarousel, HeroSection, Newsroom, ProductSeries } from './components';
+import { HeroSection, Newsroom, ProductSeries } from './components';
 import BrandValues from './components/BrandValues';
 import { publicApiServer } from '@/lib/publicApiServer';
 import { mapBlogSummaryToPost, mapProductSummaryToSimpleProduct } from '@/lib/contentMappers';
@@ -46,10 +46,8 @@ export default async function HomePageContent() {
             <HeroSection initialProduct={featuredProducts[0] ?? null} />
             <ProductSeries initialProducts={homepageProducts} />
             <WaveDivider fromColor="#06111B" toColor="#081A2A" />
-            <FeaturedProductsCarousel products={featuredProducts} />
-            <WaveDivider fromColor="#081A2A" toColor="#07111A" />
             <BrandValues />
-            <WaveDivider fromColor="#07111A" toColor="#06111B" />
+            <WaveDivider fromColor="#081A2A" toColor="#06111B" />
             <Newsroom initialBlogs={blogs} />
         </div>
     );

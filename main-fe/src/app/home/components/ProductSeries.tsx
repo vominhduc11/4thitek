@@ -43,6 +43,7 @@ function createResponsiveSummary(value: string, maxLength: number) {
 export default function ProductSeries({ initialProducts = [] }: ProductSeriesProps) {
     const { t } = useLanguage();
     const [selectedProduct, setSelectedProduct] = useState<SimpleProduct | null>(initialProducts[0] ?? null);
+    const skuFallback = t('brand.logoAlt');
     const selectedDescription = selectedProduct?.shortDescription ?? '';
     const compactDescription = createResponsiveSummary(selectedDescription, 116);
     const narrowDescription = createResponsiveSummary(selectedDescription, 148);
@@ -127,7 +128,7 @@ export default function ProductSeries({ initialProducts = [] }: ProductSeriesPro
                                                     {product.name}
                                                 </p>
                                                 <p className="mt-1 text-xs text-[var(--text-muted)]">
-                                                    {product.sku || 'TK HiTek'}
+                                                    {product.sku || skuFallback}
                                                 </p>
                                             </div>
                                         </motion.button>

@@ -14,8 +14,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
     return (
         <>
-            <Header onMenuClick={() => setIsDrawerOpen(true)} />
-            <Sidebar onMenuClick={() => setIsDrawerOpen(true)} />
+            <Header onMenuClick={() => setIsDrawerOpen(true)} isDrawerOpen={isDrawerOpen} />
+            <Sidebar onMenuClick={() => setIsDrawerOpen(true)} isDrawerOpen={isDrawerOpen} />
             <SideDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
             <SearchModal isOpen={isSearchOpen} onClose={closeSearch} />
             <div id="main-content" tabIndex={-1}>
