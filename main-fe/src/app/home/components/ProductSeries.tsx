@@ -57,23 +57,35 @@ export default function ProductSeries({ initialProducts = [] }: ProductSeriesPro
 
                 <div className="brand-shell relative z-10 lg:ml-20">
                     <motion.div
-                        className="mx-auto mb-12 max-w-4xl text-center min-[480px]:mb-14"
+                        className="mx-auto mb-12 max-w-5xl min-[480px]:mb-14"
                         initial={{ opacity: 0, y: 24 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6 }}
                         viewport={{ once: true }}
                     >
-                        <span className="brand-badge mb-5">{t('products.showcase.viewAll')}</span>
-                        <h2
-                            id="product-series-heading"
-                            className="scroll-mt-24 font-serif text-4xl font-semibold text-[var(--text-primary)] min-[480px]:scroll-mt-28 sm:text-5xl lg:scroll-mt-32 lg:text-6xl"
-                        >
-                            {t('products.showcase.titlePrimary')}{' '}
-                            <span className="brand-gradient-text">{t('products.showcase.titleHighlight')}</span>
-                        </h2>
-                        <p className="mx-auto mt-5 max-w-[34rem] text-base leading-7 text-[var(--text-secondary)] min-[480px]:mt-6 min-[480px]:text-[1.0625rem] min-[480px]:leading-8 sm:max-w-3xl sm:text-lg">
-                            {t('products.showcase.description')}
-                        </p>
+                        <div className="flex flex-col gap-6 text-center lg:flex-row lg:items-end lg:justify-between lg:text-left">
+                            <div className="max-w-4xl">
+                                <span className="brand-badge mb-5">{t('products.showcase.viewAll')}</span>
+                                <h2
+                                    id="product-series-heading"
+                                    className="scroll-mt-24 font-serif text-4xl font-semibold text-[var(--text-primary)] min-[480px]:scroll-mt-28 sm:text-5xl lg:scroll-mt-32 lg:text-6xl"
+                                >
+                                    {t('products.showcase.titlePrimary')}{' '}
+                                    <span className="brand-gradient-text">{t('products.showcase.titleHighlight')}</span>
+                                </h2>
+                                <p className="mx-auto mt-5 max-w-[34rem] text-base leading-7 text-[var(--text-secondary)] min-[480px]:mt-6 min-[480px]:text-[1.0625rem] min-[480px]:leading-8 sm:max-w-3xl sm:text-lg lg:mx-0">
+                                    {t('products.showcase.description')}
+                                </p>
+                            </div>
+
+                            <Link
+                                href="/products"
+                                className="brand-button-secondary inline-flex items-center justify-center gap-2 self-center rounded-full px-6 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-[var(--text-primary)] transition duration-200 hover:border-[var(--brand-blue)] hover:bg-[rgba(41,171,226,0.12)] lg:self-auto"
+                            >
+                                {t('products.list.allProducts')}
+                                <FiArrowRight className="h-4 w-4" />
+                            </Link>
+                        </div>
                     </motion.div>
 
                     {initialProducts.length === 0 ? (
@@ -157,13 +169,21 @@ export default function ProductSeries({ initialProducts = [] }: ProductSeriesPro
                                                 <span className="hidden sm:inline lg:hidden">{tabletDescription}</span>
                                                 <span className="hidden lg:inline">{selectedDescription}</span>
                                             </p>
-                                            <Link
-                                                href={buildProductPath(selectedProduct.id, selectedProduct.name)}
-                                                className="brand-button-primary inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-[var(--text-primary)] transition hover:-translate-y-0.5 hover:brightness-105"
-                                            >
-                                                {t('products.showcase.viewDetails')}
-                                                <FiArrowRight className="h-4 w-4" />
-                                            </Link>
+                                            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                                                <Link
+                                                    href={buildProductPath(selectedProduct.id, selectedProduct.name)}
+                                                    className="brand-button-primary inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-[var(--text-primary)] transition duration-200 hover:brightness-105"
+                                                >
+                                                    {t('products.showcase.viewDetails')}
+                                                    <FiArrowRight className="h-4 w-4" />
+                                                </Link>
+                                                <Link
+                                                    href="/reseller_information"
+                                                    className="brand-button-secondary inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-[var(--text-primary)] transition duration-200 hover:border-[var(--brand-blue)] hover:bg-[rgba(41,171,226,0.12)]"
+                                                >
+                                                    {t('brandValues.findReseller')}
+                                                </Link>
+                                            </div>
                                         </div>
 
                                         <div className="brand-card-muted overflow-hidden rounded-[2rem] p-6 min-[480px]:p-7 sm:p-8">

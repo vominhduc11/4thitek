@@ -1,8 +1,10 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { motion, Variants } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { FiArrowRight, FiAward, FiMapPin, FiShield } from 'react-icons/fi';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAnimationConfig } from '@/hooks/useReducedMotion';
 import { buildProductPath } from '@/lib/slug';
@@ -130,6 +132,23 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
     const buttonVariants = makeButtonVariants(enableDecorativeAnimations);
     const productPath = product?.id ? buildProductPath(product.id, product.name) : '/products';
     const heroSummary = createHeroSummary(product?.shortDescription || t('hero.subtitle'));
+    const quickLinks = [
+        {
+            href: '/certification',
+            label: t('brandValues.items.exclusive.title'),
+            icon: FiAward
+        },
+        {
+            href: '/warranty-check',
+            label: t('warrantyCheck.title'),
+            icon: FiShield
+        },
+        {
+            href: '/reseller_information',
+            label: t('brandValues.findReseller'),
+            icon: FiMapPin
+        }
+    ];
 
     return (
         <section
@@ -206,25 +225,62 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
                     animate="visible"
                 >
                     <div className="mx-auto mb-2.5 max-w-[22rem] min-[480px]:mx-0 min-[480px]:max-w-[30rem] sm:mb-4 sm:max-w-[34rem] md:max-w-[38rem] lg:max-w-2xl">
-                        <p className="brand-eyebrow mb-1.5 text-center text-[0.66rem] leading-[1.48] tracking-[0.14em] min-[480px]:text-left min-[480px]:text-[0.7rem] min-[480px]:tracking-[0.17em] sm:mb-3 sm:text-[0.72rem] sm:tracking-[0.2em] md:text-[0.74rem] md:tracking-[0.22em]">
-                            {t('brand.message')}
-                        </p>
+                        <div className="mb-2 flex flex-wrap items-center justify-center gap-2 min-[480px]:justify-start sm:mb-3">
+                            <p className="brand-eyebrow text-center text-[0.66rem] leading-[1.48] tracking-[0.14em] min-[480px]:text-left min-[480px]:text-[0.7rem] min-[480px]:tracking-[0.17em] sm:text-[0.72rem] sm:tracking-[0.2em] md:text-[0.74rem] md:tracking-[0.22em]">
+                                {t('brand.message')}
+                            </p>
+                            <span className="brand-badge-muted border-[rgba(41,171,226,0.2)] bg-[rgba(8,22,35,0.74)] px-3 py-1 text-[0.67rem] font-semibold uppercase tracking-[0.12em] text-[var(--text-primary)] sm:text-[0.72rem]">
+                                {t('brandValues.eyebrow')}
+                            </span>
+                        </div>
                         <p className="text-[0.95rem] leading-[1.65] text-[var(--text-primary)] xs:text-[1rem] sm:text-[1.02rem] sm:leading-[1.7] md:text-[1.12rem] lg:text-xl lg:leading-relaxed">
                             {heroSummary}
                         </p>
                     </div>
-                    <motion.button
-                        className="brand-button-primary min-w-[176px] rounded-full px-5 py-3 text-sm font-semibold sm:min-w-[184px] sm:px-6 sm:py-3 sm:text-base"
-                        variants={buttonVariants}
-                        initial="hidden"
-                        animate="visible"
-                        whileHover={enableDecorativeAnimations ? 'hover' : undefined}
-                        whileTap="tap"
-                        onClick={() => router.push(productPath)}
-                        aria-label={t('hero.discoverAria').replace('{product}', displayName)}
-                    >
-                        {t('hero.cta')}
-                    </motion.button>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                        <motion.button
+                            className="brand-button-primary min-w-[176px] rounded-full px-5 py-3 text-sm font-semibold sm:min-w-[184px] sm:px-6 sm:py-3 sm:text-base"
+                            variants={buttonVariants}
+                            initial="hidden"
+                            animate="visible"
+                            whileHover={enableDecorativeAnimations ? 'hover' : undefined}
+                            whileTap="tap"
+                            onClick={() => router.push(productPath)}
+                            aria-label={t('hero.discoverAria').replace('{product}', displayName)}
+                        >
+                            {t('hero.cta')}
+                        </motion.button>
+
+                        <Link
+                            href="/warranty-check"
+                            className="brand-button-secondary inline-flex min-w-[176px] items-center justify-center rounded-full px-5 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-[var(--text-primary)] transition duration-200 hover:border-[var(--brand-blue)] hover:bg-[rgba(41,171,226,0.12)] sm:min-w-[184px] sm:px-6 sm:text-base"
+                        >
+                            {t('warrantyCheck.title')}
+                        </Link>
+
+                        <Link
+                            href="/become_our_reseller"
+                            className="inline-flex items-center justify-center gap-2 text-sm font-semibold text-[var(--text-secondary)] transition-colors duration-200 hover:text-[var(--brand-blue)]"
+                        >
+                            {t('brandValues.becomeReseller')}
+                            <FiArrowRight className="h-4 w-4" />
+                        </Link>
+                    </div>
+
+                    <div className="mt-4 grid gap-2.5 sm:grid-cols-3">
+                        {quickLinks.map(({ href, label, icon: Icon }) => (
+                            <Link
+                                key={href}
+                                href={href}
+                                className="brand-card-muted flex items-center gap-3 rounded-[18px] border border-[rgba(133,170,197,0.14)] px-3.5 py-3 text-left text-sm font-semibold text-[var(--text-primary)] transition-colors duration-200 hover:border-[var(--brand-border-strong)] hover:bg-[rgba(41,171,226,0.08)]"
+                            >
+                                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-[rgba(41,171,226,0.2)] bg-[rgba(41,171,226,0.12)] text-[var(--brand-blue)]">
+                                    <Icon className="h-4 w-4" />
+                                </span>
+                                <span>{label}</span>
+                            </Link>
+                        ))}
+                    </div>
                 </motion.div>
             </div>
         </section>

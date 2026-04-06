@@ -126,17 +126,24 @@ export default function BrandValues() {
                         transition={{ duration: 0.4, delay: enableDecorativeAnimations ? 0.12 : 0 }}
                     >
                         <Link
-                            href="/reseller_information"
+                            href="/become_our_reseller"
                             className="brand-button-primary inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-[var(--text-primary)] transition duration-200 hover:brightness-105"
                         >
-                            {t('brandValues.findReseller')}
+                            {t('brandValues.becomeReseller')}
                             <FiArrowRight className="h-4 w-4" />
                         </Link>
                         <Link
-                            href="/become_our_reseller"
+                            href="/reseller_information"
                             className="brand-button-secondary inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-[var(--text-primary)] transition duration-200 hover:border-[var(--brand-blue)] hover:bg-[rgba(41,171,226,0.12)]"
                         >
-                            {t('brandValues.becomeReseller')}
+                            {t('brandValues.findReseller')}
+                        </Link>
+                        <Link
+                            href="/warranty-check"
+                            className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] transition-colors duration-200 hover:text-[var(--brand-blue)]"
+                        >
+                            {t('warrantyCheck.title')}
+                            <FiArrowUpRight className="h-4 w-4" />
                         </Link>
                     </motion.div>
                 </div>
