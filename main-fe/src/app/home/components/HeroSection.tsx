@@ -1,10 +1,17 @@
+/*
+ * Modified HeroSection component for 4thitek main-fe.
+ *
+ * This version addresses several issues identified in the UI/UX audit:
+ *  - Removed interactive behaviours from semantic elements (heading and product image) to improve accessibility.
+ *  - Consolidated the call‑to‑action hierarchy down to a primary and secondary button; removed tertiary links from the hero.
+ *  - Removed the quick links grid from the hero to simplify the hero and allow trust links to live elsewhere (e.g. BrandValues section).
+ */
+
 'use client';
 
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, Variants } from 'framer-motion';
-import { useRouter } from 'next/navigation';
-import { FiArrowRight, FiAward, FiMapPin, FiShield } from 'react-icons/fi';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAnimationConfig } from '@/hooks/useReducedMotion';
 import { buildProductPath } from '@/lib/slug';
@@ -118,7 +125,6 @@ interface HeroSectionProps {
 }
 
 export default function HeroSection({ initialProduct = null }: HeroSectionProps) {
-    const router = useRouter();
     const { t } = useLanguage();
     const { enableDecorativeAnimations } = useAnimationConfig();
     const product = initialProduct;
@@ -132,23 +138,6 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
     const buttonVariants = makeButtonVariants(enableDecorativeAnimations);
     const productPath = product?.id ? buildProductPath(product.id, product.name) : '/products';
     const heroSummary = createHeroSummary(product?.shortDescription || t('hero.subtitle'));
-    const quickLinks = [
-        {
-            href: '/certification',
-            label: t('brandValues.items.exclusive.title'),
-            icon: FiAward
-        },
-        {
-            href: '/warranty-check',
-            label: t('warrantyCheck.title'),
-            icon: FiShield
-        },
-        {
-            href: '/reseller_information',
-            label: t('brandValues.findReseller'),
-            icon: FiMapPin
-        }
-    ];
 
     return (
         <section
@@ -184,39 +173,43 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
 
             <div className="absolute inset-0 z-20 flex flex-col items-center justify-between gap-4 px-4 pb-8 pt-[5.25rem] min-[480px]:items-start min-[480px]:px-6 min-[480px]:pb-9 min-[480px]:pt-[5rem] sm:items-start sm:gap-0 sm:px-6 sm:pb-10 sm:pt-24 md:px-8 md:pb-12 md:pt-28 lg:pl-32 lg:pr-14 xl:pl-36 xl:pr-[4.5rem] 2xl:pl-40 2xl:pr-20">
                 <motion.h1
-                    className="w-full max-w-[18rem] cursor-pointer text-center font-serif text-[2.15rem] leading-[0.94] text-white transition-colors duration-300 hover:text-[var(--brand-blue)] min-[480px]:max-w-[16rem] min-[480px]:text-left min-[480px]:text-[2.35rem] sm:max-w-[15rem] sm:text-left sm:text-[3.35rem] md:max-w-[18rem] md:text-[4.1rem] lg:max-w-none lg:text-6xl xl:text-7xl 2xl:text-8xl"
+                    className="w-full max-w-[18rem] text-center font-serif text-[2.15rem] leading-[0.94] text-white transition-colors duration-300 min-[480px]:max-w-[16rem] min-[480px]:text-left min-[480px]:text-[2.35rem] sm:max-w-[15rem] sm:text-left sm:text-[3.35rem] md:max-w-[18rem] md:text-[4.1rem] lg:max-w-none lg:text-6xl xl:text-7xl 2xl:text-8xl"
                     variants={titleVariants}
                     initial="hidden"
                     animate="visible"
                     title={displayName}
-                    onClick={() => router.push(productPath)}
                 >
                     {displayName}
                 </motion.h1>
 
-                <motion.div
-                    className="group relative flex min-h-0 w-full flex-1 cursor-pointer items-center justify-center py-2 min-[480px]:items-center min-[480px]:py-3 sm:py-4"
-                    variants={productVariants}
-                    initial="hidden"
-                    animate="visible"
-                    whileHover={enableDecorativeAnimations ? 'hover' : undefined}
-                    onClick={() => router.push(productPath)}
+                {/* Product preview: wrap with Link instead of onClick to improve semantics */}
+                <Link
+                    href={productPath}
+                    className="group relative flex min-h-0 w-full flex-1 items-center justify-center py-2 min-[480px]:items-center min-[480px]:py-3 sm:py-4"
+                    aria-label={t('hero.discoverAria').replace('{product}', displayName)}
                 >
-                    {displayImage ? (
-                        <Image
-                            src={displayImage}
-                            alt={displayName}
-                            width={384}
-                            height={216}
-                            className="max-h-[29svh] w-auto object-contain drop-shadow-2xl min-[480px]:max-h-[27svh] sm:max-h-[31vh] md:max-h-[34vh] lg:max-h-[40vh] xl:max-h-[45vh] 2xl:max-h-[50vh]"
-                            priority
-                        />
-                    ) : (
-                        <div className="flex h-[100px] w-[180px] items-center justify-center rounded-[24px] border border-[var(--brand-border)] bg-[rgba(7,17,27,0.72)] text-center text-sm text-[var(--text-secondary)] xs:h-[120px] xs:w-[220px] sm:h-[157px] sm:w-[280px] md:h-[197px] md:w-[350px] lg:h-[216px] lg:w-[384px]">
-                            {t('products.detail.media.imageUnavailable')}
-                        </div>
-                    )}
-                </motion.div>
+                    <motion.div
+                        variants={productVariants}
+                        initial="hidden"
+                        animate="visible"
+                        whileHover={enableDecorativeAnimations ? 'hover' : undefined}
+                    >
+                        {displayImage ? (
+                            <Image
+                                src={displayImage}
+                                alt={displayName}
+                                width={384}
+                                height={216}
+                                className="max-h-[29svh] w-auto object-contain drop-shadow-2xl min-[480px]:max-h-[27svh] sm:max-h-[31vh] md:max-h-[34vh] lg:max-h-[40vh] xl:max-h-[45vh] 2xl:max-h-[50vh]"
+                                priority
+                            />
+                        ) : (
+                            <div className="flex h-[100px] w-[180px] items-center justify-center rounded-[24px] border border-[var(--brand-border)] bg-[rgba(7,17,27,0.72)] text-center text-sm text-[var(--text-secondary)] xs:h-[120px] xs:w-[220px] sm:h-[157px] sm:w-[280px] md:h-[197px] md:w-[350px] lg:h-[216px] lg:w-[384px]">
+                                {t('products.detail.media.imageUnavailable')}
+                            </div>
+                        )}
+                    </motion.div>
+                </Link>
 
                 <motion.div
                     className="w-full max-w-[22rem] text-center min-[480px]:max-w-[30rem] min-[480px]:text-left sm:max-w-[34rem] md:max-w-[38rem] lg:max-w-2xl"
@@ -245,41 +238,22 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
                             animate="visible"
                             whileHover={enableDecorativeAnimations ? 'hover' : undefined}
                             whileTap="tap"
-                            onClick={() => router.push(productPath)}
+                            onClick={() => {
+                                /* navigate via button only */
+                                window.location.href = productPath;
+                            }}
                             aria-label={t('hero.discoverAria').replace('{product}', displayName)}
                         >
                             {t('hero.cta')}
                         </motion.button>
 
+                        {/* Secondary CTA: link to warranty check */}
                         <Link
                             href="/warranty-check"
                             className="brand-button-secondary inline-flex min-w-[176px] items-center justify-center rounded-full px-5 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-[var(--text-primary)] transition duration-200 hover:border-[var(--brand-blue)] hover:bg-[rgba(41,171,226,0.12)] sm:min-w-[184px] sm:px-6 sm:text-base"
                         >
                             {t('warrantyCheck.title')}
                         </Link>
-
-                        <Link
-                            href="/become_our_reseller"
-                            className="inline-flex items-center justify-center gap-2 text-sm font-semibold text-[var(--text-secondary)] transition-colors duration-200 hover:text-[var(--brand-blue)]"
-                        >
-                            {t('brandValues.becomeReseller')}
-                            <FiArrowRight className="h-4 w-4" />
-                        </Link>
-                    </div>
-
-                    <div className="mt-4 grid gap-2.5 sm:grid-cols-3">
-                        {quickLinks.map(({ href, label, icon: Icon }) => (
-                            <Link
-                                key={href}
-                                href={href}
-                                className="brand-card-muted flex items-center gap-3 rounded-[18px] border border-[rgba(133,170,197,0.14)] px-3.5 py-3 text-left text-sm font-semibold text-[var(--text-primary)] transition-colors duration-200 hover:border-[var(--brand-border-strong)] hover:bg-[rgba(41,171,226,0.08)]"
-                            >
-                                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-[rgba(41,171,226,0.2)] bg-[rgba(41,171,226,0.12)] text-[var(--brand-blue)]">
-                                    <Icon className="h-4 w-4" />
-                                </span>
-                                <span>{label}</span>
-                            </Link>
-                        ))}
                     </div>
                 </motion.div>
             </div>
