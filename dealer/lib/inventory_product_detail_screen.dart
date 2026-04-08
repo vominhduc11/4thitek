@@ -1070,6 +1070,7 @@ class _InventoryTimelineSheet extends StatelessWidget {
                   );
                 }
                 final entry = detail.timeline[index];
+                final occurredAt = entry.occurredAt;
                 return Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
@@ -1091,10 +1092,10 @@ class _InventoryTimelineSheet extends StatelessWidget {
                           color: colorScheme.onSurface,
                         ),
                       ),
-                      if (entry.occurredAt != null) ...[
+                      if (occurredAt != null) ...[
                         const SizedBox(height: 4),
                         Text(
-                          formatDateTime(entry.occurredAt),
+                          formatDateTime(occurredAt),
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
                                 color: colorScheme.primary,

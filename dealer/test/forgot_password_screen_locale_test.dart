@@ -66,7 +66,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Khong the ket noi may chu. Vui long thu lai.'),
+        find.text('Không thể kết nối máy chủ. Vui lòng thử lại.'),
         findsOneWidget,
       );
     },

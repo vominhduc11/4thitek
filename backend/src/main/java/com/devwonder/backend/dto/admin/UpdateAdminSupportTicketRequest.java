@@ -6,7 +6,6 @@ import jakarta.validation.constraints.NotNull;
 public record UpdateAdminSupportTicketRequest(
         @NotNull(message = "status is required")
         DealerSupportTicketStatus status,
-        Long assigneeId,
-        String adminReply
+        Long assigneeId
 ) {
 }

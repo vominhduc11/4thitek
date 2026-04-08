@@ -78,9 +78,9 @@ const copyKeys = {
   resolved: "Đã xử lý",
   selected: "Ticket đang chọn",
   timeline: "Dòng thời gian",
-  reply: "Phản hồi admin",
+  reply: "Nội dung phản hồi",
   save: "Lưu cập nhật",
-  sendReply: "Gửi phản hồi",
+  sendReply: "Gửi phản hồi công khai",
   saveInternal: "Lưu ghi chú nội bộ",
   assignee: "Người phụ trách",
   created: "Tạo lúc",
@@ -292,7 +292,6 @@ function SupportTicketsPageRevamp() {
         {
           status: statusDraft,
           assigneeId: assigneeDraft === "" ? null : assigneeDraft,
-          adminReply: replyDraft,
         },
       );
       setTickets((current) =>
@@ -639,6 +638,11 @@ function SupportTicketsPageRevamp() {
                   className={`${textareaClass} mt-2 min-h-[120px]`}
                   value={replyDraft}
                   onChange={(event) => setReplyDraft(event.target.value)}
+                  placeholder={
+                    internalNote
+                      ? "Nhập ghi chú nội bộ chỉ dành cho admin..."
+                      : "Nhập phản hồi sẽ được gửi tới đại lý..."
+                  }
                 />
               </label>
 

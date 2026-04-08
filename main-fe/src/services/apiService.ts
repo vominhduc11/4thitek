@@ -69,6 +69,17 @@ type BlogDetailPayload = {
     showOnHomepage?: boolean;
 };
 
+export type PublicDealerPayload = {
+    id: number;
+    businessName: string;
+    contactName: string;
+    address: string;
+    city: string;
+    district: string;
+    phone: string;
+    email: string;
+};
+
 export type PagedPayload<T> = {
     items: T[];
     page: number;
@@ -339,17 +350,8 @@ class ApiService {
         };
     }
 
-    async fetchResellers(): Promise<ApiResponse<unknown>> {
-        return this.request<{ dealers: Array<{
-            id: number;
-            businessName: string;
-            contactName: string;
-            address: string;
-            city: string;
-            district: string;
-            phone: string;
-            email: string;
-        }> }>(API_ENDPOINTS.USER.DEALERS, {
+    async fetchResellers(): Promise<ApiResponse<{ dealers: PublicDealerPayload[] }>> {
+        return this.request<{ dealers: PublicDealerPayload[] }>(API_ENDPOINTS.USER.DEALERS, {
             revalidate: 3600
         });
     }

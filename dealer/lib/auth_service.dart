@@ -22,32 +22,32 @@ String authServiceMessageToken(AuthMessageCode code) =>
 String resolveAuthServiceMessage(String? message, {required bool isEnglish}) {
   final normalized = message?.trim();
   if (normalized == null || normalized.isEmpty) {
-    return isEnglish ? 'Request failed.' : 'Yeu cau that bai.';
+    return isEnglish ? 'Request failed.' : 'Yêu cầu thất bại.';
   }
 
   switch (normalized) {
     case 'auth.message.apiNotConfigured':
       return isEnglish
           ? 'API base URL is not configured for the dealer app.'
-          : 'Chua cau hinh API_BASE_URL cho dealer app.';
+          : 'Chưa cấu hình API_BASE_URL cho dealer app.';
     case 'auth.message.loginSessionUnavailable':
       return isEnglish
           ? 'Unable to create a login session.'
-          : 'Khong the tao phien dang nhap.';
+          : 'Không thể tạo phiên đăng nhập.';
     case 'auth.message.requestTimeout':
       return isEnglish
           ? 'The request timed out. Please try again.'
-          : 'Yeu cau het thoi gian. Vui long thu lai.';
+          : 'Yêu cầu hết thời gian. Vui lòng thử lại.';
     case 'auth.message.serverUnavailable':
       return isEnglish
           ? 'Unable to connect to the server. Please try again.'
-          : 'Khong the ket noi may chu. Vui long thu lai.';
+          : 'Không thể kết nối máy chủ. Vui lòng thử lại.';
     case 'auth.message.requestFailed':
-      return isEnglish ? 'Request failed.' : 'Yeu cau that bai.';
+      return isEnglish ? 'Request failed.' : 'Yêu cầu thất bại.';
     case 'auth.message.passwordResetLinkSent':
       return isEnglish
           ? 'If the email exists in our system, a password reset link has been sent.'
-          : 'Neu email ton tai trong he thong, chung toi da gui lien ket dat lai.';
+          : 'Nếu email tồn tại trong hệ thống, chúng tôi đã gửi liên kết đặt lại.';
     default:
       return normalized;
   }

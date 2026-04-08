@@ -73,14 +73,16 @@ public class PasswordResetService {
     }
 
     @Transactional(readOnly = true)
-    public boolean isTokenValid(String rawToken) {
+    public String resolveTokenStatus(String rawToken) {
         String token = normalizeToken(rawToken);
         if (token == null) {
-            return false;
+            return "invalid";
         }
-        return passwordResetTokenRepository.findByToken(token)
-                .filter(this::isNotExpired)
-                .isPresent();
+        PasswordResetToken storedToken = passwordResetTokenRepository.findByToken(token).orElse(null);
+        if (storedToken == null) {
+            return "invalid";
+        }
+        return isNotExpired(storedToken) ? "valid" : "expired";
     }
 
     @Transactional
@@ -91,11 +93,11 @@ public class PasswordResetService {
         }
 
         PasswordResetToken storedToken = passwordResetTokenRepository.findByToken(token)
-                .orElseThrow(() -> new BadRequestException("Reset token is invalid or expired"));
+                .orElseThrow(() -> new BadRequestException("Reset token is invalid"));
 
         if (!isNotExpired(storedToken)) {
             passwordResetTokenRepository.delete(storedToken);
-            throw new BadRequestException("Reset token is invalid or expired");
+            throw new BadRequestException("Reset token has expired");
         }
 
         String newPassword = normalizePassword(rawNewPassword);
@@ -103,7 +105,7 @@ public class PasswordResetService {
 
         Long accountId = storedToken.getAccount().getId();
         Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new BadRequestException("Reset token is invalid or expired"));
+                .orElseThrow(() -> new BadRequestException("Reset token is invalid"));
         account.setPassword(passwordEncoder.encode(newPassword));
         if (account instanceof Admin adminAccount) {
             adminAccount.setRequirePasswordChange(false);

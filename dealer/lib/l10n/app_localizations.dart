@@ -251,13 +251,13 @@ abstract class AppLocalizations {
   /// No description provided for @accountMenuPreferencesTitle.
   ///
   /// In en, this message translates to:
-  /// **'Appearance and language'**
+  /// **'Language and app defaults'**
   String get accountMenuPreferencesTitle;
 
   /// No description provided for @accountMenuPreferencesSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Manage language and app preferences.'**
+  /// **'Manage language and review the fixed app interface.'**
   String get accountMenuPreferencesSubtitle;
 
   /// No description provided for @accountLogoutAction.
@@ -414,7 +414,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Bank Transfer'**
-  String get paymentMethodBankTransfer;
+  String get paymentMethodBankTransfer;
 }
 
 class _AppLocalizationsDelegate

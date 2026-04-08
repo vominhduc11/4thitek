@@ -3,79 +3,10 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useLanguage } from '@/context/LanguageContext';
-import { apiService } from '@/services/apiService';
+import { apiService, type PublicDealerPayload } from '@/services/apiService';
 import ResellerResults from './ResellerResults';
 import ResellerSearch from './ResellerSearch';
 import type { Reseller, ResellerSearchFilters } from './types';
-
-type ApiDealer = {
-    accountId?: number;
-    id?: number;
-    companyName?: string;
-    name?: string;
-    storeName?: string;
-    dealerName?: string;
-    address?: string;
-    phone?: string;
-    email?: string;
-    district?: string;
-    city?: string;
-};
-
-const DEALER_ARRAY_KEYS = [
-    'dealers',
-    'dealer',
-    'resellers',
-    'reseller',
-    'data',
-    'items',
-    'results',
-    'rows',
-    'list',
-    'records',
-    'content',
-    'payload'
-] as const;
-
-const isDealerLike = (value: Record<string, unknown>) =>
-    'companyName' in value || 'accountId' in value || 'name' in value || 'address' in value;
-
-const extractDealersArray = (payload: unknown): ApiDealer[] | null => {
-    if (Array.isArray(payload)) return payload as ApiDealer[];
-    if (!payload || typeof payload !== 'object') return null;
-
-    const payloadObj = payload as Record<string, unknown>;
-
-    for (const key of DEALER_ARRAY_KEYS) {
-        const value = payloadObj[key];
-        if (Array.isArray(value)) return value as ApiDealer[];
-    }
-
-    const queue: Record<string, unknown>[] = [payloadObj];
-    const visited = new Set<Record<string, unknown>>();
-
-    while (queue.length > 0) {
-        const current = queue.shift();
-        if (!current || visited.has(current)) continue;
-        visited.add(current);
-
-        for (const value of Object.values(current)) {
-            if (Array.isArray(value)) {
-                const firstObject = value.find((item) => item && typeof item === 'object') as
-                    | Record<string, unknown>
-                    | undefined;
-                if (firstObject && isDealerLike(firstObject)) {
-                    return value as ApiDealer[];
-                }
-            } else if (value && typeof value === 'object') {
-                queue.push(value as Record<string, unknown>);
-            }
-        }
-    }
-
-    if (isDealerLike(payloadObj)) return [payloadObj as ApiDealer];
-    return null;
-};
 
 export default function DealerNetworkSection() {
     const { t } = useLanguage();
@@ -101,18 +32,16 @@ export default function DealerNetworkSection() {
                     throw new Error(response.error || 'Failed to load dealer network');
                 }
 
-                const dealersArray = extractDealersArray(response.data);
-                if (!dealersArray) {
+                const dealersArray = response.data.dealers;
+                if (!Array.isArray(dealersArray)) {
                     throw new Error('Dealer payload is invalid');
                 }
 
-                const mapped = dealersArray.map((dealer, index) => ({
-                    id: dealer.accountId || dealer.id || index + 1,
+                const mapped = dealersArray.map((dealer: PublicDealerPayload, index) => ({
+                    id: dealer.id || index + 1,
                     name:
-                        dealer.companyName ||
-                        dealer.name ||
-                        dealer.storeName ||
-                        dealer.dealerName ||
+                        dealer.businessName ||
+                        dealer.contactName ||
                         t('reseller.dealerFallback').replace('{index}', String(index + 1)),
                     address: dealer.address || '',
                     city: dealer.city || '',

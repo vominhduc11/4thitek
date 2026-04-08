@@ -105,26 +105,11 @@ public class AdminOperationsService {
         Admin actor = requireAdmin(actorUsername);
 
         DealerSupportTicketStatus previousStatus = ticket.getStatus();
-        String previousReply = normalize(ticket.getAdminReply());
         DealerSupportTicketStatus nextStatus = request.status();
         assertSupportTicketTransitionAllowed(previousStatus, nextStatus);
         ticket.setStatus(nextStatus);
         Admin previousAssignee = ticket.getAssignee();
         ticket.setAssignee(resolveSupportAssignee(request.assigneeId()));
-
-        String normalizedReply = normalize(request.adminReply());
-        boolean replyProvided = request.adminReply() != null;
-        if (replyProvided) {
-            ticket.setAdminReply(normalizedReply);
-            if (normalizedReply != null && !Objects.equals(normalizedReply, previousReply)) {
-                ticket.addMessage(buildSupportTicketMessage(
-                        SupportTicketMessageAuthorRole.ADMIN,
-                        resolveAdminName(actor),
-                        false,
-                        normalizedReply
-                ));
-            }
-        }
         Instant now = Instant.now();
         synchronizeSupportTicketTimeline(ticket, nextStatus, now);
         if (previousStatus != nextStatus) {
@@ -151,17 +136,16 @@ public class AdminOperationsService {
         DealerSupportTicket saved = dealerSupportTicketRepository.save(ticket);
         Dealer dealer = saved.getDealer();
         boolean statusChanged = previousStatus != saved.getStatus();
-        boolean replyChanged = replyProvided && !Objects.equals(normalizedReply, previousReply);
-        if (dealer != null && (statusChanged || replyChanged)) {
+        if (dealer != null && statusChanged) {
             notificationService.create(new CreateNotifyRequest(
                     dealer.getId(),
                     appMessageSupport.get("notification.support.updated.title"),
-                    buildSupportTicketNotificationContent(saved, statusChanged, replyChanged),
+                    buildSupportTicketNotificationContent(saved, true, false),
                     NotifyType.SYSTEM,
                     "/support",
                     null
             ));
-            sendSupportTicketEmailIfPossible(dealer, saved, statusChanged, replyChanged);
+            sendSupportTicketEmailIfPossible(dealer, saved, true, false);
         }
         return toSupportTicketResponse(saved);
     }
@@ -457,7 +441,6 @@ public class AdminOperationsService {
                 ticket.getStatus(),
                 ticket.getSubject(),
                 resolveFirstDealerMessage(ticket.getMessages()),
-                resolveLatestAdminReply(ticket.getMessages()),
                 ticket.getAssignee() == null ? null : ticket.getAssignee().getId(),
                 ticket.getAssignee() == null ? null : resolveAdminName(ticket.getAssignee()),
                 ticket.getMessages().stream().map(this::toSupportTicketMessageResponse).toList(),
@@ -779,9 +762,10 @@ public class AdminOperationsService {
                 .append("Chủ đề: ").append(safeValue(ticket.getSubject(), "Không có tiêu đề")).append(".\n")
                 .append("Trạng thái hiện tại: ").append(buildSupportTicketStatusLabel(ticket.getStatus())).append(".\n");
 
-        if (replyChanged && normalize(ticket.getAdminReply()) != null) {
-            body.append("\nPhản hồi từ admin:\n")
-                    .append(ticket.getAdminReply())
+        String latestPublicAdminMessage = resolveLatestPublicAdminMessage(ticket.getMessages());
+        if (replyChanged && latestPublicAdminMessage != null) {
+            body.append("\nPhản hồi mới từ admin:\n")
+                    .append(latestPublicAdminMessage)
                     .append("\n");
         } else if (statusChanged) {
             body.append("\n")
@@ -850,6 +834,10 @@ public class AdminOperationsService {
             }
         }
         return latestReply;
+    }
+
+    private String resolveLatestPublicAdminMessage(List<SupportTicketMessage> messages) {
+        return resolveLatestAdminReply(messages);
     }
 
     private Admin resolveSupportAssignee(Long assigneeId) {

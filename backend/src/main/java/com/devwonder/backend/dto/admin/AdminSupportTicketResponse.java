@@ -17,7 +17,6 @@ public record AdminSupportTicketResponse(
         DealerSupportTicketStatus status,
         String subject,
         String message,
-        String adminReply,
         Long assigneeId,
         String assigneeName,
         List<SupportTicketMessageResponse> messages,

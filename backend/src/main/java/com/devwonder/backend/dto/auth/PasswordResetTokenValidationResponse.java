@@ -5,11 +5,11 @@ public record PasswordResetTokenValidationResponse(
         String status,
         String message
 ) {
-    public PasswordResetTokenValidationResponse(boolean valid) {
-        this(
-                valid,
-                valid ? "valid" : "invalid_or_expired",
-                valid ? "Reset link is valid." : "Reset link is invalid or expired."
-        );
+    public static PasswordResetTokenValidationResponse fromStatus(String status) {
+        return switch (status) {
+            case "valid" -> new PasswordResetTokenValidationResponse(true, "valid", "Reset link is valid.");
+            case "expired" -> new PasswordResetTokenValidationResponse(false, "expired", "Reset link has expired.");
+            default -> new PasswordResetTokenValidationResponse(false, "invalid", "Reset link is invalid.");
+        };
     }
 }

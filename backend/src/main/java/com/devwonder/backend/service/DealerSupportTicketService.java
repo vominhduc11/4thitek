@@ -151,7 +151,6 @@ public class DealerSupportTicketService {
                 ticket.getStatus(),
                 ticket.getSubject(),
                 resolveFirstDealerMessage(ticket.getMessages()),
-                resolveLatestAdminReply(ticket.getMessages()),
                 ticket.getAssignee() == null ? null : ticket.getAssignee().getId(),
                 resolveAssigneeName(ticket),
                 visibleMessages,
@@ -208,17 +207,6 @@ public class DealerSupportTicketService {
                 .map(SupportTicketMessage::getMessage)
                 .findFirst()
                 .orElse(null);
-    }
-
-    private String resolveLatestAdminReply(List<SupportTicketMessage> messages) {
-        String latestReply = null;
-        for (SupportTicketMessage message : messages) {
-            if (message.getAuthorRole() == SupportTicketMessageAuthorRole.ADMIN
-                    && !Boolean.TRUE.equals(message.getInternalNote())) {
-                latestReply = message.getMessage();
-            }
-        }
-        return latestReply;
     }
 
     private String firstNonBlank(String... values) {

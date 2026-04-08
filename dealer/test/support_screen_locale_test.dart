@@ -70,10 +70,10 @@ void main() {
         300,
       );
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField).at(0), 'Can ho tro gap');
+      await tester.enterText(find.byType(TextField).at(0), 'Cần hỗ trợ gấp');
       await tester.enterText(
         find.byType(TextField).at(1),
-        'Don hang bi tre qua lau va can duoc kiem tra ngay hom nay.',
+        'Đơn hàng bị trễ quá lâu và cần được kiểm tra ngay hôm nay.',
       );
       await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'Gửi yêu cầu'));
     await tester.tap(find.widgetWithText(ElevatedButton, 'Gửi yêu cầu'));
@@ -81,7 +81,7 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Gửi yêu cầu'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Khong the dong bo yeu cau ho tro.'), findsOneWidget);
+    expect(find.text('Không thể đồng bộ yêu cầu hỗ trợ.'), findsOneWidget);
   });
 }
 

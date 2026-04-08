@@ -93,13 +93,12 @@ class SupportTicketApiContractTests {
 
         mockMvc.perform(updateSupportTicketRequest(ticketId, adminToken, """
                         {
-                          "status": "in_progress",
-                          "adminReply": "Working on it"
+                          "status": "in_progress"
                         }
                         """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("in_progress"))
-                .andExpect(jsonPath("$.data.adminReply").value("Working on it"));
+                .andExpect(jsonPath("$.data.messages.length()").value(2));
     }
 
     @Test
@@ -110,8 +109,7 @@ class SupportTicketApiContractTests {
 
         JsonNode inProgress = readData(mockMvc.perform(updateSupportTicketRequest(ticketId, adminToken, """
                         {
-                          "status": "in_progress",
-                          "adminReply": "Working on it"
+                          "status": "in_progress"
                         }
                         """))
                 .andExpect(status().isOk())
@@ -163,29 +161,34 @@ class SupportTicketApiContractTests {
     }
 
     @Test
-    void blankAdminReplyClearsExistingReply() throws Exception {
+    void publicReplyMustGoThroughMessageEndpointInsteadOfTicketPatch() throws Exception {
         String dealerToken = registerDealerAndExtractAccessToken("support-ticket-reply");
         Long ticketId = readTicketId(createSupportTicket(dealerToken).andExpect(status().isOk()).andReturn());
         String adminToken = login("support.admin@example.com", "ChangedPass#456");
 
-        mockMvc.perform(updateSupportTicketRequest(ticketId, adminToken, """
+        JsonNode updated = readData(mockMvc.perform(updateSupportTicketRequest(ticketId, adminToken, """
                         {
-                          "status": "in_progress",
-                          "adminReply": "Initial reply"
-                        }
-                        """))
-                .andExpect(status().isOk());
-
-        JsonNode cleared = readData(mockMvc.perform(updateSupportTicketRequest(ticketId, adminToken, """
-                        {
-                          "status": "in_progress",
-                          "adminReply": "   "
+                          "status": "in_progress"
                         }
                         """))
                 .andExpect(status().isOk())
                 .andReturn());
 
-        assertThat(cleared.path("adminReply").isNull()).isTrue();
+        assertThat(updated.path("messages").size()).isEqualTo(2);
+
+        JsonNode replied = readData(mockMvc.perform(post("/api/v1/admin/support-tickets/{id}/messages", ticketId)
+                        .contentType(APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .content("""
+                                {
+                                  "message": "Đã tiếp nhận và đang xử lý."
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn());
+        assertThat(replied.path("messages").size()).isEqualTo(3);
+        assertThat(replied.path("messages").get(2).path("authorRole").asText()).isEqualTo("admin");
+        assertThat(replied.path("messages").get(2).path("message").asText()).isEqualTo("Đã tiếp nhận và đang xử lý.");
     }
 
     @Test
@@ -216,8 +219,8 @@ class SupportTicketApiContractTests {
                                 """))
                 .andExpect(status().isOk())
                 .andReturn());
-        assertThat(adminMessage.path("messages").size()).isEqualTo(2);
-        assertThat(adminMessage.path("messages").get(1).path("internalNote").asBoolean()).isTrue();
+        assertThat(adminMessage.path("messages").size()).isEqualTo(4);
+        assertThat(adminMessage.path("messages").get(3).path("internalNote").asBoolean()).isTrue();
 
         JsonNode dealerFollowUp = readData(mockMvc.perform(post("/api/v1/dealer/support-tickets/{id}/messages", ticketId)
                         .contentType(APPLICATION_JSON)
@@ -236,7 +239,7 @@ class SupportTicketApiContractTests {
         mockMvc.perform(get("/api/v1/admin/support-tickets")
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.items[0].messages.length()").value(3));
+                .andExpect(jsonPath("$.data.items[0].messages.length()").value(5));
     }
 
     private org.springframework.test.web.servlet.ResultActions createSupportTicket(String dealerToken) throws Exception {

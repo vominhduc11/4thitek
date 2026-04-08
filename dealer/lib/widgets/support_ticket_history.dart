@@ -185,19 +185,6 @@ class _HistoryCard extends StatelessWidget {
                     ),
                   ),
                 ),
-          ] else if (item.adminReply != null && item.adminReply!.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Text(
-              texts.adminReplyLabel,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              item.adminReply!,
-              style: theme.textTheme.bodyMedium?.copyWith(height: 1.45),
-            ),
           ],
           const SizedBox(height: 12),
           Wrap(
@@ -449,7 +436,6 @@ class _SupportHistoryTexts {
   String get loadingMoreLabel => isEnglish ? 'Loading...' : 'Đang tải...';
   String get retryLabel => isEnglish ? 'Retry' : 'Thử lại';
   String get ticketLabel => isEnglish ? 'Ticket' : 'Mã';
-  String get adminReplyLabel => isEnglish ? 'Admin reply' : 'Phản hồi';
   String get threadLabel => isEnglish ? 'Conversation' : 'Hội thoại';
   String get priorityLabel => isEnglish ? 'Priority' : 'Ưu tiên';
   String get createdLabel => isEnglish ? 'Created' : 'Tạo lúc';

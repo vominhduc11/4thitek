@@ -40,7 +40,7 @@ class _SupportScreenState extends State<SupportScreen> {
   SupportCategory? _lastCategory;
   SupportPriority? _lastPriority;
   String? _lastStatus;
-  String? _lastAdminReply;
+  String? _lastAdminUpdate;
   String? _latestTicketLoadErrorMessage;
   String? _ticketHistoryLoadErrorMessage;
   final List<DealerSupportTicketRecord> _ticketHistory = [];
@@ -120,9 +120,7 @@ class _SupportScreenState extends State<SupportScreen> {
       _lastCategory = _parseCategory(ticket.category);
       _lastPriority = _parsePriority(ticket.priority);
       _lastStatus = ticket.status;
-      _lastAdminReply = (ticket.adminReply?.isNotEmpty ?? false)
-          ? ticket.adminReply
-          : null;
+      _lastAdminUpdate = _resolveLatestPublicAdminMessage(ticket);
     });
   }
 
@@ -283,7 +281,7 @@ class _SupportScreenState extends State<SupportScreen> {
                 priority: texts.priorityLabel(_lastPriority ?? _priority),
                 sla: texts.slaText(_lastPriority ?? _priority),
                 status: _lastStatus,
-                adminReply: _lastAdminReply,
+                latestAdminUpdate: _lastAdminUpdate,
                 texts: texts,
                 onClear: () {
                   setState(() {
@@ -293,7 +291,7 @@ class _SupportScreenState extends State<SupportScreen> {
                     _lastCategory = null;
                     _lastPriority = null;
                     _lastStatus = null;
-                    _lastAdminReply = null;
+                    _lastAdminUpdate = null;
                   });
                 },
               ),
@@ -559,6 +557,18 @@ class _SupportScreenState extends State<SupportScreen> {
 
   Future<void> _handleRefresh() async {
     await Future.wait<void>([_loadLatestTicket(), _loadTicketHistory()]);
+  }
+
+  String? _resolveLatestPublicAdminMessage(DealerSupportTicketRecord ticket) {
+    for (final message in ticket.messages.reversed) {
+      if (!message.internalNote && message.authorRole.trim().toLowerCase() == 'admin') {
+        final normalized = message.message.trim();
+        if (normalized.isNotEmpty) {
+          return normalized;
+        }
+      }
+    }
+    return null;
   }
 
   void _copyToClipboard(String value, {String? message}) {
@@ -899,7 +909,8 @@ class _SupportTexts {
   String get submittedAtLabel => isEnglish ? 'Submitted at' : 'Thời gian gửi';
   String get responseSlaLabel => isEnglish ? 'Response SLA' : 'SLA phản hồi';
   String get statusSummaryLabel => isEnglish ? 'Status' : 'Trạng thái';
-  String get adminReplyLabel => isEnglish ? 'Admin reply' : 'Phản hồi từ admin';
+  String get adminReplyLabel =>
+      isEnglish ? 'Latest admin update' : 'Cập nhật mới nhất từ admin';
 
   String categoryLabel(SupportCategory category) {
     switch (category) {
@@ -1174,7 +1185,7 @@ class _StatusCard extends StatelessWidget {
     required this.onClear,
     required this.texts,
     this.status,
-    this.adminReply,
+    this.latestAdminUpdate,
   });
 
   final String ticketId;
@@ -1183,7 +1194,7 @@ class _StatusCard extends StatelessWidget {
   final String priority;
   final String sla;
   final String? status;
-  final String? adminReply;
+  final String? latestAdminUpdate;
   final VoidCallback onClear;
   final _SupportTexts texts;
 
@@ -1277,7 +1288,7 @@ class _StatusCard extends StatelessWidget {
             _InfoRow(label: texts.prioritySummaryLabel, value: priority),
             const SizedBox(height: 6),
             _InfoRow(label: texts.responseSlaLabel, value: sla),
-            if (adminReply != null) ...[
+            if (latestAdminUpdate != null) ...[
               const SizedBox(height: 14),
               Container(
                 width: double.infinity,
@@ -1301,7 +1312,7 @@ class _StatusCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      adminReply!,
+                      latestAdminUpdate!,
                       style: theme.textTheme.bodyMedium?.copyWith(height: 1.45),
                     ),
                   ],

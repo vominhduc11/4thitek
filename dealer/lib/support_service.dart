@@ -63,7 +63,6 @@ class DealerSupportTicketRecord {
     required this.status,
     required this.subject,
     required this.message,
-    this.adminReply,
     this.assigneeId,
     this.assigneeName,
     this.messages = const <SupportTicketMessageRecord>[],
@@ -80,7 +79,6 @@ class DealerSupportTicketRecord {
   final String status;
   final String subject;
   final String message;
-  final String? adminReply;
   final int? assigneeId;
   final String? assigneeName;
   final List<SupportTicketMessageRecord> messages;
@@ -311,7 +309,6 @@ class SupportService {
       status: json['status']?.toString() ?? 'OPEN',
       subject: json['subject']?.toString() ?? '',
       message: json['message']?.toString() ?? '',
-      adminReply: _parseOptionalString(json['adminReply']),
       assigneeId: _parseOptionalInt(json['assigneeId']),
       assigneeName: _parseOptionalString(json['assigneeName']),
       messages: (json['messages'] as List<dynamic>? ?? const <dynamic>[])

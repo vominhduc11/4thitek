@@ -293,7 +293,6 @@ export type BackendSupportTicketResponse = {
   status?: BackendSupportTicketStatus | null
   subject?: string | null
   message?: string | null
-  adminReply?: string | null
   assigneeId?: number | null
   assigneeName?: string | null
   messages?: Array<{
@@ -1007,7 +1006,6 @@ export const updateAdminSupportTicket = (
   body: {
     status: BackendSupportTicketStatus
     assigneeId?: number | null
-    adminReply?: string
   },
 ) =>
   authorizedJsonRequest<BackendSupportTicketResponse>({

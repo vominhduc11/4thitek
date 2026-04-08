@@ -94,7 +94,7 @@ Nguyên tắc: mọi thay đổi behavior phải trace được từ route/page/
   - Trả trạng thái token hợp lệ, không hợp lệ hoặc đã hết hạn.
 - `POST /api/v1/auth/reset-password`
   - Đặt mật khẩu mới nếu token hợp lệ.
-  - Token hết hạn hoặc sai phải trả lỗi chung, không lộ thông tin nhạy cảm.
+  - Token hết hạn hoặc sai phải trả lỗi hợp lý ở mức flow, không lộ thông tin nhạy cảm về tài khoản.
 
 #### Dealer app
 
@@ -248,6 +248,8 @@ Mọi runtime mới không được tạo thêm bản ghi mới theo các semant
 - `GET /api/v1/dealer/inventory/summary`
 - `GET /api/v1/dealer/inventory/serials`
 - `GET /api/v1/dealer/inventory/serials/{id}`
+- `GET /api/v1/dealer/support-tickets/latest`
+- `GET /api/v1/dealer/support-tickets/page`
 - `GET /api/v1/dealer/support-tickets`
 - `POST /api/v1/dealer/support-tickets`
 - `POST /api/v1/dealer/support-tickets/{id}/messages`
@@ -262,10 +264,10 @@ Mọi runtime mới không được tạo thêm bản ghi mới theo các semant
 ### 6.4 Public
 
 - `GET /api/v1/product/products`
-- `GET /api/v1/product/products/{id}`
+- `GET /api/v1/product/{id}`
 - `GET /api/v1/product/products/related/{id}`
 - `GET /api/v1/blog/blogs`
-- `GET /api/v1/blog/blogs/{id}`
+- `GET /api/v1/blog/{id}`
 - `GET /api/v1/blog/blogs/related/{id}`
 - `GET /api/v1/search`
 - `GET /api/v1/user/dealer`

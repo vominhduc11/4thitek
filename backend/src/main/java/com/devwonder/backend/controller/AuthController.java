@@ -135,7 +135,7 @@ public class AuthController {
             @RequestParam("token") String token
     ) {
         return ResponseEntity.ok(ApiResponse.success(
-                new PasswordResetTokenValidationResponse(passwordResetService.isTokenValid(token))
+                PasswordResetTokenValidationResponse.fromStatus(passwordResetService.resolveTokenStatus(token))
         ));
     }
 

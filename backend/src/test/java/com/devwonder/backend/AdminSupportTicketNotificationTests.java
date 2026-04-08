@@ -34,7 +34,11 @@ import org.springframework.mail.javamail.JavaMailSender;
 
 @SpringBootTest(properties = {
         "app.mail.enabled=true",
-        "app.mail.from=test@4thitek.local"
+        "app.mail.from=test@4thitek.local",
+        "app.bootstrap-super-admin.enabled=true",
+        "app.bootstrap-super-admin.email=support.admin@example.com",
+        "app.bootstrap-super-admin.password=InitPass#123",
+        "app.bootstrap-super-admin.name=Support Admin"
 })
 class AdminSupportTicketNotificationTests {
 
@@ -71,7 +75,7 @@ class AdminSupportTicketNotificationTests {
     }
 
     @Test
-    void updateSupportTicketCreatesNotificationAndSendsMailWhenAdminReplies() {
+    void updateSupportTicketCreatesNotificationAndSendsMailWhenAdminUpdatesStatus() {
         Dealer dealer = dealerRepository.save(createDealer("dealer-support@example.com"));
         DealerSupportTicket ticket = dealerSupportTicketRepository.save(createTicket(dealer, "SPT-TEST-1"));
 
@@ -79,8 +83,7 @@ class AdminSupportTicketNotificationTests {
                 ticket.getId(),
                 new UpdateAdminSupportTicketRequest(
                         DealerSupportTicketStatus.IN_PROGRESS,
-                        null,
-                        "Admin đã tiếp nhận và đang xử lý yêu cầu của bạn."
+                        null
                 ),
                 "support.admin@example.com"
         );
@@ -100,7 +103,7 @@ class AdminSupportTicketNotificationTests {
 
         adminOperationsService.updateSupportTicket(
                 ticket.getId(),
-                new UpdateAdminSupportTicketRequest(DealerSupportTicketStatus.OPEN, null, null),
+                new UpdateAdminSupportTicketRequest(DealerSupportTicketStatus.OPEN, null),
                 "support.admin@example.com"
         );
 

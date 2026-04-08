@@ -91,11 +91,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Process serials, activate warranties, and review serial inventory.';
 
   @override
-  String get accountMenuPreferencesTitle => 'Appearance and language';
+  String get accountMenuPreferencesTitle => 'Language and app defaults';
 
   @override
   String get accountMenuPreferencesSubtitle =>
-      'Manage language and app preferences.';
+      'Manage language and review the fixed app interface.';
 
   @override
   String get accountLogoutAction => 'Log out';

@@ -12,6 +12,7 @@ import com.devwonder.backend.entity.PasswordResetToken;
 import com.devwonder.backend.repository.AccountRepository;
 import com.devwonder.backend.repository.PasswordResetTokenRepository;
 import com.fasterxml.jackson.databind.JsonNode;
+import java.time.Instant;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -69,7 +70,16 @@ class PasswordResetApiContractTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").value("If the email exists in our system, a password reset link has been sent."));
 
-        PasswordResetToken token = passwordResetTokenRepository.findAll().stream().findFirst().orElseThrow();
+        PasswordResetToken token = new PasswordResetToken();
+        token.setAccount(account);
+        token.setToken("valid-reset-token");
+        token.setExpiresAt(Instant.now().plusSeconds(600));
+        passwordResetTokenRepository.save(token);
+        PasswordResetToken expiredToken = new PasswordResetToken();
+        expiredToken.setAccount(account);
+        expiredToken.setToken("expired-reset-token");
+        expiredToken.setExpiresAt(Instant.now().minusSeconds(60));
+        passwordResetTokenRepository.save(expiredToken);
 
         mockMvc.perform(get("/api/v1/auth/reset-password/validate").param("token", token.getToken()))
                 .andExpect(status().isOk())
@@ -79,7 +89,23 @@ class PasswordResetApiContractTests {
         mockMvc.perform(get("/api/v1/auth/reset-password/validate").param("token", "expired-or-invalid"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.valid").value(false))
-                .andExpect(jsonPath("$.data.status").value("invalid_or_expired"));
+                .andExpect(jsonPath("$.data.status").value("invalid"));
+
+        mockMvc.perform(get("/api/v1/auth/reset-password/validate").param("token", expiredToken.getToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.valid").value(false))
+                .andExpect(jsonPath("$.data.status").value("expired"));
+
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "token": "%s",
+                                  "newPassword": "NewPass#456"
+                                }
+                                """.formatted(expiredToken.getToken())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Reset token has expired"));
 
         MvcResult resetResult = mockMvc.perform(post("/api/v1/auth/reset-password")
                         .contentType(APPLICATION_JSON)
@@ -95,6 +121,7 @@ class PasswordResetApiContractTests {
 
         JsonNode payload = objectMapper.readTree(resetResult.getResponse().getContentAsString());
         assertThat(payload.path("success").asBoolean()).isTrue();
+        assertThat(passwordResetTokenRepository.findByToken(expiredToken.getToken())).isEmpty();
         assertThat(passwordResetTokenRepository.findAll()).isEmpty();
         assertThat(passwordEncoder.matches(
                 "NewPass#456",

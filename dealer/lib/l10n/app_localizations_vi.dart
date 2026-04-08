@@ -91,11 +91,11 @@ class AppLocalizationsVi extends AppLocalizations {
       'Xử lý serial, kích hoạt bảo hành và xem kho serial.';
 
   @override
-  String get accountMenuPreferencesTitle => 'Giao diện và ngôn ngữ';
+  String get accountMenuPreferencesTitle => 'Ngôn ngữ và mặc định ứng dụng';
 
   @override
   String get accountMenuPreferencesSubtitle =>
-      'Quản lý ngôn ngữ và thiết lập ứng dụng.';
+      'Quản lý ngôn ngữ và xem thông tin giao diện cố định của ứng dụng.';
 
   @override
   String get accountLogoutAction => 'Đăng xuất';

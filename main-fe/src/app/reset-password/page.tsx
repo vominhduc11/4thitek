@@ -19,7 +19,7 @@ type TokenValidationPayload = {
 };
 
 type RequestStatus = 'idle' | 'submitting' | 'success' | 'error';
-type TokenStatus = 'idle' | 'checking' | 'valid' | 'invalid';
+type TokenStatus = 'idle' | 'checking' | 'valid' | 'invalid' | 'expired';
 type ResetStatus = 'idle' | 'submitting' | 'success' | 'error';
 
 const actionButtonClass =
@@ -42,6 +42,7 @@ function ResetPasswordContent() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [resetStatus, setResetStatus] = useState<ResetStatus>('idle');
     const [resetMessage, setResetMessage] = useState('');
+    const [validationNonce, setValidationNonce] = useState(0);
 
     useEffect(() => {
         setEmail(requestedEmail);
@@ -74,18 +75,23 @@ function ResetPasswordContent() {
                 );
 
                 const payload = (await response.json().catch(() => null)) as ApiResponse<TokenValidationPayload> | null;
+                const validationStatus = payload?.data?.status?.trim() || 'invalid';
                 const isValid = Boolean(payload?.success && payload.data?.valid);
 
                 if (ignore) {
                     return;
                 }
 
-                setTokenStatus(isValid ? 'valid' : 'invalid');
+                setTokenStatus(
+                    isValid ? 'valid' : validationStatus === 'expired' ? 'expired' : 'invalid'
+                );
                 setTokenMessage(
                     payload?.data?.message?.trim() ||
                         (isValid
                             ? 'Liên kết hợp lệ. Bạn có thể đặt mật khẩu mới ngay bây giờ.'
-                            : 'Liên kết không hợp lệ hoặc đã hết hạn.')
+                            : validationStatus === 'expired'
+                              ? 'Liên kết đã hết hạn. Vui lòng yêu cầu email mới.'
+                              : 'Liên kết không hợp lệ.')
                 );
             } catch {
                 if (!ignore) {
@@ -100,7 +106,7 @@ function ResetPasswordContent() {
         return () => {
             ignore = true;
         };
-    }, [token]);
+    }, [token, validationNonce]);
 
     const isResetFormDisabled = useMemo(
         () => tokenStatus !== 'valid' || resetStatus === 'submitting',
@@ -179,8 +185,14 @@ function ResetPasswordContent() {
 
             const payload = (await response.json().catch(() => null)) as ApiResponse<string> | null;
             if (!response.ok || payload?.success === false) {
+                const normalizedError = payload?.error?.trim() || 'Không thể đặt lại mật khẩu.';
+                if (/expired/i.test(normalizedError)) {
+                    setTokenStatus('expired');
+                } else if (/invalid/i.test(normalizedError)) {
+                    setTokenStatus('invalid');
+                }
                 setResetStatus('error');
-                setResetMessage(payload?.error?.trim() || 'Không thể đặt lại mật khẩu.');
+                setResetMessage(normalizedError);
                 return;
             }
 
@@ -298,6 +310,8 @@ function ResetPasswordContent() {
                                                 ? 'success'
                                                 : tokenStatus === 'checking'
                                                   ? 'neutral'
+                                                  : tokenStatus === 'expired'
+                                                    ? 'warning'
                                                   : 'warning'
                                         }
                                         title={
@@ -305,7 +319,9 @@ function ResetPasswordContent() {
                                                 ? 'Liên kết hợp lệ'
                                                 : tokenStatus === 'checking'
                                                   ? 'Đang xác thực liên kết'
-                                                  : 'Liên kết không hợp lệ hoặc đã hết hạn'
+                                                  : tokenStatus === 'expired'
+                                                    ? 'Liên kết đã hết hạn'
+                                                    : 'Liên kết không hợp lệ'
                                         }
                                         message={tokenMessage}
                                     />
@@ -370,10 +386,13 @@ function ResetPasswordContent() {
                                     onClick={() => {
                                         setRequestStatus('idle');
                                         setRequestMessage('');
-                                        setTokenStatus('idle');
+                                        setTokenStatus(token ? 'checking' : 'idle');
                                         setTokenMessage('');
                                         setResetStatus('idle');
                                         setResetMessage('');
+                                        if (token) {
+                                            setValidationNonce((current) => current + 1);
+                                        }
                                     }}
                                     className={`${actionButtonClass} border border-[var(--brand-border)] bg-transparent text-[var(--text-primary)] hover:bg-[rgba(255,255,255,0.06)]`}
                                 >
