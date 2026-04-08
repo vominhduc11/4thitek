@@ -22,8 +22,9 @@ export const translations = {
             contact: 'Contact Us'
         },
         hero: {
-            title: 'Professional Audio Communication',
-            subtitle: `Discover a breakthrough era of motorcycle communication with 4T HITEK—a pioneering brand in Ho Chi Minh City specializing in telecom components and motorcycle accessories. The 4T HITEK solution offers limitless connectivity, safety, and convenience. Featuring cutting-edge Bluetooth technology, a wind-noise reducing mic, and crisp audio, it lets you talk, listen to music, access GPS navigation, and receive real-time safety alerts—even at high speeds or in harsh terrain. Its compact, easy-to-install, and waterproof design fits most standard helmets. With group-connect capability for 2–8 riders and hundreds-of-meters range, you'll stay in touch during group rides or events. Firmware updates via mobile app ensure you always enjoy the latest features without replacing hardware. With 4T HITEK, every journey becomes an intelligent, seamless, and stylish communication experience—truly the future of motorcycle connectivity.`,
+            title: 'Official SCS Communication Systems for Every Ride',
+            subtitle:
+                '4T HITEK brings official SCS intercom solutions to Vietnam with clear rider-to-rider communication, dependable warranty support, and a dealer network ready for daily use and long-distance trips.',
             cta: 'Explore Products'
         },
         products: {
@@ -148,8 +149,8 @@ export const translations = {
         },
         newsroom: {
             title: 'Newsroom',
-            subtitle: '#RIDING, EXPLORING, ENJOYING',
-            tagline: '4T HITEK is here for your Ride...',
+            subtitle: 'LATEST UPDATES',
+            tagline: 'Product launches, riding updates, and practical insights from 4T HITEK.',
             exploreMore: 'Explore More',
             categories: {
                 technology: 'TECHNOLOGY',
@@ -869,8 +870,9 @@ export const translations = {
             contact: 'Liên Hệ'
         },
         hero: {
-            title: 'Truyền Thông Âm Thanh Chuyên Nghiệp',
-            subtitle: 'Trải nghiệm tương lai của giao tiếp xe máy với 4T HITEK',
+            title: 'H\u1ec7 th\u1ed1ng li\u00ean l\u1ea1c SCS ch\u00ednh h\u00e3ng cho m\u1ecdi h\u00e0nh tr\u00ecnh',
+            subtitle:
+                '4T HITEK ph\u00e2n ph\u1ed1i ch\u00ednh th\u1ee9c c\u00e1c gi\u1ea3i ph\u00e1p intercom SCS t\u1ea1i Vi\u1ec7t Nam, gi\u00fap k\u1ebft n\u1ed1i r\u00f5 r\u00e0ng gi\u1eefa c\u00e1c tay l\u00e1i v\u1edbi ch\u00ednh s\u00e1ch b\u1ea3o h\u00e0nh minh b\u1ea1ch v\u00e0 m\u1ea1ng l\u01b0\u1edbi \u0111\u1ea1i l\u00fd s\u1eb5n s\u00e0ng h\u1ed7 tr\u1ee3.',
             cta: 'Khám Phá Sản Phẩm'
         },
         products: {
@@ -994,8 +996,8 @@ export const translations = {
         },
         newsroom: {
             title: 'Newsroom',
-            subtitle: '#RIDING, EXPLORING, ENJOYING',
-            tagline: '4T HITEK is here for your Ride...',
+            subtitle: 'C\u1eacP NH\u1eacT M\u1edaI NH\u1ea4T',
+            tagline: 'Tin s\u1ea3n ph\u1ea9m, c\u1eadp nh\u1eadt th\u1ecb tr\u01b0\u1eddng v\u00e0 n\u1ed9i dung h\u1eefu \u00edch t\u1eeb 4T HITEK.',
             exploreMore: 'Khám Phá Thêm',
             categories: {
                 technology: 'CÔNG NGHỆ',

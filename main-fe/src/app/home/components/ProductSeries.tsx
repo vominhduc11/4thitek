@@ -1,10 +1,8 @@
-// Modified ProductSeries component to include a differentiator tagline on each product card.
 'use client';
 
-import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { FiArrowRight, FiHeadphones } from 'react-icons/fi';
 import AvoidSidebar from '@/components/ui/AvoidSidebar';
 import { useLanguage } from '@/context/LanguageContext';
@@ -12,253 +10,153 @@ import { buildProductPath } from '@/lib/slug';
 import type { SimpleProduct } from '@/types/product';
 
 interface ProductSeriesProps {
-  initialProducts?: SimpleProduct[];
+    initialProducts?: SimpleProduct[];
 }
 
 function ensureTerminalPunctuation(value: string) {
-  return /[.!?]$/.test(value) ? value : `${value}.`;
+    return /[.!?]$/.test(value) ? value : `${value}.`;
 }
 
 function trimAtWordBoundary(value: string, maxLength: number) {
-  if (value.length <= maxLength) {
-    return ensureTerminalPunctuation(value);
-  }
+    if (value.length <= maxLength) {
+        return ensureTerminalPunctuation(value);
+    }
 
-  const sliced = value.slice(0, maxLength).trim();
-  const boundaryIndex = sliced.lastIndexOf(' ');
-  const safeSlice =
-    boundaryIndex > Math.floor(maxLength * 0.6)
-      ? sliced.slice(0, boundaryIndex)
-      : sliced;
+    const sliced = value.slice(0, maxLength).trim();
+    const boundaryIndex = sliced.lastIndexOf(' ');
+    const safeSlice = boundaryIndex > Math.floor(maxLength * 0.6) ? sliced.slice(0, boundaryIndex) : sliced;
 
-  return `${safeSlice.trim()}...`;
+    return `${safeSlice.trim()}...`;
 }
 
 function createResponsiveSummary(value: string, maxLength: number) {
-  const normalized = value.replace(/\s+/g, ' ').trim();
+    const normalized = value.replace(/\s+/g, ' ').trim();
+    if (!normalized) {
+        return '';
+    }
 
-  if (!normalized) {
-    return '';
-  }
-
-  return trimAtWordBoundary(normalized, maxLength);
+    return trimAtWordBoundary(normalized, maxLength);
 }
 
-/**
- * ProductSeries showcases available products in a grid and allows users to select a product
- * to see details.  We augment each card with a short differentiator tagline derived from
- * the product's shortDescription to help users quickly understand the product's key value.
- */
-export default function ProductSeries({
-  initialProducts = [],
-}: ProductSeriesProps) {
-  const { t } = useLanguage();
-  const [selectedProduct, setSelectedProduct] =
-    useState<SimpleProduct | null>(initialProducts[0] ?? null);
-  const skuFallback = t('brand.logoAlt');
-  const selectedDescription = selectedProduct?.shortDescription ?? '';
-  const compactDescription = createResponsiveSummary(selectedDescription, 116);
-  const narrowDescription = createResponsiveSummary(selectedDescription, 148);
-  const tabletDescription = createResponsiveSummary(selectedDescription, 210);
+export default function ProductSeries({ initialProducts = [] }: ProductSeriesProps) {
+    const { t } = useLanguage();
+    const skuFallback = t('brand.logoAlt');
 
-  return (
-    <AvoidSidebar>
-      <section
-        className="brand-section py-16 lg:py-24"
-        aria-labelledby="product-series-heading"
-      >
-        <div className="absolute inset-0 bg-dot-grid opacity-25" />
-        <div className="absolute -left-24 top-0 h-[420px] w-[420px] rounded-full bg-[rgba(41,171,226,0.1)] blur-[120px]" />
+    return (
+        <AvoidSidebar>
+            <section className="brand-section py-16 lg:py-24" aria-labelledby="product-series-heading">
+                <div className="absolute inset-0 bg-dot-grid opacity-25" />
+                <div className="absolute -left-24 top-0 h-[420px] w-[420px] rounded-full bg-[rgba(41,171,226,0.1)] blur-[120px]" />
 
-        <div className="brand-shell relative z-10 lg:ml-20">
-          <motion.div
-            className="mx-auto mb-12 max-w-5xl min-[480px]:mb-14"
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-          >
-            <div className="flex flex-col gap-6 text-center lg:flex-row lg:items-end lg:justify-between lg:text-left">
-              <div className="max-w-4xl">
-                <span className="brand-badge mb-5">
-                  {t('products.showcase.viewAll')}
-                </span>
-                <h2
-                  id="product-series-heading"
-                  className="scroll-mt-24 font-serif text-4xl font-semibold text-[var(--text-primary)] min-[480px]:scroll-mt-28 sm:text-5xl lg:scroll-mt-32 lg:text-6xl"
-                >
-                  {t('products.showcase.titlePrimary')}{' '}
-                  <span className="brand-gradient-text">
-                    {t('products.showcase.titleHighlight')}
-                  </span>
-                </h2>
-                <p className="mx-auto mt-5 max-w-[34rem] text-base leading-7 text-[var(--text-secondary)] min-[480px]:mt-6 min-[480px]:text-[1.0625rem] min-[480px]:leading-8 sm:max-w-3xl sm:text-lg lg:mx-0">
-                  {t('products.showcase.description')}
-                </p>
-              </div>
-
-              <Link
-                href="/products"
-                className="brand-button-secondary inline-flex items-center justify-center gap-2 self-center rounded-full px-6 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-[var(--text-primary)] transition duration-200 hover:border-[var(--brand-blue)] hover:bg-[rgba(41,171,226,0.12)] lg:self-auto"
-              >
-                {t('products.list.allProducts')}
-                <FiArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-          </motion.div>
-
-          {initialProducts.length === 0 ? (
-            <div className="brand-card-muted rounded-[30px] px-6 py-10 text-center text-sm text-[var(--text-secondary)]">
-              {t('products.loadingMessage')}
-            </div>
-          ) : (
-            <>
-              <motion.div
-                className="mb-10 grid grid-cols-2 gap-3 min-[480px]:grid-cols-3 sm:mb-12 md:grid-cols-4 lg:grid-cols-6"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-                viewport={{ once: true }}
-              >
-                {initialProducts.map((product, index) => {
-                  const isSelected = selectedProduct?.id === product.id;
-                  // Derive a short differentiator tagline from the product's shortDescription.
-                  // We reuse trimAtWordBoundary to avoid cutting words mid‑string.
-                  const tagline =
-                    product.shortDescription &&
-                    typeof product.shortDescription === 'string'
-                      ? trimAtWordBoundary(product.shortDescription, 42)
-                      : '';
-                  return (
-                    <motion.button
-                      key={product.id}
-                      type="button"
-                      onClick={() => setSelectedProduct(product)}
-                      className={`rounded-[22px] border p-3 text-left transition-all duration-300 min-[480px]:p-3.5 sm:rounded-[24px] sm:p-4 ${
-                        isSelected
-                          ? 'border-[var(--brand-border-strong)] bg-[rgba(41,171,226,0.12)] shadow-[0_16px_36px_rgba(0,113,188,0.16)]'
-                          : 'border-[var(--brand-border)] bg-[rgba(7,17,27,0.62)] hover:border-[var(--brand-border-strong)] hover:bg-[rgba(41,171,226,0.08)]'
-                      }`}
-                      whileHover={{ y: -4 }}
-                      whileTap={{ scale: 0.98 }}
-                      initial={{ opacity: 0, y: 16 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      aria-pressed={isSelected}
+                <div className="brand-shell relative z-10">
+                    <motion.div
+                        className="mx-auto mb-12 max-w-5xl min-[480px]:mb-14"
+                        initial={{ opacity: 0, y: 24 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.55 }}
+                        viewport={{ once: true }}
                     >
-                      <div className="flex aspect-square items-center justify-center rounded-[16px] border border-[var(--brand-border)] bg-[rgba(255,255,255,0.03)] sm:rounded-[18px]">
-                        {product.image ? (
-                          <Image
-                            src={product.image}
-                            alt={product.name}
-                            width={84}
-                            height={84}
-                            className="h-auto w-16 object-contain min-[480px]:w-[4.25rem] sm:w-[5.25rem]"
-                          />
-                        ) : (
-                          <FiHeadphones className="h-10 w-10 text-[var(--text-muted)]" />
-                        )}
-                      </div>
-                      <div className="mt-3">
-                        <p
-                          className={`line-clamp-2 text-[13px] font-semibold min-[480px]:text-sm ${
-                            isSelected
-                              ? 'text-[var(--brand-blue)]'
-                              : 'text-[var(--text-primary)]'
-                          }`}
-                        >
-                          {product.name}
-                        </p>
-                        <p className="mt-1 text-xs text-[var(--text-muted)]">
-                          {product.sku || skuFallback}
-                        </p>
-                        {/* Display a short differentiator tagline to aid decision making. */}
-                        {tagline && (
-                          <p className="mt-1 text-[10px] text-[var(--text-secondary)] line-clamp-2">
-                            {tagline}
-                          </p>
-                        )}
-                      </div>
-                    </motion.button>
-                  );
-                })}
-              </motion.div>
+                        <div className="flex flex-col gap-6 text-center lg:flex-row lg:items-end lg:justify-between lg:text-left">
+                            <div className="max-w-4xl">
+                                <span className="brand-badge mb-5">{t('products.showcase.viewAll')}</span>
+                                <h2
+                                    id="product-series-heading"
+                                    className="scroll-mt-24 font-serif text-4xl font-semibold text-[var(--text-primary)] min-[480px]:scroll-mt-28 sm:text-5xl lg:scroll-mt-32 lg:text-6xl"
+                                >
+                                    {t('products.showcase.titlePrimary')}{' '}
+                                    <span className="brand-gradient-text">{t('products.showcase.titleHighlight')}</span>
+                                </h2>
+                                <p className="mx-auto mt-5 max-w-[34rem] text-base leading-7 text-[var(--text-secondary)] min-[480px]:mt-6 min-[480px]:text-[1.0625rem] min-[480px]:leading-8 sm:max-w-3xl sm:text-lg lg:mx-0">
+                                    {t('products.showcase.description')}
+                                </p>
+                            </div>
 
-              <AnimatePresence mode="wait">
-                {selectedProduct ? (
-                  <motion.div
-                    key={selectedProduct.id}
-                    initial={{ opacity: 0, y: 24, scale: 0.99 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -24, scale: 0.99 }}
-                    transition={{ duration: 0.35, ease: 'easeOut' }}
-                    className="grid items-center gap-8 min-[560px]:grid-cols-[minmax(0,0.86fr)_minmax(0,1.14fr)] lg:gap-10 lg:grid-cols-[0.95fr_1.05fr]"
-                  >
-                    <div className="space-y-5 lg:space-y-6">
-                      <span className="brand-badge-muted">
-                        {t('products.featured.product')}
-                      </span>
-                      <h3 className="font-serif text-3xl font-semibold text-[var(--text-primary)] sm:text-4xl">
-                        {selectedProduct.name}
-                      </h3>
-                      <p className="max-w-[34rem] text-sm leading-7 text-[var(--text-secondary)] min-[480px]:text-[15px] sm:text-base lg:text-lg lg:leading-8">
-                        <span className="inline min-[480px]:hidden">
-                          {compactDescription}
-                        </span>
-                        <span className="hidden min-[480px]:inline sm:hidden">
-                          {narrowDescription}
-                        </span>
-                        <span className="hidden sm:inline lg:hidden">
-                          {tabletDescription}
-                        </span>
-                        <span className="hidden lg:inline">
-                          {selectedDescription}
-                        </span>
-                      </p>
-                      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                        <Link
-                          href={buildProductPath(
-                            selectedProduct.id,
-                            selectedProduct.name,
-                          )}
-                          className="brand-button-primary inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-[var(--text-primary)] transition duration-200 hover:brightness-105"
-                        >
-                          {t('products.showcase.viewDetails')}
-                          <FiArrowRight className="h-4 w-4" />
-                        </Link>
-                        <Link
-                          href="/reseller_information"
-                          className="brand-button-secondary inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-[var(--text-primary)] transition duration-200 hover:border-[var(--brand-blue)] hover:bg-[rgba(41,171,226,0.12)]"
-                        >
-                          {t('brandValues.findReseller')}
-                        </Link>
-                      </div>
-                    </div>
+                            <Link
+                                href="/products"
+                                className="brand-button-secondary inline-flex items-center justify-center gap-2 self-center rounded-full px-6 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-[var(--text-primary)] transition duration-200 hover:border-[var(--brand-blue)] hover:bg-[rgba(41,171,226,0.12)] lg:self-auto"
+                            >
+                                {t('products.list.allProducts')}
+                                <FiArrowRight className="h-4 w-4" />
+                            </Link>
+                        </div>
+                    </motion.div>
 
-                    <div className="brand-card-muted overflow-hidden rounded-[2rem] p-6 min-[480px]:p-7 sm:p-8">
-                      <div className="relative aspect-square">
-                        {selectedProduct.image ? (
-                          <Image
-                            src={selectedProduct.image}
-                            alt={selectedProduct.name}
-                            fill
-                            className="object-contain"
-                            sizes="(max-width: 559px) 88vw, (max-width: 1023px) 52vw, 45vw"
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center rounded-3xl border border-dashed border-[var(--brand-border)] text-[var(--text-muted)]">
-                            <FiHeadphones className="h-12 w-12" />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
-            </>
-          )}
-        </div>
-      </section>
-    </AvoidSidebar>
-  );
+                    {initialProducts.length === 0 ? (
+                        <div className="brand-card-muted mx-auto max-w-3xl rounded-[30px] px-6 py-12 text-center">
+                            <p className="text-lg font-semibold text-[var(--text-primary)]">{t('products.filter.noResults')}</p>
+                            <p className="mt-3 text-sm leading-7 text-[var(--text-secondary)] sm:text-base">
+                                {t('products.filter.noResultsHint')}
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                            {initialProducts.map((product, index) => {
+                                const productPath = buildProductPath(product.id, product.name);
+                                const description =
+                                    createResponsiveSummary(product.shortDescription ?? '', 132) ||
+                                    t('products.showcase.description');
+
+                                return (
+                                    <motion.article
+                                        key={product.id}
+                                        initial={{ opacity: 0, y: 20 }}
+                                        whileInView={{ opacity: 1, y: 0 }}
+                                        viewport={{ once: true, amount: 0.25 }}
+                                        transition={{ duration: 0.42, delay: index * 0.05 }}
+                                    >
+                                        <Link
+                                            href={productPath}
+                                            className="brand-card group flex h-full flex-col overflow-hidden rounded-[30px] p-5 transition-all duration-200 hover:-translate-y-1 hover:border-[var(--brand-border-strong)] hover:shadow-[0_24px_44px_rgba(0,113,188,0.16)]"
+                                            aria-label={`${t('products.showcase.viewDetails')}: ${product.name}`}
+                                        >
+                                            <div className="relative aspect-[4/3] overflow-hidden rounded-[24px] border border-[var(--brand-border)] bg-[rgba(7,17,27,0.72)]">
+                                                {product.image ? (
+                                                    <Image
+                                                        src={product.image}
+                                                        alt={product.name}
+                                                        fill
+                                                        className="object-contain p-6 transition duration-300 group-hover:scale-[1.02]"
+                                                        sizes="(max-width: 767px) 100vw, (max-width: 1279px) 50vw, 33vw"
+                                                        loading={index < 3 ? 'eager' : 'lazy'}
+                                                    />
+                                                ) : (
+                                                    <div className="flex h-full w-full items-center justify-center text-[var(--text-muted)]">
+                                                        <FiHeadphones className="h-12 w-12" />
+                                                    </div>
+                                                )}
+                                                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,17,27,0.02),rgba(6,17,27,0.16))]" />
+                                            </div>
+
+                                            <div className="mt-5 flex flex-1 flex-col">
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <span className="brand-badge-muted rounded-full px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-[var(--text-primary)]">
+                                                        {product.sku || skuFallback}
+                                                    </span>
+                                                    <span className="text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                                                        {t('products.showcase.viewDetails')}
+                                                    </span>
+                                                </div>
+
+                                                <h3 className="mt-4 text-2xl font-semibold leading-tight text-[var(--text-primary)]">
+                                                    {product.name}
+                                                </h3>
+                                                <p className="mt-3 flex-1 text-sm leading-7 text-[var(--text-secondary)] sm:text-base">
+                                                    {description}
+                                                </p>
+
+                                                <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.12em] text-[var(--brand-blue)]">
+                                                    {t('products.showcase.viewDetails')}
+                                                    <FiArrowRight className="h-4 w-4" />
+                                                </span>
+                                            </div>
+                                        </Link>
+                                    </motion.article>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            </section>
+        </AvoidSidebar>
+    );
 }

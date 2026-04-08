@@ -1,130 +1,127 @@
-/* eslint-disable @next/next/no-img-element */
-// Modified BrandValues component to simplify CTA hierarchy and remove duplicate proof links.
 'use client';
 
-import { motion } from 'framer-motion';
 import Link from 'next/link';
-import {
-  FiArrowRight,
-  FiHeadphones,
-  FiShield,
-  FiMapPin,
-} from 'react-icons/fi';
+import { motion } from 'framer-motion';
+import { FiArrowRight, FiHeadphones, FiMapPin, FiShield } from 'react-icons/fi';
 import AvoidSidebar from '@/components/ui/AvoidSidebar';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAnimationConfig } from '@/hooks/useReducedMotion';
 
-// Define the core brand value items shown in the grid.  Each entry corresponds to an
-// icon and translation key.  We intentionally omit any additional CTA-related constants
-// here to avoid duplicating actions already exposed in other sections.
 const ITEMS = [
-  { icon: FiHeadphones, key: 'exclusive' },
-  { icon: FiShield, key: 'warranty' },
-  { icon: FiMapPin, key: 'network' },
+    { icon: FiHeadphones, key: 'exclusive' },
+    { icon: FiShield, key: 'warranty' },
+    { icon: FiMapPin, key: 'network' }
 ] as const;
 
-/**
- * BrandValues showcases the core brand attributes and offers a clear action path.
- * The previous implementation included an aside with proof links (e.g. certification,
- * warranty check, find reseller) and a tertiary CTA row that duplicated actions from
- * other sections.  To simplify the user journey, we remove the aside entirely and
- * consolidate the call‑to‑action row to two primary links: become a reseller and find
- * a reseller.  Warranty checking is now handled in the hero section.
- */
+const PROOF_LINKS = [
+    { href: '/certification', labelKey: 'certification.title', detailKey: 'brandValues.items.exclusive.title' },
+    { href: '/warranty-check', labelKey: 'warrantyCheck.title', detailKey: 'brandValues.items.warranty.title' },
+    { href: '/contact', labelKey: 'nav.contact', detailKey: 'brandValues.items.network.title' }
+] as const;
+
 export default function BrandValues() {
-  const { t } = useLanguage();
-  const { enableDecorativeAnimations } = useAnimationConfig();
+    const { t } = useLanguage();
+    const { enableDecorativeAnimations } = useAnimationConfig();
 
-  return (
-    <AvoidSidebar>
-      <section
-        className="brand-section-blue py-16 sm:py-18 md:py-20"
-        aria-labelledby="brand-values-heading"
-      >
-        {/* background layers */}
-        <div className="absolute inset-0 bg-topo opacity-22" />
-        <div className="absolute inset-0 bg-dot-grid opacity-10" />
-        <div className="absolute left-[-6rem] top-10 h-60 w-60 rounded-full bg-[rgba(41,171,226,0.08)] blur-[100px]" />
+    return (
+        <AvoidSidebar>
+            <section className="brand-section-blue py-16 sm:py-18 md:py-20" aria-labelledby="brand-values-heading">
+                <div className="absolute inset-0 bg-topo opacity-22" />
+                <div className="absolute inset-0 bg-dot-grid opacity-10" />
+                <div className="absolute left-[-6rem] top-10 h-60 w-60 rounded-full bg-[rgba(41,171,226,0.08)] blur-[100px]" />
 
-        <div className="brand-shell relative z-10 lg:ml-20">
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.02fr)_minmax(320px,0.98fr)] lg:items-center xl:gap-8">
-            {/* Section heading and subtitle */}
-            <motion.div
-              className="mx-auto max-w-3xl text-center lg:mx-0 lg:max-w-2xl lg:text-left"
-              initial={enableDecorativeAnimations ? { opacity: 0, y: 18 } : false}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.45, ease: 'easeOut' }}
-            >
-              <span className="brand-badge mb-4">
-                {t('brandValues.eyebrow')}
-              </span>
-              <h2
-                id="brand-values-heading"
-                className="font-serif text-3xl font-semibold text-[var(--text-primary)] sm:text-4xl lg:text-5xl"
-              >
-                {t('brandValues.title')}
-              </h2>
-              <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-[var(--text-secondary)] sm:text-lg lg:mx-0">
-                {t('brandValues.subtitle')}
-              </p>
-            </motion.div>
-            {/* We intentionally leave out the previous aside with proof links to avoid duplicating CTAs already
-                represented in the hero section. */}
-          </div>
+                <div className="brand-shell relative z-10">
+                    <div className="grid gap-6 lg:grid-cols-[minmax(0,1.02fr)_minmax(320px,0.98fr)] lg:items-start xl:gap-8">
+                        <motion.div
+                            className="mx-auto max-w-3xl text-center lg:mx-0 lg:max-w-2xl lg:text-left"
+                            initial={enableDecorativeAnimations ? { opacity: 0, y: 18 } : false}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.45, ease: 'easeOut' }}
+                        >
+                            <span className="brand-badge mb-4">{t('brandValues.eyebrow')}</span>
+                            <h2
+                                id="brand-values-heading"
+                                className="font-serif text-3xl font-semibold text-[var(--text-primary)] sm:text-4xl lg:text-5xl"
+                            >
+                                {t('brandValues.title')}
+                            </h2>
+                            <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-[var(--text-secondary)] sm:text-lg lg:mx-0">
+                                {t('brandValues.subtitle')}
+                            </p>
+                        </motion.div>
 
-          {/* Brand value cards */}
-          <div className="mx-auto mt-8 grid max-w-6xl gap-4 md:grid-cols-3 lg:max-w-none">
-            {ITEMS.map(({ icon: Icon, key }, index) => (
-              <motion.article
-                key={key}
-                className="brand-card group rounded-[28px] p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--brand-border-strong)] hover:shadow-[0_18px_34px_rgba(0,113,188,0.12)]"
-                initial={enableDecorativeAnimations ? { opacity: 0, y: 22 } : false}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{
-                  duration: 0.4,
-                  delay: enableDecorativeAnimations ? index * 0.06 : 0,
-                }}
-              >
-                <div className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--brand-border-strong)] bg-[rgba(41,171,226,0.14)] text-[var(--brand-blue)]">
-                  <Icon className="h-6 w-6" />
+                        <motion.aside
+                            className="brand-card-muted rounded-[28px] p-6"
+                            initial={enableDecorativeAnimations ? { opacity: 0, y: 18 } : false}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.42, ease: 'easeOut' }}
+                        >
+                            <p className="brand-eyebrow text-[0.68rem]">{t('certification.title')}</p>
+                            <div className="mt-4 space-y-3">
+                                {PROOF_LINKS.map(({ href, labelKey, detailKey }) => (
+                                    <Link
+                                        key={href}
+                                        href={href}
+                                        className="flex items-start justify-between gap-4 rounded-[20px] border border-[rgba(133,170,197,0.12)] bg-[rgba(7,17,27,0.42)] px-4 py-3 transition duration-200 hover:border-[var(--brand-border-strong)] hover:bg-[rgba(41,171,226,0.08)]"
+                                    >
+                                        <div>
+                                            <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[var(--text-primary)]">
+                                                {t(labelKey)}
+                                            </p>
+                                            <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">{t(detailKey)}</p>
+                                        </div>
+                                        <FiArrowRight className="mt-1 h-4 w-4 flex-shrink-0 text-[var(--brand-blue)]" />
+                                    </Link>
+                                ))}
+                            </div>
+                        </motion.aside>
+                    </div>
+
+                    <div className="mx-auto mt-8 grid max-w-6xl gap-4 md:grid-cols-3 lg:max-w-none">
+                        {ITEMS.map(({ icon: Icon, key }, index) => (
+                            <motion.article
+                                key={key}
+                                className="brand-card group rounded-[28px] p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--brand-border-strong)] hover:shadow-[0_18px_34px_rgba(0,113,188,0.12)]"
+                                initial={enableDecorativeAnimations ? { opacity: 0, y: 22 } : false}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{
+                                    duration: 0.4,
+                                    delay: enableDecorativeAnimations ? index * 0.06 : 0
+                                }}
+                            >
+                                <div className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--brand-border-strong)] bg-[rgba(41,171,226,0.14)] text-[var(--brand-blue)]">
+                                    <Icon className="h-6 w-6" />
+                                </div>
+                                <h3 className="text-xl font-semibold text-[var(--text-primary)]">
+                                    {t(`brandValues.items.${key}.title`)}
+                                </h3>
+                                <p className="mt-3 text-sm leading-7 text-[var(--text-secondary)] sm:text-base">
+                                    {t(`brandValues.items.${key}.description`)}
+                                </p>
+                            </motion.article>
+                        ))}
+                    </div>
+
+                    <motion.div
+                        className="mt-8 flex justify-center lg:justify-start"
+                        initial={enableDecorativeAnimations ? { opacity: 0, y: 16 } : false}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.4, delay: enableDecorativeAnimations ? 0.12 : 0 }}
+                    >
+                        <Link
+                            href="/become_our_reseller"
+                            className="brand-button-primary inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-[var(--text-primary)] transition duration-200 hover:brightness-105"
+                        >
+                            {t('brandValues.becomeReseller')}
+                            <FiArrowRight className="h-4 w-4" />
+                        </Link>
+                    </motion.div>
                 </div>
-                <h3 className="text-xl font-semibold text-[var(--text-primary)]">
-                  {t(`brandValues.items.${key}.title`)}
-                </h3>
-                <p className="mt-3 text-sm leading-7 text-[var(--text-secondary)] sm:text-base">
-                  {t(`brandValues.items.${key}.description`)}
-                </p>
-              </motion.article>
-            ))}
-          </div>
-
-          {/* CTA row: simplified to two actions.  We removed the warranty check link here because it has been promoted
-              to the hero section.  Users interested in warranty can access it from the hero or the navigation menu. */}
-          <motion.div
-            className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row lg:justify-start"
-            initial={enableDecorativeAnimations ? { opacity: 0, y: 16 } : false}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.4, delay: enableDecorativeAnimations ? 0.12 : 0 }}
-          >
-            <Link
-              href="/become_our_reseller"
-              className="brand-button-primary inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-[var(--text-primary)] transition duration-200 hover:brightness-105"
-            >
-              {t('brandValues.becomeReseller')}
-              <FiArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              href="/reseller_information"
-              className="brand-button-secondary inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-[var(--text-primary)] transition duration-200 hover:border-[var(--brand-blue)] hover:bg-[rgba(41,171,226,0.12)]"
-            >
-              {t('brandValues.findReseller')}
-            </Link>
-          </motion.div>
-        </div>
-      </section>
-    </AvoidSidebar>
-  );
+            </section>
+        </AvoidSidebar>
+    );
 }

@@ -29,7 +29,7 @@ const SOCIAL_ITEMS = [
     { href: SOCIAL_URLS.YOUTUBE, labelKey: 'social.youtube', Icon: FaYoutube }
 ] as const;
 
-const SIDEBAR_LAYOUT_QUERY = '(min-width: 844px)';
+const SIDEBAR_LAYOUT_QUERY = '(min-width: 1024px)';
 const iconButtonClass =
     'flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-[rgba(133,170,197,0.16)] bg-[rgba(7,17,27,0.56)] text-[var(--text-secondary)] transition-all duration-200 hover:border-[var(--brand-border-strong)] hover:bg-[rgba(41,171,226,0.12)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-blue)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#06111B]';
 const railSocialClass =

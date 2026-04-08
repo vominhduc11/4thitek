@@ -46,6 +46,7 @@ export default function Header({ onMenuClick, isDrawerOpen }: HeaderProps) {
     const { openSearch } = useSearchModal();
     const { t } = useLanguage();
     const pathname = usePathname();
+    const isHomePage = pathname === '/';
 
     useEffect(() => {
         setIsHydrated(true);
@@ -86,7 +87,9 @@ export default function Header({ onMenuClick, isDrawerOpen }: HeaderProps) {
 
     return (
         <motion.header
-            className="fixed left-0 right-0 top-0 px-3 pt-3 transition-all duration-300 ease-out sm:px-5 sm:pt-4 md:px-6 lg:left-20"
+            className={`fixed left-0 right-0 top-0 px-3 pt-3 transition-all duration-300 ease-out sm:px-5 sm:pt-4 md:px-6 ${
+                isHomePage ? 'lg:left-0' : 'lg:left-20'
+            }`}
             variants={headerVariants}
             initial="hidden"
             animate="visible"

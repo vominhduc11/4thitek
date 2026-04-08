@@ -1,0 +1,392 @@
+pages=35
+
+--- PAGE 1 ---
+THE BRANDGUIDELINE
+
+--- PAGE 2 ---
+01 C/uni1EA3m h/uni1EE9ng sáng t/uni1EA1o
+02 Logo thương hi/uni1EC7u
+03 Màu s/uni1EAFc
+04 Typefae
+05 /uni1EE8ng d/uni1EE5ng logo
+06 B/uni1ED9 icon
+07 H/uni1EC7 th/uni1ED1ng lư/uni1EDBi
+08 Blend hình /uni1EA3nh
+09 Social Media
+
+--- PAGE 3 ---
+Gi/uni1EDBi thi/uni1EC7u BRAND GUIDELINE
+C/uni1EA2M H/uni1EE8NG
+Nh/uni1EADn di/uni1EC7n thương hi/uni1EC7u TK HiTek đư/uni1EE3cthi/uni1EBFt k/uni1EBF 
+v/uni1EDBi ngu/uni1ED3n c/uni1EA3m h/uni1EE9ng t/uni1EEB nh/uni1EEFng s/uni1EA3n ph/uni1EA9m công 
+ngh/uni1EC7 - vi/uni1EC5n tư/uni1EDFng, nh/uni1EB1m truy/uni1EC1n t/uni1EA3i thông đi/uni1EC7p 
+chính xác nh/uni1EA5t đ/uni1EBFn v/uni1EDBi khách hàng.
+V/uni1EDBi phương châm “K/uni1EBET N/uni1ED0I M/uni1ECCI NƠI, TH/uni1EA2NH 
+THƠI THƯ/uni1EDENG TH/uni1EE8C” , TKHiTek s/uni1EBD mang l/uni1EA1i 
+nh/uni1EEFng tr/uni1EA3i nghi/uni1EC7m tuy/uni1EC7t v/uni1EDDi cho nh/uni1EEFng ch/uni1EB7ng 
+đư/uni1EDDng xa.
+
+
+--- PAGE 4 ---
+Logo thương hi/uni1EC7u BRAND GUIDELINE
+LOGO
+
+--- PAGE 5 ---
+Bi/uni1EC3u tư/uni1EE3ng thương hi/uni1EC7u BRAND GUIDELINE
+Ý nghĩa
+bi/uni1EC3u tư/uni1EE3ng
+Bi/uni1EC3u tư/uni1EE3ng c/uni1EE7a logo TK HITek đư/uni1EE3c k/uni1EBFt h/uni1EE3p t/uni1EA1o nên t/uni1EEB s/uni1EF1 k/uni1EBFt h/uni1EE3p gi/uni1EEFa hai monogram T và K và hình /uni1EA3nh liên tư/uni1EDFng c/uni1EE7a đôi 
+cánh chim đang bay.
+Đôi cánh, truy/uni1EC1n t/uni1EA3i ý nghĩa c/uni1EE7a s/uni1EF1 t/uni1EF1 do, t/uni1EF1 do bay lư/uni1EE3n, t/uni1EF1 do làm, t/uni1EF1 do s/uni1ED1ng. Đi/uni1EC1u này cũng th/uni1EC3 hi/uni1EC7n đư/uni1EE3c m/uni1ED9t ph/uni1EA7n ý nghĩa 
+truy/uni1EC1n t/uni1EA3i cho nh/uni1EEFng ngư/uni1EDDi tr/uni1EBB, nh/uni1EEFng ngư/uni1EDDi thích s/uni1EF1 xê d/uni1ECBch và thích làm m/uni1ECDi đi/uni1EC1u th/uni1ECFa mãn cá nhân.
+
+--- PAGE 6 ---
+Màu
+bi/uni1EC3u tư/uni1EE3ng
+Ngoài màu thương hi/uni1EC7u đang đư/uni1EE3c s/uni1EED d/uni1EE5ng, trong m/uni1ED9t vài trư/uni1EDDng h/uni1EE3p, bi/uni1EC3u tư/uni1EE3ng s/uni1EBD có thêm hai phiên b/uni1EA3n màu sáng và màu 
+t/uni1ED1i. 
+Vi/uni1EC7c có thêm 2 phiên b/uni1EA3n màu s/uni1EBD giúp cho vi/uni1EC7c hi/uni1EC3n th/uni1ECB và nh/uni1EADn di/uni1EC7n c/uni1EE7a thương hi/uni1EC7u đư/uni1EE3c đ/uni1EA3m b/uni1EA3o hơn, cho dù trên b/uni1EA5tk ỳ 
+background nào thì bi/uni1EC3u tư/uni1EE3ng luôn hi/uni1EC3n th/uni1ECB rõ ràng, d/uni1EC5 nh/uni1EADn bi/uni1EBFt.
+Bi/uni1EC3u tư/uni1EE3ng thương hi/uni1EC7u BRAND GUIDELINE
+DARK COLOR LIGHT COLOR
+
+--- PAGE 7 ---
+Ô lư/uni1EDBi bi/uni1EC3u tư/uni1EE3ng BRAND GUIDELINE
+60
+10px
+
+--- PAGE 8 ---
+Logo thương hi/uni1EC7u BRAND GUIDELINE
+
+
+--- PAGE 9 ---
+Ô lư/uni1EDBi logo BRAND GUIDELINE
+x
+x
+x
+y
+y
+
+--- PAGE 10 ---
+Logo v/uni1EDBi
+âm - dương b/uni1EA3n
+Trong th/uni1EF1c t/uni1EBF, không ph/uni1EA3i lúc nào logo cũng có th/uni1EC3 xu/uni1EA5 thi/uni1EC7n đúng v/uni1EDBi màu s/uni1EAFc thương hi/uni1EC7u, ví d/uni1EE5 như gia công d/uni1EADp n/uni1ED5i, d/uni1EADp 
+chìm, điêu kh/uni1EAFc, ... trên các ch/uni1EA5t li/uni1EC7u. Nên trong các trư/uni1EDDng h/uni1EE3p đó, logo s/uni1EBD đư/uni1EE3c đưa v/uni1EC1 màu âm b/uni1EA3n - dương b/uni1EA3n.
+Vi/uni1EC7c s/uni1EED d/uni1EE5ng âm b/uni1EA3n - dương b/uni1EA3n logo cũng đư/uni1EE3c linh đ/uni1ED9ng trong thi/uni1EBFt k/uni1EBF khi mu/uni1ED1n t/uni1EA1o s/uni1EF1 khác bi/uni1EC7t, t/uni1EA1o đi/uni1EC3m nh/uni1EA5n ho/uni1EB7c do 
+background b/uni1ECB trùng v/uni1EDBi màu logo.
+Màu s/uni1EAFc logo BRAND GUIDELINE
+DƯƠNG B/uni1EA2N ÂM B/uni1EA2N
+
+--- PAGE 11 ---
+Phiên b/uni1EA3n
+màu logo
+Logo TK HiTek s/uni1EBD có 2 phiên b/uni1EA3n màu chính, đó là bi/uni1EC3u tư/uni1EE3ng xanh ch/uni1EEF xám và bi/uni1EC3u tư/uni1EE3ng xanh ch/uni1EEF tr/uni1EAFng.
+Vi/uni1EC7c thay đ/uni1ED5i qua l/uni1EA1i gi/uni1EEFa hai màu ch/uni1EEF này không /uni1EA3nh hư/uni1EDFng nhi/uni1EC1u t/uni1EDBi thi/uni1EBFt k/uni1EBF. Nhưng nên đ/uni1EA3m b/uni1EA3o tính đ/uni1ED3ng b/uni1ED9.
+*Ví d/uni1EE5 m/uni1ED9t b/uni1ED9 /uni1EA3nh cho m/uni1ED9t bài post facebook thì ch/uni1EC9 nên dùng ho/uni1EB7c logo ch/uni1EEF xám ho/uni1EB7c logo ch/uni1EEF tr/uni1EAFng cho t/uni1EA5t c/uni1EA3 thi/uni1EBFt k/uni1EBF trong b/uni1ED9 
+/uni1EA3nh đó.
+Màu s/uni1EAFc logo BRAND GUIDELINE
+
+
+--- PAGE 12 ---
+Kho/uni1EA3ng cách an toàn BRAND GUIDELINE
+
+--- PAGE 13 ---
+Kích thư/uni1EDBc
+nh/uni1ECF nh/uni1EA5t
+Favicon
+Logo đư/uni1EE3c thi/uni1EBFt k/uni1EBF dư/uni1EDBi đ/uni1ECBnh d/uni1EA1ng vector, nên vi/uni1EC7c kéo dãn ch/uni1EC9 c/uni1EA7n đ/uni1EA3m b/uni1EA3o v/uni1EC1 t/uni1EC9 l/uni1EC7 và màu s/uni1EAFc, logo s/uni1EBD không b/uni1ECB v/uni1EE1 dù 
+kéo l/uni1EDBn v/uni1EDBi kích thư/uni1EDBc nào. Nhưng trong trư/uni1EDDng h/uni1EE3p thu nh/uni1ECF, do di/uni1EC7n tích hi/uni1EC3n th/uni1ECB nh/uni1ECF, nên logo s/uni1EBD không hi/uni1EC3n th/uni1ECB toàn 
+b/uni1ED9. Logo s/uni1EBD đư/uni1EE3c b/uni1ECF slogan, b/uni1ECF b/uni1EDBt chi ti/uni1EBFt ho/uni1EB7c ch/uni1EC9 còn chi ti/uni1EBFt cánh c/uni1EEDa đ/uni1EC3 làm Bi/uni1EC3u tư/uni1EE3ng nh/uni1EADn di/uni1EC7n n/uni1EBFu di/uni1EC7n tích hi/uni1EC3n 
+th/uni1ECB là quá nh/uni1ECF (ví d/uni1EE5 trong trư/uni1EDDng h/uni1EE3p s/uni1EED d/uni1EE5ng làm favicon cho website). 
+Có 2 trư/uni1EDDng h/uni1EE3p cho favicon như đ/uni1EC1 xu/uni1EA5t bên dư/uni1EDBi đây.
+Kích thư/uni1EDBc BRAND GUIDELINE
+16px
+22px
+36px
+100px
+
+--- PAGE 14 ---
+Màu s/uni1EAFc thương hi/uni1EC7u BRAND GUIDELINE
+MÀU S/uni1EAEC
+THƯƠNG HI/uni1EC6U
+
+--- PAGE 15 ---
+Màu s/uni1EAFc
+thương hi/uni1EC7u
+Màu s/uni1EAFc thương hi/uni1EC7u chính c/uni1EE7a logo là d/uni1EA3i màu grandient, d/uni1EA3i màu này đư/uni1EE3c th/uni1EC3 hi/uni1EC7n t/uni1ED1t nh/uni1EA5 trên các thi/uni1EBFt k/uni1EBF hi/uni1EC3n th/uni1ECB (web-
+site, social media, ...)
+Màu ph/uni1EB3ng (flat) là màu đơn s/uni1EAFc, đư/uni1EE3c s/uni1EED d/uni1EE5ng thay th/uni1EBF và song song v/uni1EDBi d/uni1EA3i màu grandient, s/uni1EED d/uni1EE5ng trong các trư/uni1EDDng h/uni1EE3p 
+mà màu gradient không th/uni1EC3 hi/uni1EC7n đư/uni1EE3c t/uni1ED1t như: in /uni1EA5n, gia công, do /uni1EA3nh hư/uni1EDFng c/uni1EE7a background, ho/uni1EB7c do ch/uni1EE7 ý c/uni1EE7a  ngư/uni1EDDi s/uni1EED 
+d/uni1EE5ng, ....
+Màu xám th/uni1EF1c ch/uni1EA5t là phiên b/uni1EA3n t/uni1ED1i hơn c/uni1EE7a màu xanh, đư/uni1EE3c s/uni1EED d/uni1EE5ng làm màu cho tên thương hi/uni1EC7u.
+Màu s/uni1EAFc thương hi/uni1EC7u BRAND GUIDELINE
+GRADIENT
+#29ABE2
+#0071BC
+BLUE
+FLAT
+#29ABE2
+R
+G
+B
+C
+M
+Y
+K
+41
+171
+226
+70
+15
+0
+0
+R
+G
+B
+C
+M
+Y
+K
+63
+72
+86
+76
+64
+48
+34
+BLUE
+DARK
+#3F4856
+
+--- PAGE 16 ---
+M/uni1EADt đ/uni1ED9
+s/uni1EED d/uni1EE5ng
+Trên các thi/uni1EBFt k/uni1EBF, màu s/uni1EAFc ưu tiên xu/uni1EA5t hi/uni1EC7n luôn là màu xanh ho/uni1EB7c d/uni1EA3i màu gradient thương hi/uni1EC7u.
+Không nh/uni1EA5t thi/uni1EBFt màu xanh ph/uni1EA3i chi/uni1EBFm ph/uni1EA7n l/uni1EDBn di/uni1EC7n tích thi/uni1EBFt k/uni1EBF, nhưng màu xanh thương hi/uni1EC7u luôn là màu n/uni1ED5i b/uni1EADt nh/uni1EA5t.
+Màu s/uni1EAFc thương hi/uni1EC7u BRAND GUIDELINE
+GRADIENT   40% BLUE   40% DARK BLUE   10% WHITE GREY   10%
+
+--- PAGE 17 ---
+B/uni1EA3ng màu
+b/uni1ED5 sung
+Đây là b/uni1EA3ng màu h/uni1ED7 tr/uni1EE3 đã đư/uni1EE3c thi/uni1EBFt k/uni1EBF đ/uni1EC3 b/uni1ED5 sung và tăng cư/uni1EDDng b/uni1EA3n s/uni1EAFc thương hi/uni1EC7u TK HiTek. Các màu s/uni1EAFc đư/uni1EE3c l/uni1EA5y c/uni1EA3m 
+h/uni1EE9ng t/uni1EEB các y/uni1EBFu t/uni1ED1 màu l/uni1EA1nh, thiên hư/uni1EDBng màu s/uni1EAFc c/uni1EE7a thiên nhiên. Nh/uni1EEFng màu s/uni1EAFc này đư/uni1EE3c l/uni1EF1a ch/uni1ECDn sao cho d/uni1EC5 dàng k/uni1EBFt 
+h/uni1EE3p v/uni1EDBi màu s/uni1EAFc c/uni1EE7a logo trên thi/uni1EBFt k/uni1EBF.
+*Không s/uni1EED d/uni1EE5ng nh/uni1EEFng màu s/uni1EAFc này cho Logo chính.
+Màu s/uni1EAFc thương hi/uni1EC7u BRAND GUIDELINE
+HEX: 2BE086
+RGB: 43, 224, 134
+CMYK: 64, 0, 69, 0
+HEX: BDF919
+RGB: 189, 249, 25
+CMYK: 30, 0, 100, 0
+HEX: 05A7AF
+RGB: 5, 167, 175
+CMYK: 77, 12, 33, 0
+HEX: 0B5FF4
+RGB: 11, 95, 244
+CMYK: 82, 64, 0, 0
+
+--- PAGE 18 ---
+Typeface BRAND GUIDELINE
+TYPEFACE
+KI/uni1EC2U CH/uni1EEE
+
+--- PAGE 19 ---
+Source
+Sans Pro
+Source Sans Pro là ki/uni1EC3u ch/uni1EEF nh/uni1EADn di/uni1EC7n riêng có nhi/uni1EC1u phiên b/uni1EA3n đ/uni1EC3 /uni1EE9ng d/uni1EE5ng trong vi/uni1EC7c thi/uni1EBFt k/uni1EBF sáng t/uni1EA1o, /uni1EE9ng d/uni1EE5ng vào n/uni1ED9i 
+dung qu/uni1EA3ng cáo, /uni1EA5n ph/uni1EA9m truy/uni1EC1n thông, website, bao bì s/uni1EA3n ph/uni1EA9m, so/uni1EA1n th/uni1EA3o văn b/uni1EA3n, thư, ghi chú, b/uni1EA3ng bi/uni1EC3u, bi/uni1EC3u đ/uni1ED3...vvv
+Typeface - Ki/uni1EC3u ch/uni1EEF BRAND GUIDELINE
+ABCDEFGHIJKLMNOPQRSTUVWXYZ
+abcdefghijklmnopqrstuvwxyz
+0123456789.,:;!@#$%&()
+ABCDEFGHIJKLMNOPQRSTUVWXYZ
+abcdefghijklmnopqrstuvwxyz
+0123456789.,:;!@#$%&()
+Aa Aa Aa Aa Aa
+Black Bold Semibold Regular Light
+
+--- PAGE 20 ---
+Montserrat
+Montserrat là ki/uni1EC3u ch/uni1EEF ph/uni1ED5 bi/uni1EBFn thay th/uni1EBF dùng cho các trư/uni1EDDng h/uni1EE3p ngo/uni1EA1i l/uni1EC7 khác khi không th/uni1EC3 s/uni1EED d/uni1EE5ng ki/uni1EC3u ch/uni1EEF truy/uni1EC1n thông chính.
+Font montserrat không đư/uni1EE3c dùng nhi/uni1EC1u hơn v/uni1EDBi Source Sans Pro trên cùng m/uni1ED9t thi/uni1EBFt k/uni1EBF, ch/uni1EC9 s/uni1EED d/uni1EE5ng trong các trư/uni1EDDng h/uni1EE3p đ/uni1EC3 làm n/uni1ED5i 
+b/uni1EADt n/uni1ED9i dung ho/uni1EB7c gi/uni1EA3m b/uni1EDBt s/uni1EF1 nhàm chán cho thi/uni1EBFt k/uni1EBF. 
+Typeface - Ki/uni1EC3u ch/uni1EEF BRAND GUIDELINE
+ABCDEFGHIJKLMNOPQRSTUVWXYZ
+abcdefghijklmnopqrstuvwxyz
+0123456789.,:;!@#$%&()
+ABCDEFGHIJKLMNOPQRSTUVWXYZ
+abcdefghijklmnopqrstuvwxyz
+0123456789.,:;!@#$%&()
+Aa Aa Aa Aa Aa
+Black Bold Semibold Regular Light
+
+--- PAGE 21 ---
+Typeface - Ki/uni1EC3u ch/uni1EEF BRAND GUIDELINE
+Phân c/uni1EA5p
+ki/uni1EC3u ch/uni1EEF
+Trong vi/uni1EC7c s/uni1EED d/uni1EE5ng b/uni1ED9 font ch/uni1EEF thương hi/uni1EC7u cho các thi/uni1EBFt k/uni1EBF, đ/uni1EC3 đ/uni1EA3m b/uni1EA3o s/uni1EF1 đ/uni1ED3ng b/uni1ED9 theo quy chu/uni1EA9n, size ch/uni1EEF n/uni1ED9i dung c/uni1EA7n 
+đ/uni1EA3m b/uni1EA3o vi/uni1EC7c phân c/uni1EA5p dư/uni1EDBi đây.
+V/uni1EDBi ch/uni1EEF display ( n/uni1ED9i dung chính, n/uni1ED9i dung làm n/uni1ED5i b/uni1EADt) thì có th/uni1EC3 tùy bi/uni1EBFn v/uni1EDBi nh/uni1EEFng kích thư/uni1EDBc l/uni1EDBn hơn.
+Phân c/uni1EA5p ch/uni1EEF cũng đư/uni1EE3c s/uni1EED d/uni1EE5ng trong thi/uni1EBFt k/uni1EBF UI Website c/uni1EE7a thương hi/uni1EC7u.
+Công ngh/uni1EC7 m/uni1EDBi
+dành cho biker
+Công ngh/uni1EC7 m/uni1EDBi
+dành cho biker
+Công ngh/uni1EC7 m/uni1EDBi
+dành cho biker
+Công ngh/uni1EC7 m/uni1EDBi
+dành cho biker
+Tiêu đ/uni1EC1 l/uni1EDBn nh/uni1EA5t H1 / C/uni1EE1 ch/uni1EEF 60 Tiêu đ/uni1EC1 nh/uni1ECF t/uni1EEBng đo/uni1EA1n / H3 - C/uni1EE1 ch/uni1EEF 36
+Tiêu đ/uni1EC1 nh/uni1ECF t/uni1EEBng kh/uni1ED5 / H4 - C/uni1EE1 ch/uni1EEF 26Tiêu đ/uni1EC1 l/uni1EDBn H2 / C/uni1EE1 ch/uni1EEF 45
+
+--- PAGE 22 ---
+Typeface - Ki/uni1EC3u ch/uni1EEF BRAND GUIDELINE
+Phân c/uni1EA5p
+ki/uni1EC3u ch/uni1EEF
+Trong vi/uni1EC7c s/uni1EED d/uni1EE5ng b/uni1ED9 font ch/uni1EEF thương hi/uni1EC7u cho các thi/uni1EBFt k/uni1EBF, đ/uni1EC3 đ/uni1EA3m b/uni1EA3o s/uni1EF1 đ/uni1ED3ng b/uni1ED9 theo quy chu/uni1EA9n, size ch/uni1EEF n/uni1ED9i dung c/uni1EA7n 
+đ/uni1EA3m b/uni1EA3o vi/uni1EC7c phân c/uni1EA5p dư/uni1EDBi đây.
+V/uni1EDBi ch/uni1EEF display ( n/uni1ED9i dung chính, n/uni1ED9i dung làm n/uni1ED5i b/uni1EADt) thì có th/uni1EC3 tùy bi/uni1EBFn v/uni1EDBi nh/uni1EEFng kích thư/uni1EDBc l/uni1EDBn hơn.
+Phân c/uni1EA5p ch/uni1EEF cũng đư/uni1EE3c s/uni1EED d/uni1EE5ng trong thi/uni1EBFt k/uni1EBF UI Website c/uni1EE7a thương hi/uni1EC7u.
+Body Text / Đo/uni1EA1n văn / Câu văn - C/uni1EE1 ch/uni1EEF 16 CTA / Bottom Website - C/uni1EE1 ch/uni1EEF 24
+Bottom Website - C/uni1EE1 ch/uni1EEF 18
+Đôi cánh, truy/uni1EC1n t/uni1EA3i ý nghĩa c/uni1EE7a s/uni1EF1 t/uni1EF1 do, t/uni1EF1 do bay 
+lư/uni1EE3n, t/uni1EF1 do làm, t/uni1EF1 do s/uni1ED1ng. Đi/uni1EC1u này cũng th/uni1EC3 hi/uni1EC7n 
+đư/uni1EE3c m/uni1ED9t ph/uni1EA7n ý nghĩa truy/uni1EC1n t/uni1EA3i cho nh/uni1EEFng ngư/uni1EDDi 
+tr/uni1EBB, nh/uni1EEFng ngư/uni1EDDi thích s/uni1EF1 xê d/uni1ECBch và thích làm m/uni1ECDi 
+đi/uni1EC1u th/uni1ECFa mãn cá nhân.
+Menu website / tab bar web  - C/uni1EE1 ch/uni1EEF 18
+TRANG CH/uni1EE6  /  S/uni1EA2N PH/uni1EA8M  /  D/uni1ECACH V/uni1EE4  /
+ĐĂNG KÝ THAM GIA
+CHI TI/uni1EBET
+
+--- PAGE 23 ---
+/uni1EE8ng d/uni1EE5ng logo BRAND GUIDELINE
+/uni1EE8NG D/uni1EE4NG LOGO
+
+--- PAGE 24 ---
+/uni1EE8ng d/uni1EE5ng logo BRAND GUIDELINE
+Bi/uni1EC3n hi/uni1EC7u
+Logo c/uni1EE7a TK HiTek có b/uni1ED1 c/uni1EE5c ngang, nên h/uni1EC7 th/uni1ED1ng bi/uni1EC3n hi/uni1EC7u c/uni1EE7a thương hi/uni1EC7u cũng s/uni1EBD đư/uni1EE3c đ/uni1EC1 xu/uni1EA5t t/uni1ED1t nh/uni1EA5t dư/uni1EDBi d/uni1EA1ng bi/uni1EC3n 
+ngang.
+Trên bi/uni1EC3n hi/uni1EC7u nên có thêm chi ti/uni1EBFt nh/uni1EADn di/uni1EC7n riêng c/uni1EE7a thương hi/uni1EC7u. V/uni1EDBi t/uni1EC9 l/uni1EC7 ngang c/uni1EE7a bi/uni1EC3n hi/uni1EC7u, bên ph/uni1EA3i luôn hi/uni1EC3n th/uni1ECB h/uni1ECDa 
+ti/uni1EBFt màu xanh, logo + đ/uni1ECBa ch/uni1EC9 s/uni1EBD đư/uni1EE3c đ/uni1EB7t /uni1EDF bên trái c/uni1EE7a bi/uni1EC3n hi/uni1EC7u.
+0123.456.789
+www.bigbike.vn
+23, Quang Trung, Go Vap
+0123.456.789
+www.bigbike.vn
+23, Quang Trung, Go Vap
+0123.456.789
+www.bigbike.vn
+23, Quang Trung, Go Vap
+ 0123.456.789
+www.bigbike.vn
+23, Quang Trung, Go Vap
+
+--- PAGE 25 ---
+/uni1EE8ng d/uni1EE5ng logo BRAND GUIDELINE
+Bi/uni1EC3n hi/uni1EC7u
+Logo c/uni1EE7a TK HiTek có b/uni1ED1 c/uni1EE5c ngang, nên h/uni1EC7 th/uni1ED1ng bi/uni1EC3n hi/uni1EC7u c/uni1EE7a thương hi/uni1EC7u cũng s/uni1EBD đư/uni1EE3c đ/uni1EC1 xu/uni1EA5t t/uni1ED1t nh/uni1EA5t dư/uni1EDBi d/uni1EA1ng bi/uni1EC3n 
+ngang.
+Trên bi/uni1EC3n hi/uni1EC7u nên có thêm chi ti/uni1EBFt nh/uni1EADn di/uni1EC7n riêng c/uni1EE7a thương hi/uni1EC7u. V/uni1EDBi t/uni1EC9 l/uni1EC7 ngang c/uni1EE7a bi/uni1EC3n hi/uni1EC7u, bên ph/uni1EA3i luôn hi/uni1EC3n th/uni1ECB h/uni1ECDa 
+ti/uni1EBFt màu xanh, logo + đ/uni1ECBa ch/uni1EC9 s/uni1EBD đư/uni1EE3c đ/uni1EB7t /uni1EDF bên trái c/uni1EE7a bi/uni1EC3n hi/uni1EC7u.
+0123.456.789
+www.bigbike.vn
+23, Quang Trung, Go Vap
+0123.456.789
+www.bigbike.vn
+23, Quang Trung, Go Vap
+
+--- PAGE 26 ---
+/uni1EE8ng d/uni1EE5ng logo BRAND GUIDELINE
+B/uni1ED8 ICON
+
+--- PAGE 27 ---
+Icon
+B/uni1ED9 icon đư/uni1EE3c /uni1EE9ng d/uni1EE5ng trên các thi/uni1EBFt k/uni1EBF như NameCard, Website, nh/uni1EEFng thông tin liên h/uni1EC7, CTA, .... Icon s/uni1EED d/uni1EE5ng ph/uni1EA3i đ/uni1EA3m b/uni1EA3o v/uni1EC1 màu 
+s/uni1EAFc thương hi/uni1EC7u. Các màu có th/uni1EC3 s/uni1EED d/uni1EE5ng là màu thương hi/uni1EC7u và âm - dương b/uni1EA3n: Xanh dương - Tr/uni1EAFng - Đen
+Icon thương hi/uni1EC7u BRAND GUIDELINE
+
+--- PAGE 28 ---
+/uni1EE8ng d/uni1EE5ng logo BRAND GUIDELINE
+H/uni1EC6 TH/uni1ED0NG LƯ/uni1EDAI
+
+--- PAGE 29 ---
+H/uni1EC7 th/uni1ED1ng
+ô lư/uni1EDBi
+H/uni1EC7 th/uni1ED1ng lư/uni1EDBi đư/uni1EE3c đ/uni1EC1 ngh/uni1ECB s/uni1EED d/uni1EE5ng nh/uni1EB1m t/uni1ED5 ch/uni1EE9c c/uni1EA5u trúc trong thi/uni1EBFt k/uni1EBF layout đ/uni1ED3 h/uni1ECDa trình bày thông tin, hình /uni1EA3nh đư/uni1EE3c th/uni1ED1ng 
+nh/uni1EA5t, cân b/uni1EB1ng. Thi/uni1EBFt k/uni1EBF c/uni1EE7a hư/uni1EDBng đ/uni1EBFn s/uni1EF1 đơn gi/uni1EA3n, g/uni1ECDn gàng và chuyên nghi/uni1EC7p chính vì v/uni1EADy h/uni1EC7 th/uni1ED1ng lư/uni1EDBi là y/uni1EBFu t/uni1ED1 b/uni1EAFt bu/uni1ED9c.
+Cách s/uni1EED d/uni1EE5ng c/uni1ED9t như sau:
+ - Đưa t/uni1EC9 l/uni1EC7 lên trên layout thi/uni1EBFt k/uni1EBF
+ - C/uni1ED9t đ/uni1EA7u bên trái và bên ph/uni1EA3i s/uni1EBD là c/uni1ED9t đ/uni1EC3 căn l/uni1EC1
+ - Thi/uni1EBFt k/uni1EBF n/uni1EB1m 10 c/uni1ED1t bên trong
+Màu s/uni1EAFc logo BRAND GUIDELINE
+
+
+--- PAGE 30 ---
+H/uni1EC7 th/uni1ED1ng
+ô lư/uni1EDBi
+K/uni1EBFt h/uni1EE3p v/uni1EDBi ph/uni1EA7n /uni1EE8ng d/uni1EE5ng logo và h/uni1EC7 th/uni1ED1ng ô lư/uni1EDBi, chúng ta s/uni1EBD có m/uni1ED9t thi/uni1EBFt k/uni1EBF đ/uni1EB7c trưng riêng cho TK HiTek.
+Dư/uni1EDBi đây là m/uni1ED9t s/uni1ED1 ví d/uni1EE5 trong thi/uni1EBFt k/uni1EBF
+Màu s/uni1EAFc logo BRAND GUIDELINE
+VO MINH TRI
+CEO - FOUNDER
+0123.456.789
+suport@tkhitek.vn
+Quang Trung, Go Vap, HCM
+www.tkhitek.vn
+VO MINH TRI
+CEO - FOUNDER
+0123.456.789
+suport@tkhitek.vn
+Quang Trung, Go Vap, HCM
+www.tkhitek.vn
+
+--- PAGE 31 ---
+/uni1EE8ng d/uni1EE5ng logo BRAND GUIDELINE
+S/uni1EEC D/uni1EE4NG HÌNH /uni1EA2NH
+
+--- PAGE 32 ---
+Blend
+hình /uni1EA3nh
+Vi/uni1EC7c s/uni1EED d/uni1EE5ng hình /uni1EA3nh trên các thi/uni1EBFt k/uni1EBF ho/uni1EB7c /uni1EA5n ph/uni1EA9m c/uni1EE7a TK HiTek nên mang đư/uni1EE3c màu s/uni1EAFc c/uni1EE7a thương hi/uni1EC7u. Đ/uni1EC3 t/uni1EA1o s/uni1EF1 đ/uni1ED3ng 
+b/uni1ED9 gi/uni1EEFa hình /uni1EA3nh v/uni1EDBi màu thương hi/uni1EC7u, trong các thi/uni1EBFt k/uni1EBF hãy đ/uni1ED5 m/uni1ED9t l/uni1EDBp màu thương hi/uni1EC7u lên trên hình /uni1EA3nh và s/uni1EED d/uni1EE5ng 
+nh/uni1EEFng tính năng hòa tr/uni1ED9n màu đ/uni1EC3 t/uni1EA1o ra
+Nên s/uni1EED d/uni1EE5ng các cách hòa tr/uni1ED9n có s/uni1EB5n trên các ph/uni1EA7n m/uni1EC1m thi/uni1EBFt k/uni1EBF như: Darken, Multiply, Overlay, ...
+Màu s/uni1EAFc logo BRAND GUIDELINE
++ =
+
+--- PAGE 33 ---
+/uni1EE8ng d/uni1EE5ng logo BRAND GUIDELINE
+TEMPLATE SOCIAL
+
+--- PAGE 34 ---
+Social
+Media
+Nh/uni1EEFng thi/uni1EBFt k/uni1EBF trên Social Media c/uni1EE7a TK HiTek luôn ph/uni1EA3i s/uni1EED d/uni1EE5ng t/uni1ED1i ưu màu s/uni1EAFc thương hi/uni1EC7u và b/uni1ED9 typeface, đ/uni1EC3 luôn đ/uni1EA3m b/uni1EA3o vi/uni1EC7c truy/uni1EC1n t/uni1EA3i 
+thông tin cho khách hàng theo đúng tiêu chí:
+- Tính công ngh/uni1EC7
+- Tu/uni1ED5i tr/uni1EBB, phá cách
+- S/uni1EED d/uni1EE5ng t/uni1ED1i đa 2 font ch/uni1EEF trên m/uni1ED9t thi/uni1EBFt k/uni1EBF đ/uni1EC3t /uni1EA1o s/uni1EF1 chuyên nghi/uni1EC7p
+Màu s/uni1EAFc logo BRAND GUIDELINE
+GI/uni1EA2M GIÁ
+NHI/uni1EC0U S/uni1EA2N PH/uni1EA8M
+CHO KHÁCH HÀNG
+QuangTrung, GoVap, HCM 0123.456.789 www.tkhitek.vn
+TR/uni1EA2I NGHI/uni1EC6M
+MANG T/uni1EA6M Đ/uni1ED8T PHÁ
+QuangTrung, GoVap, HCM 0123.456.789
+CHÚNG TÔI
+LUÔN MANG T/uni1EDAI
+CÔNG NGH/uni1EC6 HI/uni1EC6N Đ/uni1EA0I
+CHÚNG TÔI
+T/uni1EA0O RA S/uni1EF0
+KHÁC BI/uni1EC6T
+GI/uni1EA2M GIÁ
+S/uni1EA2N PH/uni1EA8M
+50%
+
+--- PAGE 35 ---
+THANK YOU!
