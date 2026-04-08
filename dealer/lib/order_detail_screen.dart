@@ -1046,7 +1046,7 @@ class _OrderDetailTexts {
       isEnglish ? 'Invalid amount.' : 'Số tiền không hợp lệ.';
   String get amountExceedsOutstandingMessage => isEnglish
       ? 'The amount exceeds the remaining outstanding balance.'
-      : 'Số tiền vượt quá công nợ còn lại.';
+      : 'Số tiền vượt quá số dư cần thanh toán còn lại.';
   String get recordPaymentScreenNote => isEnglish
       ? 'Recorded from the order detail screen.'
       : 'Ghi nhận từ màn hình chi tiết đơn hàng.';

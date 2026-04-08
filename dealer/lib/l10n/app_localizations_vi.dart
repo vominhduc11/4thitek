@@ -26,7 +26,7 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get welcomeStepOrders =>
-      '2. Theo dõi công nợ và trạng thái trong tab Đơn hàng.';
+      '2. Theo dõi thanh toán chuyển khoản và trạng thái trong tab Đơn hàng.';
 
   @override
   String get welcomeStepSearch =>

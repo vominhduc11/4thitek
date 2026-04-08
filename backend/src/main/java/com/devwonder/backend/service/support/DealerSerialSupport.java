@@ -35,7 +35,7 @@ public class DealerSerialSupport {
     private final ProductStockSyncSupport productStockSyncSupport;
 
     public List<DealerProductSerialResponse> getSerials(Long dealerId) {
-        return productSerialRepository.findDealerInventorySerials(dealerId).stream()
+        return productSerialRepository.findInventoryByDealerId(dealerId).stream()
                 .map(ProductSerialResponseMapper::toDealerProductSerialResponse)
                 .toList();
     }

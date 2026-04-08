@@ -9,12 +9,16 @@ import com.devwonder.backend.repository.AccountRepository;
 import com.devwonder.backend.repository.PushDeviceTokenRepository;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class PushTokenRegistrationService {
+
+    private static final Logger log = LoggerFactory.getLogger(PushTokenRegistrationService.class);
 
     private final AccountRepository accountRepository;
     private final PushDeviceTokenRepository pushDeviceTokenRepository;
@@ -34,6 +38,12 @@ public class PushTokenRegistrationService {
         deviceToken.setActive(Boolean.TRUE);
         deviceToken.setLastSeenAt(Instant.now());
         pushDeviceTokenRepository.save(deviceToken);
+        log.info(
+                "Push token registered: account={}, platform={}, token={}",
+                account.getUsername(),
+                deviceToken.getPlatform(),
+                abbreviate(token)
+        );
     }
 
     @Transactional
@@ -44,6 +54,11 @@ public class PushTokenRegistrationService {
             deviceToken.setActive(Boolean.FALSE);
             deviceToken.setLastSeenAt(Instant.now());
             pushDeviceTokenRepository.save(deviceToken);
+            log.info(
+                    "Push token unregistered: account={}, token={}",
+                    account.getUsername(),
+                    abbreviate(token)
+            );
         });
     }
 
@@ -66,5 +81,15 @@ public class PushTokenRegistrationService {
         }
         String normalized = value.trim();
         return normalized.isEmpty() ? null : normalized;
+    }
+
+    private String abbreviate(String token) {
+        if (token == null || token.isBlank()) {
+            return "(empty)";
+        }
+        if (token.length() <= 12) {
+            return token;
+        }
+        return token.substring(0, 8) + "..." + token.substring(token.length() - 4);
     }
 }

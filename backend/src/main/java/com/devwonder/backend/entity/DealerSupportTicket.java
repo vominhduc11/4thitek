@@ -3,6 +3,7 @@ package com.devwonder.backend.entity;
 import com.devwonder.backend.entity.enums.DealerSupportCategory;
 import com.devwonder.backend.entity.enums.DealerSupportPriority;
 import com.devwonder.backend.entity.enums.DealerSupportTicketStatus;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -13,8 +14,12 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -35,6 +40,10 @@ public class DealerSupportTicket {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "dealer_id", nullable = false)
     private Dealer dealer;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assignee_id")
+    private Admin assignee;
 
     @Column(name = "ticket_code", nullable = false, unique = true)
     private String ticketCode;
@@ -73,4 +82,16 @@ public class DealerSupportTicket {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+    @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("createdAt ASC")
+    private List<SupportTicketMessage> messages = new ArrayList<>();
+
+    public void addMessage(SupportTicketMessage supportTicketMessage) {
+        if (supportTicketMessage == null) {
+            return;
+        }
+        supportTicketMessage.setTicket(this);
+        messages.add(supportTicketMessage);
+    }
 }

@@ -24,6 +24,7 @@ import com.devwonder.backend.dto.admin.AdminStaffUserResponse;
 import com.devwonder.backend.dto.admin.AdminStaffUserUpsertRequest;
 import com.devwonder.backend.dto.admin.AdminSupportTicketResponse;
 import com.devwonder.backend.dto.admin.AdminWarrantyResponse;
+import com.devwonder.backend.dto.admin.CreateAdminSupportTicketMessageRequest;
 import com.devwonder.backend.dto.admin.CreateAdminNotificationRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminSerialStatusRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminDealerAccountStatusRequest;
@@ -219,9 +220,23 @@ public class AdminController {
     @PatchMapping("/support-tickets/{id}")
     public ResponseEntity<ApiResponse<AdminSupportTicketResponse>> updateSupportTicket(
             @PathVariable("id") Long id,
-            @Valid @RequestBody UpdateAdminSupportTicketRequest request
+            @Valid @RequestBody UpdateAdminSupportTicketRequest request,
+            Authentication authentication
     ) {
-        return ResponseEntity.ok(ApiResponse.success(adminOperationsService.updateSupportTicket(id, request)));
+        return ResponseEntity.ok(ApiResponse.success(
+                adminOperationsService.updateSupportTicket(id, request, extractUsername(authentication))
+        ));
+    }
+
+    @PostMapping("/support-tickets/{id}/messages")
+    public ResponseEntity<ApiResponse<AdminSupportTicketResponse>> addSupportTicketMessage(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody CreateAdminSupportTicketMessageRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                adminOperationsService.addSupportTicketMessage(id, request, extractUsername(authentication))
+        ));
     }
 
     @GetMapping("/warranties")

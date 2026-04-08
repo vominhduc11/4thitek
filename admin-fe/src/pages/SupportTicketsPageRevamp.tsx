@@ -1,11 +1,14 @@
 import { LifeBuoy, MessageSquareMore, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  createAdminSupportTicketMessage,
   fetchAllAdminSupportTickets,
   fetchAdminSupportTickets,
+  fetchAdminUsers,
   updateAdminSupportTicket,
   type BackendSupportTicketResponse,
   type BackendSupportTicketStatus,
+  type BackendStaffUserResponse,
 } from "../lib/adminApi";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
@@ -77,6 +80,9 @@ const copyKeys = {
   timeline: "Dòng thời gian",
   reply: "Phản hồi admin",
   save: "Lưu cập nhật",
+  sendReply: "Gửi phản hồi",
+  saveInternal: "Lưu ghi chú nội bộ",
+  assignee: "Người phụ trách",
   created: "Tạo lúc",
   updated: "Cập nhật",
   closed: "Đóng",
@@ -109,6 +115,9 @@ function SupportTicketsPageRevamp() {
   const [replyDraft, setReplyDraft] = useState("");
   const [statusDraft, setStatusDraft] =
     useState<BackendSupportTicketStatus>("OPEN");
+  const [assigneeDraft, setAssigneeDraft] = useState<number | "">("");
+  const [internalNote, setInternalNote] = useState(false);
+  const [staffUsers, setStaffUsers] = useState<BackendStaffUserResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFilterLoading, setIsFilterLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -152,6 +161,15 @@ function SupportTicketsPageRevamp() {
   useEffect(() => {
     void loadTickets(page);
   }, [loadTickets, page]);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    void fetchAdminUsers(accessToken)
+      .then((users) =>
+        setStaffUsers(users.filter((user) => user.status !== "PENDING")),
+      )
+      .catch(() => setStaffUsers([]));
+  }, [accessToken]);
 
   const loadAllTickets = useCallback(async () => {
     if (!accessToken) return;
@@ -227,8 +245,10 @@ function SupportTicketsPageRevamp() {
 
   useEffect(() => {
     if (!selectedTicket) return;
-    setReplyDraft(selectedTicket.adminReply ?? "");
+    setReplyDraft("");
     setStatusDraft(selectedTicket.status ?? "OPEN");
+    setAssigneeDraft(selectedTicket.assigneeId ?? "");
+    setInternalNote(false);
   }, [selectedTicket]);
 
   const allowedStatusOptions = useMemo(
@@ -271,6 +291,7 @@ function SupportTicketsPageRevamp() {
         selectedTicket.id,
         {
           status: statusDraft,
+          assigneeId: assigneeDraft === "" ? null : assigneeDraft,
           adminReply: replyDraft,
         },
       );
@@ -280,6 +301,39 @@ function SupportTicketsPageRevamp() {
       setAllTickets((current) =>
         current.map((ticket) => (ticket.id === updated.id ? updated : ticket)),
       );
+    } catch (saveError) {
+      notify(
+        saveError instanceof Error ? saveError.message : copy.loadFallback,
+        {
+          title: copy.title,
+          variant: "error",
+        },
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!accessToken || !selectedTicket || !replyDraft.trim()) return;
+    setIsSaving(true);
+    try {
+      const updated = await createAdminSupportTicketMessage(
+        accessToken,
+        selectedTicket.id,
+        {
+          message: replyDraft.trim(),
+          internalNote,
+        },
+      );
+      setTickets((current) =>
+        current.map((ticket) => (ticket.id === updated.id ? updated : ticket)),
+      );
+      setAllTickets((current) =>
+        current.map((ticket) => (ticket.id === updated.id ? updated : ticket)),
+      );
+      setReplyDraft("");
+      setInternalNote(false);
     } catch (saveError) {
       notify(
         saveError instanceof Error ? saveError.message : copy.loadFallback,
@@ -465,30 +519,43 @@ function SupportTicketsPageRevamp() {
 
               {/* Conversation thread */}
               <div className="space-y-3">
-                {/* Dealer message */}
-                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-                    {selectedTicket.dealerName ?? t("Đại lý")}
-                  </p>
-                  <p className="text-sm text-[var(--ink)]">
-                    {selectedTicket.message ?? "-"}
-                  </p>
-                </div>
-
-                {/* Existing admin reply (read-only view) */}
-                {selectedTicket.adminReply && (
-                  <div className="rounded-2xl border border-[var(--accent)] bg-[var(--accent-soft)] px-4 py-3">
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">
-                      Admin
+                {(selectedTicket.messages ?? []).length > 0 ? (
+                  (selectedTicket.messages ?? []).map((message) => (
+                    <div
+                      key={message.id}
+                      className={[
+                        "rounded-2xl border px-4 py-3",
+                        message.internalNote
+                          ? "border-[var(--border)] bg-[var(--surface-muted)]"
+                          : message.authorRole === "admin"
+                            ? "border-[var(--accent)] bg-[var(--accent-soft)]"
+                            : "border-[var(--border)] bg-[var(--surface)]",
+                      ].join(" ")}
+                    >
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                        {message.authorRole === "dealer"
+                          ? selectedTicket.dealerName ?? "Đại lý"
+                          : message.authorRole === "admin"
+                            ? message.authorName ?? "Admin"
+                            : message.authorName ?? "Hệ thống"}
+                        {message.internalNote ? " · Ghi chú nội bộ" : ""}
+                      </p>
+                      <p className="text-sm text-[var(--ink)]">{message.message}</p>
+                      {message.createdAt && (
+                        <p className="mt-2 text-xs text-[var(--muted)]">
+                          {formatDateTime(message.createdAt)}
+                        </p>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                      {selectedTicket.dealerName ?? t("Đại lý")}
                     </p>
                     <p className="text-sm text-[var(--ink)]">
-                      {selectedTicket.adminReply}
+                      {selectedTicket.message ?? "-"}
                     </p>
-                    {selectedTicket.updatedAt && (
-                      <p className="mt-2 text-xs text-[var(--muted)]">
-                        {formatDateTime(selectedTicket.updatedAt)}
-                      </p>
-                    )}
                   </div>
                 )}
               </div>
@@ -512,7 +579,28 @@ function SupportTicketsPageRevamp() {
                     ))}
                   </select>
                 </label>
-                <div className="text-sm text-[var(--ink)]">
+                <label className="text-sm text-[var(--ink)]">
+                  <span className={tableMetaClass}>{copy.assignee}</span>
+                  <select
+                    className={`mt-2 w-full ${tableActionSelectClass}`}
+                    value={assigneeDraft}
+                    onChange={(event) =>
+                      setAssigneeDraft(
+                        event.target.value
+                          ? Number(event.target.value)
+                          : "",
+                      )
+                    }
+                  >
+                    <option value="">Chưa gán</option>
+                    {staffUsers.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="text-sm text-[var(--ink)] sm:col-span-2">
                   <span className={tableMetaClass}>{copy.timeline}</span>
                   <div className="mt-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-xs text-[var(--muted)]">
                     <p>
@@ -554,7 +642,23 @@ function SupportTicketsPageRevamp() {
                 />
               </label>
 
-              <div className="flex justify-end">
+              <label className="flex items-center gap-2 text-sm text-[var(--muted)]">
+                <input
+                  type="checkbox"
+                  checked={internalNote}
+                  onChange={(event) => setInternalNote(event.target.checked)}
+                />
+                Gửi dưới dạng ghi chú nội bộ
+              </label>
+
+              <div className="flex flex-wrap justify-end gap-3">
+                <GhostButton
+                  disabled={isSaving || !replyDraft.trim()}
+                  onClick={() => void handleSendMessage()}
+                  type="button"
+                >
+                  {internalNote ? copy.saveInternal : copy.sendReply}
+                </GhostButton>
                 <PrimaryButton
                   disabled={isSaving}
                   onClick={() => void handleSave()}

@@ -12,12 +12,16 @@ import org.springframework.stereotype.Repository;
 public interface DealerSupportTicketRepository extends JpaRepository<DealerSupportTicket, Long> {
     boolean existsByTicketCode(String ticketCode);
 
-    @EntityGraph(attributePaths = {"dealer"})
+    @EntityGraph(attributePaths = {"dealer", "assignee", "messages"})
     Optional<DealerSupportTicket> findTopByDealerIdOrderByCreatedAtDesc(Long dealerId);
 
-    @EntityGraph(attributePaths = {"dealer"})
+    @EntityGraph(attributePaths = {"dealer", "assignee", "messages"})
     Page<DealerSupportTicket> findByDealerIdOrderByCreatedAtDesc(Long dealerId, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"dealer"})
+    @EntityGraph(attributePaths = {"dealer", "assignee", "messages"})
     Page<DealerSupportTicket> findAllByOrderByCreatedAtDesc(Pageable pageable);
+
+    @Override
+    @EntityGraph(attributePaths = {"dealer", "assignee", "messages"})
+    Optional<DealerSupportTicket> findById(Long id);
 }

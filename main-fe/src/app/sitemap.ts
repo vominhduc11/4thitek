@@ -13,6 +13,7 @@ const STATIC_ROUTES = [
     { path: '/contact', source: 'src/app/contact/page.tsx', priority: 0.7, changeFrequency: 'monthly' as const },
     { path: '/warranty-check', source: 'src/app/warranty-check/page.tsx', priority: 0.7, changeFrequency: 'monthly' as const },
     { path: '/certification', source: 'src/app/certification/page.tsx', priority: 0.7, changeFrequency: 'monthly' as const },
+    { path: '/dealer-locator', source: 'src/app/dealer-locator/page.tsx', priority: 0.7, changeFrequency: 'weekly' as const },
     { path: '/become_our_reseller', source: 'src/app/become_our_reseller/page.tsx', priority: 0.6, changeFrequency: 'monthly' as const },
     { path: '/privacy-policy', source: 'src/app/privacy-policy/page.tsx', priority: 0.5, changeFrequency: 'yearly' as const },
     { path: '/policy', source: 'src/app/policy/page.tsx', priority: 0.5, changeFrequency: 'yearly' as const }

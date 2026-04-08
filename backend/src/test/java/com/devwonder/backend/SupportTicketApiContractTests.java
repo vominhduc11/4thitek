@@ -2,6 +2,7 @@ package com.devwonder.backend;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -185,6 +186,57 @@ class SupportTicketApiContractTests {
                 .andReturn());
 
         assertThat(cleared.path("adminReply").isNull()).isTrue();
+    }
+
+    @Test
+    void supportTicketThreadSupportsAssigneeInternalNoteAndDealerFollowUp() throws Exception {
+        String dealerToken = registerDealerAndExtractAccessToken("support-ticket-thread");
+        Long ticketId = readTicketId(createSupportTicket(dealerToken).andExpect(status().isOk()).andReturn());
+        Admin admin = adminRepository.findByUsername("support.admin@example.com").orElseThrow();
+        String adminToken = login("support.admin@example.com", "ChangedPass#456");
+
+        JsonNode assigned = readData(mockMvc.perform(updateSupportTicketRequest(ticketId, adminToken, """
+                        {
+                          "status": "in_progress",
+                          "assigneeId": %d
+                        }
+                        """.formatted(admin.getId())))
+                .andExpect(status().isOk())
+                .andReturn());
+        assertThat(assigned.path("assigneeId").asLong()).isEqualTo(admin.getId());
+
+        JsonNode adminMessage = readData(mockMvc.perform(post("/api/v1/admin/support-tickets/{id}/messages", ticketId)
+                        .contentType(APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .content("""
+                                {
+                                  "message": "Đã kiểm tra và đang xử lý nội bộ.",
+                                  "internalNote": true
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn());
+        assertThat(adminMessage.path("messages").size()).isEqualTo(2);
+        assertThat(adminMessage.path("messages").get(1).path("internalNote").asBoolean()).isTrue();
+
+        JsonNode dealerFollowUp = readData(mockMvc.perform(post("/api/v1/dealer/support-tickets/{id}/messages", ticketId)
+                        .contentType(APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + dealerToken)
+                        .content("""
+                                {
+                                  "message": "Nhờ cập nhật thêm tiến độ xử lý."
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn());
+        assertThat(dealerFollowUp.path("messages").size()).isEqualTo(2);
+        assertThat(dealerFollowUp.path("messages").get(0).path("authorRole").asText()).isEqualTo("dealer");
+        assertThat(dealerFollowUp.path("messages").get(1).path("authorRole").asText()).isEqualTo("dealer");
+
+        mockMvc.perform(get("/api/v1/admin/support-tickets")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items[0].messages.length()").value(3));
     }
 
     private org.springframework.test.web.servlet.ResultActions createSupportTicket(String dealerToken) throws Exception {

@@ -35,31 +35,48 @@ public class PushNotificationDispatchService {
     public void sendNotificationCreated(Account account, NotifyResponse payload) {
         FirebaseApp firebaseApp = firebaseAppProvider.getIfAvailable();
         if (!fcmProperties.enabled() || firebaseApp == null || account == null || account.getId() == null) {
+            log.debug("Push dispatch skipped: enabled={}, firebaseApp={}, accountPresent={}",
+                    fcmProperties.enabled(), firebaseApp != null, account != null);
             return;
         }
 
         List<PushDeviceToken> deviceTokens = pushDeviceTokenRepository.findByAccountIdAndActiveTrue(account.getId());
         if (deviceTokens.isEmpty()) {
+            log.info("Push dispatch skipped: no active tokens for account {}", account.getUsername());
             return;
         }
 
         FirebaseMessaging messaging = FirebaseMessaging.getInstance(firebaseApp);
+        int successCount = 0;
+        int failedCount = 0;
         for (PushDeviceToken deviceToken : deviceTokens) {
             try {
                 messaging.send(buildMessage(deviceToken.getToken(), payload));
+                successCount++;
             } catch (FirebaseMessagingException ex) {
+                failedCount++;
                 if (shouldDeactivateToken(ex)) {
                     deviceToken.setActive(Boolean.FALSE);
                     deviceToken.setLastSeenAt(Instant.now());
                     pushDeviceTokenRepository.save(deviceToken);
+                    log.info("Push token deactivated after FCM failure: account={}, token={}, errorCode={}",
+                            account.getUsername(), abbreviate(deviceToken.getToken()), ex.getMessagingErrorCode());
                 }
                 log.warn("Could not send FCM push to account {} token {}: {}",
                         account.getUsername(), abbreviate(deviceToken.getToken()), ex.getMessage());
             } catch (Exception ex) {
+                failedCount++;
                 log.warn("Unexpected FCM send failure for account {} token {}",
                         account.getUsername(), abbreviate(deviceToken.getToken()), ex);
             }
         }
+        log.info(
+                "Push dispatch finished: account={}, notificationId={}, successCount={}, failedCount={}",
+                account.getUsername(),
+                payload.id(),
+                successCount,
+                failedCount
+        );
     }
 
     private Message buildMessage(String token, NotifyResponse payload) {

@@ -5,6 +5,8 @@ import com.devwonder.backend.service.SepayService;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,6 +20,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class SepayWebhookController {
 
+    private static final Logger log = LoggerFactory.getLogger(SepayWebhookController.class);
+
     private final SepayService sepayService;
 
     @PostMapping
@@ -28,6 +32,13 @@ public class SepayWebhookController {
     ) {
         String effectiveToken = (queryToken != null && !queryToken.isBlank()) ? queryToken : headerToken;
         SepayService.WebhookResult result = sepayService.processWebhook(request, effectiveToken);
+        log.info(
+                "SePay webhook response: status={}, orderCode={}, transactionCode={}, message={}",
+                result.status(),
+                result.orderCode(),
+                result.transactionCode(),
+                result.message()
+        );
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("success", true);

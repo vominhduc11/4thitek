@@ -851,8 +851,8 @@ class _ForgotPasswordTexts {
       isEnglish ? 'Back to login' : 'Quay lại đăng nhập';
   String get screenTitle => isEnglish ? 'Reset password' : 'Đặt lại mật khẩu';
   String get formDescription => isEnglish
-      ? 'Enter your registered email to receive a password reset link.'
-      : 'Nhập email đăng ký để nhận liên kết đặt lại mật khẩu.';
+      ? 'Enter your registered email to receive a reset link. You will complete the password reset on the web page opened from that email.'
+      : 'Nhập email đăng ký để nhận liên kết đặt lại mật khẩu. Việc hoàn tất đặt lại mật khẩu sẽ diễn ra trên trang web mở từ email đó.';
   String get emailLabel => 'Email';
   String get emailFieldSemantic =>
       isEnglish ? 'Password reset email' : 'Email đặt lại mật khẩu';
@@ -872,16 +872,16 @@ class _ForgotPasswordTexts {
   String get checkEmailTitle =>
       isEnglish ? 'Check your email' : 'Kiểm tra email';
   String get checkEmailDescription => isEnglish
-      ? 'If the email exists in the system, we have sent a reset link.'
-      : 'Nếu email tồn tại trong hệ thống, chúng tôi đã gửi liên kết đặt lại.';
+      ? 'If the email exists in the system, we have sent a reset link. Open that link to continue on the web reset page.'
+      : 'Nếu email tồn tại trong hệ thống, chúng tôi đã gửi liên kết đặt lại. Hãy mở liên kết đó để tiếp tục trên trang web đặt lại mật khẩu.';
   String sentToLabel(String email) =>
       isEnglish ? 'Sent to: $email' : 'Đã gửi đến: $email';
   String get spamHint => isEnglish
       ? 'Please also check your Spam folder.'
       : 'Vui lòng kiểm tra cả thư rác (Spam).';
   String get linkValidityHint => isEnglish
-      ? 'The link is valid for 30 minutes.'
-      : 'Liên kết có hiệu lực trong 30 phút.';
+      ? 'The link is valid for 30 minutes and opens the canonical web reset flow.'
+      : 'Liên kết có hiệu lực trong 30 phút và sẽ mở flow web chính thức để đặt lại mật khẩu.';
   String get cooldownHint => isEnglish
       ? 'Please wait to avoid sending too many requests in a short time.'
       : 'Vui lòng đợi để tránh gửi quá nhiều yêu cầu trong thời gian ngắn.';
@@ -906,11 +906,11 @@ class _ForgotPasswordTexts {
       ? 'Something went wrong. Please try again.'
       : 'Đã có lỗi xảy ra. Vui lòng thử lại.';
   String get headerCompactSubtitle => isEnglish
-      ? 'Enter your email to receive a password reset link.'
-      : 'Nhập email để nhận liên kết đặt lại mật khẩu.';
+      ? 'Enter your email to receive a reset link, then continue on the web flow from your email.'
+      : 'Nhập email để nhận liên kết đặt lại mật khẩu, sau đó tiếp tục trên flow web từ email.';
   String get headerSubtitle => isEnglish
-      ? 'We will send password reset instructions to your email.'
-      : 'Chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu qua email.';
+      ? 'We will send password reset instructions to your email and the final step will happen on the website.'
+      : 'Chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu qua email và bước hoàn tất sẽ diễn ra trên website.';
 }
 
 class _ForgotHeader extends StatelessWidget {

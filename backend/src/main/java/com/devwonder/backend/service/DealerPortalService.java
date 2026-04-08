@@ -5,6 +5,9 @@ import com.devwonder.backend.dto.dealer.CreateDealerSerialBatchRequest;
 import com.devwonder.backend.dto.dealer.DealerCartItemResponse;
 import com.devwonder.backend.dto.dealer.DealerCartPricingSummaryResponse;
 import com.devwonder.backend.dto.dealer.DealerDiscountRuleResponse;
+import com.devwonder.backend.dto.dealer.DealerInventorySerialDetailResponse;
+import com.devwonder.backend.dto.dealer.DealerInventorySerialResponse;
+import com.devwonder.backend.dto.dealer.DealerInventorySummaryResponse;
 import com.devwonder.backend.dto.dealer.DealerOrderResponse;
 import com.devwonder.backend.dto.dealer.DealerPaymentResponse;
 import com.devwonder.backend.dto.dealer.DealerProductSerialResponse;
@@ -24,6 +27,7 @@ import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.BulkDiscount;
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.enums.DiscountRuleStatus;
+import com.devwonder.backend.entity.enums.ProductSerialStatus;
 import com.devwonder.backend.repository.BulkDiscountRepository;
 import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.service.support.DealerAccountSupport;
@@ -55,6 +59,7 @@ public class DealerPortalService {
     private final DealerProfileWriteSupport dealerProfileWriteSupport;
     private final DealerCartSupport dealerCartSupport;
     private final DealerSerialSupport dealerSerialSupport;
+    private final DealerInventoryService dealerInventoryService;
     private final DealerPaymentSupport dealerPaymentSupport;
     private final DealerWarrantySupport dealerWarrantySupport;
     private final DealerNotificationSupport dealerNotificationSupport;
@@ -305,6 +310,28 @@ public class DealerPortalService {
     public List<DealerProductSerialResponse> getSerials(String username) {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
         return dealerSerialSupport.getSerials(dealer.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public DealerInventorySummaryResponse getInventorySummary(String username) {
+        Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
+        return dealerInventoryService.getInventorySummary(dealer.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public List<DealerInventorySerialResponse> getInventorySerials(
+            String username,
+            Long productId,
+            ProductSerialStatus status
+    ) {
+        Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
+        return dealerInventoryService.getInventorySerials(dealer.getId(), productId, status);
+    }
+
+    @Transactional(readOnly = true)
+    public DealerInventorySerialDetailResponse getInventorySerialDetail(String username, Long serialId) {
+        Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
+        return dealerInventoryService.getInventorySerialDetail(dealer.getId(), serialId);
     }
 
     @Transactional

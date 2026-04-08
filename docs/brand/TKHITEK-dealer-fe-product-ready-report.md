@@ -89,7 +89,7 @@
 - `dealer/lib/orders_screen.dart`
 - `dealer/lib/order_detail_screen.dart`
 - `dealer/lib/order_success_screen.dart`
-- Debt tracking screen đã được loại khỏi runtime surface hiện hành; nếu cần đối chiếu dữ liệu cũ thì xem tài liệu historical debt rollout.
+- Debt tracking screen đã được loại khỏi runtime surface hiện hành; nếu cần đối chiếu dữ liệu cũ thì xem tài liệu `historical compatibility only`.
 - `dealer/lib/inventory_screen.dart`
 - `dealer/lib/inventory_product_detail_screen.dart`
 - `dealer/lib/account_screen.dart`
@@ -191,5 +191,5 @@
 - Không đổi pricing logic
 - Không đổi cart calculation
 - Không đổi discount logic
-- Không đổi order / payment logic; debt chỉ còn là historical compatibility note ngoài runtime flow mới
+- Không đổi order / payment invariants đã đúng; debt chỉ còn là historical compatibility note ngoài runtime flow mới
 - Không đổi data shape, controller signature hay infra

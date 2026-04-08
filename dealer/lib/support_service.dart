@@ -29,26 +29,26 @@ String resolveSupportServiceMessage(
   if (normalized == null || normalized.isEmpty) {
     return isEnglish
         ? 'Unable to sync support request.'
-        : 'Khong the dong bo yeu cau ho tro.';
+        : 'Không thể đồng bộ yêu cầu hỗ trợ.';
   }
 
   switch (normalized) {
     case 'support.message.unauthenticated':
       return isEnglish
           ? 'You need to sign in before contacting support.'
-          : 'Ban can dang nhap truoc khi lien he ho tro.';
+          : 'Bạn cần đăng nhập trước khi liên hệ hỗ trợ.';
     case 'support.message.invalidTicketPayload':
       return isEnglish
           ? 'Support ticket data is invalid.'
-          : 'Du lieu yeu cau ho tro khong hop le.';
+          : 'Dữ liệu yêu cầu hỗ trợ không hợp lệ.';
     case 'support.message.invalidTicketPagePayload':
       return isEnglish
           ? 'Support request history data is invalid.'
-          : 'Du lieu lich su yeu cau ho tro khong hop le.';
+          : 'Dữ liệu lịch sử yêu cầu hỗ trợ không hợp lệ.';
     case 'support.message.syncFailed':
       return isEnglish
           ? 'Unable to sync support request.'
-          : 'Khong the dong bo yeu cau ho tro.';
+          : 'Không thể đồng bộ yêu cầu hỗ trợ.';
     default:
       return normalized;
   }
@@ -64,6 +64,9 @@ class DealerSupportTicketRecord {
     required this.subject,
     required this.message,
     this.adminReply,
+    this.assigneeId,
+    this.assigneeName,
+    this.messages = const <SupportTicketMessageRecord>[],
     required this.createdAt,
     required this.updatedAt,
     this.resolvedAt,
@@ -78,10 +81,31 @@ class DealerSupportTicketRecord {
   final String subject;
   final String message;
   final String? adminReply;
+  final int? assigneeId;
+  final String? assigneeName;
+  final List<SupportTicketMessageRecord> messages;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? resolvedAt;
   final DateTime? closedAt;
+}
+
+class SupportTicketMessageRecord {
+  const SupportTicketMessageRecord({
+    required this.id,
+    required this.authorRole,
+    required this.authorName,
+    required this.internalNote,
+    required this.message,
+    required this.createdAt,
+  });
+
+  final int id;
+  final String authorRole;
+  final String? authorName;
+  final bool internalNote;
+  final String message;
+  final DateTime createdAt;
 }
 
 class DealerSupportTicketPage {
@@ -204,6 +228,28 @@ class SupportService {
     );
   }
 
+  Future<DealerSupportTicketRecord> submitTicketMessage({
+    required int ticketId,
+    required String message,
+  }) async {
+    final response = await _client.post(
+      DealerApiConfig.resolveApiUri('/dealer/support-tickets/$ticketId/messages'),
+      headers: await _authorizedJsonHeaders(),
+      body: jsonEncode(<String, dynamic>{'message': message.trim()}),
+    );
+    final payload = _decodeBody(response.body);
+    if (response.statusCode >= 400) {
+      throw SupportException(_extractErrorMessage(payload));
+    }
+    final data = payload['data'];
+    if (data is! Map<String, dynamic>) {
+      throw SupportException(
+        supportServiceMessageToken(SupportMessageCode.invalidTicketPayload),
+      );
+    }
+    return _mapTicket(data);
+  }
+
   void close() {
     _client.close();
   }
@@ -266,6 +312,22 @@ class SupportService {
       subject: json['subject']?.toString() ?? '',
       message: json['message']?.toString() ?? '',
       adminReply: _parseOptionalString(json['adminReply']),
+      assigneeId: _parseOptionalInt(json['assigneeId']),
+      assigneeName: _parseOptionalString(json['assigneeName']),
+      messages: (json['messages'] as List<dynamic>? ?? const <dynamic>[])
+          .whereType<Map<String, dynamic>>()
+          .map(
+            (message) => SupportTicketMessageRecord(
+              id: _parseInt(message['id']),
+              authorRole: message['authorRole']?.toString() ?? 'system',
+              authorName: _parseOptionalString(message['authorName']),
+              internalNote: message['internalNote'] == true,
+              message: message['message']?.toString() ?? '',
+              createdAt:
+                  parseApiDateTime(message['createdAt']) ?? DateTime.now(),
+            ),
+          )
+          .toList(growable: false),
       createdAt: parseApiDateTime(json['createdAt']) ?? DateTime.now(),
       updatedAt: parseApiDateTime(json['updatedAt']) ?? DateTime.now(),
       resolvedAt: parseApiDateTime(json['resolvedAt']),
@@ -289,6 +351,14 @@ class SupportService {
       return value.round();
     }
     return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  int? _parseOptionalInt(Object? value) {
+    if (value == null) {
+      return null;
+    }
+    final parsed = _parseInt(value);
+    return parsed == 0 && value.toString().trim() != '0' ? null : parsed;
   }
 }
 

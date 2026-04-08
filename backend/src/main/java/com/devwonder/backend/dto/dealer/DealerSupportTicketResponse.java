@@ -3,7 +3,9 @@ package com.devwonder.backend.dto.dealer;
 import com.devwonder.backend.entity.enums.DealerSupportCategory;
 import com.devwonder.backend.entity.enums.DealerSupportPriority;
 import com.devwonder.backend.entity.enums.DealerSupportTicketStatus;
+import com.devwonder.backend.dto.support.SupportTicketMessageResponse;
 import java.time.Instant;
+import java.util.List;
 
 public record DealerSupportTicketResponse(
         Long id,
@@ -14,6 +16,9 @@ public record DealerSupportTicketResponse(
         String subject,
         String message,
         String adminReply,
+        Long assigneeId,
+        String assigneeName,
+        List<SupportTicketMessageResponse> messages,
         Instant createdAt,
         Instant updatedAt,
         Instant resolvedAt,

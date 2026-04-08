@@ -79,8 +79,10 @@ class AdminSupportTicketNotificationTests {
                 ticket.getId(),
                 new UpdateAdminSupportTicketRequest(
                         DealerSupportTicketStatus.IN_PROGRESS,
+                        null,
                         "Admin đã tiếp nhận và đang xử lý yêu cầu của bạn."
-                )
+                ),
+                "support.admin@example.com"
         );
 
         List<Notify> notifications = notifyRepository.findByAccountIdOrderByCreatedAtDesc(dealer.getId());
@@ -98,7 +100,8 @@ class AdminSupportTicketNotificationTests {
 
         adminOperationsService.updateSupportTicket(
                 ticket.getId(),
-                new UpdateAdminSupportTicketRequest(DealerSupportTicketStatus.OPEN, null)
+                new UpdateAdminSupportTicketRequest(DealerSupportTicketStatus.OPEN, null, null),
+                "support.admin@example.com"
         );
 
         assertThat(notifyRepository.findByAccountIdOrderByCreatedAtDesc(dealer.getId())).isEmpty();

@@ -6,6 +6,7 @@ import 'app_settings_controller.dart';
 import 'breakpoints.dart';
 import 'global_search.dart';
 import 'inventory_product_detail_screen.dart';
+import 'inventory_service.dart';
 import 'models.dart';
 import 'order_controller.dart';
 import 'serial_scan_screen.dart';
@@ -38,9 +39,11 @@ class InventoryScreen extends StatefulWidget {
   const InventoryScreen({
     super.key,
     this.initialStockFilter = InventoryStockFilter.all,
+    this.inventoryService,
   });
 
   final InventoryStockFilter initialStockFilter;
+  final InventoryService? inventoryService;
 
   @override
   State<InventoryScreen> createState() => _InventoryScreenState();
@@ -50,6 +53,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   Timer? _searchDebounce;
+  late final InventoryService _inventoryService;
   OrderController? _observedOrderController;
   WarrantyController? _observedWarrantyController;
   List<InventoryProductItem> _cachedInventoryItems =
@@ -69,6 +73,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   void initState() {
     super.initState();
     _stockFilter = widget.initialStockFilter;
+    _inventoryService = widget.inventoryService ?? InventoryService();
   }
 
   @override
@@ -101,6 +106,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     _searchDebounce?.cancel();
     _observedOrderController?.removeListener(_markInventoryCacheDirty);
     _observedWarrantyController?.removeListener(_markInventoryCacheDirty);
+    _inventoryService.close();
     _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -118,13 +124,35 @@ class _InventoryScreenState extends State<InventoryScreen> {
       return;
     }
     final texts = _inventoryTexts(context);
-    final orderController = OrderScope.of(context);
-    final warrantyController = WarrantyScope.of(context);
     setState(() {
       _loadState = InventoryLoadState.loading;
       _syncWarningMessage = null;
       _loadErrorMessage = null;
     });
+    try {
+      final summary = await _inventoryService.fetchSummary();
+      if (!mounted) {
+        return;
+      }
+      _cachedInventoryItems = summary.items.map(_mapRemoteInventoryItem).toList(
+        growable: false,
+      );
+      setState(() {
+        _inventoryCacheDirty = false;
+        _syncWarningMessage = null;
+        _loadErrorMessage = null;
+        _loadState = InventoryLoadState.ready;
+      });
+      return;
+    } on InventoryException catch (error) {
+      _syncWarningMessage = resolveInventoryServiceMessage(
+        error.message,
+        isEnglish: texts.isEnglish,
+      );
+    }
+
+    final orderController = OrderScope.of(context);
+    final warrantyController = WarrantyScope.of(context);
     await Future.wait<void>([
       orderController.refresh(),
       warrantyController.load(forceRefresh: true),
@@ -134,6 +162,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }
 
     final warnings = <String>{};
+    if (_syncWarningMessage != null) {
+      warnings.add(_syncWarningMessage!);
+    }
     if (orderController.lastActionMessage != null) {
       warnings.add(
         orderControllerErrorMessage(
@@ -512,8 +543,24 @@ class _InventoryScreenState extends State<InventoryScreen> {
           issueQuantity: item.issueQuantity,
           orderIds: item.orderIds.toList(growable: false),
           latestImportedAt: item.latestImportedAt,
+          inventoryService: _inventoryService,
         ),
       ),
+    );
+  }
+
+  InventoryProductItem _mapRemoteInventoryItem(
+    DealerInventoryProductRecord record,
+  ) {
+    return InventoryProductItem(
+      product: record.product,
+      importedQuantity: record.totalSerials,
+      readyQuantity: record.readySerials,
+      warrantyQuantity: record.warrantySerials,
+      issueQuantity: record.issueSerials,
+      latestImportedAt: record.latestImportedAt,
+      orderIds: record.orderCodes.toSet(),
+      serialSearchIndex: '',
     );
   }
 

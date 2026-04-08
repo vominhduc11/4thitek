@@ -79,6 +79,19 @@ export const publicApiServer = {
             stock?: number;
             warrantyMonths?: number;
         }>(API_ENDPOINTS.PRODUCT.PRODUCT_BY_ID(id), 60, options),
+    fetchRelatedProducts: (id: string, limit = 4, options?: PublicApiRequestOptions) =>
+        fetchEnvelope<
+            Array<{
+                id: number | string;
+                name: string;
+                sku?: string;
+                shortDescription: string;
+                image: string;
+                price?: number;
+                stock?: number;
+                warrantyMonths?: number;
+            }>
+        >(`${API_ENDPOINTS.PRODUCT.PRODUCTS_RELATED(id)}?limit=${limit}`, 60, options),
     fetchLatestBlogs: (options?: PublicApiRequestOptions) =>
         fetchEnvelope<
             Array<{ id: number | string; title: string; description: string; image: string; category: string; createdAt: string }>
@@ -103,6 +116,10 @@ export const publicApiServer = {
             introduction?: string;
             showOnHomepage?: boolean;
         }>(API_ENDPOINTS.BLOG.BLOG_BY_ID(id), 1800, options),
+    fetchRelatedBlogs: (id: string, limit = 4, options?: PublicApiRequestOptions) =>
+        fetchEnvelope<
+            Array<{ id: number | string; title: string; description: string; image: string; category: string; createdAt: string }>
+        >(`${API_ENDPOINTS.BLOG.BLOGS_RELATED(id)}?limit=${limit}`, 1800, options),
     fetchContentSection: <T>(section: string, language: string, options?: PublicApiRequestOptions) =>
         fetchEnvelope<T>(API_ENDPOINTS.CONTENT.SECTION(section, language), 86400, options)
 };

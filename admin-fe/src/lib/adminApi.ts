@@ -42,6 +42,7 @@ export type BackendNotifyType = 'SYSTEM' | 'PROMOTION' | 'ORDER' | 'WARRANTY'
 export type BackendSupportPriority = 'NORMAL' | 'HIGH' | 'URGENT'
 export type BackendSupportCategory = 'ORDER' | 'WARRANTY' | 'PRODUCT' | 'PAYMENT' | 'RETURN' | 'OTHER'
 export type BackendSupportTicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED'
+export type BackendSupportMessageAuthorRole = 'dealer' | 'admin' | 'system'
 export type BackendReportExportType = 'ORDERS' | 'REVENUE' | 'WARRANTIES' | 'SERIALS'
 export type BackendReportFormat = 'XLSX' | 'PDF'
 
@@ -293,6 +294,16 @@ export type BackendSupportTicketResponse = {
   subject?: string | null
   message?: string | null
   adminReply?: string | null
+  assigneeId?: number | null
+  assigneeName?: string | null
+  messages?: Array<{
+    id: number
+    authorRole: BackendSupportMessageAuthorRole
+    authorName?: string | null
+    internalNote?: boolean | null
+    message: string
+    createdAt?: string | null
+  }> | null
   createdAt?: string | null
   updatedAt?: string | null
   resolvedAt?: string | null
@@ -995,6 +1006,7 @@ export const updateAdminSupportTicket = (
   id: number,
   body: {
     status: BackendSupportTicketStatus
+    assigneeId?: number | null
     adminReply?: string
   },
 ) =>
@@ -1002,6 +1014,21 @@ export const updateAdminSupportTicket = (
     path: `/admin/support-tickets/${id}`,
     token,
     method: 'PATCH',
+    body,
+  })
+
+export const createAdminSupportTicketMessage = (
+  token: string,
+  id: number,
+  body: {
+    message: string
+    internalNote?: boolean
+  },
+) =>
+  authorizedJsonRequest<BackendSupportTicketResponse>({
+    path: `/admin/support-tickets/${id}/messages`,
+    token,
+    method: 'POST',
     body,
   })
 

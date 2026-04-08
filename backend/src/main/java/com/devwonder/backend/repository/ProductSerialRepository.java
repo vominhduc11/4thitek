@@ -27,6 +27,41 @@ public interface ProductSerialRepository extends JpaRepository<ProductSerial, Lo
     @Query("SELECT ps FROM ProductSerial ps WHERE ps.dealer.id = :dealerId AND (ps.order IS NULL OR ps.order.status = com.devwonder.backend.entity.enums.OrderStatus.COMPLETED) ORDER BY ps.importedAt DESC")
     List<ProductSerial> findDealerInventorySerials(@Param("dealerId") Long dealerId);
 
+    @EntityGraph(attributePaths = {"product", "dealer", "order", "order.dealer", "warranty", "warranty.dealer"})
+    @Query("""
+            select ps
+            from ProductSerial ps
+            left join ps.order o
+            left join ps.warranty w
+            where (
+                (ps.dealer is not null and ps.dealer.id = :dealerId)
+                or (o is not null and o.dealer is not null and o.dealer.id = :dealerId
+                    and o.status = com.devwonder.backend.entity.enums.OrderStatus.COMPLETED)
+                or (w is not null and w.dealer is not null and w.dealer.id = :dealerId)
+            )
+            order by ps.importedAt desc
+            """)
+    List<ProductSerial> findInventoryByDealerId(@Param("dealerId") Long dealerId);
+
+    @EntityGraph(attributePaths = {"product", "dealer", "order", "order.dealer", "warranty", "warranty.dealer"})
+    @Query("""
+            select ps
+            from ProductSerial ps
+            left join ps.order o
+            left join ps.warranty w
+            where ps.id = :serialId
+              and (
+                (ps.dealer is not null and ps.dealer.id = :dealerId)
+                or (o is not null and o.dealer is not null and o.dealer.id = :dealerId
+                    and o.status = com.devwonder.backend.entity.enums.OrderStatus.COMPLETED)
+                or (w is not null and w.dealer is not null and w.dealer.id = :dealerId)
+            )
+            """)
+    Optional<ProductSerial> findInventoryByIdAndDealerId(
+            @Param("serialId") Long serialId,
+            @Param("dealerId") Long dealerId
+    );
+
     @EntityGraph(attributePaths = {"product", "dealer", "order", "warranty"})
     Page<ProductSerial> findAllByOrderByImportedAtDesc(Pageable pageable);
 

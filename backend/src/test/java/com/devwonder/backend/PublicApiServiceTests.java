@@ -18,7 +18,9 @@ import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
 import com.devwonder.backend.config.CacheNames;
+import com.devwonder.backend.entity.Blog;
 import com.devwonder.backend.service.PublicApiService;
+import com.devwonder.backend.repository.BlogRepository;
 import com.devwonder.backend.service.support.ProductStockSyncSupport;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -50,6 +52,9 @@ class PublicApiServiceTests {
     private DealerRepository dealerRepository;
 
     @Autowired
+    private BlogRepository blogRepository;
+
+    @Autowired
     private OrderRepository orderRepository;
 
     @Autowired
@@ -64,6 +69,7 @@ class PublicApiServiceTests {
         productSerialRepository.deleteAll();
         orderRepository.deleteAll();
         productRepository.deleteAll();
+        blogRepository.deleteAll();
         dealerRepository.deleteAll();
         var cache = cacheManager.getCache(CacheNames.PUBLIC_PRODUCTS);
         if (cache != null) cache.clear();
@@ -326,6 +332,31 @@ class PublicApiServiceTests {
         assertThat(results).extracting("sku").containsExactly("SQ-C2");
     }
 
+    @Test
+    void getRelatedProducts_excludesCurrentProductAndUnpublishedItems() {
+        Product anchor = saveProduct("REL-ANCHOR", "Anchor Product", null, null, PublishStatus.PUBLISHED);
+        saveProduct("REL-ONE", "Related One", null, null, PublishStatus.PUBLISHED);
+        saveProduct("REL-TWO", "Related Two", null, null, PublishStatus.PUBLISHED);
+        saveProduct("REL-DRAFT", "Related Draft", null, null, PublishStatus.DRAFT);
+
+        var results = publicApiService.getRelatedProducts(anchor.getId(), 2);
+
+        assertThat(results).hasSize(2);
+        assertThat(results).extracting("sku")
+                .doesNotContain("REL-ANCHOR", "REL-DRAFT");
+    }
+
+    @Test
+    void searchPublic_returnsProductsAndBlogsUsingDedicatedContract() {
+        saveProduct("SEARCH-PRD", "Loa Alpha", "Bluetooth alpha", null, PublishStatus.PUBLISHED);
+        blogRepository.save(createBlog("Bài viết Alpha", "Phân tích Alpha"));
+
+        var results = publicApiService.searchPublic("alpha", 4);
+
+        assertThat(results.products()).extracting("sku").containsExactly("SEARCH-PRD");
+        assertThat(results.blogs()).extracting("title").containsExactly("Bài viết Alpha");
+    }
+
     private Product saveProduct(String sku, String name, String shortDescription,
                                 BigDecimal retailPrice, PublishStatus publishStatus) {
         Product product = new Product();
@@ -345,6 +376,15 @@ class PublicApiServiceTests {
         product.setIsDeleted(false);
         product.setPublishStatus(publishStatus);
         return productRepository.save(product);
+    }
+
+    private Blog createBlog(String title, String description) {
+        Blog blog = new Blog();
+        blog.setTitle(title);
+        blog.setDescription(description);
+        blog.setStatus(com.devwonder.backend.entity.enums.BlogStatus.PUBLISHED);
+        blog.setIsDeleted(false);
+        return blog;
     }
 
     private ProductSerial createSerial(Product product, String serialValue) {

@@ -5,11 +5,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.devwonder.backend.entity.Dealer;
+import com.devwonder.backend.entity.Blog;
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.ProductSerial;
+import com.devwonder.backend.entity.enums.BlogStatus;
 import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.entity.enums.ProductSerialStatus;
 import com.devwonder.backend.entity.enums.PublishStatus;
+import com.devwonder.backend.repository.BlogRepository;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.ProductRepository;
@@ -48,6 +51,9 @@ class PublicApiContractTests {
     private DealerRepository dealerRepository;
 
     @Autowired
+    private BlogRepository blogRepository;
+
+    @Autowired
     private OrderRepository orderRepository;
 
     @BeforeEach
@@ -56,6 +62,7 @@ class PublicApiContractTests {
         productSerialRepository.deleteAll();
         orderRepository.deleteAll();
         productRepository.deleteAll();
+        blogRepository.deleteAll();
         dealerRepository.deleteAll();
     }
 
@@ -88,6 +95,41 @@ class PublicApiContractTests {
                 .andExpect(jsonPath("$.data.totalElements").value(1))
                 .andExpect(jsonPath("$.data.items.length()").value(1))
                 .andExpect(jsonPath("$.data.items[0].email").value("active-public@example.com"));
+    }
+
+    @Test
+    void relatedProductsEndpointUsesDedicatedPublishedContract() throws Exception {
+        Product anchor = productRepository.save(createProduct("PUBLIC-REL-ANCHOR"));
+        productRepository.save(createProduct("PUBLIC-REL-ONE"));
+        Product draft = createProduct("PUBLIC-REL-DRAFT");
+        draft.setPublishStatus(PublishStatus.DRAFT);
+        productRepository.save(draft);
+
+        mockMvc.perform(get("/api/v1/product/products/related/{id}", anchor.getId()).param("limit", "3"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].sku").value("PUBLIC-REL-ONE"));
+    }
+
+    @Test
+    void publicSearchEndpointReturnsProductsAndBlogs() throws Exception {
+        Product product = createProduct("PUBLIC-SEARCH-PRD");
+        product.setName("Loa Alpha");
+        productRepository.save(product);
+
+        Blog blog = new Blog();
+        blog.setTitle("Bài viết Alpha");
+        blog.setDescription("Phân tích Alpha");
+        blog.setStatus(BlogStatus.PUBLISHED);
+        blog.setIsDeleted(false);
+        blogRepository.save(blog);
+
+        mockMvc.perform(get("/api/v1/search").param("query", "alpha").param("limit", "5"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.products.length()").value(1))
+                .andExpect(jsonPath("$.data.products[0].name").value("Loa Alpha"))
+                .andExpect(jsonPath("$.data.blogs.length()").value(1))
+                .andExpect(jsonPath("$.data.blogs[0].title").value("Bài viết Alpha"));
     }
 
     private Product createProduct(String sku) {

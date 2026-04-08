@@ -5,12 +5,14 @@ import 'package:flutter/services.dart';
 
 import 'app_settings_controller.dart';
 import 'breakpoints.dart';
+import 'inventory_service.dart';
 import 'models.dart';
 import 'order_detail_screen.dart';
 import 'serial_scan_screen.dart';
 import 'utils.dart';
 import 'warranty_controller.dart';
 import 'warranty_export_screen.dart';
+import 'warranty_models.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/product_image.dart';
 
@@ -37,6 +39,7 @@ class InventoryProductDetailScreen extends StatefulWidget {
     required this.issueQuantity,
     required this.orderIds,
     required this.latestImportedAt,
+    this.inventoryService,
   });
 
   final Product product;
@@ -46,6 +49,7 @@ class InventoryProductDetailScreen extends StatefulWidget {
   final int issueQuantity;
   final List<String> orderIds;
   final DateTime latestImportedAt;
+  final InventoryService? inventoryService;
 
   @override
   State<InventoryProductDetailScreen> createState() =>
@@ -58,14 +62,20 @@ class _InventoryProductDetailScreenState
   static const int _visibleSerialStep = 40;
 
   final ScrollController _scrollController = ScrollController();
+  late final InventoryService _inventoryService;
   InventorySerialFilter _filter = InventorySerialFilter.all;
   int _visibleSerialCount = _initialVisibleSerialCount;
   int _filteredSerialCount = 0;
+  List<DealerInventorySerialRecord>? _remoteSerials;
+  String? _remoteLoadErrorMessage;
+  bool _isRemoteLoading = false;
 
   @override
   void initState() {
     super.initState();
+    _inventoryService = widget.inventoryService ?? InventoryService();
     _scrollController.addListener(_handleSerialListScroll);
+    unawaited(_loadRemoteSerials());
   }
 
   @override
@@ -73,7 +83,45 @@ class _InventoryProductDetailScreenState
     _scrollController
       ..removeListener(_handleSerialListScroll)
       ..dispose();
+    if (widget.inventoryService == null) {
+      _inventoryService.close();
+    }
     super.dispose();
+  }
+
+  Future<void> _loadRemoteSerials() async {
+    setState(() {
+      _isRemoteLoading = true;
+      _remoteLoadErrorMessage = null;
+    });
+    try {
+      final serials = await _inventoryService.fetchSerials(
+        productId: widget.product.id,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _remoteSerials = serials;
+        _remoteLoadErrorMessage = null;
+      });
+    } on InventoryException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _remoteLoadErrorMessage = resolveInventoryServiceMessage(
+          error.message,
+          isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+        );
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRemoteLoading = false;
+        });
+      }
+    }
   }
 
   void _handleSerialListScroll() {
@@ -99,7 +147,7 @@ class _InventoryProductDetailScreenState
   }
 
   Future<void> _refresh() async {
-    await Future<void>.delayed(const Duration(milliseconds: 160));
+    await _loadRemoteSerials();
     if (!mounted) {
       return;
     }
@@ -115,20 +163,25 @@ class _InventoryProductDetailScreenState
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final warrantyController = WarrantyScope.of(context);
-    final orderIdSet = widget.orderIds.toSet();
     final productSku = widget.product.sku.trim();
+    final remoteSerialByValue = <String, DealerInventorySerialRecord>{
+      for (final item in _remoteSerials ?? const <DealerInventorySerialRecord>[])
+        item.record.serial: item,
+    };
 
-    final serials = warrantyController
-        .importedSerialsForProduct(widget.product.id)
-        .where((record) => orderIdSet.contains(record.orderId))
-        .toList(growable: false);
+    final serialRecords =
+        _remoteSerials?.map((record) => record.record).toList(growable: false) ??
+        warrantyController
+            .importedSerialsForProduct(widget.product.id)
+            .where((record) => widget.orderIds.toSet().contains(record.orderId))
+            .toList(growable: false);
 
     // Compute live metrics from serial statuses (not stale widget params).
     int readyCount = 0;
     int warrantyCount = 0;
     int issueCount = 0;
     final serialStatuses = <String, ImportedSerialStatus>{};
-    for (final record in serials) {
+    for (final record in serialRecords) {
       final status = _serialStatus(record);
       serialStatuses[record.serial] = status;
       if (_isReadyStatus(status)) {
@@ -139,14 +192,14 @@ class _InventoryProductDetailScreenState
         issueCount++;
       }
     }
-    final importedCount = serials.length;
+    final importedCount = serialRecords.length;
     final canExport = readyCount > 0;
     final filterAllLabel = texts.filterAllLabel(importedCount);
     final filterReadyLabel = texts.filterReadyLabel(readyCount);
     final filterWarrantyLabel = texts.filterWarrantyLabel(warrantyCount);
     final filterIssueLabel = texts.filterIssueLabel(issueCount);
 
-    final filtered = serials
+    final filtered = serialRecords
         .where((record) {
           final status = serialStatuses[record.serial]!;
           if (_filter == InventorySerialFilter.ready &&
@@ -445,7 +498,28 @@ class _InventoryProductDetailScreenState
                   ],
                 ),
                 const SizedBox(height: _detailSectionSpacing),
-                if (serials.isEmpty)
+                if (_remoteLoadErrorMessage != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: _detailSectionSpacing),
+                    child: _SerialEmptyStateCard(
+                      icon: Icons.sync_problem_outlined,
+                      message: _remoteLoadErrorMessage!,
+                      actionLabel: texts.retryAction,
+                      onAction: _loadRemoteSerials,
+                    ),
+                  ),
+                if (_isRemoteLoading && serialRecords.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: _detailSectionSpacing),
+                    child: Center(
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  )
+                else if (serialRecords.isEmpty)
                   _SerialEmptyStateCard(
                     icon: Icons.inventory_2_outlined,
                     message: texts.noSerialsMessage,
@@ -477,6 +551,11 @@ class _InventoryProductDetailScreenState
                             );
                           },
                           onCopy: () => _copySerial(record.serial),
+                          onViewTimeline: remoteSerialByValue[record.serial] == null
+                              ? null
+                              : () => _openSerialTimeline(
+                                  remoteSerialByValue[record.serial]!,
+                                ),
                         ),
                       ),
                     );
@@ -560,6 +639,61 @@ class _InventoryProductDetailScreenState
     Clipboard.setData(ClipboardData(text: serial));
     _showSnackBar(
       _inventoryProductDetailTexts(context).copiedSerialMessage(serial),
+    );
+  }
+
+  Future<void> _openSerialTimeline(DealerInventorySerialRecord remoteRecord) async {
+    final texts = _inventoryProductDetailTexts(context);
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: FutureBuilder<DealerInventorySerialDetailRecord>(
+            future: _inventoryService.fetchSerialDetail(remoteRecord.id),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const SizedBox(
+                  height: 220,
+                  child: Center(
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                );
+              }
+
+              if (snapshot.hasError || !snapshot.hasData) {
+                final message = snapshot.error is InventoryException
+                    ? resolveInventoryServiceMessage(
+                        (snapshot.error as InventoryException).message,
+                        isEnglish: texts.isEnglish,
+                      )
+                    : texts.timelineLoadFailedMessage;
+                return Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: _SerialEmptyStateCard(
+                    icon: Icons.timeline_outlined,
+                    message: message,
+                  ),
+                );
+              }
+
+              final detail = snapshot.data!;
+              return _InventoryTimelineSheet(
+                detail: detail,
+                texts: texts,
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -728,12 +862,14 @@ class _SerialTile extends StatelessWidget {
     required this.status,
     required this.onOpenOrder,
     required this.onCopy,
+    this.onViewTimeline,
   });
 
   final ImportedSerialRecord record;
   final ImportedSerialStatus status;
   final VoidCallback onOpenOrder;
   final VoidCallback onCopy;
+  final VoidCallback? onViewTimeline;
 
   @override
   Widget build(BuildContext context) {
@@ -840,9 +976,16 @@ class _SerialTile extends StatelessWidget {
               onSelected: (value) {
                 if (value == 'copy') {
                   onCopy();
+                } else if (value == 'timeline') {
+                  onViewTimeline?.call();
                 }
               },
               itemBuilder: (_) => [
+                if (onViewTimeline != null)
+                  PopupMenuItem<String>(
+                    value: 'timeline',
+                    child: Text(texts.timelineAction),
+                  ),
                 PopupMenuItem<String>(
                   value: 'copy',
                   child: Text(texts.copySerialAction),
@@ -864,6 +1007,115 @@ class _SerialTile extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _InventoryTimelineSheet extends StatelessWidget {
+  const _InventoryTimelineSheet({
+    required this.detail,
+    required this.texts,
+  });
+
+  final DealerInventorySerialDetailRecord detail;
+  final _InventoryProductDetailTexts texts;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final serial = detail.serial.record;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 42,
+              height: 4,
+              decoration: BoxDecoration(
+                color: colorScheme.outlineVariant.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            texts.timelineTitle(serial.serial),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${serial.productName} • ${serial.productSku}',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Flexible(
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: detail.timeline.isEmpty ? 1 : detail.timeline.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (context, index) {
+                if (detail.timeline.isEmpty) {
+                  return _SerialEmptyStateCard(
+                    icon: Icons.timeline_outlined,
+                    message: texts.emptyTimelineMessage,
+                  );
+                }
+                final entry = detail.timeline[index];
+                return Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.32,
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.55),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        entry.title,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                      if (entry.occurredAt != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          formatDateTime(entry.occurredAt),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: colorScheme.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ],
+                      const SizedBox(height: 6),
+                      Text(
+                        entry.description,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -902,6 +1154,7 @@ class _InventoryProductDetailTexts {
       ? 'No serial matches the selected filter.'
       : 'Không có serial phù hợp bộ lọc.';
   String get clearFilterAction => isEnglish ? 'Clear filter' : 'Xóa bộ lọc';
+  String get retryAction => isEnglish ? 'Retry' : 'Thử lại';
   String get invalidScannedCodeMessage =>
       isEnglish ? 'The scanned code is not valid.' : 'Mã quét không hợp lệ.';
   String copiedSerialMessage(String serial) =>
@@ -924,4 +1177,15 @@ class _InventoryProductDetailTexts {
   String get serialOptionsTooltip =>
       isEnglish ? 'Serial options' : 'Tùy chọn serial';
   String get copySerialAction => isEnglish ? 'Copy serial' : 'Sao chép serial';
+  String get timelineAction =>
+      isEnglish ? 'View timeline' : 'Xem dòng thời gian';
+  String timelineTitle(String serial) => isEnglish
+      ? 'Serial timeline • $serial'
+      : 'Dòng thời gian serial • $serial';
+  String get emptyTimelineMessage => isEnglish
+      ? 'No timeline entries are available for this serial yet.'
+      : 'Chưa có mốc thời gian nào cho serial này.';
+  String get timelineLoadFailedMessage => isEnglish
+      ? 'Unable to load serial timeline right now.'
+      : 'Không thể tải dòng thời gian serial lúc này.';
 }

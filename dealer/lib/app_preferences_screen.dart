@@ -190,21 +190,22 @@ class _AppPreferencesTexts {
   String get screenTitle => isEnglish ? 'Preferences' : 'Thiết lập ứng dụng';
 
   String get heroTitle => isEnglish
-      ? 'Personalize your experience'
-      : 'Tùy chỉnh trải nghiệm sử dụng';
+      ? 'Language and app defaults'
+      : 'Ngôn ngữ và thiết lập mặc định';
 
   String get heroSubtitle => isEnglish
-      ? 'Manage language preferences while the app keeps a consistent dark interface.'
-      : 'Quản lý ngôn ngữ sử dụng trong khi ứng dụng luôn giữ giao diện tối nhất quán.';
+      ? 'Manage language preferences while the app keeps one fixed dark interface across all devices.'
+      : 'Quản lý ngôn ngữ sử dụng trong khi ứng dụng luôn giữ một giao diện tối cố định trên mọi thiết bị.';
 
-  String get appearanceTitle => isEnglish ? 'Appearance' : 'Giao diện';
+  String get appearanceTitle =>
+      isEnglish ? 'Default interface' : 'Giao diện mặc định';
 
   String get appearanceSubtitle => isEnglish
-      ? '4T HITEK Dealer now uses one optimized dark mode for consistent readability across all devices.'
-      : '4T HITEK Dealer hiện dùng một giao diện tối tối ưu để đảm bảo khả năng đọc nhất quán trên mọi thiết bị.';
+      ? '4T HITEK Dealer runs with one optimized dark interface. Theme switching is no longer available at runtime.'
+      : '4T HITEK Dealer vận hành với một giao diện tối tối ưu. Ứng dụng không còn hỗ trợ đổi theme trong runtime.';
 
   String get appearanceModeLabel =>
-      isEnglish ? 'Theme mode' : 'Chế độ hiển thị';
+      isEnglish ? 'System interface' : 'Giao diện hệ thống';
 
   String get darkModeFixedLabel => isEnglish ? 'Dark (fixed)' : 'Tối (cố định)';
 
@@ -229,7 +230,7 @@ class _AppPreferencesTexts {
       : 'Tóm tắt nhanh các thiết lập hiện đang được áp dụng trong ứng dụng.';
 
   String get summaryAppearanceLabel =>
-      isEnglish ? 'Appearance mode' : 'Chế độ giao diện';
+      isEnglish ? 'System interface' : 'Giao diện hệ thống';
 
   String get summaryLanguageLabel =>
       isEnglish ? 'Selected language' : 'Ngôn ngữ đã chọn';

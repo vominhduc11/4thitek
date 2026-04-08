@@ -2,11 +2,15 @@ package com.devwonder.backend.controller;
 
 import com.devwonder.backend.dto.ApiResponse;
 import com.devwonder.backend.dto.dealer.CreateDealerOrderRequest;
+import com.devwonder.backend.dto.dealer.CreateDealerSupportTicketMessageRequest;
 import com.devwonder.backend.dto.dealer.CreateDealerSupportTicketRequest;
 import com.devwonder.backend.dto.dealer.DealerBankTransferInstructionResponse;
 import com.devwonder.backend.dto.dealer.DealerCartItemResponse;
 import com.devwonder.backend.dto.dealer.DealerCartPricingSummaryResponse;
 import com.devwonder.backend.dto.dealer.DealerDiscountRuleResponse;
+import com.devwonder.backend.dto.dealer.DealerInventorySerialDetailResponse;
+import com.devwonder.backend.dto.dealer.DealerInventorySerialResponse;
+import com.devwonder.backend.dto.dealer.DealerInventorySummaryResponse;
 import com.devwonder.backend.dto.dealer.DealerOrderResponse;
 import com.devwonder.backend.dto.dealer.DealerPaymentResponse;
 import com.devwonder.backend.dto.dealer.DealerProductSerialResponse;
@@ -24,6 +28,7 @@ import com.devwonder.backend.dto.pagination.PagedResponse;
 import com.devwonder.backend.dto.warranty.CreateWarrantyRegistrationRequest;
 import com.devwonder.backend.dto.warranty.WarrantyRegistrationResponse;
 import com.devwonder.backend.entity.Account;
+import com.devwonder.backend.entity.enums.ProductSerialStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.service.DealerAccountLifecycleService;
 import com.devwonder.backend.service.DealerPortalService;
@@ -297,6 +302,32 @@ public class DealerController {
         return ResponseEntity.ok(ApiResponse.success(dealerPortalService.getSerials(extractUsername(authentication))));
     }
 
+    @GetMapping("/inventory/summary")
+    public ResponseEntity<ApiResponse<DealerInventorySummaryResponse>> inventorySummary(Authentication authentication) {
+        return ResponseEntity.ok(ApiResponse.success(dealerPortalService.getInventorySummary(extractUsername(authentication))));
+    }
+
+    @GetMapping("/inventory/serials")
+    public ResponseEntity<ApiResponse<List<DealerInventorySerialResponse>>> inventorySerials(
+            Authentication authentication,
+            @RequestParam(name = "productId", required = false) Long productId,
+            @RequestParam(name = "status", required = false) ProductSerialStatus status
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                dealerPortalService.getInventorySerials(extractUsername(authentication), productId, status)
+        ));
+    }
+
+    @GetMapping("/inventory/serials/{id}")
+    public ResponseEntity<ApiResponse<DealerInventorySerialDetailResponse>> inventorySerialDetail(
+            Authentication authentication,
+            @PathVariable("id") Long id
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                dealerPortalService.getInventorySerialDetail(extractUsername(authentication), id)
+        ));
+    }
+
     @PatchMapping("/serials/{id}/status")
     public ResponseEntity<ApiResponse<DealerProductSerialResponse>> updateSerialStatus(
             Authentication authentication,
@@ -331,6 +362,17 @@ public class DealerController {
             @Valid @RequestBody CreateDealerSupportTicketRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(dealerSupportTicketService.createTicket(extractUsername(authentication), request)));
+    }
+
+    @PostMapping("/support-tickets/{id}/messages")
+    public ResponseEntity<ApiResponse<DealerSupportTicketResponse>> addSupportTicketMessage(
+            Authentication authentication,
+            @PathVariable("id") Long id,
+            @Valid @RequestBody CreateDealerSupportTicketMessageRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                dealerSupportTicketService.addDealerMessage(extractUsername(authentication), id, request)
+        ));
     }
 
     @PatchMapping("/password")

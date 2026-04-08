@@ -41,11 +41,13 @@ public class BlogPublishJob {
         if (dueBlogs.isEmpty()) {
             return;
         }
+        log.info("Blog publish job started: dueCount={}", dueBlogs.size());
         for (Blog blog : dueBlogs) {
             blog.setStatus(BlogStatus.PUBLISHED);
             blog.setScheduledAt(null);
             blogRepository.save(blog);
             log.info("Auto-published scheduled blog id={}, title={}", blog.getId(), blog.getTitle());
         }
+        log.info("Blog publish job completed: publishedCount={}", dueBlogs.size());
     }
 }

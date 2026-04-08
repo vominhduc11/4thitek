@@ -148,7 +148,44 @@ class _HistoryCard extends StatelessWidget {
             item.message,
             style: theme.textTheme.bodyMedium?.copyWith(height: 1.45),
           ),
-          if (item.adminReply != null && item.adminReply!.isNotEmpty) ...[
+          if (item.messages.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              texts.threadLabel,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...item.messages
+                .where((message) => !message.internalNote)
+                .map(
+                  (message) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          texts.messageAuthorLabel(
+                            message.authorRole,
+                            message.authorName,
+                          ),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          message.message,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            height: 1.45,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+          ] else if (item.adminReply != null && item.adminReply!.isNotEmpty) ...[
             const SizedBox(height: 10),
             Text(
               texts.adminReplyLabel,
@@ -413,10 +450,24 @@ class _SupportHistoryTexts {
   String get retryLabel => isEnglish ? 'Retry' : 'Thử lại';
   String get ticketLabel => isEnglish ? 'Ticket' : 'Mã';
   String get adminReplyLabel => isEnglish ? 'Admin reply' : 'Phản hồi';
+  String get threadLabel => isEnglish ? 'Conversation' : 'Hội thoại';
   String get priorityLabel => isEnglish ? 'Priority' : 'Ưu tiên';
   String get createdLabel => isEnglish ? 'Created' : 'Tạo lúc';
   String get resolvedLabel => isEnglish ? 'Resolved' : 'Xử lý';
   String get closedLabel => isEnglish ? 'Closed' : 'Đóng';
+
+  String messageAuthorLabel(String role, String? authorName) {
+    final fallback = switch (role.trim().toLowerCase()) {
+      'dealer' => isEnglish ? 'Dealer' : 'Đại lý',
+      'admin' => 'Admin',
+      _ => isEnglish ? 'System' : 'Hệ thống',
+    };
+    final resolvedName = authorName?.trim();
+    if (resolvedName == null || resolvedName.isEmpty) {
+      return fallback;
+    }
+    return '$fallback • $resolvedName';
+  }
 
   String statusLabel(String status) {
     switch (status) {

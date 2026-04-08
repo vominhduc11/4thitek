@@ -317,8 +317,8 @@ const translations: Record<Language, TranslationMap> = {
     "2 ngày trước": "2 days ago",
     "3 ngày trước": "3 days ago",
     "5 ngày trước": "5 days ago",
-    "Quản lý đại lý, hạn mức và trạng thái mua hàng.":
-      "Manage dealers, limits, and purchase status.",
+    "Quản lý đại lý và trạng thái mua hàng.":
+      "Manage dealers and purchase status.",
     "Tìm đại lý...": "Search dealers...",
     "Thêm khách hàng": "Add customer",
     "Tổng đại lý": "Total dealers",
@@ -937,8 +937,8 @@ const translations: Record<Language, TranslationMap> = {
       "Manage post metadata, full content, cover images, and homepage visibility.",
     "Quản lý bảo mật đăng nhập, thông báo vận hành, cấu hình SePay, email gửi đi và giới hạn tốc độ theo tác vụ.":
       "Manage sign-in security, operational notifications, SePay configuration, outbound email, and task-level rate limits.",
-    "Quản lý hồ sơ đại lý, hạn mức và trạng thái kích hoạt tài khoản.":
-      "Manage dealer profiles, credit limits, and account activation status.",
+    "Quản lý hồ sơ đại lý và trạng thái kích hoạt tài khoản.":
+      "Manage dealer profiles and account activation status.",
     "Quản lý ngưỡng doanh số, phần trăm ưu đãi và trạng thái kích hoạt của từng quy tắc.":
       "Manage revenue thresholds, discount percentages, and activation status for each rule.",
     "Quản lý tài khoản admin, chức danh hiển thị nội bộ và trạng thái kích hoạt. Quyền truy cập thật chỉ dựa trên vai trò hệ thống ở backend.":

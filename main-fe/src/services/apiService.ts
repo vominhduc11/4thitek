@@ -245,11 +245,17 @@ class ApiService {
     }
 
     async fetchRelatedProducts(productId: string, limit: number = 4): Promise<ApiResponse<ProductListResponse['data']>> {
-        const response = await this.fetchProducts();
-        const related = (response.data ?? [])
-            .filter((product) => product.id !== productId)
-            .slice(0, limit);
-        return { success: true, data: related };
+        const response = await this.request<ProductSummaryPayload[]>(
+            API_ENDPOINTS.PRODUCT.PRODUCTS_RELATED(productId),
+            {
+                revalidate: 3600,
+                params: { limit }
+            }
+        );
+        return {
+            success: true,
+            data: (response.data ?? []).map((product) => this.toProductListItem(product))
+        };
     }
 
     async fetchLatestBlogs(): Promise<ApiResponse<BlogListResponse['data']>> {
@@ -399,16 +405,28 @@ class ApiService {
     }
 
     async search(query: string, limit: number = 10): Promise<ApiResponse<SearchCombinedResponse['data']>> {
-        const [productsResult, blogsResult] = await Promise.all([
-            this.searchProducts(query, limit),
-            this.searchBlogs(query, limit)
-        ]);
+        const response = await this.request<{
+            products?: ProductSummaryPayload[];
+            blogs?: BlogSummaryPayload[];
+        }>(API_ENDPOINTS.SEARCH, {
+            cache: 'no-store',
+            params: {
+                query: query.trim() || undefined,
+                limit
+            }
+        });
 
         return {
             success: true,
             data: {
-                products: productsResult.data || [],
-                blogs: blogsResult.data || []
+                products: (response.data?.products ?? []).map((product) => this.toProductListItem(product)),
+                blogs: (response.data?.blogs ?? []).map((blog) => ({
+                    id: String(blog.id),
+                    title: blog.title,
+                    description: blog.description,
+                    image: this.wrapImage(blog.image),
+                    category: blog.category
+                }))
             }
         };
     }

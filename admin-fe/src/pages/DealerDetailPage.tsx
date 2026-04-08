@@ -43,8 +43,8 @@ function DealerDetailPage() {
     return (
       <PagePanel>
         <ErrorState
-          title={t('KhĂ´ng thá»ƒ táº£i Ä‘áº¡i lĂ½')}
-          message={dealersState.error || t('KhĂ´ng táº£i Ä‘Æ°á»£c Ä‘áº¡i lĂ½')}
+          title={t('Không thể tải đại lý')}
+          message={dealersState.error || t('Không tải được đại lý')}
           onRetry={() => void reloadResource('dealers')}
         />
       </PagePanel>
@@ -55,8 +55,8 @@ function DealerDetailPage() {
     return (
       <PagePanel>
         <EmptyState
-          title={t('KhĂ´ng tĂ¬m tháº¥y Ä‘áº¡i lĂ½')}
-          message={t('Äáº¡i lĂ½ {id} khĂ´ng tá»“n táº¡i.', { id: dealerId })}
+          title={t('Không tìm thấy đại lý')}
+          message={t('Đại lý {id} không tồn tại.', { id: dealerId })}
         />
       </PagePanel>
     )
@@ -70,7 +70,7 @@ function DealerDetailPage() {
           onClick={() => navigate('/dealers')}
           type="button"
         >
-          {t('Vá» Ä‘áº¡i lĂ½')}
+          {t('Về danh sách đại lý')}
         </GhostButton>
         <StatusBadge tone={dealerStatusTone[dealer.status]}>{t(dealerStatusLabel[dealer.status])}</StatusBadge>
       </div>
@@ -91,14 +91,14 @@ function DealerDetailPage() {
           <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
               <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">Email</p>
-              <p className="mt-1 font-semibold text-[var(--ink)]">{dealer.email || 'â€”'}</p>
+              <p className="mt-1 font-semibold text-[var(--ink)]">{dealer.email || '—'}</p>
             </div>
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
               <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">Phone</p>
-              <p className="mt-1 font-semibold text-[var(--ink)]">{dealer.phone || 'â€”'}</p>
+              <p className="mt-1 font-semibold text-[var(--ink)]">{dealer.phone || '—'}</p>
             </div>
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('ÄÆ¡n hĂ ng')}</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Đơn hàng')}</p>
               <p className="mt-1 font-semibold text-[var(--ink)]">{dealer.orders}</p>
             </div>
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
@@ -108,14 +108,14 @@ function DealerDetailPage() {
           </div>
 
           <p className="mt-3 text-xs text-[var(--muted)]">
-            {t('Láº§n mua gáº§n nháº¥t')}: {formatDateTime(dealer.lastOrderAt)}
+            {t('Lần mua gần nhất')}: {formatDateTime(dealer.lastOrderAt)}
           </p>
         </div>
 
         <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-ghost)] p-5">
-          <p className="text-sm font-semibold text-[var(--ink)]">{t('Cáº­p nháº­t tráº¡ng thĂ¡i há»“ sÆ¡')}</p>
+          <p className="text-sm font-semibold text-[var(--ink)]">{t('Cập nhật trạng thái hồ sơ')}</p>
           <select
-            aria-label={t('Tráº¡ng thĂ¡i Ä‘áº¡i lĂ½ {id}', { id: dealer.id })}
+            aria-label={t('Trạng thái đại lý {id}', { id: dealer.id })}
             className={`${inputClass} mt-3 w-full`}
             onChange={async (event) => {
               const next = event.target.value as DealerStatus
@@ -126,14 +126,14 @@ function DealerDetailPage() {
               let reason: string | undefined
               if (next === 'suspended') {
                 const input = await prompt({
-                  title: t('XĂ¡c nháº­n Ä‘á»•i tráº¡ng thĂ¡i'),
-                  message: t('Chuyá»ƒn Ä‘áº¡i lĂ½ nĂ y sang tráº¡ng thĂ¡i "{status}"?', {
+                  title: t('Xác nhận đổi trạng thái'),
+                  message: t('Chuyển đại lý này sang trạng thái "{status}"?', {
                     status: t(dealerStatusLabel[next]),
                   }),
                   tone: 'danger',
                   confirmLabel: t(dealerStatusLabel[next]),
-                  inputLabel: t('LĂ½ do táº¡m khĂ³a'),
-                  inputPlaceholder: t('Nháº­p lĂ½ do táº¡m khĂ³a Ä‘áº¡i lĂ½...'),
+                  inputLabel: t('Lý do tạm khóa'),
+                  inputPlaceholder: t('Nhập lý do tạm khóa đại lý...'),
                 })
                 if (input === null) {
                   event.currentTarget.value = dealer.status
@@ -142,8 +142,8 @@ function DealerDetailPage() {
                 reason = input
               } else {
                 const approved = await confirm({
-                  title: t('XĂ¡c nháº­n Ä‘á»•i tráº¡ng thĂ¡i'),
-                  message: t('Chuyá»ƒn Ä‘áº¡i lĂ½ nĂ y sang tráº¡ng thĂ¡i "{status}"?', {
+                  title: t('Xác nhận đổi trạng thái'),
+                  message: t('Chuyển đại lý này sang trạng thái "{status}"?', {
                     status: t(dealerStatusLabel[next]),
                   }),
                   tone: 'info',
@@ -157,15 +157,15 @@ function DealerDetailPage() {
 
               try {
                 await updateDealerStatus(dealer.id, next, reason)
-                notify(t('Cáº­p nháº­t {id} -> {status}', { id: dealer.id, status: t(dealerStatusLabel[next]) }), {
-                  title: t('Äáº¡i lĂ½'),
+                notify(t('Cập nhật {id} -> {status}', { id: dealer.id, status: t(dealerStatusLabel[next]) }), {
+                  title: t('Đại lý'),
                   variant: 'info',
                 })
               } catch (error) {
                 notify(
-                  error instanceof Error ? error.message : t('KhĂ´ng cáº­p nháº­t Ä‘Æ°á»£c tráº¡ng thĂ¡i Ä‘áº¡i lĂ½'),
+                  error instanceof Error ? error.message : t('Không cập nhật được trạng thái đại lý'),
                   {
-                    title: t('Äáº¡i lĂ½'),
+                    title: t('Đại lý'),
                     variant: 'error',
                   },
                 )
@@ -187,10 +187,10 @@ function DealerDetailPage() {
           <div className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-sm text-[var(--ink)]">
             <div className="flex items-center gap-2 font-semibold text-[var(--ink)]">
               <Phone className="h-4 w-4" />
-              {t('LiĂªn há»‡ nhanh')}
+              {t('Liên hệ nhanh')}
             </div>
-            <p className="mt-2 text-xs text-[var(--muted)]">Email: {dealer.email || 'â€”'}</p>
-            <p className="text-xs text-[var(--muted)]">{t('Hotline')}: {dealer.phone || 'â€”'}</p>
+            <p className="mt-2 text-xs text-[var(--muted)]">Email: {dealer.email || '—'}</p>
+            <p className="text-xs text-[var(--muted)]">{t('Hotline')}: {dealer.phone || '—'}</p>
           </div>
         </div>
       </div>

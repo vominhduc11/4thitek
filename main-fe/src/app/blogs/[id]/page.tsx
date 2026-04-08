@@ -28,11 +28,10 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
         redirect(canonicalPath);
     }
 
-    const relatedResponse = await publicApiServer.fetchBlogs();
+    const relatedResponse = await publicApiServer.fetchRelatedBlogs(blogId, 4);
     const relatedPosts = (relatedResponse.data ?? [])
         .map((blog) => mapBlogSummaryToPost(blog))
-        .filter((blog): blog is NonNullable<typeof blog> => blog !== null && blog.id !== post.id)
-        .slice(0, 4);
+        .filter((blog): blog is NonNullable<typeof blog> => blog !== null && blog.id !== post.id);
 
     return <BlogDetailPageClient post={post} relatedPosts={relatedPosts} />;
 }

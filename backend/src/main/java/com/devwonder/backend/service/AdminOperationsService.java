@@ -6,6 +6,7 @@ import com.devwonder.backend.dto.admin.AdminSerialImportRequest;
 import com.devwonder.backend.dto.admin.AdminSerialResponse;
 import com.devwonder.backend.dto.admin.AdminSupportTicketResponse;
 import com.devwonder.backend.dto.admin.AdminWarrantyResponse;
+import com.devwonder.backend.dto.admin.CreateAdminSupportTicketMessageRequest;
 import com.devwonder.backend.dto.admin.CreateAdminNotificationRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminSerialStatusRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminSupportTicketRequest;
@@ -14,7 +15,9 @@ import com.devwonder.backend.config.CacheNames;
 import com.devwonder.backend.dto.notify.CreateNotifyRequest;
 import com.devwonder.backend.dto.serial.SerialImportSkippedItem;
 import com.devwonder.backend.dto.serial.SerialImportSummaryResponse;
+import com.devwonder.backend.dto.support.SupportTicketMessageResponse;
 import com.devwonder.backend.entity.Account;
+import com.devwonder.backend.entity.Admin;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.DealerSupportTicket;
 import com.devwonder.backend.entity.Notify;
@@ -22,15 +25,18 @@ import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.OrderItem;
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.ProductSerial;
+import com.devwonder.backend.entity.SupportTicketMessage;
 import com.devwonder.backend.entity.WarrantyRegistration;
 import com.devwonder.backend.entity.enums.DealerSupportTicketStatus;
 import com.devwonder.backend.entity.enums.NotifyType;
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.ProductSerialStatus;
+import com.devwonder.backend.entity.enums.SupportTicketMessageAuthorRole;
 import com.devwonder.backend.entity.enums.WarrantyStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ConflictException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
+import com.devwonder.backend.repository.AdminRepository;
 import com.devwonder.backend.repository.AccountRepository;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.DealerSupportTicketRepository;
@@ -68,6 +74,7 @@ public class AdminOperationsService {
     private static final Logger log = LoggerFactory.getLogger(AdminOperationsService.class);
 
     private final DealerSupportTicketRepository dealerSupportTicketRepository;
+    private final AdminRepository adminRepository;
     private final WarrantyRegistrationRepository warrantyRegistrationRepository;
     private final ProductSerialRepository productSerialRepository;
     private final ProductRepository productRepository;
@@ -88,22 +95,58 @@ public class AdminOperationsService {
     }
 
     @Transactional
-    public AdminSupportTicketResponse updateSupportTicket(Long id, UpdateAdminSupportTicketRequest request) {
+    public AdminSupportTicketResponse updateSupportTicket(
+            Long id,
+            UpdateAdminSupportTicketRequest request,
+            String actorUsername
+    ) {
         DealerSupportTicket ticket = dealerSupportTicketRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Support ticket not found"));
+        Admin actor = requireAdmin(actorUsername);
 
         DealerSupportTicketStatus previousStatus = ticket.getStatus();
         String previousReply = normalize(ticket.getAdminReply());
         DealerSupportTicketStatus nextStatus = request.status();
         assertSupportTicketTransitionAllowed(previousStatus, nextStatus);
         ticket.setStatus(nextStatus);
+        Admin previousAssignee = ticket.getAssignee();
+        ticket.setAssignee(resolveSupportAssignee(request.assigneeId()));
 
         String normalizedReply = normalize(request.adminReply());
         boolean replyProvided = request.adminReply() != null;
         if (replyProvided) {
             ticket.setAdminReply(normalizedReply);
+            if (normalizedReply != null && !Objects.equals(normalizedReply, previousReply)) {
+                ticket.addMessage(buildSupportTicketMessage(
+                        SupportTicketMessageAuthorRole.ADMIN,
+                        resolveAdminName(actor),
+                        false,
+                        normalizedReply
+                ));
+            }
         }
-        synchronizeSupportTicketTimeline(ticket, nextStatus, Instant.now());
+        Instant now = Instant.now();
+        synchronizeSupportTicketTimeline(ticket, nextStatus, now);
+        if (previousStatus != nextStatus) {
+            ticket.addMessage(buildSupportTicketMessage(
+                    SupportTicketMessageAuthorRole.SYSTEM,
+                    "System",
+                    true,
+                    "Trạng thái được cập nhật từ %s sang %s bởi %s.".formatted(
+                            buildSupportTicketStatusLabel(previousStatus),
+                            buildSupportTicketStatusLabel(nextStatus),
+                            safeValue(resolveAdminName(actor), "Admin")
+                    )
+            ));
+        }
+        if (!Objects.equals(previousAssignee == null ? null : previousAssignee.getId(), request.assigneeId())) {
+            ticket.addMessage(buildSupportTicketMessage(
+                    SupportTicketMessageAuthorRole.SYSTEM,
+                    "System",
+                    true,
+                    buildAssigneeAuditMessage(previousAssignee, ticket.getAssignee(), actor)
+            ));
+        }
 
         DealerSupportTicket saved = dealerSupportTicketRepository.save(ticket);
         Dealer dealer = saved.getDealer();
@@ -119,6 +162,47 @@ public class AdminOperationsService {
                     null
             ));
             sendSupportTicketEmailIfPossible(dealer, saved, statusChanged, replyChanged);
+        }
+        return toSupportTicketResponse(saved);
+    }
+
+    @Transactional
+    public AdminSupportTicketResponse addSupportTicketMessage(
+            Long id,
+            CreateAdminSupportTicketMessageRequest request,
+            String actorUsername
+    ) {
+        DealerSupportTicket ticket = dealerSupportTicketRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Support ticket not found"));
+        Admin actor = requireAdmin(actorUsername);
+        boolean internalNote = Boolean.TRUE.equals(request.internalNote());
+
+        ticket.addMessage(buildSupportTicketMessage(
+                SupportTicketMessageAuthorRole.ADMIN,
+                resolveAdminName(actor),
+                internalNote,
+                requireNonBlank(request.message(), "message")
+        ));
+        if (!internalNote) {
+            ticket.setAdminReply(requireNonBlank(request.message(), "message"));
+            if (ticket.getStatus() == DealerSupportTicketStatus.OPEN) {
+                ticket.setStatus(DealerSupportTicketStatus.IN_PROGRESS);
+            }
+            synchronizeSupportTicketTimeline(ticket, ticket.getStatus(), Instant.now());
+        }
+
+        DealerSupportTicket saved = dealerSupportTicketRepository.save(ticket);
+        Dealer dealer = saved.getDealer();
+        if (!internalNote && dealer != null) {
+            notificationService.create(new CreateNotifyRequest(
+                    dealer.getId(),
+                    appMessageSupport.get("notification.support.updated.title"),
+                    buildSupportTicketNotificationContent(saved, false, true),
+                    NotifyType.SYSTEM,
+                    "/support",
+                    null
+            ));
+            sendSupportTicketEmailIfPossible(dealer, saved, false, true);
         }
         return toSupportTicketResponse(saved);
     }
@@ -372,8 +456,11 @@ public class AdminOperationsService {
                 ticket.getPriority(),
                 ticket.getStatus(),
                 ticket.getSubject(),
-                ticket.getMessage(),
-                ticket.getAdminReply(),
+                resolveFirstDealerMessage(ticket.getMessages()),
+                resolveLatestAdminReply(ticket.getMessages()),
+                ticket.getAssignee() == null ? null : ticket.getAssignee().getId(),
+                ticket.getAssignee() == null ? null : resolveAdminName(ticket.getAssignee()),
+                ticket.getMessages().stream().map(this::toSupportTicketMessageResponse).toList(),
                 ticket.getCreatedAt(),
                 ticket.getUpdatedAt(),
                 ticket.getResolvedAt(),
@@ -718,6 +805,89 @@ public class AdminOperationsService {
             case RESOLVED -> "Đã giải quyết";
             case CLOSED -> "Đã đóng";
         };
+    }
+
+    private SupportTicketMessageResponse toSupportTicketMessageResponse(SupportTicketMessage message) {
+        return new SupportTicketMessageResponse(
+                message.getId(),
+                message.getAuthorRole(),
+                message.getAuthorName(),
+                Boolean.TRUE.equals(message.getInternalNote()),
+                message.getMessage(),
+                message.getCreatedAt()
+        );
+    }
+
+    private SupportTicketMessage buildSupportTicketMessage(
+            SupportTicketMessageAuthorRole authorRole,
+            String authorName,
+            boolean internalNote,
+            String message
+    ) {
+        SupportTicketMessage supportTicketMessage = new SupportTicketMessage();
+        supportTicketMessage.setAuthorRole(authorRole);
+        supportTicketMessage.setAuthorName(authorName);
+        supportTicketMessage.setInternalNote(internalNote);
+        supportTicketMessage.setMessage(message);
+        return supportTicketMessage;
+    }
+
+    private String resolveFirstDealerMessage(List<SupportTicketMessage> messages) {
+        return messages.stream()
+                .filter(message -> message.getAuthorRole() == SupportTicketMessageAuthorRole.DEALER)
+                .filter(message -> !Boolean.TRUE.equals(message.getInternalNote()))
+                .map(SupportTicketMessage::getMessage)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private String resolveLatestAdminReply(List<SupportTicketMessage> messages) {
+        String latestReply = null;
+        for (SupportTicketMessage message : messages) {
+            if (message.getAuthorRole() == SupportTicketMessageAuthorRole.ADMIN
+                    && !Boolean.TRUE.equals(message.getInternalNote())) {
+                latestReply = message.getMessage();
+            }
+        }
+        return latestReply;
+    }
+
+    private Admin resolveSupportAssignee(Long assigneeId) {
+        if (assigneeId == null) {
+            return null;
+        }
+        return adminRepository.findById(assigneeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Assignee not found"));
+    }
+
+    private Admin requireAdmin(String username) {
+        return adminRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Admin not found"));
+    }
+
+    private String resolveAdminName(Admin admin) {
+        if (admin == null) {
+            return null;
+        }
+        return firstNonBlank(admin.getDisplayName(), admin.getRoleTitle(), admin.getUsername(), admin.getEmail());
+    }
+
+    private String buildAssigneeAuditMessage(Admin previousAssignee, Admin nextAssignee, Admin actor) {
+        String actorName = safeValue(resolveAdminName(actor), "Admin");
+        if (nextAssignee == null) {
+            return "Ticket được bỏ gán người phụ trách bởi %s.".formatted(actorName);
+        }
+        if (previousAssignee == null) {
+            return "Ticket được gán cho %s bởi %s.".formatted(
+                    safeValue(resolveAdminName(nextAssignee), "Admin"),
+                    actorName
+            );
+        }
+        return "Ticket được chuyển phụ trách từ %s sang %s bởi %s.".formatted(
+                safeValue(resolveAdminName(previousAssignee), "Admin"),
+                safeValue(resolveAdminName(nextAssignee), "Admin"),
+                actorName
+        );
     }
 
     private String normalize(String value) {

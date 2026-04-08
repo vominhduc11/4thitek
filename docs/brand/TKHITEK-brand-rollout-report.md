@@ -18,12 +18,12 @@
 
 | Surface                 | Scope audited                                                                                                                                                         | Status                   | Notes                                                                                |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------ |
-| Routes / screens        | Launch, login, forgot password, dashboard, product list/detail, cart, checkout, debt tracking, orders, notifications, warranty hub/activation/export, support history | `done`                   | Material 3 theme now drives the core B2B screens and role-specific widgets.          |
+| Routes / screens        | Launch, login, forgot password, dashboard, product list/detail, cart, checkout, orders, notifications, inventory, warranty hub/activation/export, support history | `done`                   | Material 3 theme now drives the core B2B screens and role-specific widgets. Dealer debt flow is historical-only and not part of the active runtime surface. |
 | Dialogs                 | App-wide dialog theme, form dialogs, system dialogs                                                                                                                   | `inherits shared system` | Dialog styling is controlled from `main.dart` theme primitives.                      |
 | Bottom sheets           | Bottom sheet theme, mobile operational sheets                                                                                                                         | `inherits shared system` | Bottom sheets inherit the new brand surface, radius and typography rules.            |
 | Drawers                 | Dealer shell / navigation containers                                                                                                                                  | `inherits shared system` | Navigation surfaces inherit theme-level shell styling.                               |
 | Shared components       | Brand identity, section card, stock badge, support history chip                                                                                                       | `done`                   | Shared widgets now anchor the Dealer FE expression instead of local hardcoded blues. |
-| Tables                  | Operational lists, debt/order history, support history                                                                                                                | `inherits shared system` | Dense views inherit Source Sans 3, spacing and color scheme without over-branding.   |
+| Tables                  | Operational lists, order history, inventory lists, support history                                                                                                    | `inherits shared system` | Dense views inherit Source Sans 3, spacing and color scheme without over-branding.   |
 | Forms                   | Login, forgot password, checkout-adjacent actions                                                                                                                     | `done`                   | Form controls use the updated color scheme, focus ring and button hierarchy.         |
 | Loading / empty / error | Launch/loading shell and screen-level indicators                                                                                                                      | `inherits shared system` | Theme-level loading shells and component colors follow the new palette.              |
 | Navigation shell        | Home shell, nav rail, bottom nav, app bar                                                                                                                             | `done`                   | Navigation uses the same TK HiTek palette with restrained B2B emphasis.              |
@@ -91,7 +91,7 @@
 
 ### Dealer FE
 
-- Dealer no longer looks like a separate product family. It shares the same blue gradient DNA but keeps calmer surfaces and more compact emphasis for catalog/order/debt workflows.
+- Dealer no longer looks like a separate product family. It shares the same blue gradient DNA but keeps calmer surfaces and more compact emphasis for catalog, order, inventory and support workflows.
 - Theme-driven Flutter styling replaces scattered hardcoded blues in widgets and operational surfaces.
 - Support and stock states remain readable without turning the B2B app into a marketing-heavy customer surface.
 
@@ -191,7 +191,7 @@
 
 - [x] `flutter analyze` succeeds in `dealer`
 - [ ] Launch/login/forgot password shells still navigate and validate correctly
-- [ ] Dashboard, order, debt, cart and checkout flows retain behavior
+- [ ] Dashboard, order, inventory, cart and checkout flows retain behavior
 - [ ] Nav rail / bottom nav / dialogs / bottom sheets still render without overflow regressions
 - [ ] Support history and stock badges display the intended status semantics
 
@@ -205,8 +205,7 @@
 
 ## Constraints Preserved
 
-- No backend, API contract, database or infra changes
-- No route contract changes
-- No controller/service signature changes
-- No business-logic rewrite
+- Brand audit này không thay đổi backend invariants đã đúng
+- Runtime order mới vẫn là `BANK_TRANSFER` only
+- Debt chỉ còn là historical compatibility note ngoài runtime surface active
 - Brand accent priority remains blue / gradient first across all three FE

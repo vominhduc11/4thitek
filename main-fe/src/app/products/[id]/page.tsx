@@ -10,9 +10,9 @@ interface ProductPageProps {
 export default async function ProductPage({ params }: ProductPageProps) {
     const { id: rawId } = await params;
     const id = extractRouteId(rawId);
-    const [productResponse, productsResponse] = await Promise.all([
+    const [productResponse, relatedProductsResponse] = await Promise.all([
         publicApiServer.fetchProductById(id),
-        publicApiServer.fetchProducts()
+        publicApiServer.fetchRelatedProducts(id, 4)
     ]);
 
     if (!productResponse.success || !productResponse.data) {
@@ -25,9 +25,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
         redirect(canonicalPath);
     }
 
-    const initialRelatedProducts = (productsResponse.data ?? [])
-        .filter((product) => String(product.id).trim() !== id)
-        .slice(0, 4);
+    const initialRelatedProducts = relatedProductsResponse.data ?? [];
 
     return (
         <ProductPageClient

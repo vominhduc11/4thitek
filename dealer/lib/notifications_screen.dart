@@ -218,8 +218,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       title: l10n.notificationsTitle(noticeCount),
       subtitle: hasUnread
           ? (isEnglish
-                ? 'Prioritize unread updates so orders, payments, and warranty tasks do not slip.'
-                : 'Ưu tiên xử lý thông báo mới để không bỏ lỡ đơn hàng, công nợ và bảo hành.')
+                ? 'Prioritize unread updates so orders, transfer confirmations, and warranty tasks do not slip.'
+                : 'Ưu tiên xử lý thông báo mới để không bỏ lỡ đơn hàng, xác nhận chuyển khoản và bảo hành.')
           : (isEnglish
                 ? 'All notices are up to date. Pull down anytime to sync new activity.'
                 : 'Tất cả thông báo đã được cập nhật. Kéo xuống bất kỳ lúc nào để đồng bộ hoạt động mới.'),

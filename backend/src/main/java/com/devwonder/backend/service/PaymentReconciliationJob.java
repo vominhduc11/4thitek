@@ -12,6 +12,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -21,6 +23,7 @@ import org.springframework.stereotype.Component;
 public class PaymentReconciliationJob {
 
     private static final DateTimeFormatter REPORT_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm z");
+    private static final Logger log = LoggerFactory.getLogger(PaymentReconciliationJob.class);
 
     private final AdminFinancialService adminFinancialService;
     private final AdminRepository adminRepository;
@@ -35,10 +38,12 @@ public class PaymentReconciliationJob {
     )
     public void sendDailyPaymentReport() {
         if (!asyncMailService.isEnabled()) {
+            log.debug("Payment reconciliation job skipped: mail disabled");
             return;
         }
         Set<String> recipients = loadRecipients();
         if (recipients.isEmpty()) {
+            log.info("Payment reconciliation job skipped: no active admin recipients");
             return;
         }
 
@@ -55,9 +60,16 @@ public class PaymentReconciliationJob {
         long flaggedCount = payments.stream().filter(item -> Boolean.TRUE.equals(item.reviewSuggested())).count();
         String subject = "[4T HITEK] Daily bank transfer reconciliation report - " + windowStart.toLocalDate();
         String body = buildBody(windowStart, windowEnd, payments, flaggedCount);
+        log.info(
+                "Payment reconciliation job sending report: recipients={}, paymentCount={}, reviewSuggestedCount={}",
+                recipients.size(),
+                payments.size(),
+                flaggedCount
+        );
         for (String recipient : recipients) {
             asyncMailService.sendText(recipient, subject, body);
         }
+        log.info("Payment reconciliation job completed: recipients={}", recipients.size());
     }
 
     private Set<String> loadRecipients() {

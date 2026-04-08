@@ -76,6 +76,23 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("maxPrice") BigDecimal maxPrice
     );
 
+    @Query("""
+            select p
+            from Product p
+            where p.isDeleted = false
+              and p.publishStatus = :publishStatus
+              and p.id <> :productId
+            order by
+              case when p.isFeatured = true then 0 else 1 end,
+              case when p.showOnHomepage = true then 0 else 1 end,
+              p.updatedAt desc
+            """)
+    List<Product> findRelatedPublished(
+            @Param("publishStatus") PublishStatus publishStatus,
+            @Param("productId") Long productId,
+            Pageable pageable
+    );
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             select p

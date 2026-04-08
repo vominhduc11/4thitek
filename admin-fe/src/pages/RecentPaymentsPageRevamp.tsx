@@ -30,9 +30,9 @@ import {
 const PAGE_SIZE = 20;
 
 const copyKeys = {
-  title: "Review thanh toán công nợ",
+  title: "Đối soát chuyển khoản",
   description:
-    "Theo dõi các payment công nợ gần đây, lọc theo đại lý/thời gian/chứng từ và ưu tiên các khoản bị gắn cờ review.",
+    "Theo dõi các giao dịch chuyển khoản gần đây, lọc theo đại lý, thời gian và chứng từ để ưu tiên các khoản cần rà soát.",
   dealer: "Đại lý",
   allDealers: "Tất cả đại lý",
   from: "Từ thời điểm",
@@ -47,7 +47,7 @@ const copyKeys = {
   reload: "Tải lại",
   emptyTitle: "Không có payment phù hợp",
   emptyMessage: "Thử nới bộ lọc hoặc tải lại dữ liệu.",
-  loadFallback: "Không tải được danh sách payment công nợ.",
+  loadFallback: "Không tải được danh sách giao dịch chuyển khoản.",
   statTotal: "Tổng payment",
   statFlagged: "Cần review",
   order: "Đơn hàng",
@@ -56,9 +56,9 @@ const copyKeys = {
   proofFile: "Chứng từ",
   note: "Ghi chú",
   transactionCode: "Mã giao dịch",
-  paidAt: "Paid at",
-  createdAt: "Created at",
-  reviewFlag: "Review suggested",
+  paidAt: "Thanh toán lúc",
+  createdAt: "Tạo lúc",
+  reviewFlag: "Cần rà soát",
   missing: "Chưa có",
   noSelection: "Chọn một payment để xem chi tiết",
   flaggedYes: "Có",

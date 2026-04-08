@@ -5,6 +5,7 @@ import com.devwonder.backend.dto.pagination.PagedResponse;
 import com.devwonder.backend.dto.publicapi.PublicDealerResponse;
 import com.devwonder.backend.dto.publicapi.PublicProductDetailResponse;
 import com.devwonder.backend.dto.publicapi.PublicProductSummaryResponse;
+import com.devwonder.backend.dto.publicapi.PublicSearchResponse;
 import com.devwonder.backend.dto.publicapi.WarrantyLookupResponse;
 import com.devwonder.backend.service.PublicApiService;
 import java.util.List;
@@ -67,6 +68,14 @@ public class PublicController {
         return ResponseEntity.ok(ApiResponse.success(publicApiService.getProduct(id)));
     }
 
+    @GetMapping("/product/products/related/{id}")
+    public ResponseEntity<ApiResponse<List<PublicProductSummaryResponse>>> relatedProducts(
+            @PathVariable("id") Long id,
+            @RequestParam(name = "limit", defaultValue = "4") int limit
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(publicApiService.getRelatedProducts(id, limit)));
+    }
+
     @GetMapping("/user/dealer")
     public ResponseEntity<ApiResponse<Map<String, List<PublicDealerResponse>>>> dealers() {
         return ResponseEntity.ok(ApiResponse.success(Map.of("dealers", publicApiService.getDealers())));
@@ -83,5 +92,13 @@ public class PublicController {
     @GetMapping("/warranty/check/{serial}")
     public ResponseEntity<ApiResponse<WarrantyLookupResponse>> warranty(@PathVariable String serial) {
         return ResponseEntity.ok(ApiResponse.success(publicApiService.lookupWarranty(serial)));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<PublicSearchResponse>> search(
+            @RequestParam(name = "query", required = false) String query,
+            @RequestParam(name = "limit", defaultValue = "10") int limit
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(publicApiService.searchPublic(query, limit)));
     }
 }

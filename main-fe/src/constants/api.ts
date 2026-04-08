@@ -156,6 +156,8 @@ export const API_ENDPOINTS = {
         SECTION: (section: string, lang: string) => `/content/${section}?lang=${encodeURIComponent(lang)}`
     },
 
+    SEARCH: '/search',
+
     // Health check
     HEALTH: '/health'
 } as const;

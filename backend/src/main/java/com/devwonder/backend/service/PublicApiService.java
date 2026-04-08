@@ -1,22 +1,29 @@
 package com.devwonder.backend.service;
 
 import com.devwonder.backend.dto.pagination.PagedResponse;
+import com.devwonder.backend.dto.blog.PublicBlogSummaryResponse;
 import com.devwonder.backend.dto.publicapi.PublicDealerResponse;
 import com.devwonder.backend.dto.publicapi.PublicProductDetailResponse;
 import com.devwonder.backend.dto.publicapi.PublicProductSummaryResponse;
+import com.devwonder.backend.dto.publicapi.PublicSearchResponse;
 import com.devwonder.backend.dto.publicapi.WarrantyLookupResponse;
 import com.devwonder.backend.config.CacheNames;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import com.devwonder.backend.entity.Blog;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.ProductSerial;
 import com.devwonder.backend.entity.WarrantyRegistration;
+import com.devwonder.backend.entity.CategoryBlog;
+import com.devwonder.backend.entity.enums.BlogStatus;
 import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.entity.enums.PublishStatus;
 import com.devwonder.backend.entity.enums.WarrantyStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
+import com.devwonder.backend.repository.BlogRepository;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
@@ -40,6 +47,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PublicApiService {
 
     private final ProductRepository productRepository;
+    private final BlogRepository blogRepository;
     private final DealerRepository dealerRepository;
     private final WarrantyRegistrationRepository warrantyRegistrationRepository;
     private final ObjectMapper objectMapper;
@@ -99,6 +107,21 @@ public class PublicApiService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = CacheNames.PUBLIC_PRODUCT_RELATED, key = "#id + ':' + #limit")
+    public List<PublicProductSummaryResponse> getRelatedProducts(Long id, int limit) {
+        productRepository.findByIdAndIsDeletedFalseAndPublishStatus(id, PublishStatus.PUBLISHED)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+        int effectiveLimit = validateLimit(limit);
+        return productRepository.findRelatedPublished(
+                        PublishStatus.PUBLISHED,
+                        id,
+                        PageRequest.of(0, effectiveLimit)
+                ).stream()
+                .map(this::toSummary)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     @Cacheable(CacheNames.PUBLIC_DEALERS)
     public List<PublicDealerResponse> getDealers() {
         return dealerRepository.findAllByCustomerStatusOrderByCreatedAtDesc(CustomerStatus.ACTIVE).stream()
@@ -155,6 +178,17 @@ public class PublicApiService {
         var productPage = productRepository.findByIsDeletedFalseAndPublishStatusOrderByNameAsc(
                 PublishStatus.PUBLISHED, pageable);
         return PagedResponse.from(productPage.map(this::toSummary), "name");
+    }
+
+    @Transactional(readOnly = true)
+    public PublicSearchResponse searchPublic(String query, int limit) {
+        int effectiveLimit = validateLimit(limit);
+        String normalizedQuery = normalize(query);
+        List<PublicProductSummaryResponse> productResults = searchProducts(normalizedQuery, null, null).stream()
+                .limit(effectiveLimit)
+                .toList();
+        List<PublicBlogSummaryResponse> blogResults = searchBlogs(normalizedQuery, effectiveLimit);
+        return new PublicSearchResponse(productResults, blogResults);
     }
 
     private PublicProductSummaryResponse toSummary(Product product) {
@@ -297,6 +331,31 @@ public class PublicApiService {
         return normalized.toUpperCase(Locale.ROOT);
     }
 
+    private List<PublicBlogSummaryResponse> searchBlogs(String query, int limit) {
+        List<Blog> blogs = query == null
+                ? blogRepository.findByIsDeletedFalseAndStatusOrderByCreatedAtDesc(BlogStatus.PUBLISHED)
+                : blogRepository.search(query, BlogStatus.PUBLISHED);
+        return blogs.stream()
+                .limit(limit)
+                .map(this::toBlogSummary)
+                .toList();
+    }
+
+    private PublicBlogSummaryResponse toBlogSummary(Blog blog) {
+        return new PublicBlogSummaryResponse(
+                blog.getId(),
+                blog.getTitle(),
+                blog.getDescription(),
+                blog.getImage(),
+                resolveBlogCategory(blog.getCategoryBlog()),
+                blog.getCreatedAt()
+        );
+    }
+
+    private String resolveBlogCategory(CategoryBlog categoryBlog) {
+        return categoryBlog == null ? null : categoryBlog.getName();
+    }
+
     private int validatePage(int page) {
         if (page < 0) {
             throw new BadRequestException("page must be greater than or equal to 0");
@@ -309,6 +368,13 @@ public class PublicApiService {
             throw new BadRequestException("size must be greater than 0");
         }
         return Math.min(size, 100);
+    }
+
+    private int validateLimit(int limit) {
+        if (limit <= 0) {
+            throw new BadRequestException("limit must be greater than 0");
+        }
+        return Math.min(limit, 20);
     }
 
     private void validateSearchRange(Double minPrice, Double maxPrice) {

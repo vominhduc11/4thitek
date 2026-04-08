@@ -34,6 +34,7 @@ class _SupportScreenState extends State<SupportScreen> {
 
   SupportCategory _category = SupportCategory.order;
   SupportPriority _priority = SupportPriority.normal;
+  int? _lastTicketNumericId;
   String? _lastTicketId;
   DateTime? _lastSubmittedAt;
   SupportCategory? _lastCategory;
@@ -113,6 +114,7 @@ class _SupportScreenState extends State<SupportScreen> {
 
   void _applyTicket(DealerSupportTicketRecord ticket) {
     setState(() {
+      _lastTicketNumericId = ticket.id;
       _lastTicketId = ticket.ticketCode;
       _lastSubmittedAt = ticket.createdAt;
       _lastCategory = _parseCategory(ticket.category);
@@ -286,6 +288,7 @@ class _SupportScreenState extends State<SupportScreen> {
                 onClear: () {
                   setState(() {
                     _lastTicketId = null;
+                    _lastTicketNumericId = null;
                     _lastSubmittedAt = null;
                     _lastCategory = null;
                     _lastPriority = null;
@@ -439,6 +442,16 @@ class _SupportScreenState extends State<SupportScreen> {
                       : Text(texts.submitRequestAction),
                 ),
               ),
+              if (_lastTicketNumericId != null && _lastStatus != 'CLOSED') ...[
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: _isSubmitting ? null : () => _handleFollowUp(texts),
+                    child: Text(texts.followUpAction),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -671,6 +684,46 @@ class _SupportScreenState extends State<SupportScreen> {
     }
   }
 
+  Future<void> _handleFollowUp(_SupportTexts texts) async {
+    final ticketId = _lastTicketNumericId;
+    final message = _messageController.text.trim();
+    if (ticketId == null) {
+      _showSnackBar(texts.latestTicketLoadWarning);
+      return;
+    }
+    if (message.isEmpty) {
+      _showSnackBar(texts.messageOnlyRequiredMessage);
+      return;
+    }
+    if (message.length < _messageMin) {
+      _showSnackBar(texts.messageTooShortMessage(_messageMin));
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    try {
+      final ticket = await _supportService.submitTicketMessage(
+        ticketId: ticketId,
+        message: message,
+      );
+      _applyTicket(ticket);
+      _loadTicketHistory();
+      _messageController.clear();
+      _showSnackBar(texts.followUpSubmittedMessage(ticket.ticketCode));
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToTicketCard();
+      });
+    } on SupportException catch (error) {
+      _showSnackBar(
+        resolveSupportServiceMessage(error.message, isEnglish: texts.isEnglish),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
   String _toRemoteCategory(SupportCategory category) {
     switch (category) {
       case SupportCategory.order:
@@ -804,6 +857,8 @@ class _SupportTexts {
       : 'Thời gian phản hồi dự kiến: $sla';
   String get submitRequestAction =>
       isEnglish ? 'Submit request' : 'Gửi yêu cầu';
+  String get followUpAction =>
+      isEnglish ? 'Send follow-up to latest ticket' : 'Gửi bổ sung vào ticket gần nhất';
   String get cancelAction => isEnglish ? 'Cancel' : 'Hủy';
   String get cannotOpenDialerMessage => isEnglish
       ? 'Cannot open dialer. Number has been copied.'
@@ -828,9 +883,15 @@ class _SupportTexts {
   String get missingFieldsMessage => isEnglish
       ? 'Please enter both subject and description.'
       : 'Vui lòng nhập tiêu đề và nội dung.';
+  String get messageOnlyRequiredMessage => isEnglish
+      ? 'Please enter the follow-up message.'
+      : 'Vui lòng nhập nội dung bổ sung.';
   String requestSubmittedMessage(String ticketCode) => isEnglish
       ? 'Request #$ticketCode has been submitted.'
       : 'Yêu cầu #$ticketCode đã được gửi.';
+  String followUpSubmittedMessage(String ticketCode) => isEnglish
+      ? 'Follow-up sent to ticket #$ticketCode.'
+      : 'Đã gửi nội dung bổ sung vào ticket #$ticketCode.';
   String get requestSubmittedTitle =>
       isEnglish ? 'Request submitted' : 'Yêu cầu đã gửi';
   String get hideAction => isEnglish ? 'Hide' : 'Ẩn';

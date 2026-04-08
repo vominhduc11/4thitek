@@ -205,15 +205,15 @@ function SearchContent() {
                                         {t('search.page.resultsTitle')}
                                     </h1>
                                     <p className="max-w-2xl text-base leading-7 text-[var(--text-secondary)] sm:text-lg">
-                                        Search products and content in one place while keeping the same road-ready,
-                                        high-clarity TK HiTek visual language.
+                                        Tìm sản phẩm và nội dung công khai trên cùng một bề mặt, với trải nghiệm rõ ràng,
+                                        gọn và nhất quán theo ngôn ngữ TK HiTek.
                                     </p>
                                 </div>
                             </div>
 
                             <div className="flex items-center gap-3 rounded-full border border-[var(--brand-border)] bg-[rgba(7,17,27,0.62)] px-4 py-2 text-sm text-[var(--text-secondary)] shadow-[0_18px_42px_rgba(0,113,188,0.12)]">
                                 <FiFilter className="h-4 w-4 text-[var(--brand-blue)]" />
-                                <span>{filteredResults.length} results visible</span>
+                                <span>{filteredResults.length} kết quả đang hiển thị</span>
                             </div>
                         </motion.div>
 
