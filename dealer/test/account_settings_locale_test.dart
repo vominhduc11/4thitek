@@ -55,26 +55,34 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.drag(find.byType(ListView).first, const Offset(0, -1200));
+    await tester.scrollUntilVisible(
+      find.text('Lưu thay đổi'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.enterText(
+      find.byType(TextFormField).first,
+      'Đại lý A cập nhật',
+    );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Lưu thay đổi'));
+    await tester.tap(find.text('Lưu thay đổi'), warnIfMissed: false);
     await tester.pumpAndSettle();
 
-    expect(find.text('Khong the luu ho so dai ly.'), findsOneWidget);
+    expect(find.text('Không thể lưu hồ sơ đại lý.'), findsOneWidget);
   });
 }
 
 const DealerProfile _sampleProfile = DealerProfile(
-  businessName: 'Dai ly A',
+  businessName: 'Đại lý A',
   contactName: 'Nguyen Van A',
   email: 'dealer@example.com',
   phone: '0901234567',
-  addressLine: '123 Duong A',
-  ward: 'Phuong 1',
-  district: 'Quan 1',
+  addressLine: '123 Đường A',
+  ward: 'Phường 1',
+  district: 'Quận 1',
   city: 'TP HCM',
-  country: 'Viet Nam',
-  salesPolicy: 'Chinh sach A',
+  country: 'Việt Nam',
+  salesPolicy: 'Chính sách A',
   vatPercent: 8,
 );
 

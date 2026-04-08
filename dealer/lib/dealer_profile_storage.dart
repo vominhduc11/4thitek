@@ -30,30 +30,30 @@ String resolveDealerProfileStorageMessage(
   if (normalized == null || normalized.isEmpty) {
     return isEnglish
         ? 'Unable to load dealer profile.'
-        : 'Khong the tai ho so dai ly.';
+        : 'Không thể tải hồ sơ đại lý.';
   }
 
   switch (normalized) {
     case 'dealer.profile.message.loadFailed':
       return isEnglish
           ? 'Unable to load dealer profile.'
-          : 'Khong the tai ho so dai ly.';
+          : 'Không thể tải hồ sơ đại lý.';
     case 'dealer.profile.message.saveFailed':
       return isEnglish
           ? 'Unable to save dealer profile.'
-          : 'Khong the luu ho so dai ly.';
+          : 'Không thể lưu hồ sơ đại lý.';
     case 'dealer.profile.message.invalidPayload':
       return isEnglish
           ? 'Dealer profile data is invalid.'
-          : 'Du lieu ho so dai ly khong hop le.';
+          : 'Dữ liệu hồ sơ đại lý không hợp lệ.';
     case 'dealer.profile.message.unauthenticated':
       return isEnglish
           ? 'You need to sign in before updating your profile.'
-          : 'Ban can dang nhap truoc khi cap nhat ho so.';
+          : 'Bạn cần đăng nhập trước khi cập nhật hồ sơ.';
     case 'dealer.profile.message.temporaryAvatarUnsupported':
       return isEnglish
           ? 'Temporary avatar data is not supported. Please upload the image again.'
-          : 'Avatar tam thoi khong duoc ho tro. Vui long tai anh len lai.';
+          : 'Avatar tạm thời không được hỗ trợ. Vui lòng tải ảnh lên lại.';
     default:
       return normalized;
   }

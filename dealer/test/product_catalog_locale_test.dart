@@ -21,7 +21,7 @@ void main() {
         productCatalogMessageToken(ProductCatalogMessageCode.syncFailed),
         isEnglish: false,
       ),
-      'Khong the tai du lieu san pham.',
+      'Không thể tải dữ liệu sản phẩm.',
     );
   });
 

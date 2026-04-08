@@ -30,10 +30,10 @@ void main() {
     await tester.pumpWidget(_buildApp(const Locale('vi')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Dang nhap dai ly'), findsOneWidget);
-    expect(find.text('Ghi nho email'), findsOneWidget);
-    expect(find.text('Quen mat khau?'), findsWidgets);
-    expect(find.text('Dang nhap'), findsOneWidget);
+    expect(find.text('Đăng nhập đại lý'), findsOneWidget);
+    expect(find.text('Ghi nhớ email'), findsOneWidget);
+    expect(find.text('Quên mật khẩu?'), findsWidgets);
+    expect(find.text('Đăng nhập'), findsOneWidget);
   });
 
   testWidgets('Login screen localizes auth service error in English', (
@@ -101,7 +101,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.text('Khong the ket noi may chu. Vui long thu lai.'),
+      find.text('Không thể kết nối máy chủ. Vui lòng thử lại.'),
       findsOneWidget,
     );
   });

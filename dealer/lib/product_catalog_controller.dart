@@ -27,34 +27,34 @@ String resolveProductCatalogMessage(String? message, {required bool isEnglish}) 
   if (normalized == null || normalized.isEmpty) {
     return isEnglish
         ? 'Unable to load product data.'
-        : 'Khong the tai du lieu san pham.';
+        : 'Không thể tải dữ liệu sản phẩm.';
   }
 
   switch (normalized) {
     case 'product.catalog.message.apiNotConfigured':
       return isEnglish
           ? 'API backend is not configured.'
-          : 'Chua cau hinh API backend.';
+          : 'Chưa cấu hình API backend.';
     case 'product.catalog.message.syncFailed':
       return isEnglish
           ? 'Unable to load product data.'
-          : 'Khong the tai du lieu san pham.';
+          : 'Không thể tải dữ liệu sản phẩm.';
     case 'product.catalog.message.invalidProductPayload':
       return isEnglish
           ? 'Product data is invalid.'
-          : 'Du lieu san pham khong hop le.';
+          : 'Dữ liệu sản phẩm không hợp lệ.';
     case 'product.catalog.message.invalidPaginatedPayload':
       return isEnglish
           ? 'Paginated product data is invalid.'
-          : 'Du lieu phan trang san pham khong hop le.';
+          : 'Dữ liệu phân trang sản phẩm không hợp lệ.';
     case 'product.catalog.message.invalidProductDetailPayload':
       return isEnglish
           ? 'Product detail data is invalid.'
-          : 'Du lieu chi tiet san pham khong hop le.';
+          : 'Dữ liệu chi tiết sản phẩm không hợp lệ.';
     case 'product.catalog.message.productNotFoundInCatalog':
       return isEnglish
           ? 'Product is not available in the catalog.'
-          : 'San pham khong ton tai trong danh muc.';
+          : 'Sản phẩm không tồn tại trong danh mục.';
     default:
       return normalized;
   }

@@ -18,7 +18,7 @@ void main() {
         supportServiceMessageToken(SupportMessageCode.syncFailed),
         isEnglish: false,
       ),
-      'Khong the dong bo yeu cau ho tro.',
+      'Không thể đồng bộ yêu cầu hỗ trợ.',
     );
   });
 

@@ -155,7 +155,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!hasBackendApi()) {
         return {
           ok: false,
-          message: "Chua cau hinh VITE_API_BASE_URL",
+          message: "Chưa cấu hình VITE_API_BASE_URL",
         };
       }
 
@@ -186,7 +186,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       ) {
         return {
           ok: false,
-          message: payloadData?.error || "Dang nhap that bai",
+          message: payloadData?.error || "Đăng nhập thất bại",
           code: payloadData?.errorCode || undefined,
         };
       }

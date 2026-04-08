@@ -6,10 +6,10 @@ import { SITE_URL } from '@/lib/site';
 export const metadata: Metadata = createBaseMetadata({
     locale: 'vi',
     path: '/about',
-    title: '4T HITEK | Ve chung toi',
+    title: '4T HITEK | Về chúng tôi',
     description:
-        'Tim hieu ve 4T HITEK - nha phan phoi chinh hang tai nghe SCS tai Viet Nam. Su menh, gia tri cot loi va cam ket chat luong voi khach hang.',
-    keywords: ['ve 4T HITEK', 'gioi thieu 4T HITEK', 'nha phan phoi SCS', 'tai nghe SCS Viet Nam', 'cong ty 4T HITEK']
+        'Tìm hiểu về 4T HITEK, nhà phân phối chính hãng tai nghe SCS tại Việt Nam. Sứ mệnh, giá trị cốt lõi và cam kết chất lượng với khách hàng.',
+    keywords: ['về 4T HITEK', 'giới thiệu 4T HITEK', 'nhà phân phối SCS', 'tai nghe SCS Việt Nam', 'công ty 4T HITEK']
 });
 
 export default function AboutLayout({ children }: { children: React.ReactNode }) {
@@ -17,8 +17,8 @@ export default function AboutLayout({ children }: { children: React.ReactNode })
         <>
             <JsonLd
                 data={breadcrumbJsonLd([
-                    { name: 'Trang chu', url: SITE_URL },
-                    { name: 'Ve chung toi', url: `${SITE_URL}/about` }
+                    { name: 'Trang chủ', url: SITE_URL },
+                    { name: 'Về chúng tôi', url: `${SITE_URL}/about` }
                 ])}
             />
             {children}

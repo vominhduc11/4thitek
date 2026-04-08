@@ -8,8 +8,8 @@ export const metadata: Metadata = createBaseMetadata({
     path: '/blogs',
     title: '4T HITEK | Tin tuc & Bai viet',
     description:
-        'Cap nhat tin tuc san pham tai nghe SCS moi nhat, huong dan su dung chuyen sau va bai viet cong nghe tu 4T HITEK.',
-    keywords: ['tin tuc 4T HITEK', 'bai viet tai nghe SCS', 'huong dan tai nghe', 'cong nghe am thanh', 'review tai nghe SCS']
+        'Cập nhật tin tức sản phẩm tai nghe SCS mới nhất, hướng dẫn sử dụng chuyên sâu và bài viết công nghệ từ 4T HITEK.',
+    keywords: ['tin tức 4T HITEK', 'bài viết tai nghe SCS', 'hướng dẫn tai nghe', 'công nghệ âm thanh', 'review tai nghe SCS']
 });
 
 export default function BlogsLayout({ children }: { children: React.ReactNode }) {
@@ -17,7 +17,7 @@ export default function BlogsLayout({ children }: { children: React.ReactNode })
         <>
             <JsonLd
                 data={breadcrumbJsonLd([
-                    { name: 'Trang chu', url: SITE_URL },
+                    { name: 'Trang chủ', url: SITE_URL },
                     { name: 'Tin tuc & Bai viet', url: `${SITE_URL}/blogs` }
                 ])}
             />

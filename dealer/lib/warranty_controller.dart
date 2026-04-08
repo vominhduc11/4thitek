@@ -33,27 +33,27 @@ String warrantySerialValidationMessage(
 }) {
   switch (code) {
     case WarrantySerialValidationErrorCode.invalidSerial:
-      return isEnglish ? 'Serial is invalid.' : 'Serial khong hop le.';
+      return isEnglish ? 'Serial is invalid.' : 'Serial không hợp lệ.';
     case WarrantySerialValidationErrorCode.notImported:
       return isEnglish
           ? 'Serial $serial is not available in inventory.'
-          : 'Serial $serial chua duoc nhap kho.';
+          : 'Serial $serial chưa được nhập kho.';
     case WarrantySerialValidationErrorCode.wrongProduct:
       return isEnglish
           ? 'Serial $serial does not belong to product $productName.'
-          : 'Serial $serial khong thuoc san pham $productName.';
+          : 'Serial $serial không thuộc sản phẩm $productName.';
     case WarrantySerialValidationErrorCode.wrongOrder:
       return isEnglish
           ? 'Serial $serial belongs to order $actualOrderId, not order $expectedOrderId.'
-          : 'Serial $serial thuoc don $actualOrderId, khong thuoc don $expectedOrderId.';
+          : 'Serial $serial thuộc đơn $actualOrderId, không thuộc đơn $expectedOrderId.';
     case WarrantySerialValidationErrorCode.alreadyActivated:
       return isEnglish
           ? 'Serial $serial was already activated.'
-          : 'Serial $serial da duoc kich hoat truoc do.';
+          : 'Serial $serial đã được kích hoạt trước đó.';
     case WarrantySerialValidationErrorCode.invalidOrderState:
       return isEnglish
           ? 'Serial $serial is not linked to a completed order yet.'
-          : 'Serial $serial chua thuoc don da hoan thanh.';
+          : 'Serial $serial chưa thuộc đơn đã hoàn thành.';
   }
 }
 
@@ -1170,7 +1170,7 @@ class WarrantyController extends ChangeNotifier {
 
   String _extractErrorMessage(
     Map<String, dynamic> payload, {
-    String fallback = 'Khong the dong bo du lieu.',
+    String fallback = 'Không thể đồng bộ dữ liệu.',
   }) {
     final error = payload['error']?.toString();
     if (error != null && error.trim().isNotEmpty) {

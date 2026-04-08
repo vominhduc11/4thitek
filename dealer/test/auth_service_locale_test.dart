@@ -18,7 +18,7 @@ void main() {
         authServiceMessageToken(AuthMessageCode.serverUnavailable),
         isEnglish: false,
       ),
-      'Khong the ket noi may chu. Vui long thu lai.',
+      'Không thể kết nối máy chủ. Vui lòng thử lại.',
     );
   });
 
@@ -35,7 +35,7 @@ void main() {
         authServiceMessageToken(AuthMessageCode.passwordResetLinkSent),
         isEnglish: false,
       ),
-      'Neu email ton tai trong he thong, chung toi da gui lien ket dat lai.',
+      'Nếu email tồn tại trong hệ thống, chúng tôi đã gửi liên kết đặt lại.',
     );
   });
 

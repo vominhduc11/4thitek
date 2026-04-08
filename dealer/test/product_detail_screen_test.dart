@@ -64,13 +64,13 @@ void main() {
     await tester.pump(const Duration(milliseconds: 450));
     await tester.pumpAndSettle();
 
-    expect(find.text('Gia dai ly'), findsOneWidget);
-    expect(find.text('Chua gom VAT'), findsWidgets);
-    expect(find.text('Thong tin nhanh'), findsOneWidget);
-    expect(find.text('Mo ta chi tiet'), findsOneWidget);
-    expect(find.text('Video san pham'), findsOneWidget);
-    expect(find.text('Thong so ky thuat'), findsOneWidget);
-    expect(find.text('Them vao gio'), findsOneWidget);
+    expect(find.text('Giá đại lý'), findsOneWidget);
+    expect(find.text('Chưa gồm VAT'), findsWidgets);
+    expect(find.text('Thông tin nhanh'), findsOneWidget);
+    expect(find.text('Mô tả chi tiết'), findsOneWidget);
+    expect(find.text('Video sản phẩm'), findsOneWidget);
+    expect(find.text('Thông số kỹ thuật'), findsOneWidget);
+    expect(find.text('Thêm vào giỏ'), findsOneWidget);
     expect(find.text('Mua ngay'), findsOneWidget);
   });
 }

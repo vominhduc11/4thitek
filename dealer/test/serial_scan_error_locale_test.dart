@@ -18,7 +18,7 @@ void main() {
         SerialScanErrorCode.cannotReadSerialFromImage,
         isEnglish: false,
       ),
-      'Khong the doc ma tu anh. Vui long thu lai.',
+      'Không thể đọc mã từ ảnh. Vui lòng thử lại.',
     );
   });
 
@@ -35,7 +35,7 @@ void main() {
         platformCode: 'photo_access_denied',
         isEnglish: false,
       ),
-      'Khong co quyen truy cap thu vien anh. Hay cap quyen roi thu lai.',
+      'Không có quyền truy cập thư viện ảnh. Hãy cấp quyền rồi thử lại.',
     );
   });
 
@@ -52,7 +52,7 @@ void main() {
         platformCode: 'already_active',
         isEnglish: false,
       ),
-      'Thu vien anh dang mo. Vui long cho trong giay lat.',
+      'Thư viện ảnh đang mở. Vui lòng chờ trong giây lát.',
     );
   });
 
@@ -69,7 +69,7 @@ void main() {
         platformCode: 'unexpected_native_error',
         isEnglish: false,
       ),
-      'Khong the mo thu vien anh. Vui long thu lai.',
+      'Không thể mở thư viện ảnh. Vui lòng thử lại.',
     );
   });
 }

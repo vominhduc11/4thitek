@@ -1144,13 +1144,13 @@ class _OrderDetailTexts {
 
   String paymentChannelDisplay(String value) {
     final normalized = value.trim().toLowerCase();
-    if (normalized.contains('chuy???n kho???n') ||
+    if (normalized.contains('chuyển khoản') ||
         normalized.contains('transfer') ||
         normalized.contains('bank')) {
-      return isEnglish ? 'Bank transfer' : 'Chuy???n kho???n';
+      return isEnglish ? 'Bank transfer' : 'Chuyển khoản';
     }
-    if (normalized.contains('ti???n m???t') || normalized.contains('cash')) {
-      return isEnglish ? 'Cash' : 'Ti???n m???t';
+    if (normalized.contains('tiền mặt') || normalized.contains('cash')) {
+      return isEnglish ? 'Cash' : 'Tiền mặt';
     }
     return value;
   }
@@ -1582,13 +1582,13 @@ class _PaymentHistoryTile extends StatelessWidget {
 
   IconData _iconForChannel(String channel) {
     final normalized = channel.toLowerCase();
-    if (normalized.contains('chuy???n kho???n') ||
+    if (normalized.contains('chuyển khoản') ||
         normalized.contains('transfer') ||
         normalized.contains('bank')) {
-      return Icons.account_balance_outlined;
+        return Icons.account_balance_outlined;
     }
-    if (normalized.contains('ti???n m???t') || normalized.contains('cash')) {
-      return Icons.money_outlined;
+    if (normalized.contains('tiền mặt') || normalized.contains('cash')) {
+        return Icons.money_outlined;
     }
     return Icons.payments_outlined;
   }

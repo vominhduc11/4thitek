@@ -4,10 +4,10 @@ import { createBaseMetadata } from '@/lib/seo';
 export const metadata: Metadata = createBaseMetadata({
     locale: 'vi',
     path: '/',
-    title: '4T HITEK | Trang chu',
+    title: '4T HITEK | Trang chủ',
     description:
-        'Kham pha san pham tai nghe SCS chinh hang, tin tuc moi nhat va he sinh thai 4T HITEK. Nha phan phoi chinh hang tai nghe SCS tai Viet Nam.',
-    keywords: ['4T HITEK', 'tai nghe SCS', 'tai nghe chinh hang', 'SCS headset', 'trang chu 4T HITEK']
+        'Khám phá sản phẩm tai nghe SCS chính hãng, tin tức mới nhất và hệ sinh thái 4T HITEK. Nhà phân phối chính hãng tai nghe SCS tại Việt Nam.',
+    keywords: ['4T HITEK', 'tai nghe SCS', 'tai nghe chính hãng', 'SCS headset', 'trang chủ 4T HITEK']
 });
 
 export default function HomeLayout({ children }: { children: React.ReactNode }) {

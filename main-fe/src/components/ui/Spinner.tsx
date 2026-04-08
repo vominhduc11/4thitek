@@ -77,7 +77,7 @@ export default function Spinner({
     return content;
 }
 
-export const PageSpinner = () => <Spinner variant="hash" size="lg" fullScreen message="Dang tai..." />;
+export const PageSpinner = () => <Spinner variant="hash" size="lg" fullScreen message="Đang tải..." />;
 
 export const ButtonSpinner = ({ className = '' }: { className?: string }) => (
     <Spinner variant="clip" size="sm" className={className} />

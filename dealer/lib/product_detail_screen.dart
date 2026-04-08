@@ -2286,112 +2286,112 @@ class _ProductDetailTexts {
 
   final bool isEnglish;
 
-  String get addToCartTitle => isEnglish ? 'Add to cart' : 'Them vao gio';
-  String get addToCartAction => isEnglish ? 'Add' : 'Them';
+  String get addToCartTitle => isEnglish ? 'Add to cart' : 'Thêm vào giỏ';
+  String get addToCartAction => isEnglish ? 'Add' : 'Thêm';
   String get buyNowTitle => isEnglish ? 'Buy now' : 'Mua ngay';
-  String get continueAction => isEnglish ? 'Continue' : 'Tiep tuc';
-  String get cancelAction => isEnglish ? 'Cancel' : 'Huy';
-  String get viewCartAction => isEnglish ? 'View cart' : 'Mo gio hang';
-  String get dealerPriceLabel => isEnglish ? 'Dealer price' : 'Gia dai ly';
-  String get vatExcludedLabel => isEnglish ? 'Excludes VAT' : 'Chua gom VAT';
+  String get continueAction => isEnglish ? 'Continue' : 'Tiếp tục';
+  String get cancelAction => isEnglish ? 'Cancel' : 'Hủy';
+  String get viewCartAction => isEnglish ? 'View cart' : 'Mở giỏ hàng';
+  String get dealerPriceLabel => isEnglish ? 'Dealer price' : 'Giá đại lý';
+  String get vatExcludedLabel => isEnglish ? 'Excludes VAT' : 'Chưa gồm VAT';
   String skuLabel(String sku) => 'SKU: $sku';
   String get technicalSpecsTitle =>
-      isEnglish ? 'Technical specifications' : 'Thong so ky thuat';
+      isEnglish ? 'Technical specifications' : 'Thông số kỹ thuật';
   String get syncingCartMessage => isEnglish
       ? 'Cart is syncing for this product.'
-      : 'Gio hang dang dong bo cho san pham nay.';
+      : 'Giỏ hàng đang đồng bộ cho sản phẩm này.';
   String get outOfStockMessage =>
-      isEnglish ? 'This product is out of stock.' : 'San pham da het hang.';
+      isEnglish ? 'This product is out of stock.' : 'Sản phẩm đã hết hàng.';
   String get cartLimitReachedMessage => isEnglish
       ? 'Cart quantity limit has been reached.'
-      : 'Da dat gioi han so luong trong gio.';
+      : 'Đã đạt giới hạn số lượng trong giỏ.';
   String get stockLimitReachedMessage => isEnglish
       ? 'Product has reached the stock limit.'
-      : 'San pham da dat gioi han ton kho.';
+      : 'Sản phẩm đã đạt giới hạn tồn kho.';
   String get maxStockMessage => isEnglish
       ? 'Product is out of stock or the cart limit has been reached.'
-      : 'San pham da het hang hoac da dat gioi han trong gio.';
+      : 'Sản phẩm đã hết hàng hoặc đã đạt giới hạn trong giỏ.';
   String addedToCartMessage(String productName, int quantity) => isEnglish
       ? 'Added $productName (x$quantity) to cart.'
-      : 'Da them $productName (x$quantity) vao gio hang.';
+      : 'Đã thêm $productName (x$quantity) vào giỏ hàng.';
   String quantityRangeLabel(int minQuantity, int maxQuantity) => isEnglish
       ? 'Minimum: $minQuantity • Maximum: $maxQuantity'
-      : 'Toi thieu: $minQuantity • Toi da: $maxQuantity';
+      : 'Tối thiểu: $minQuantity • Tối đa: $maxQuantity';
   String quantityInCartMessage(int quantity) => isEnglish
       ? 'You already have $quantity in the cart.'
-      : 'Ban da co $quantity trong gio.';
+      : 'Bạn đã có $quantity trong giỏ.';
   String minimumQuantityMessage(int quantity) => isEnglish
       ? 'Minimum quantity: $quantity'
-      : 'So luong toi thieu: $quantity';
+      : 'Số lượng tối thiểu: $quantity';
   String get maximumByStockMessage => isEnglish
       ? 'Maximum quantity reached based on stock.'
-      : 'Da dat toi da theo ton kho.';
-  String get statusLabel => isEnglish ? 'Status' : 'Trang thai';
-  String get outOfStockShortLabel => isEnglish ? 'Out of stock' : 'Het hang';
-  String get lowStockShortLabel => isEnglish ? 'Low stock' : 'Sap het';
-  String get inStockShortLabel => isEnglish ? 'In stock' : 'Con hang';
+      : 'Đã đạt tối đa theo tồn kho.';
+  String get statusLabel => isEnglish ? 'Status' : 'Trạng thái';
+  String get outOfStockShortLabel => isEnglish ? 'Out of stock' : 'Hết hàng';
+  String get lowStockShortLabel => isEnglish ? 'Low stock' : 'Sắp hết';
+  String get inStockShortLabel => isEnglish ? 'In stock' : 'Còn hàng';
   String get lowStockCompactLabel =>
-      isEnglish ? 'Limited stock' : 'Con it hang';
+      isEnglish ? 'Limited stock' : 'Còn ít hàng';
   String lowStockBadge(int remainingStock) =>
-      isEnglish ? 'Low stock: $remainingStock' : 'Sap het: $remainingStock';
+      isEnglish ? 'Low stock: $remainingStock' : 'Sắp hết: $remainingStock';
   String inStockBadge(int remainingStock) =>
-      isEnglish ? 'In stock: $remainingStock' : 'Con hang: $remainingStock';
-  String get stockLabel => isEnglish ? 'Stock' : 'Ton kho';
-  String get readyToAddLabel => isEnglish ? 'Ready to add' : 'Them duoc ngay';
+      isEnglish ? 'In stock: $remainingStock' : 'Còn hàng: $remainingStock';
+  String get stockLabel => isEnglish ? 'Stock' : 'Tồn kho';
+  String get readyToAddLabel => isEnglish ? 'Ready to add' : 'Thêm được ngay';
   String readyToAddValue(int quantity) =>
-      isEnglish ? '$quantity products' : '$quantity san pham';
-  String get warrantyLabel => isEnglish ? 'Warranty' : 'Bao hanh';
+      isEnglish ? '$quantity products' : '$quantity sản phẩm';
+  String get warrantyLabel => isEnglish ? 'Warranty' : 'Bảo hành';
   String warrantyMonthsValue(int months) =>
-      isEnglish ? '$months months' : '$months thang';
+      isEnglish ? '$months months' : '$months tháng';
   String get quickInfoTitle =>
-      isEnglish ? 'Quick information' : 'Thong tin nhanh';
+      isEnglish ? 'Quick information' : 'Thông tin nhanh';
   String get quickInfoDescription => isEnglish
       ? 'Key indicators to make ordering decisions faster.'
-      : 'Chi so quan trong de ra quyet dinh dat hang nhanh.';
+      : 'Chỉ số quan trọng để ra quyết định đặt hàng nhanh.';
   String quantityInCartBanner(int quantity) => isEnglish
       ? '$quantity products are already in your cart.'
-      : 'Da co $quantity san pham trong gio';
+      : 'Đã có $quantity sản phẩm trong giỏ';
   String get detailedDescriptionTitle =>
-      isEnglish ? 'Detailed description' : 'Mo ta chi tiet';
+      isEnglish ? 'Detailed description' : 'Mô tả chi tiết';
   String get noDetailedDescriptionMessage => isEnglish
       ? 'No detailed description is available yet.'
-      : 'Chua co mo ta chi tiet.';
+      : 'Chưa có mô tả chi tiết.';
   String get productVideosTitle =>
-      isEnglish ? 'Product videos' : 'Video san pham';
+      isEnglish ? 'Product videos' : 'Video sản phẩm';
   String get noProductVideosMessage => isEnglish
       ? 'No videos are available for this product yet.'
-      : 'Chua co video cho san pham nay.';
+      : 'Chưa có video cho sản phẩm này.';
   String get defaultVideoTitle => isEnglish ? 'Video' : 'Video';
   String get invalidProductVideoMessage => isEnglish
       ? 'No valid video was found for this product.'
-      : 'Khong tim thay video hop le cho san pham nay.';
+      : 'Không tìm thấy video hợp lệ cho sản phẩm này.';
   String get cannotPlayVideoNowMessage => isEnglish
       ? 'Cannot play this video right now. Please try again later.'
-      : 'Khong the phat video luc nay. Vui long thu lai sau.';
+      : 'Không thể phát video lúc này. Vui lòng thử lại sau.';
   String get invalidVideoLinkMessage =>
-      isEnglish ? 'The video link is invalid.' : 'Link video khong hop le.';
+      isEnglish ? 'The video link is invalid.' : 'Link video không hợp lệ.';
   String get cannotOpenVideoNowMessage => isEnglish
       ? 'Cannot open the video right now.'
-      : 'Khong the mo video luc nay.';
+      : 'Không thể mở video lúc này.';
   String get youtubeExternalOpenMessage => isEnglish
       ? 'This YouTube video will open outside the app.'
-      : 'Video YouTube se mo ben ngoai ung dung.';
+      : 'Video YouTube sẽ mở bên ngoài ứng dụng.';
   String get videoExternalOpenMessage => isEnglish
       ? 'This video will open outside the app.'
-      : 'Video nay se mo ben ngoai ung dung.';
+      : 'Video này sẽ mở bên ngoài ứng dụng.';
   String get openOnYoutubeAction =>
-      isEnglish ? 'Open on YouTube' : 'Mo tren YouTube';
-  String get openVideoAction => isEnglish ? 'Open video' : 'Mo video';
+      isEnglish ? 'Open on YouTube' : 'Mở trên YouTube';
+  String get openVideoAction => isEnglish ? 'Open video' : 'Mở video';
   String get cannotLoadVideoOnDeviceMessage => isEnglish
       ? 'This device cannot load the video.'
-      : 'Khong the tai video tren thiet bi nay.';
-  String get retryLoadAction => isEnglish ? 'Retry' : 'Thu tai lai';
+      : 'Không thể tải video trên thiết bị này.';
+  String get retryLoadAction => isEnglish ? 'Retry' : 'Thử tải lại';
   String get tapToLoadVideoMessage =>
-      isEnglish ? 'Tap to load video' : 'Nhan de tai video';
+      isEnglish ? 'Tap to load video' : 'Nhấn để tải video';
   String quantityInCartSummary(int quantity) =>
-      isEnglish ? '$quantity already in cart' : 'Da co $quantity trong gio';
+      isEnglish ? '$quantity already in cart' : 'Đã có $quantity trong giỏ';
   String get flexibleQuantityLabel =>
-      isEnglish ? 'Flexible quantity' : 'So luong linh hoat';
+      isEnglish ? 'Flexible quantity' : 'Số lượng linh hoạt';
 }
 
 class _ProductDetailLoadingView extends StatelessWidget {

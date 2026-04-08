@@ -26,8 +26,8 @@ export async function generateMetadata({
         return createBaseMetadata({
             locale: 'vi',
             path: `/products/${id}`,
-            title: '4T HITEK | San pham',
-            description: 'Thong tin san pham 4T HITEK.'
+    title: '4T HITEK | Sản phẩm',
+    description: 'Thông tin sản phẩm 4T HITEK.'
         });
     }
 
@@ -39,7 +39,7 @@ export async function generateMetadata({
         title: `${product.name} | 4T HITEK`,
         description: product.shortDescription || product.description || product.name,
         image: parseImageUrl(product.image, '') || undefined,
-        keywords: ['tai nghe SCS', product.name, '4T HITEK', 'tai nghe chinh hang']
+        keywords: ['tai nghe SCS', product.name, '4T HITEK', 'tai nghe chính hãng']
     });
 }
 

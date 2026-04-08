@@ -9,8 +9,8 @@ export const metadata: Metadata = createBaseMetadata({
     path: '/blogs',
     title: 'Tin tuc & Bai viet - 4T HITEK',
     description:
-        'Cap nhat tin tuc moi nhat ve tai nghe SCS, huong dan su dung, danh gia san pham va cac bai viet chuyen sau tu 4T HITEK.',
-    keywords: ['tin tuc tai nghe SCS', '4T HITEK blog', 'danh gia tai nghe', 'huong dan tai nghe SCS']
+        'Cập nhật tin tức mới nhất về tai nghe SCS, hướng dẫn sử dụng, đánh giá sản phẩm và các bài viết chuyên sâu từ 4T HITEK.',
+    keywords: ['tin tức tai nghe SCS', '4T HITEK blog', 'đánh giá tai nghe', 'hướng dẫn tai nghe SCS']
 });
 
 interface BlogsPageProps {

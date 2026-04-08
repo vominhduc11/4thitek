@@ -24,28 +24,28 @@ String uploadServiceMessageToken(UploadMessageCode code) =>
 String resolveUploadServiceMessage(String? message, {required bool isEnglish}) {
   final normalized = message?.trim();
   if (normalized == null || normalized.isEmpty) {
-    return isEnglish ? 'Upload failed.' : 'Tai len that bai.';
+    return isEnglish ? 'Upload failed.' : 'Tải lên thất bại.';
   }
 
   switch (normalized) {
     case 'upload.message.apiNotConfigured':
       return isEnglish
           ? 'Upload API is not configured.'
-          : 'API tai len chua duoc cau hinh.';
+          : 'API tải lên chưa được cấu hình.';
     case 'upload.message.unauthenticated':
       return isEnglish
           ? 'You need to sign in before uploading files.'
-          : 'Ban can dang nhap truoc khi tai tep len.';
+          : 'Bạn cần đăng nhập trước khi tải tệp lên.';
     case 'upload.message.invalidJson':
       return isEnglish
           ? 'Upload response is invalid.'
-          : 'Phan hoi tai len khong hop le.';
+          : 'Phản hồi tải lên không hợp lệ.';
     case 'upload.message.uploadFailed':
-      return isEnglish ? 'Upload failed.' : 'Tai len that bai.';
+      return isEnglish ? 'Upload failed.' : 'Tải lên thất bại.';
     case 'upload.message.missingMetadata':
       return isEnglish
           ? 'Upload response is missing file metadata.'
-          : 'Phan hoi tai len thieu thong tin tep.';
+          : 'Phản hồi tải lên thiếu thông tin tệp.';
     default:
       return normalized;
   }

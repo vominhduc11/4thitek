@@ -18,7 +18,7 @@ void main() {
         uploadServiceMessageToken(UploadMessageCode.unauthenticated),
         isEnglish: false,
       ),
-      'Ban can dang nhap truoc khi tai tep len.',
+      'Bạn cần đăng nhập trước khi tải tệp lên.',
     );
   });
 
@@ -35,7 +35,7 @@ void main() {
         uploadServiceMessageToken(UploadMessageCode.uploadFailed),
         isEnglish: false,
       ),
-      'Tai len that bai.',
+      'Tải lên thất bại.',
     );
   });
 

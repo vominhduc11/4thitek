@@ -616,6 +616,7 @@ const translations: Record<Language, TranslationMap> = {
       "The backend has not returned dashboard data.",
     "Bài {id} không tồn tại hoặc đã bị xóa.":
       "Post {id} does not exist or has been deleted.",
+    "Bài viết này chưa có nội dung.": "This post has no content yet.",
     "Bai viet": "Post",
     "Bai viet nay chua co noi dung.": "This post has no content yet.",
     'Bạn có chắc muốn chuyển đơn này sang trạng thái "{status}" không?':
@@ -642,6 +643,8 @@ const translations: Record<Language, TranslationMap> = {
     "Các mục quyết toán tài chính đơn hàng chờ xử lý. Xem xét và giải quyết từng trường hợp.":
       "Order financial settlement items awaiting resolution. Review and resolve each case.",
     "Cài đặt hệ thống": "System settings",
+    "Cập nhật lần cuối": "Last updated",
+    "Cập nhật trạng thái": "Update status",
     "Cap nhat": "Updated",
     "Cap nhat lan cuoi": "Last updated",
     "Cap nhat trang thai": "Update status",
@@ -662,6 +665,12 @@ const translations: Record<Language, TranslationMap> = {
       "Choose which operational signals should notify the internal team.",
     "Chọn vai trò": "Select a role",
     "Chủ tài khoản": "Account holder",
+    "Chưa có tóm tắt cho bài viết này.":
+      "This post does not have a summary yet.",
+    "Chưa có tóm tắt.": "No summary yet.",
+    "Chưa phân loại": "Uncategorized",
+    'Chuyển bài viết này sang trạng thái "{status}"?':
+      'Change this post to "{status}"?',
     "Chua co tom tat cho bai viet nay.":
       "This post does not have a summary yet.",
     "Chua co tom tat.": "No summary yet.",
@@ -681,6 +690,8 @@ const translations: Record<Language, TranslationMap> = {
     "Cửa sổ thời gian": "Time window",
     "Cửa sổ thời gian phải là số nguyên trong khoảng từ 1 đến 86.400 giây.":
       "Time window must be an integer between 1 and 86,400 seconds.",
+    "Đã tạo bài {id}.": "Created post {id}.",
+    "Đang tải ảnh...": "Uploading image...",
     "Da dang": "Published",
     "Da tao bai {id}.": "Created post {id}.",
     "Dang tai anh...": "Uploading image...",
@@ -773,6 +784,10 @@ const translations: Record<Language, TranslationMap> = {
       "Send targeted notifications and review dispatch history from one screen.",
     "Hạn mức": "Credit",
     "Hàng lỗi": "Defective",
+    "Hành động này sẽ xóa bài viết khỏi danh sách quản trị.":
+      "This action removes the post from the admin list.",
+    "Hành động này sẽ xóa bài viết khỏi hệ thống quản trị.":
+      "This action removes the post from the admin system.",
     "Hanh dong nay se xoa bai viet khoi danh sach quan tri.":
       "This action removes the post from the admin list.",
     "Hanh dong nay se xoa bai viet khoi he thong quan tri.":
@@ -780,6 +795,7 @@ const translations: Record<Language, TranslationMap> = {
     "Hành động này sẽ xóa đơn hàng khỏi danh sách quản trị.":
       "This action removes the order from the admin list.",
     "Hậu mãi": "After-sales",
+    "Hẹn giờ / nháp": "Scheduled / drafts",
     "Hen gio": "Scheduled",
     "Hen gio / nhap": "Scheduled / drafts",
     "Hệ thống": "System",
@@ -790,6 +806,7 @@ const translations: Record<Language, TranslationMap> = {
     "Hệ thống đang trực tuyến": "System online",
     "Hệ thống và vận hành": "System and operations",
     "Hết hạn": "Expired",
+    "Hiển thị trên trang chủ": "Show on homepage",
     "Hien tren trang chu": "Show on homepage",
     "Hiển thị cho thao tác đối soát và kiểm tra thông tin nhận tiền.":
       "Used for reconciliation and payment destination checks.",
@@ -869,6 +886,8 @@ const translations: Record<Language, TranslationMap> = {
       "Review and confirm new orders before they impact SLA.",
     "Liên kết": "Link",
     Loại: "Type",
+    "Lọc trạng thái": "Filter status",
+    "Lưu bài viết": "Save post",
     "Loc trang thai": "Filter status",
     "Luu bai viet": "Save post",
     "Luu thay doi": "Save changes",
@@ -916,6 +935,12 @@ const translations: Record<Language, TranslationMap> = {
     "Người dùng nội bộ": "Internal users",
     "Người gửi": "Sender",
     "Ngưỡng áp dụng": "Threshold",
+    "Nhập danh mục": "Enter a category",
+    "Nhập đầy đủ metadata và nội dung để bài viết khớp với public site.":
+      "Capture the full content so public pages render the intended article.",
+    "Nhập nội dung chi tiết cho bài viết": "Enter the full post content",
+    "Nhập tiêu đề bài viết": "Enter the post title",
+    "Nhập tóm tắt ngắn": "Write a short summary",
     "Nhap danh muc": "Enter a category",
     "Nhap day du metadata va noi dung de bai viet khop voi public site.":
       "Capture the full content so public pages render the intended article.",
@@ -933,6 +958,8 @@ const translations: Record<Language, TranslationMap> = {
       "Best for catalog management, product content, and publishing status.",
     "Phục vụ theo dõi hỗ trợ, bảo hành và các đầu việc sau bán hàng.":
       "For support, warranty, and after-sales operations.",
+    "Quản lý bài viết, nội dung chi tiết, ảnh đại diện và trạng thái hiển thị trên trang chủ.":
+      "Manage post metadata, full content, cover images, and homepage visibility.",
     "Quan ly bai viet, noi dung chi tiet, anh dai dien va trang thai hien thi tren trang chu.":
       "Manage post metadata, full content, cover images, and homepage visibility.",
     "Quản lý bảo mật đăng nhập, thông báo vận hành, cấu hình SePay, email gửi đi và giới hạn tốc độ theo tác vụ.":
@@ -975,6 +1002,7 @@ const translations: Record<Language, TranslationMap> = {
     "Số yêu cầu phải là số nguyên trong khoảng từ 1 đến 10.000.":
       "Requests must be an integer between 1 and 10,000.",
     "Sở hữu": "Owner",
+    "Tải ảnh đại diện": "Upload cover image",
     "Tai anh dai dien": "Upload cover image",
     "Tại đại lý": "At dealer",
     "Tài khoản cụ thể": "Specific accounts",
@@ -986,6 +1014,7 @@ const translations: Record<Language, TranslationMap> = {
     "Tải PDF": "Download PDF",
     "Tải tệp": "Uploads",
     "Tải XLSX": "Download XLSX",
+    "Tạo bài viết mới": "Create a new post",
     "Tao bai moi": "Create post",
     "Tao bai viet moi": "Create a new post",
     "Tạo bởi": "Created by",
@@ -1002,6 +1031,8 @@ const translations: Record<Language, TranslationMap> = {
     "Tên người gửi": "From name",
     "Tên quy tắc": "Rule label",
     "Thanh toán không khớp": "Unmatched payments",
+    "Thay đổi trạng thái và khả năng xuất hiện trên public site.":
+      "Change how this post is surfaced in the admin workspace and public site.",
     "Thao tac": "Actions",
     "Thay doi trang thai va kha nang xuat hien tren public site.":
       "Change how this post is surfaced in the admin workspace and public site.",
@@ -1026,6 +1057,8 @@ const translations: Record<Language, TranslationMap> = {
     "Thời lượng phiên phải là số nguyên trong khoảng từ 5 đến 480 phút.":
       "Session timeout must be an integer between 5 and 480 minutes.",
     "Thu gọn kết quả": "Collapse results",
+    "Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.":
+      "Try adjusting filters or your search keywords.",
     "Thu thay doi bo loc hoac tu khoa tim kiem.":
       "Try adjusting filters or your search keywords.",
     "Thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm.":
@@ -1048,6 +1081,9 @@ const translations: Record<Language, TranslationMap> = {
     "Tiến độ": "Progress",
     "Tiêu đề hoặc nội dung vượt quá giới hạn cho phép.":
       "Title or content exceeds the allowed length.",
+    "Tìm bài viết": "Search posts",
+    "Tìm theo id, tiêu đề hoặc danh mục...":
+      "Search by id, title, or category...",
     "Tim bai viet": "Search posts",
     "Tìm bảo hành": "Search warranties",
     "Tìm đại lý": "Search dealers",
@@ -1077,6 +1113,8 @@ const translations: Record<Language, TranslationMap> = {
       "Search title, account, or content...",
     "Toàn bộ chỉ số được lấy trực tiếp từ backend quản trị theo theme hiện tại.":
       "Metrics are loaded directly from the admin backend and adapt to the active theme.",
+    "Tóm tắt": "Summary",
+    "Tổng bài viết": "Total posts",
     "Tom tat": "Summary",
     "Tong bai viet": "Total posts",
     "Tổng doanh thu": "Total revenue",
@@ -1105,6 +1143,7 @@ const translations: Record<Language, TranslationMap> = {
       "For internal display only; real access is still controlled by the ADMIN or SUPER_ADMIN system role.",
     "Quyền backend thật. Tài khoản mới tạo từ màn này luôn mang ADMIN; SUPER_ADMIN không được gán tại đây.":
       "This is the real backend permission. Accounts invited from this page always get ADMIN; SUPER_ADMIN cannot be assigned here.",
+    "Về danh sách bài viết": "Back to posts",
     "Ve danh sach bai viet": "Back to posts",
     "Vui lòng chọn sản phẩm và nhập ít nhất một serial hợp lệ.":
       "Select a product and enter at least one valid serial.",
@@ -1135,9 +1174,12 @@ const translations: Record<Language, TranslationMap> = {
     "Xác nhận hủy bảo hành": "Confirm void warranty",
     "Xác nhận xóa serial": "Confirm delete serial",
     "Xem tất cả {count} kết quả": "View all {count} results",
+    "Xem trước bài viết": "Post preview",
     "Xem truoc bai viet": "Post preview",
     "XLSX + PDF": "XLSX + PDF",
     Xoa: "Delete",
+    "Xóa bài": "Delete post",
+    "Xóa bài viết": "Delete post",
     "Xoa bai": "Delete post",
     "Xoa bai viet": "Delete post",
     "Xóa đơn": "Delete order",
@@ -1175,7 +1217,6 @@ const translations: Record<Language, TranslationMap> = {
     "Có thay đổi chưa lưu trong biểu mẫu thanh toán.": "There are unsaved changes in the payments form.",
     "Có thay đổi chưa lưu trong hồ sơ đại lý.": "There are unsaved changes in the agent profile.",
     "Cần xác nhận trước khi điều chỉnh đơn đã hoàn tất": "Confirmation is required before adjusting the completed order",
-    "Cập nhật trạng thái": "Update status",
     "Cập nhật trạng thái hồ sơ": "Update profile status",
     "Cập nhật {id} -> {status}": "Update {id} -> {status}",
     "Danh sách các lần ghi nhận thanh toán cho đơn hàng này.": "List of payment records for this order.",

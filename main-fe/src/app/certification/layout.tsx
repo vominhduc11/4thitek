@@ -8,8 +8,8 @@ export const metadata: Metadata = createBaseMetadata({
     path: '/certification',
     title: '4T HITEK | Chung nhan & Giai thuong',
     description:
-        'Xem cac chung nhan chat luong va giai thuong cua 4T HITEK trong linh vuc phan phoi tai nghe SCS chinh hang tai Viet Nam.',
-    keywords: ['chung nhan 4T HITEK', 'giai thuong SCS', 'tai nghe SCS chinh hang', 'chung chi chat luong']
+        'Xem các chứng nhận chất lượng và giải thưởng của 4T HITEK trong lĩnh vực phân phối tai nghe SCS chính hãng tại Việt Nam.',
+    keywords: ['chứng nhận 4T HITEK', 'giải thưởng SCS', 'tai nghe SCS chính hãng', 'chứng chỉ chất lượng']
 });
 
 export default function CertificationLayout({ children }: { children: React.ReactNode }) {
@@ -17,7 +17,7 @@ export default function CertificationLayout({ children }: { children: React.Reac
         <>
             <JsonLd
                 data={breadcrumbJsonLd([
-                    { name: 'Trang chu', url: SITE_URL },
+                    { name: 'Trang chủ', url: SITE_URL },
                     { name: 'Chung nhan', url: `${SITE_URL}/certification` }
                 ])}
             />

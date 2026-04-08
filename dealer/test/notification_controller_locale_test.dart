@@ -41,7 +41,7 @@ void main() {
         'notification.sync.unavailable',
         isEnglish: false,
       ),
-      'Khong the dong bo thong bao.',
+      'Không thể đồng bộ thông báo.',
     );
   });
 
@@ -51,8 +51,8 @@ void main() {
       'Session expired.',
     );
     expect(
-      notificationSyncErrorMessage('He thong dang bao tri.', isEnglish: false),
-      'He thong dang bao tri.',
+      notificationSyncErrorMessage('Hệ thống đang bảo trì.', isEnglish: false),
+      'Hệ thống đang bảo trì.',
     );
   });
 }

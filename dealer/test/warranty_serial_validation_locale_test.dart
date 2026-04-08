@@ -63,7 +63,7 @@ void main() {
         isEnglish: false,
         serial: '',
       ),
-      'Serial khong hop le.',
+      'Serial không hợp lệ.',
     );
     expect(
       warrantySerialValidationMessage(
@@ -71,7 +71,7 @@ void main() {
         isEnglish: false,
         serial: 'SN-001',
       ),
-      'Serial SN-001 chua duoc nhap kho.',
+      'Serial SN-001 chưa được nhập kho.',
     );
     expect(
       warrantySerialValidationMessage(
@@ -80,7 +80,7 @@ void main() {
         serial: 'SN-001',
         productName: 'Router AX',
       ),
-      'Serial SN-001 khong thuoc san pham Router AX.',
+      'Serial SN-001 không thuộc sản phẩm Router AX.',
     );
     expect(
       warrantySerialValidationMessage(
@@ -90,7 +90,7 @@ void main() {
         actualOrderId: 'DH-01',
         expectedOrderId: 'DH-02',
       ),
-      'Serial SN-001 thuoc don DH-01, khong thuoc don DH-02.',
+      'Serial SN-001 thuộc đơn DH-01, không thuộc đơn DH-02.',
     );
     expect(
       warrantySerialValidationMessage(
@@ -98,7 +98,7 @@ void main() {
         isEnglish: false,
         serial: 'SN-001',
       ),
-      'Serial SN-001 da duoc kich hoat truoc do.',
+      'Serial SN-001 đã được kích hoạt trước đó.',
     );
     expect(
       warrantySerialValidationMessage(
@@ -106,7 +106,7 @@ void main() {
         isEnglish: false,
         serial: 'SN-001',
       ),
-      'Serial SN-001 chua thuoc don da hoan thanh.',
+      'Serial SN-001 chưa thuộc đơn đã hoàn thành.',
     );
   });
 }

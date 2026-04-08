@@ -22,7 +22,7 @@ void main() {
         ),
         isEnglish: false,
       ),
-      'Khong the tai ho so dai ly.',
+      'Không thể tải hồ sơ đại lý.',
     );
   });
 
@@ -43,7 +43,7 @@ void main() {
         ),
         isEnglish: false,
       ),
-      'Ban can dang nhap truoc khi cap nhat ho so.',
+      'Bạn cần đăng nhập trước khi cập nhật hồ sơ.',
     );
   });
 

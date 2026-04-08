@@ -791,106 +791,105 @@ class _CheckoutTexts {
 
   String get profileLoadFailedMessage => isEnglish
       ? 'Unable to load account information. Please retry before placing the order.'
-      : 'Khong tai duoc thong tin tai khoan. Vui long tai lai truoc khi dat don.';
+      : 'Không tải được thông tin tài khoản. Vui lòng tải lại trước khi đặt đơn.';
   String get loadingProfileMessage => isEnglish
       ? 'Loading account information...'
-      : 'Dang tai thong tin tai khoan...';
+      : 'Đang tải thông tin tài khoản...';
   String get primaryActionBankTransfer => isEnglish
       ? 'Create order and view bank transfer details'
-      : 'Tao don va xem thong tin chuyen khoan';
-  String cannotLoadBankTransferMessage(Object error) => isEnglish
-      ? bankTransferLoadErrorMessage(error, isEnglish: true)
-      : bankTransferLoadErrorMessage(error, isEnglish: false);
+      : 'Tạo đơn và xem thông tin chuyển khoản';
+  String cannotLoadBankTransferMessage(Object error) =>
+      bankTransferLoadErrorMessage(error, isEnglish: isEnglish);
   String copiedLabelMessage(String label) =>
-      isEnglish ? 'Copied $label' : 'Da sao chep $label';
-  String get screenTitle => isEnglish ? 'Checkout' : 'Thanh toan';
+      isEnglish ? 'Copied $label' : 'Đã sao chép $label';
+  String get screenTitle => isEnglish ? 'Checkout' : 'Thanh toán';
   String get shippingInfoTitle =>
-      isEnglish ? 'Shipping information' : 'Thong tin nhan hang';
+      isEnglish ? 'Shipping information' : 'Thông tin nhận hàng';
   String get editShippingInfoAction =>
-      isEnglish ? 'Edit shipping information' : 'Sua thong tin nhan hang';
+      isEnglish ? 'Edit shipping information' : 'Sửa thông tin nhận hàng';
   String contactPersonLine(String name) =>
-      isEnglish ? 'Contact person: $name' : 'Nguoi lien he: $name';
+      isEnglish ? 'Contact person: $name' : 'Người liên hệ: $name';
   String phoneLine(String phone) =>
-      isEnglish ? 'Phone: $phone' : 'So dien thoai: $phone';
+      isEnglish ? 'Phone: $phone' : 'Số điện thoại: $phone';
   String get paymentMethodTitle =>
-      isEnglish ? 'Payment method' : 'Phuong thuc thanh toan';
+      isEnglish ? 'Payment method' : 'Phương thức thanh toán';
   String get bankTransferTitle =>
-      isEnglish ? 'Bank transfer' : 'Chuyen khoan ngan hang';
+      isEnglish ? 'Bank transfer' : 'Chuyển khoản ngân hàng';
   String get bankTransferSubtitle => isEnglish
       ? 'Create the order first, then let the SePay webhook confirm payment automatically.'
-      : 'Tao don truoc, sau do de SePay webhook tu dong xac nhan thanh toan.';
+      : 'Tạo đơn trước, sau đó để SePay webhook tự động xác nhận thanh toán.';
   String get bankTransferWorkflowHint => isEnglish
       ? 'The order is created first and stays pending until payment is reconciled. Admin only processes paid orders, and unpaid pending orders may be auto-cancelled after the timeout.'
-      : 'Don duoc tao truoc va giu trang thai cho den khi doi soat thanh toan. Admin chi xu ly don da thanh toan, va don cho chua thanh toan co the tu huy khi het thoi gian cho.';
+      : 'Đơn được tạo trước và giữ trạng thái chờ đến khi đối soát thanh toán. Admin chỉ xử lý đơn đã thanh toán, và đơn chờ chưa thanh toán có thể tự hủy khi hết thời gian chờ.';
   String productsInOrderTitle(int totalItems) => isEnglish
       ? 'Products in order ($totalItems)'
-      : 'San pham trong don ($totalItems)';
+      : 'Sản phẩm trong đơn ($totalItems)';
   String productLineCount(int count) =>
-      isEnglish ? '$count line items' : '$count dong san pham';
+      isEnglish ? '$count line items' : '$count dòng sản phẩm';
   String get expandProductsHint => isEnglish
       ? 'Tap to view each product in detail'
-      : 'Nhan de xem chi tiet tung san pham';
-  String get orderNoteTitle => isEnglish ? 'Order note' : 'Ghi chu don hang';
+      : 'Nhấn để xem chi tiết từng sản phẩm';
+  String get orderNoteTitle => isEnglish ? 'Order note' : 'Ghi chú đơn hàng';
   String get orderNoteHint => isEnglish
       ? 'Example: deliver during office hours, call before delivery, invoice note...'
-      : 'Vi du: giao gio hanh chinh, goi truoc khi giao, luu y xuat hoa don...';
+      : 'Ví dụ: giao giờ hành chính, gọi trước khi giao, lưu ý xuất hóa đơn...';
   String get orderSummaryTitle =>
-      isEnglish ? 'Order summary' : 'Tom tat don hang';
-  String get itemCountLabel => isEnglish ? 'Item count' : 'So luong san pham';
-  String get subtotalLabel => isEnglish ? 'Subtotal' : 'Tam tinh';
+      isEnglish ? 'Order summary' : 'Tóm tắt đơn hàng';
+  String get itemCountLabel => isEnglish ? 'Item count' : 'Số lượng sản phẩm';
+  String get subtotalLabel => isEnglish ? 'Subtotal' : 'Tạm tính';
   String discountLabel(int percent) =>
-      isEnglish ? 'Discount ($percent%)' : 'Chiet khau ($percent%)';
+      isEnglish ? 'Discount ($percent%)' : 'Chiết khấu ($percent%)';
   String get afterDiscountLabel =>
-      isEnglish ? 'After discount' : 'Sau chiet khau';
+      isEnglish ? 'After discount' : 'Sau chiết khấu';
   String vatLabel(int percent) =>
       isEnglish ? 'VAT ($percent%)' : 'VAT ($percent%)';
   String get paymentStatusLabelTitle =>
-      isEnglish ? 'Payment status' : 'Trang thai thanh toan';
+      isEnglish ? 'Payment status' : 'Trạng thái thanh toán';
   String get bankTransferSummaryHint => isEnglish
       ? 'The order will be created first. Then transfer the exact amount with the exact order ID so the SePay webhook can reconcile it automatically.'
-      : 'Don se duoc tao truoc. Sau do hay chuyen khoan dung so tien va dung ma don de SePay webhook doi soat tu dong.';
+      : 'Đơn sẽ được tạo trước. Sau đó hãy chuyển khoản đúng số tiền và đúng mã đơn để SePay webhook đối soát tự động.';
   String get loadingBankTransferMessage => isEnglish
       ? 'Loading bank transfer information from the system...'
-      : 'Dang tai thong tin chuyen khoan tu he thong...';
+      : 'Đang tải thông tin chuyển khoản từ hệ thống...';
   String get bankTransferUnavailableMessage => isEnglish
       ? 'Bank transfer information could not be loaded yet. Please try again before placing the order.'
-      : 'Chua tai duoc thong tin chuyen khoan. Hay thu lai truoc khi dat don.';
-  String get retryAction => isEnglish ? 'Retry' : 'Tai lai';
-  String get totalLabel => isEnglish ? 'Total' : 'Tong cong';
+      : 'Chưa tải được thông tin chuyển khoản. Hãy thử lại trước khi đặt đơn.';
+  String get retryAction => isEnglish ? 'Retry' : 'Tải lại';
+  String get totalLabel => isEnglish ? 'Total' : 'Tổng cộng';
   String get pricingNote => isEnglish
       ? 'Note: The actual order price is calculated using the current price at checkout time, and may differ if product prices changed since the last refresh.'
-      : 'Luu y: Gia thuc te trong don duoc tinh theo gia hien hanh tai thoi diem dat hang va co the khac neu gia san pham thay doi tu lan tai gan nhat.';
+      : 'Lưu ý: Giá thực tế trong đơn được tính theo giá hiện hành tại thời điểm đặt hàng và có thể khác nếu giá sản phẩm thay đổi từ lần tải gần nhất.';
   String get cannotCreateOrderMessage => isEnglish
       ? 'Unable to create the order. Please try again.'
-      : 'Khong the tao don hang. Vui long thu lai.';
+      : 'Không thể tạo đơn hàng. Vui lòng thử lại.';
   String stockIssue(String productName, int stock) => isEnglish
       ? '$productName only has $stock items left in stock.'
-      : '$productName chi con $stock san pham trong kho.';
+      : '$productName chỉ còn $stock sản phẩm trong kho.';
   String productCountSummary(int count) =>
-      isEnglish ? 'Item count: $count' : 'So luong san pham: $count';
+      isEnglish ? 'Item count: $count' : 'Số lượng sản phẩm: $count';
   String totalPaymentSummary(String amount) =>
-      isEnglish ? 'Total payment: $amount' : 'Tong thanh toan: $amount';
-  String get cancelAction => isEnglish ? 'Cancel' : 'Huy';
+      isEnglish ? 'Total payment: $amount' : 'Tổng thanh toán: $amount';
+  String get cancelAction => isEnglish ? 'Cancel' : 'Hủy';
   String get validationDialogTitle =>
-      isEnglish ? 'Order needs adjustments' : 'Don hang can dieu chinh';
+      isEnglish ? 'Order needs adjustments' : 'Đơn hàng cần điều chỉnh';
   String get validationDialogSubtitle =>
-      isEnglish ? 'Please review:' : 'Vui long kiem tra:';
+      isEnglish ? 'Please review:' : 'Vui lòng kiểm tra:';
   String get cartSyncInProgressMessage => isEnglish
       ? 'The cart is still syncing. Please wait a moment and try again.'
-      : 'Gio hang van dang dong bo. Vui long doi mot chut roi thu lai.';
-  String get closeAction => isEnglish ? 'Close' : 'Dong';
+      : 'Giỏ hàng vẫn đang đồng bộ. Vui lòng đợi một chút rồi thử lại.';
+  String get closeAction => isEnglish ? 'Close' : 'Đóng';
   String outOfStockIssue(String productName) => isEnglish
       ? '$productName is currently out of stock.'
-      : '$productName hien da het hang.';
+      : '$productName hiện đã hết hàng.';
 
   String paymentStatusLabel(OrderPaymentStatus status) {
     switch (status) {
       case OrderPaymentStatus.cancelled:
-        return isEnglish ? 'Cancelled' : 'Da huy';
+        return isEnglish ? 'Cancelled' : 'Đã hủy';
       case OrderPaymentStatus.pending:
-        return isEnglish ? 'Unpaid' : 'Chua thanh toan';
+        return isEnglish ? 'Unpaid' : 'Chưa thanh toán';
       case OrderPaymentStatus.paid:
-        return isEnglish ? 'Paid' : 'Da thanh toan';
+        return isEnglish ? 'Paid' : 'Đã thanh toán';
     }
   }
 }

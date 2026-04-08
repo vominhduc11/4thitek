@@ -25,14 +25,14 @@ void main() {
         warrantySyncMessageToken(WarrantySyncMessageCode.remoteSerialNotFound),
         isEnglish: false,
       ),
-      'Serial da chon khong san sang de kich hoat bao hanh.',
+      'Serial đã chọn không sẵn sàng để kích hoạt bảo hành.',
     );
     expect(
       resolveWarrantySyncMessage(
         warrantySyncMessageToken(WarrantySyncMessageCode.activationFailed),
         isEnglish: false,
       ),
-      'Khong the kich hoat bao hanh. Vui long thu lai.',
+      'Không thể kích hoạt bảo hành. Vui lòng thử lại.',
     );
   });
 
@@ -53,7 +53,7 @@ void main() {
         ),
         isEnglish: false,
       ),
-      'Ban can dang nhap truoc khi kich hoat bao hanh.',
+      'Bạn cần đăng nhập trước khi kích hoạt bảo hành.',
     );
   });
 

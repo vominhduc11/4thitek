@@ -6,10 +6,10 @@ import { SITE_URL } from '@/lib/site';
 export const metadata: Metadata = createBaseMetadata({
     locale: 'vi',
     path: '/contact',
-    title: '4T HITEK | Lien he',
+    title: '4T HITEK | Liên hệ',
     description:
-        'Lien he voi 4T HITEK de duoc tu van san pham tai nghe SCS, ho tro ky thuat va giai dap moi thac mac. Chung toi luon san sang ho tro ban.',
-    keywords: ['lien he 4T HITEK', 'ho tro khach hang', 'tu van tai nghe SCS', 'cham soc khach hang 4T HITEK']
+        'Liên hệ với 4T HITEK để được tư vấn sản phẩm tai nghe SCS, hỗ trợ kỹ thuật và giải đáp mọi thắc mắc. Chúng tôi luôn sẵn sàng hỗ trợ bạn.',
+    keywords: ['liên hệ 4T HITEK', 'hỗ trợ khách hàng', 'tư vấn tai nghe SCS', 'chăm sóc khách hàng 4T HITEK']
 });
 
 export default function ContactLayout({ children }: { children: React.ReactNode }) {
@@ -17,8 +17,8 @@ export default function ContactLayout({ children }: { children: React.ReactNode 
         <>
             <JsonLd
                 data={breadcrumbJsonLd([
-                    { name: 'Trang chu', url: SITE_URL },
-                    { name: 'Lien he', url: `${SITE_URL}/contact` }
+                    { name: 'Trang chủ', url: SITE_URL },
+                    { name: 'Liên hệ', url: `${SITE_URL}/contact` }
                 ])}
             />
             {children}
