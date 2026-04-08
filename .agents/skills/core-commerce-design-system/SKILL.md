@@ -1,24 +1,29 @@
 ---
 name: 4thitek-unified-design-system
-description: Repo-aware design-system and UI implementation guidance for 4thitek main-fe, admin-fe, and dealer app. Use this skill when designing, refactoring, auditing, or standardizing UI/UX across the product family.
+description: Repo-aware UI/UX, design-system, and safe-edit guidance for Codex/agents working on 4thitek main-fe, admin-fe, and dealer app.
 license: Proprietary
 metadata:
   author: OpenAI
   project: 4thitek
-  canonical_brand_surface: main-fe
   canonical_business_contract: BUSINESS_LOGIC.md
+  canonical_brand_reference: TKHITEK_BRANDGUIDELINE.pdf
+  canonical_brand_surface: main-fe
+  applies_to:
+    - main-fe
+    - admin-fe
+    - dealer
 ---
 
 # 4thitek Unified Design System Skill
 
 ## Mission
-You are the UI/UX and design-system implementation guide for 4thitek.
+You are the UI/UX, design-system, and safe-implementation guide for 4thitek.
 
 Your job is not to generate generic pretty interfaces.
-Your job is to produce implementation-ready guidance and code changes that fit the real 4thitek product family:
+Your job is to produce implementation-ready UI guidance and code changes that match the real 4thitek product family:
 
-- `main-fe`: public Next.js website for SEO, trust, product discovery, and conversion
-- `admin-fe`: React + Vite internal dashboard for operations, catalog, payments, reports, warranty, and support workflows
+- `main-fe`: public Next.js website for SEO, trust, brand storytelling, product discovery, and conversion
+- `admin-fe`: React + Vite internal dashboard for operations, catalog, orders, payments, warranties, reports, content, and support workflows
 - `dealer`: Flutter mobile-first B2B ordering application for dealers
 
 Always optimize for:
@@ -32,22 +37,41 @@ Do not optimize for novelty for its own sake.
 
 ---
 
+## Canonical Source-of-Truth Order
+
+When design or implementation guidance conflicts, use this precedence:
+
+1. `BUSINESS_LOGIC.md` is the canonical business contract.
+2. `TKHITEK_BRANDGUIDELINE.pdf` is the canonical brand reference.
+3. Current runtime-safe behavior of `main-fe` is the canonical public digital adaptation baseline.
+4. Shared cross-surface primitives, tokens, and mappings must be reused where possible.
+5. Local convenience shortcuts must never override canonical business labels or state semantics.
+
+Rules:
+- If a requested UI change conflicts with `BUSINESS_LOGIC.md`, treat it as a business/product decision, not a cosmetic change.
+- If a requested public-site change conflicts with SEO-safe behavior in `main-fe`, preserve SEO-safe behavior first.
+- If a requested brand expression conflicts with usability on admin or dealer surfaces, prioritize usability.
+
+---
+
 ## Repo Reality and Surface Model
 
 ### `main-fe`
 - Technology: Next.js App Router
 - Role: public storefront, SEO-facing, trust-building, product storytelling, product discovery
 - Must preserve:
-  - SEO route/slug behavior
+  - route and slug stability
   - metadata behavior
   - crawlable DOM content
   - performance and responsive behavior
+  - safe progressive enhancement only
 - UX priority:
   - premium brand feel
-  - clear product information
-  - smooth conversion path
   - high readability
-- Current strong surfaces:
+  - clear product information
+  - strong trust signals
+  - smooth conversion path
+- Strong routes:
   - `/`
   - `/products`
   - `/products/[id]`
@@ -69,13 +93,15 @@ Do not optimize for novelty for its own sake.
   - scan speed
   - dense information
   - predictable forms
+  - table clarity
   - strong state visibility
   - safe destructive actions
+  - low visual fatigue
 - Default interaction model:
   - table-heavy
   - filter-heavy
   - keyboard-friendly
-  - multi-step operational flows
+  - multi-step operational workflows
 - Admin UI must never become decorative or brand-theatrical at the expense of clarity.
 
 ### `dealer`
@@ -83,34 +109,20 @@ Do not optimize for novelty for its own sake.
 - Role: dealer ordering and post-sale mobile workflow
 - UX priority:
   - fast repeat ordering
-  - quantity entry
-  - totals clarity
+  - quantity entry clarity
+  - total visibility
   - payment visibility
   - order status visibility
+  - stock and discount visibility
   - one-handed practicality
   - resilient loading/empty/error states
-- Dealer UI should feel compact and practical on list/order flows, and more comfortable on checkout/detail/review surfaces.
+- Dealer UI should feel compact and practical on lists/order flows, and more comfortable on checkout/detail/review surfaces.
 
 ---
 
-## Canonical Source-of-Truth Order
+## Brand Foundation
 
-When design guidance conflicts, use this precedence:
-
-1. `BUSINESS_LOGIC.md` is the canonical business contract.
-2. Current runtime-safe brand behavior of `main-fe` is the canonical visual baseline for public brand expression.
-3. Shared cross-surface primitives must be reused where possible.
-4. Local convenience shortcuts are not allowed to override canonical business labels or state semantics.
-
-If a requested change conflicts with `BUSINESS_LOGIC.md`, treat it as a product/business decision, not a cosmetic UI change.
-
-If a requested change conflicts with current public SEO behavior in `main-fe`, preserve SEO-safe behavior first.
-
----
-
-## Brand Foundation for 4thitek
-
-### Brand personality
+## Brand personality
 4thitek should feel:
 - premium
 - technical
@@ -122,83 +134,228 @@ If a requested change conflicts with current public SEO behavior in `main-fe`, p
 
 Avoid:
 - playful UI metaphors
-- futuristic gimmicks
+- gimmicky futurism
 - cyberpunk excess
+- neon overload
 - game-like navigation
-- neon-overload effects
-- ornamental motion with no UX value
+- ornamental motion with no UX purpose
+- visual experimentation that reduces clarity
 
-### Canonical typography
-Use the current 4thitek brand runtime direction:
+---
 
+## Canonical brand colors
+
+### Primary brand colors
+Use the canonical brand set:
+
+- `primary-gradient-start`: `#29ABE2`
+- `primary-gradient-end`: `#0071BC`
+- `primary-flat`: `#29ABE2`
+- `brand-dark`: `#3F4856`
+
+### Recommended semantic colors
+Use these for system semantics, not to redefine brand:
+
+- `success`: `#16A34A`
+- `warning`: `#F59E0B`
+- `danger`: `#DC2626`
+- `info`: `#2563EB`
+
+### Neutral system
+Build UI neutrals around readable slate-like grays:
+
+- `surface`
+- `elevated-surface`
+- `border`
+- `text`
+- `muted-text`
+- `inverse-text`
+
+Do not guess raw hex values per feature module when a shared token can be used.
+
+### Color usage density
+Respect the brand guideline intent:
+- gradient and brand blue are the dominant recognizable accents
+- brand blue should remain the most noticeable accent even if it does not occupy the largest area
+- dark blue supports structure and seriousness
+- white/neutral surfaces support readability
+
+Suggested digital density baseline:
+- gradient or brand blue: dominant accent
+- dark blue: structural support
+- white/light neutral: breathing space
+- support colors: secondary emphasis only
+
+### Supplementary palette
+Supplementary colors may be used for accent content, charts, illustrations, or secondary UI treatment.
+They must not replace the primary logo colors or redefine brand identity.
+
+---
+
+## Typography
+
+### Canonical typography rule
+Brand guideline source:
+- primary communications font: `Source Sans Pro`
+- secondary emphasis font: `Montserrat`
+
+Runtime digital adaptation rule:
+- use `Source Sans 3` as the preferred web/app runtime replacement for `Source Sans Pro`
+- use `Montserrat` only for accent or display emphasis
+- never let `Montserrat` dominate body copy on a screen
+
+### Typography roles
 - Body/UI font: `Source Sans 3`
 - Display/accent font: `Montserrat`
-- Mono/code/numeric dense contexts: use a practical mono only where needed, not as a brand font
+- Mono: use only for code, numeric alignment, or technical dense contexts where necessary
 
-Do not default back to `Inter + Manrope` unless the repo itself is intentionally migrated and all three surfaces are updated together.
+### Typography hierarchy
+Respect the spirit of the brand guideline scale:
 
-### Core brand colors
-Use semantic tokens built around the current brand direction:
+- Display H1: very large, hero-only
+- H1: strongest page headline
+- H2: major section heading
+- H3: section title
+- H4: sub-section title
+- Body: default readable paragraph text
+- Menu/tab labels: strong but compact
+- CTA: prominent, not oversized
 
-- primary: `#29ABE2`
-- primary-strong: `#0071BC`
-- secondary: `#3F4856`
-- success: `#16A34A`
-- warning: `#F59E0B`
-- danger: `#DC2626`
-- info: `#2563EB`
+Digital implementation rule:
+- maintain a consistent type scale per surface
+- body text must remain readable first
+- display text must remain selective
+- do not mix more than 2 font families in the same visual composition
 
-Recommended neutrals:
-- surface: light neutral with strong readability
-- elevated-surface: white or very light elevated background
-- border: slate-like neutral with clear separation
-- text: very dark slate/navy
-- muted-text: medium slate
-- inverse-text: near-white
+---
 
-### Visual style
-- public storefront: premium, restrained, expressive
-- admin-fe: compact, stable, data-first
-- dealer: mobile-practical, operationally clear, slightly more branded than admin but less expressive than main-fe
+## Logo, icon, and asset rules
+
+### Logo usage
+- Use approved logo variants only.
+- Preserve aspect ratio always.
+- Do not recolor logo arbitrarily.
+- Do not use supplementary colors for the main logo.
+- Keep logo usage consistent within a content set or campaign.
+
+### Light/dark handling
+Use:
+- standard brand logo where possible
+- light version on dark surfaces
+- dark version on light surfaces
+- inverse or monotone handling only when brand colors cannot be rendered correctly
+
+### Clear space
+Always preserve safe spacing around the logo.
+Do not crowd the logo with text, buttons, cards, or imagery.
+
+### Minimum size
+Respect minimum digital readability.
+If the logo becomes too small:
+- remove slogan
+- simplify to approved icon/favicon treatment
+- do not force the full lockup into unreadable sizes
+
+### Favicon/app icon rule
+For tiny surfaces:
+- use the approved simplified icon treatment
+- do not force full wordmark where legibility breaks
+
+### Icon system
+Icons must:
+- feel clean and technical
+- stay consistent in stroke/fill logic within a feature
+- use brand-approved colors or neutral/inverse variants
+- not introduce unrelated playful iconography
+
+Allowed icon color families:
+- brand blue
+- white
+- black or dark neutral
+- semantic system colors where meaning requires it
+
+---
+
+## Grid, layout, and imagery rules
+
+### Layout grid
+Brand guideline intent requires disciplined structure.
+For web layouts:
+- use an outer shell with left/right gutters
+- think in a 12-column responsive implementation
+- keep the design rhythm aligned to the brand intent of a centered content field and strong internal structure
+- preserve a clear inner content zone, equivalent to the brand guideline’s protected working area
+
+For static marketing and editorial compositions:
+- preserve the spirit of the 10-column inner content rhythm from the guideline
 
 ### Spacing scale
-Use a stable shared scale:
+Use a stable shared spacing scale:
 - 4, 8, 12, 16, 20, 24, 32, 40, 48, 64
 
 ### Radius scale
+Use:
 - 8, 12, 16, 20
 
-### Shadow model
-- sm: subtle separation
-- md: dropdowns, sticky bars, menus
-- lg: overlays only
+### Shadow scale
+- `sm`: subtle input/card separation
+- `md`: dropdowns, sticky bars, menus
+- `lg`: overlays only
 
-Do not use heavy glassmorphism, neumorphism, or dramatic layered visual effects in operational surfaces.
+Avoid:
+- glassmorphism
+- neumorphism
+- dramatic layered depth in operational surfaces
+
+### Image treatment
+Brand imagery should feel:
+- technological
+- mobile/riding-adjacent
+- premium
+- modern
+- cool-toned
+- coherent with the brand blue system
+
+### Image blend rule
+When appropriate for editorial/marketing treatment:
+- use brand-colored overlays or blend modes to unify imagery with the brand
+- safe blend directions: darken, multiply, overlay-like treatment
+- do not destroy subject legibility
+- do not make every image uniformly over-processed
+
+### Social and promotional asset rule
+Social or promotional designs should:
+- maximize brand-color recognition
+- keep typography disciplined
+- avoid using more than two fonts in one design
+- preserve a clear, bold, structured layout
+- remain legible first, expressive second
 
 ---
 
 ## Shared Product-Family Rules
 
 ### One system, three surfaces
-The three products must feel like one family:
+All three products must feel like one family:
 - same semantic colors
 - same status language
 - same spacing rhythm
 - same typography roles
 - same interaction semantics for shared concepts
 
-But adaptation by surface is required:
+Surface adaptation is required:
 - `main-fe`: comfortable, expressive, trust-building
 - `admin-fe`: compact, information-dense
 - `dealer`: compact on lists, comfortable on checkout/detail
 
 ### Shared meaning must not drift
-For all shared business concepts, maintain one canonical mapping:
+For shared business concepts, maintain one canonical mapping:
 - order status
 - payment status
 - serial/stock status
 - warranty status
 - support ticket status
+- dealer account status
 - destructive vs non-destructive actions
 
 Do not let each frontend invent its own labels, colors, icon rules, or tooltip logic.
@@ -227,8 +384,10 @@ Presentation rules:
 - `COMPLETED`: successful terminal positive state
 - `CANCELLED`: destructive terminal state
 
-Do not style `CONFIRMED` the same as `COMPLETED`.
-Do not style `PENDING` the same as `FAILED` or `CANCELLED`.
+Rules:
+- do not style `CONFIRMED` the same as `COMPLETED`
+- do not style `PENDING` the same as `CANCELLED`
+- do not treat terminal destructive states as neutral
 
 ### Payment status
 Canonical current runtime payment statuses:
@@ -237,17 +396,15 @@ Canonical current runtime payment statuses:
 - `PAID`
 - `CANCELLED`
 
-Important:
-- This reflects current runtime contract.
-- If the repo later removes debt officially, this skill must be updated in the same batch.
-
-Presentation rules:
+Rules:
 - `PENDING`: unpaid / waiting for payment
 - `DEBT_RECORDED`: financial obligation exists, not equivalent to paid
 - `PAID`: fully settled
-- `CANCELLED`: payment no longer active due to order cancellation with no paid amount
+- `CANCELLED`: payment inactive due to cancellation with no remaining valid payment state
 
-Do not style `PAID` and `DEBT_RECORDED` the same.
+Important:
+- this reflects current runtime contract
+- if the repo removes debt later, this skill must be updated in the same batch
 
 ### Warranty status
 Canonical statuses:
@@ -255,10 +412,10 @@ Canonical statuses:
 - `EXPIRED`
 - `VOID`
 
-Presentation rules:
+Rules:
 - `ACTIVE`: positive service-available state
-- `EXPIRED`: neutral/aging state, not destructive by default
-- `VOID`: destructive or invalidated state
+- `EXPIRED`: neutral aging/completion state
+- `VOID`: destructive invalidated state
 
 ### Serial / stock status
 Canonical statuses:
@@ -271,23 +428,46 @@ Canonical statuses:
 - `INSPECTING`
 - `SCRAPPED`
 
-Presentation rules:
+Rules:
 - `AVAILABLE`: positive inventory state
-- `RESERVED`: held, not yet dealer-owned
+- `RESERVED`: held but not dealer-owned yet
 - `ASSIGNED`: dealer-owned inventory
 - `WARRANTY`: activated lifecycle state
-- `DEFECTIVE`, `RETURNED`: problem states requiring action
+- `DEFECTIVE`: problem state
+- `RETURNED`: problem/reverse-logistics state
 - `INSPECTING`: in-review operational state
-- `SCRAPPED`: terminal retired state
+- `SCRAPPED`: retired terminal state
 
-### State UI mapping rule
-For every shared business state, define in one shared layer:
+### Dealer account status
+Canonical statuses:
+- `UNDER_REVIEW`
+- `ACTIVE`
+- `SUSPENDED`
+
+Rules:
+- `UNDER_REVIEW`: pending approval state
+- `ACTIVE`: usable positive state
+- `SUSPENDED`: restricted problem state
+
+### Support ticket status
+Canonical statuses:
+- `OPEN`
+- `IN_PROGRESS`
+- `RESOLVED`
+- `CLOSED`
+
+Rules:
+- preserve progression clarity
+- do not make `RESOLVED` visually identical to `CLOSED`
+
+### State mapping implementation rule
+For each shared business state, define in one shared layer:
 - label
 - semantic color
 - icon rule if used
-- tooltip/help-text rule when ambiguity exists
+- tooltip/help text for ambiguous states
 
-No duplicated hardcoded mappings across multiple clients unless there is a documented compatibility path.
+No duplicated hardcoded mappings across multiple clients unless documented compatibility requires it.
 
 ---
 
@@ -298,7 +478,7 @@ No duplicated hardcoded mappings across multiple clients unless there is a docum
 ## Intent
 The public website must sell trust before it sells interaction complexity.
 
-## Main FE design priorities
+## Main FE priorities
 - SEO-safe
 - crawlable
 - premium visual tone
@@ -307,21 +487,20 @@ The public website must sell trust before it sells interaction complexity.
 - trust and conversion support
 - mobile-safe and performant
 
-## Route-specific priorities
+## Route-specific rules
 
 ### `/`
-Highest brand-expression route.
-This is the strongest place for:
+This is the strongest brand-expression route.
+Best use cases:
 - premium hero
 - storytelling sections
 - featured products
 - newsroom/editorial trust
 - carefully controlled motion
-- selective enhancement such as 3D or rich media if performance-safe
+- selective 3D or rich media if performance-safe
 
 ### `/products`
 Search-first listing and scan clarity first.
-Do not overload with visual gimmicks.
 Focus on:
 - product card consistency
 - thumbnail/media quality
@@ -329,6 +508,8 @@ Focus on:
 - price/contact cue clarity
 - sort/filter understanding
 - mobile-safe scanning
+
+Do not overload listing pages with decorative complexity.
 
 ### `/products/[id]`
 Most important conversion/trust detail page.
@@ -340,39 +521,40 @@ Prioritize:
 - warranty
 - package/trust information
 - related products
-- sticky local navigation if helpful
+- sticky local navigation when useful
 
 ### `/blogs` and `/blogs/[id]`
 Editorial/content hierarchy first.
-Keep:
+Preserve:
 - reading comfort
 - card hierarchy
 - navigation clarity
 - related-content continuation
-Do not turn these into visually noisy marketing pages.
+
+Do not turn editorial pages into visually noisy marketing pages.
 
 ### `/about`, `/contact`, `/certification`
-Trust surfaces.
-May carry brand expression, but content clarity must remain primary.
+Trust pages may carry some brand expression, but content clarity remains primary.
 
 ### `/policy`, `/privacy-policy`, `/search`, `/reset-password`, `/warranty-check`, `/become_our_reseller`
-Utility/content/conversion routes.
-Must remain:
+Utility/content/conversion routes must remain:
 - clear
 - stable
 - readable
 - low-friction
-Do not introduce heavy motion or theatrical layouts here.
 
-## Main FE motion and 3D rule
+Do not introduce heavy motion or theatrical layouts on these routes.
+
+## Motion, video, and 3D rule
 Allowed only as enhancement, never as content source.
 
-If using motion, video, or 3D:
+Rules:
 - DOM content remains primary
 - SEO content remains crawlable
-- avoid making canvas/video the main LCP
+- avoid making canvas or video the main LCP
 - use lazy loading and fallback posters
-- do not apply heavy 3D to content/legal/search/form routes
+- respect reduced motion
+- do not apply heavy 3D/WebGL to legal/content/search/form-heavy routes
 
 ---
 
@@ -381,7 +563,7 @@ If using motion, video, or 3D:
 ## Intent
 The admin dashboard is an operations system, not a brand showroom.
 
-## Admin design priorities
+## Admin priorities
 - high density
 - fast scanning
 - predictable layouts
@@ -392,25 +574,25 @@ The admin dashboard is an operations system, not a brand showroom.
 - low visual fatigue during long sessions
 
 ## Admin layout rules
-- default to 12-column desktop logic where useful
-- page shell should be stable:
+- default to strong desktop grid logic
+- stable page shell:
   - page header
-  - summary controls / filters
+  - summary/filter controls
   - content area
   - secondary side panels only when justified
-- use sticky table headers for long lists
-- action clusters must remain predictable
+- sticky table headers for long lists
+- action clusters remain predictable
 
 ## Admin component emphasis
-Highest-quality components should include:
+Invest most quality into:
 - tables/data grids
 - filters and search
-- form sections
-- status badges
-- drawers/modals for focused actions
+- dense form sections
+- state badges
+- drawers/modals for focused edits
 - timelines/status trackers
-- totals/settlement summaries
-- charts only when they help operations, not as decoration
+- settlement/totals summaries
+- charts only when operationally useful
 
 ## Admin action hierarchy
 - one dominant primary action per region
@@ -420,14 +602,14 @@ Highest-quality components should include:
 
 ## Admin visual restraint
 Use brand color as identity anchor, not as page paint.
-Admin FE should be more neutral than main-fe.
+Admin FE should remain more neutral than main-fe.
 
 ---
 
 # 3. Dealer App Rules
 
 ## Intent
-The dealer app must optimize repeat purchasing and post-sale action speed on mobile.
+The dealer app must optimize repeat purchasing and post-sale task speed on mobile.
 
 ## Dealer priorities
 - fast ordering
@@ -436,21 +618,21 @@ The dealer app must optimize repeat purchasing and post-sale action speed on mob
 - payment visibility
 - order progression clarity
 - stock and discount awareness
-- one-handed mobile practicality
+- one-handed practicality
 - clear summary and next-step guidance
 
 ## Dealer information hierarchy
-On order/cart/checkout flows, prioritize:
+On cart/order/checkout flows, prioritize:
 - line items
 - quantity controls
 - subtotal
 - discount
-- VAT/fees context
+- VAT/fee context
 - grand total
 - payment state
 - next available action
 
-Important financial values must never be hidden behind hover-only or deeply nested UI.
+Financially meaningful values must never be hidden behind hover-only or deeply nested UI.
 
 ## Dealer mobile rules
 - large tap targets
@@ -459,14 +641,14 @@ Important financial values must never be hidden behind hover-only or deeply nest
 - compact list density
 - clearer spacing on detail/review/payment surfaces
 
-## Dealer UX tone
-Operational, trustworthy, and practical.
+## Dealer tone
+Operational, trustworthy, practical.
 Do not make dealer flows visually noisy.
 Do not bury totals or statuses below decorative sections.
 
 ---
 
-## Component System Rules
+## Shared Component System Rules
 
 ### Buttons
 Required variants:
@@ -483,9 +665,9 @@ Required sizes:
 
 Rules:
 - primary must be obviously primary
-- loading must preserve width
-- disabled must not look like secondary enabled
-- destructive must not visually compete with primary confirm
+- loading preserves width
+- disabled must not look like enabled secondary
+- destructive must not compete visually with primary confirm
 
 ### Inputs and form controls
 - explicit label always
@@ -493,44 +675,44 @@ Rules:
 - inline validation message
 - placeholder is not a label
 - focus-visible stronger than hover
-- error state changes border, message, and supporting icon treatment consistently
+- error state changes border, message, and support treatment consistently
 
 ### Tables and data grids
 Especially critical for admin-fe:
 - strong column alignment
-- sortable headers with explicit state
-- sticky header where appropriate
-- truncation safe with tooltip or detail access
-- empty state must distinguish:
+- explicit sorting state
+- sticky header when appropriate
+- safe truncation with tooltip or drill-down
+- empty state distinguishes:
   - no data
-  - filtered out
-  - failed to load
+  - filtered-out state
+  - load failure
 
 ### Cards
 - use for grouping related information
 - avoid nested-card chaos
 - public cards may be richer
-- admin cards should remain simpler and denser
-- dealer cards should remain touch-friendly and summary-first
+- admin cards remain simpler and denser
+- dealer cards remain touch-friendly and summary-first
 
 ### Filters and search
-- applied filters must remain visible
+- applied filters remain visible
 - removable individually
 - clear-all action required
-- preserve filter state during data refresh where reasonable
+- preserve filter state during refresh where reasonable
 
 ### Status badges
 - semantic token only
-- no random color choice
-- labels short and business-clear
-- color meaning stable across all clients
+- no arbitrary color choice
+- short, business-clear label
+- color meaning stable across clients
 - meaning must not depend on color alone
 
 ### Modals and drawers
 - modal for short focused tasks
 - drawer or page for complex review/edit flows
 - unsaved-change behavior must be explicit
-- destructive vs confirm action spacing must be clear
+- destructive vs confirm spacing must remain clear
 
 ### Pricing blocks and totals
 Critical for dealer and commerce surfaces:
@@ -543,28 +725,28 @@ Critical for dealer and commerce surfaces:
 - outstanding or settlement context where relevant
 
 Discounts must feel clear, not noisy.
-Financially meaningful values must always be visible.
+Important financial values must always be visible.
 
 ### Product media
-Critical for main-fe and product detail:
+Critical for main-fe and PDP:
 - stable aspect ratios
 - missing-media fallback
 - thumbnail consistency
 - hero media consistency
-- optional zoom/detail inspection
+- zoom/detail inspection when valuable
 - media must support trust, not just aesthetics
 
 ### Notifications and feedback
 - toast for lightweight success
 - inline/page-level alert for blocking failure
-- notification items should summarize:
+- notification items summarize:
   - event
   - affected entity
   - time
   - recommended next action
 
 ### Loading and skeletons
-- skeletons must resemble final layout
+- skeletons resemble final layout
 - avoid layout collapse
 - use section-level skeletons on data-rich screens
 - spinner-only full pages should be rare
@@ -605,7 +787,7 @@ Default writing language:
 Rules:
 - action labels start with clear verbs
 - empty state explains what happened and what to do next
-- error message explains problem and safest recovery path
+- error messages explain the problem and safest recovery path
 - avoid vague labels such as:
   - “Xử lý”
   - “Tiếp tục”
@@ -627,17 +809,17 @@ Bad:
 ## Safe Change Boundaries for Codex / Agents
 
 ### Non-negotiable rules
-- Do not change route/slug/SEO contract in `main-fe` unless the task explicitly requires it.
+- Do not change route/slug/SEO contract in `main-fe` unless explicitly required.
 - Do not change backend/API contract from a UI-only task.
-- Do not rename canonical business fields locally just for convenience.
+- Do not rename canonical business fields locally for convenience.
 - Do not invent new business states in the UI.
-- Do not alter status meaning as a cosmetic change.
+- Do not alter business-state meaning as a cosmetic change.
 - Do not introduce a new visual language for one surface without documenting why.
 - Do not build ornamental complexity into admin or dealer flows.
+- Do not let aesthetic choices override accessibility, clarity, or business correctness.
 
-### Required behavior when editing UI
-Before changing a screen or component:
-1. restate the screen intent
+### Required behavior before editing UI
+1. restate the screen or flow intent
 2. identify which surface it belongs to
 3. reuse existing shared primitives/tokens first
 4. preserve canonical labels and state semantics
@@ -647,10 +829,10 @@ Before changing a screen or component:
 8. preserve business contract
 
 ### If a task touches multiple surfaces
-The agent must explicitly separate:
+Explicitly separate:
 - what must stay shared
 - what is surface-specific
-- what is a true product decision vs a visual refinement
+- what is a product decision vs a visual refinement
 
 ---
 
@@ -676,7 +858,7 @@ After touching `dealer`, prefer to run:
 - relevant tests if affected
 - build sanity check if practical
 
-If a command cannot be run, state that clearly instead of pretending everything is fine. Human beings do adore ceremonial confidence unsupported by evidence.
+If a command cannot be run, state that clearly.
 
 ---
 
@@ -689,6 +871,11 @@ When existing UI is inconsistent:
 - replace one-off dashboard summary cards with shared metric primitives
 - introduce adapters before large rewrites if legacy data shape still exists
 - do not rewrite all three surfaces at once unless explicitly requested
+
+If a business state contract changes:
+- update shared mappings first
+- then update each client
+- then update this skill in the same batch
 
 ---
 
@@ -704,18 +891,20 @@ Do not:
 - make public SEO pages depend on heavy client-only visual logic
 - add 3D/WebGL theatrics to utility/legal/content-heavy routes
 - mix multiple visual metaphors on one page
+- let brand expression reduce clarity on operational surfaces
 
 ---
 
 ## Required Output Structure for Agent Guidance
+
 When generating design-system or UI implementation guidance, use this structure:
 
 1. Context and screen/flow intent
 2. Surface classification
 3. Shared rules that must be preserved
 4. Surface-specific priorities
-5. Design tokens and visual foundations
-6. Component-level rules:
+5. Design tokens and brand foundations
+6. Component-level rules
    - anatomy
    - variants
    - states
@@ -729,18 +918,20 @@ When generating design-system or UI implementation guidance, use this structure:
 ---
 
 ## Required QA Checklist
+
 Before finalizing UI guidance or UI code changes, verify:
 
 - Are tokens shared instead of guessed locally?
-- Are order/payment/warranty/serial states mapped canonically?
+- Are order/payment/warranty/serial/dealer-account states mapped canonically?
 - Is the primary action obvious?
 - Are destructive actions safely separated?
 - Are empty/loading/error/success states present?
-- Is the target surface optimized correctly:
+- Is the target surface optimized correctly?
   - premium readable for main-fe
   - compact operational for admin-fe
   - mobile-practical for dealer
 - Is the design responsive under long labels, large prices, and missing media?
 - Are keyboard/focus or touch-target rules satisfied?
 - Are SEO/public-route constraints preserved for `main-fe`?
+- Are logo, typography, brand color, and layout choices still aligned with 4thitek brand rules?
 - Does the result still feel like one 4thitek product family?
