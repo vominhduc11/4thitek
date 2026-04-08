@@ -183,10 +183,26 @@ class OrderWorkflowLogicTests {
     }
 
     @Test
-    void adminConfirmationKeepsReservedSerialsReserved() {
+    void adminCannotConfirmUnpaidPendingOrder() {
+        Dealer dealer = dealerRepository.save(createDealer("admin-unpaid-confirm@example.com"));
+        Order order = orderRepository.save(createOrder(dealer, OrderStatus.PENDING, "WF-CONFIRM-UNPAID"));
+
+        assertThatThrownBy(() -> adminManagementService.updateOrderStatus(
+                order.getId(),
+                new UpdateDealerOrderStatusRequest(OrderStatus.CONFIRMED),
+                "test-admin@example.com"
+        )).isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Cannot confirm an unpaid order");
+    }
+
+    @Test
+    void adminConfirmationKeepsReservedSerialsReservedForPaidOrder() {
         Dealer dealer = dealerRepository.save(createDealer("admin-confirm-serial@example.com"));
         Product product = saveProduct("SKU-CONFIRM-SERIAL-ADMIN", BigDecimal.valueOf(100_000));
         Order order = orderRepository.save(createOrder(dealer, OrderStatus.PENDING, "WF-CONFIRM-SERIAL-ADMIN"));
+        order.setPaymentStatus(PaymentStatus.PAID);
+        order.setPaidAmount(BigDecimal.valueOf(110_000));
+        order = orderRepository.save(order);
         ProductSerial serial = productSerialRepository.save(createSerial(
                 null,
                 order,
@@ -232,163 +248,57 @@ class OrderWorkflowLogicTests {
     }
 
     @Test
-    void dealerCannotCreateDebtOrderBeyondCreditLimit() {
-        Dealer dealer = createDealer("credit-limit@example.com");
-        dealer.setCreditLimit(BigDecimal.valueOf(100_000));
-        Dealer savedDealer = dealerRepository.save(dealer);
-        Product product = saveProduct("SKU-CREDIT-1", BigDecimal.valueOf(100_000));
+    void dealerCreateOrderRequiresBankTransferPaymentMethod() {
+        Dealer dealer = dealerRepository.save(createDealer("unsupported-payment@example.com"));
+        Product product = saveProduct("SKU-BANK-ONLY-1", BigDecimal.valueOf(100_000));
 
         CreateDealerOrderRequest request = new CreateDealerOrderRequest(
-                PaymentMethod.DEBT,
+                PaymentMethod.BANK_TRANSFER,
                 "Dealer receiver",
-                "123 Credit Street",
+                "123 Payment Street",
                 "0900000000",
                 0,
-                "Debt order should exceed limit",
+                "Bank transfer only contract",
                 List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
         );
+        CreateDealerOrderRequest unsupportedRequest = new CreateDealerOrderRequest(
+                null,
+                request.receiverName(),
+                request.receiverAddress(),
+                request.receiverPhone(),
+                request.shippingFee(),
+                request.note(),
+                request.items()
+        );
 
-        assertThatThrownBy(() -> dealerPortalService.createOrder(savedDealer.getUsername(), request, UUID.randomUUID().toString()))
+        assertThatThrownBy(() -> dealerPortalService.createOrder(dealer.getUsername(), unsupportedRequest, UUID.randomUUID().toString()))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("Credit limit exceeded");
+                .hasMessageContaining("Only BANK_TRANSFER is supported");
     }
 
     @Test
-    void dealerCannotCreateDebtOrderWithoutConfiguredCreditLimit() {
-        Dealer dealer = dealerRepository.save(createDealer("credit-not-configured@example.com"));
-        Product product = saveProduct("SKU-CREDIT-0", BigDecimal.valueOf(100_000));
-
-        CreateDealerOrderRequest request = new CreateDealerOrderRequest(
-                PaymentMethod.DEBT,
-                "Dealer receiver",
-                "123 Credit Street",
-                "0900000000",
-                0,
-                "Debt order should require configured credit limit",
-                List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
-        );
-
-        assertThatThrownBy(() -> dealerPortalService.createOrder(dealer.getUsername(), request, UUID.randomUUID().toString()))
-                .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("Debt payment is not available");
-    }
-
-    @Test
-    void concurrentDebtOrdersRespectDealerCreditLimit() throws Exception {
-        Dealer dealer = createDealer("credit-limit-race@example.com");
-        dealer.setCreditLimit(BigDecimal.valueOf(150_000));
-        Dealer savedDealer = dealerRepository.save(dealer);
-        Product product = saveProduct("SKU-CREDIT-RACE-1", BigDecimal.valueOf(100_000), 10);
-
-        CreateDealerOrderRequest request = new CreateDealerOrderRequest(
-                PaymentMethod.DEBT,
-                "Dealer receiver",
-                "123 Credit Street",
-                "0900000000",
-                0,
-                "Concurrent debt order should be serialized",
-                List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
-        );
-
-        ExecutorService executor = Executors.newFixedThreadPool(2);
-        CountDownLatch ready = new CountDownLatch(2);
-        CountDownLatch start = new CountDownLatch(1);
-        Callable<String> task = () -> {
-            ready.countDown();
-            start.await(5, TimeUnit.SECONDS);
-            try {
-                dealerPortalService.createOrder(savedDealer.getUsername(), request, UUID.randomUUID().toString());
-                return "created";
-            } catch (BadRequestException ex) {
-                if (ex.getMessage() != null && ex.getMessage().contains("Credit limit exceeded")) {
-                    return "limit";
-                }
-                throw ex;
-            }
-        };
-
-        try {
-            Future<String> first = executor.submit(task);
-            Future<String> second = executor.submit(task);
-            assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
-            start.countDown();
-
-            List<String> results = new ArrayList<>();
-            results.add(first.get(10, TimeUnit.SECONDS));
-            results.add(second.get(10, TimeUnit.SECONDS));
-
-            assertThat(results).containsExactlyInAnyOrder("created", "limit");
-        } finally {
-            executor.shutdownNow();
-        }
-
-        assertThat(orderRepository.findVisibleByDealerIdOrderByCreatedAtDesc(savedDealer.getId())).hasSize(1);
-    }
-
-    @Test
-    void dealerCanCreateBankTransferOrderEvenWhenCreditLimitWouldBlockDebt() {
-        Dealer dealer = createDealer("credit-limit-bank-transfer@example.com");
-        dealer.setCreditLimit(BigDecimal.valueOf(100_000));
-        Dealer savedDealer = dealerRepository.save(dealer);
-        Product product = saveProduct("SKU-CREDIT-BANK-1", BigDecimal.valueOf(100_000));
+    void dealerCreatesPendingBankTransferOrderWithoutCreditWorkflow() {
+        Dealer dealer = dealerRepository.save(createDealer("bank-transfer-create@example.com"));
+        Product product = saveProduct("SKU-BANK-CREATE-1", BigDecimal.valueOf(100_000));
 
         var response = dealerPortalService.createOrder(
-                savedDealer.getUsername(),
+                dealer.getUsername(),
                 new CreateDealerOrderRequest(
                         PaymentMethod.BANK_TRANSFER,
                         "Dealer receiver",
-                        "123 Credit Street",
+                        "123 Payment Street",
                         "0900000000",
                         0,
-                        "Bank transfer order should ignore credit limit",
+                        "Bank transfer order should remain unpaid after creation",
                         List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
                 ),
                 UUID.randomUUID().toString()
         );
 
         assertThat(response.paymentMethod()).isEqualTo(PaymentMethod.BANK_TRANSFER);
+        assertThat(response.status()).isEqualTo(OrderStatus.PENDING);
         assertThat(response.paymentStatus()).isEqualTo(PaymentStatus.PENDING);
-    }
-
-    @Test
-    void dealerDebtCreditCheckIgnoresOutstandingBankTransferOrders() {
-        Dealer dealer = createDealer("credit-limit-debt-only@example.com");
-        dealer.setCreditLimit(BigDecimal.valueOf(150_000));
-        Dealer savedDealer = dealerRepository.save(dealer);
-        Product product = saveProduct("SKU-CREDIT-DEBT-ONLY", BigDecimal.valueOf(100_000), 10);
-
-        dealerPortalService.createOrder(
-                savedDealer.getUsername(),
-                new CreateDealerOrderRequest(
-                        PaymentMethod.BANK_TRANSFER,
-                        "Dealer receiver",
-                        "123 Credit Street",
-                        "0900000000",
-                        0,
-                        "Outstanding bank transfer should not count toward debt limit",
-                        List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
-                ),
-                UUID.randomUUID().toString()
-        );
-
-        var debtOrder = dealerPortalService.createOrder(
-                savedDealer.getUsername(),
-                new CreateDealerOrderRequest(
-                        PaymentMethod.DEBT,
-                        "Dealer receiver",
-                        "123 Credit Street",
-                        "0900000000",
-                        0,
-                        "Debt order should only count debt outstanding",
-                        List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
-                ),
-                UUID.randomUUID().toString()
-        );
-
-        assertThat(debtOrder.paymentMethod()).isEqualTo(PaymentMethod.DEBT);
-        assertThat(debtOrder.paymentStatus()).isEqualTo(PaymentStatus.PENDING);
-        assertThat(debtOrder.reservedCreditAmount()).isGreaterThan(BigDecimal.ZERO);
-        assertThat(debtOrder.openReceivableAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(response.orderCode()).isNotBlank();
     }
 
     @Test
@@ -693,106 +603,13 @@ class OrderWorkflowLogicTests {
     }
 
     @Test
-    void dealerDebtPaymentRejectsPartialAmountsBelowConfiguredMinimum() {
-        Dealer dealer = createDealer("partial-payment-floor@example.com");
-        dealer.setCreditLimit(BigDecimal.valueOf(500_000));
-        Dealer savedDealer = dealerRepository.save(dealer);
-        Product product = saveProduct("SKU-DEBT-MIN-1", BigDecimal.valueOf(150_000));
-        var createdOrder = dealerPortalService.createOrder(
-                savedDealer.getUsername(),
-                new CreateDealerOrderRequest(
-                        PaymentMethod.DEBT,
-                        "Dealer receiver",
-                        "123 Minimum Payment Street",
-                        "0900000000",
-                        0,
-                        "Minimum partial payment validation",
-                        List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
-                ),
-                UUID.randomUUID().toString()
-        );
-
-        assertThatThrownBy(() -> dealerPortalService.recordPayment(
-                savedDealer.getUsername(),
-                createdOrder.id(),
-                new RecordPaymentRequest(
-                        BigDecimal.valueOf(50_000),
-                        PaymentMethod.DEBT,
-                        "Cash",
-                        null,
-                        "Partial payment below threshold",
-                        null,
-                        Instant.parse("2026-03-10T02:00:00Z")
-                )
-        ))
-                .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("at least 100000 VND");
-    }
-
-    @Test
-    void dealerDebtPaymentAllowsSmallFinalSettlementBelowConfiguredMinimum() {
-        Dealer dealer = createDealer("partial-payment-final@example.com");
-        dealer.setCreditLimit(BigDecimal.valueOf(500_000));
-        Dealer savedDealer = dealerRepository.save(dealer);
-        Product product = saveProduct("SKU-DEBT-MIN-2", BigDecimal.valueOf(150_000));
-        var createdOrder = dealerPortalService.createOrder(
-                savedDealer.getUsername(),
-                new CreateDealerOrderRequest(
-                        PaymentMethod.DEBT,
-                        "Dealer receiver",
-                        "123 Final Settlement Street",
-                        "0900000000",
-                        0,
-                        "Final settlement below threshold should be allowed",
-                        List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
-                ),
-                UUID.randomUUID().toString()
-        );
-
-        dealerPortalService.recordPayment(
-                savedDealer.getUsername(),
-                createdOrder.id(),
-                new RecordPaymentRequest(
-                        BigDecimal.valueOf(100_000),
-                        PaymentMethod.DEBT,
-                        "Cash",
-                        null,
-                        "First debt payment",
-                        null,
-                        Instant.parse("2026-03-10T02:00:00Z")
-                )
-        );
-
-        var finalPayment = dealerPortalService.recordPayment(
-                savedDealer.getUsername(),
-                createdOrder.id(),
-                new RecordPaymentRequest(
-                        BigDecimal.valueOf(65_000),
-                        PaymentMethod.DEBT,
-                        "Cash",
-                        null,
-                        "Final debt settlement",
-                        null,
-                        Instant.parse("2026-03-10T03:00:00Z")
-                )
-        );
-
-        Order updatedOrder = orderRepository.findById(createdOrder.id()).orElseThrow();
-        assertThat(finalPayment.amount()).isEqualByComparingTo("65000");
-        assertThat(updatedOrder.getPaidAmount()).isEqualByComparingTo("165000");
-        assertThat(updatedOrder.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
-    }
-
-    @Test
     void recordPaymentRejectsAmountsThatRoundBelowOneDong() {
-        Dealer dealer = createDealer("rounded-payment-floor@example.com");
-        dealer.setCreditLimit(BigDecimal.valueOf(500_000));
-        Dealer savedDealer = dealerRepository.save(dealer);
-        Product product = saveProduct("SKU-DEBT-MIN-3", BigDecimal.valueOf(100_000));
+        Dealer dealer = dealerRepository.save(createDealer("rounded-payment-floor@example.com"));
+        Product product = saveProduct("SKU-BANK-ROUND-1", BigDecimal.valueOf(100_000));
         var createdOrder = dealerPortalService.createOrder(
-                savedDealer.getUsername(),
+                dealer.getUsername(),
                 new CreateDealerOrderRequest(
-                        PaymentMethod.DEBT,
+                        PaymentMethod.BANK_TRANSFER,
                         "Dealer receiver",
                         "123 Rounded Amount Street",
                         "0900000000",
@@ -804,12 +621,12 @@ class OrderWorkflowLogicTests {
         );
 
         assertThatThrownBy(() -> dealerPortalService.recordPayment(
-                savedDealer.getUsername(),
+                dealer.getUsername(),
                 createdOrder.id(),
                 new RecordPaymentRequest(
                         new BigDecimal("0.49"),
-                        PaymentMethod.DEBT,
-                        "Cash",
+                        PaymentMethod.BANK_TRANSFER,
+                        "Manual confirmation",
                         null,
                         "Rounded below one dong",
                         null,
@@ -822,14 +639,12 @@ class OrderWorkflowLogicTests {
 
     @Test
     void concurrentManualDuplicatePaymentsOnlyRecordOnce() throws Exception {
-        Dealer dealer = createDealer("manual-duplicate@example.com");
-        dealer.setCreditLimit(BigDecimal.valueOf(500_000));
-        Dealer savedDealer = dealerRepository.save(dealer);
+        Dealer savedDealer = dealerRepository.save(createDealer("manual-duplicate@example.com"));
         Product product = saveProduct("SKU-DUP-1", BigDecimal.valueOf(100_000));
         var createdOrder = dealerPortalService.createOrder(
                 savedDealer.getUsername(),
                 new CreateDealerOrderRequest(
-                        PaymentMethod.DEBT,
+                        PaymentMethod.BANK_TRANSFER,
                         "Dealer receiver",
                         "123 Duplicate Street",
                         "0900000000",
@@ -851,7 +666,7 @@ class OrderWorkflowLogicTests {
                         createdOrder.id(),
                         new RecordPaymentRequest(
                                 BigDecimal.valueOf(100_000),
-                                PaymentMethod.DEBT,
+                                PaymentMethod.BANK_TRANSFER,
                                 "Admin manual confirmation",
                                 null,
                                 "Concurrent duplicate test",

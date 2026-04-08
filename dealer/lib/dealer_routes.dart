@@ -9,7 +9,6 @@ class DealerRoutePath {
   static const String orders = '/orders';
   static const String support = '/support';
   static const String inventory = '/inventory';
-  static const String debt = '/debt';
   static const String warranty = '/warranty';
   static const String warrantyExport = '/warranty/export';
   static const String accountSettings = '/account/settings';
@@ -88,6 +87,5 @@ bool isDealerTopLevelRoute(String route) {
       normalized == DealerRoutePath.notifications ||
       normalized == DealerRoutePath.support ||
       normalized == DealerRoutePath.inventory ||
-      normalized == DealerRoutePath.debt ||
       normalized == DealerRoutePath.warranty;
 }

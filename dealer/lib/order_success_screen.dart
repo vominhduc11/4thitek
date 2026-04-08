@@ -303,9 +303,6 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
     if (order == null) {
       return texts.pendingMessage;
     }
-    if (order.paymentMethod == OrderPaymentMethod.debt) {
-      return texts.debtRecordedMessage;
-    }
     if (order.paymentStatus == OrderPaymentStatus.paid) {
       return texts.sepayConfirmedMessage;
     }
@@ -395,9 +392,6 @@ class _OrderSuccessTexts {
   String get pendingMessage => isEnglish
       ? 'The order is pending confirmation.'
       : 'Đơn hàng đang chờ xác nhận.';
-  String get debtRecordedMessage => isEnglish
-      ? 'The order has been created and the matching credit limit is reserved. Any unpaid balance becomes a receivable only after completion.'
-      : 'Đơn đã được tạo và hạn mức công nợ tương ứng đã được giữ chỗ. Phần chưa thanh toán chỉ trở thành công nợ sau khi đơn hoàn tất.';
   String get sepayConfirmedMessage => isEnglish
       ? 'SePay has confirmed the payment. Your order is pending confirmation.'
       : 'SePay đã xác nhận thanh toán. Đơn hàng đang chờ xác nhận.';
@@ -430,8 +424,6 @@ class _OrderSuccessTexts {
         return isEnglish ? 'Unpaid' : 'Chưa thanh toán';
       case OrderPaymentStatus.paid:
         return isEnglish ? 'Paid' : 'Đã thanh toán';
-      case OrderPaymentStatus.debtRecorded:
-        return isEnglish ? 'Open receivable' : 'Công nợ phải thu';
     }
   }
 }

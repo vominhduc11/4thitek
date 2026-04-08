@@ -14,11 +14,6 @@ public record AdminDealerAccountResponse(
         Integer orders,
         Instant lastOrderAt,
         BigDecimal revenue,
-        BigDecimal reservedCredit,
-        BigDecimal openReceivable,
-        BigDecimal totalCreditExposure,
-        BigDecimal availableCredit,
-        BigDecimal creditLimit,
         String email,
         String phone,
         List<CustomerStatus> allowedTransitions

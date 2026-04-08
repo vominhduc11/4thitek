@@ -1,5 +1,4 @@
 import 'package:dealer_hub/order_controller.dart';
-import 'package:dealer_hub/utils.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -26,14 +25,14 @@ void main() {
         orderControllerMessageToken(OrderMessageCode.apiNotConfigured),
         isEnglish: false,
       ),
-      'API don hang chua duoc cau hinh.',
+      'API đơn hàng chưa được cấu hình.',
     );
     expect(
       resolveOrderControllerMessage(
         orderControllerMessageToken(OrderMessageCode.statusUpdateFailed),
         isEnglish: false,
       ),
-      'Khong the cap nhat trang thai don hang. Vui long thu lai.',
+      'Không thể cập nhật trạng thái đơn hàng. Vui lòng thử lại.',
     );
   });
 
@@ -47,34 +46,20 @@ void main() {
     );
   });
 
-  test('resolveOrderControllerMessage localizes backend debt guard messages', () {
+  test('resolveOrderControllerMessage preserves bank-transfer-only guard message', () {
     expect(
       resolveOrderControllerMessage(
-        'Debt payment is not available for this dealer',
+        'Only BANK_TRANSFER is supported',
         isEnglish: true,
       ),
-      'This account has not been granted a credit limit yet.',
-    );
-    expect(
-      resolveOrderControllerMessage('Credit limit exceeded', isEnglish: false),
-      'Vuot han muc cong no. Vui long kiem tra lai tong cong no hien tai truoc khi dat don.',
-    );
-  });
-
-  test('resolveOrderControllerMessage localizes partial debt payment threshold', () {
-    expect(
-      resolveOrderControllerMessage(
-        'Payment amount must be at least 100000 VND unless it fully settles the outstanding balance',
-        isEnglish: true,
-      ),
-      'Each partial debt payment must be at least ${formatVnd(100000)} unless it clears the remaining outstanding balance.',
+      'Only BANK_TRANSFER is supported',
     );
     expect(
       resolveOrderControllerMessage(
-        'Payment amount must be at least 100000 VND unless it fully settles the outstanding balance',
+        'Only BANK_TRANSFER is supported',
         isEnglish: false,
       ),
-      'Moi lan thanh toan cong no tung phan phai tu ${formatVnd(100000)} tro len, tru khi thanh toan het cong no con lai.',
+      'Only BANK_TRANSFER is supported',
     );
   });
 
@@ -91,7 +76,7 @@ void main() {
         'Insufficient stock for product Router AX',
         isEnglish: false,
       ),
-      'Ton kho cua Router AX khong con du. Vui long lam moi va thu lai.',
+      'Tồn kho của Router AX không còn đủ. Vui lòng làm mới và thử lại.',
     );
   });
 }

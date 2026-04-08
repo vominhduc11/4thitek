@@ -1,5 +1,4 @@
 import { ArrowLeft, Phone, UserCircle } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAdminData, type DealerStatus } from '../context/AdminDataContext'
 import { useLanguage } from '../context/LanguageContext'
@@ -14,15 +13,11 @@ import { formatCurrency, formatDateTime } from '../lib/formatters'
 import {
   EmptyState,
   ErrorState,
-  FieldErrorMessage,
   GhostButton,
   LoadingRows,
   PagePanel,
-  PrimaryButton,
   StatusBadge,
-  fieldErrorClass,
   inputClass,
-  labelClass,
 } from '../components/ui-kit'
 import { useConfirmDialog } from '../hooks/useConfirmDialog'
 
@@ -32,50 +27,9 @@ function DealerDetailPage() {
   const navigate = useNavigate()
   const { t } = useLanguage()
   const { notify } = useToast()
-  const { dealers, dealersState, updateDealer, updateDealerStatus, reloadResource } = useAdminData()
+  const { dealers, dealersState, updateDealerStatus, reloadResource } = useAdminData()
   const { confirm, prompt, confirmDialog, promptDialog } = useConfirmDialog()
   const dealer = dealers.find((item) => item.id === dealerId)
-  const [form, setForm] = useState({
-    creditLimit: '',
-  })
-  const [formErrors, setFormErrors] = useState<Partial<Record<'creditLimit', string>>>({})
-  const [isSavingProfile, setIsSavingProfile] = useState(false)
-  const isDirty = useMemo(
-    () =>
-      Boolean(
-        dealer &&
-          form.creditLimit !== (dealer.creditLimit > 0 ? String(dealer.creditLimit) : ''),
-      ),
-    [dealer, form],
-  )
-
-  const validateForm = (value: typeof form) => {
-    const errors: Partial<Record<'creditLimit', string>> = {}
-    if (value.creditLimit.trim()) {
-      const nextCreditLimit = Number(value.creditLimit)
-      if (Number.isNaN(nextCreditLimit) || nextCreditLimit < 0) {
-        errors.creditLimit = t('Hạn mức công nợ phải là số không âm.')
-      }
-    }
-    return errors
-  }
-
-  const updateFormField = <K extends keyof typeof form>(field: K, nextValue: (typeof form)[K]) => {
-    setForm((previous) => {
-      const next = { ...previous, [field]: nextValue }
-      setFormErrors(validateForm(next))
-      return next
-    })
-  }
-
-  useEffect(() => {
-    if (!dealer) {
-      return
-    }
-    setForm({
-      creditLimit: dealer.creditLimit > 0 ? String(dealer.creditLimit) : '',
-    })
-  }, [dealer])
 
   if (dealersState.status === 'loading' || dealersState.status === 'idle') {
     return (
@@ -89,8 +43,8 @@ function DealerDetailPage() {
     return (
       <PagePanel>
         <ErrorState
-          title={t('Không thể tải đại lý')}
-          message={dealersState.error || t('Không tải được đại lý')}
+          title={t('KhĂ´ng thá»ƒ táº£i Ä‘áº¡i lĂ½')}
+          message={dealersState.error || t('KhĂ´ng táº£i Ä‘Æ°á»£c Ä‘áº¡i lĂ½')}
           onRetry={() => void reloadResource('dealers')}
         />
       </PagePanel>
@@ -101,36 +55,11 @@ function DealerDetailPage() {
     return (
       <PagePanel>
         <EmptyState
-          title={t('Không tìm thấy đại lý')}
-          message={t('Đại lý {id} không tồn tại.', { id: dealerId })}
+          title={t('KhĂ´ng tĂ¬m tháº¥y Ä‘áº¡i lĂ½')}
+          message={t('Äáº¡i lĂ½ {id} khĂ´ng tá»“n táº¡i.', { id: dealerId })}
         />
       </PagePanel>
     )
-  }
-
-  const handleSaveProfile = async () => {
-    const nextErrors = validateForm(form)
-    setFormErrors(nextErrors)
-    if (Object.keys(nextErrors).length > 0) {
-      return
-    }
-
-    const creditLimit = form.creditLimit.trim() ? Number(form.creditLimit) : 0
-    setIsSavingProfile(true)
-    try {
-      await updateDealer(dealer.id, {
-        creditLimit,
-      })
-      setFormErrors({})
-      notify(t('Đã cập nhật {id}', { id: dealer.id }), { title: t('Đại lý'), variant: 'success' })
-    } catch (error) {
-      notify(error instanceof Error ? error.message : t('Không cập nhật được đại lý'), {
-        title: t('Đại lý'),
-        variant: 'error',
-      })
-    } finally {
-      setIsSavingProfile(false)
-    }
   }
 
   return (
@@ -141,21 +70,10 @@ function DealerDetailPage() {
           onClick={() => navigate('/dealers')}
           type="button"
         >
-          {t('Về đại lý')}
+          {t('Vá» Ä‘áº¡i lĂ½')}
         </GhostButton>
-        <div className="flex flex-wrap items-center gap-2">
-          <StatusBadge tone={dealerStatusTone[dealer.status]}>{t(dealerStatusLabel[dealer.status])}</StatusBadge>
-        </div>
+        <StatusBadge tone={dealerStatusTone[dealer.status]}>{t(dealerStatusLabel[dealer.status])}</StatusBadge>
       </div>
-
-      {isDirty ? (
-        <div
-          className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800"
-          role="status"
-        >
-          {t('Có thay đổi chưa lưu trong hồ sơ đại lý.')}
-        </div>
-      ) : null}
 
       <div className="mt-5 grid gap-4 md:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.95fr)] xl:grid-cols-[1.3fr_1fr]">
         <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-ghost)] p-5">
@@ -173,62 +91,31 @@ function DealerDetailPage() {
           <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
               <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">Email</p>
-              <p className="mt-1 font-semibold text-[var(--ink)]">{dealer.email}</p>
+              <p className="mt-1 font-semibold text-[var(--ink)]">{dealer.email || 'â€”'}</p>
             </div>
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
               <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">Phone</p>
-              <p className="mt-1 font-semibold text-[var(--ink)]">{dealer.phone}</p>
+              <p className="mt-1 font-semibold text-[var(--ink)]">{dealer.phone || 'â€”'}</p>
             </div>
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t("Đơn hàng")}</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('ÄÆ¡n hĂ ng')}</p>
               <p className="mt-1 font-semibold text-[var(--ink)]">{dealer.orders}</p>
             </div>
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
               <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Doanh thu')}</p>
               <p className="mt-1 font-semibold text-[var(--accent)]">{formatCurrency(dealer.revenue)}</p>
             </div>
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
-                {t('Hạn mức công nợ')}
-              </p>
-              <p className="mt-1 font-semibold text-[var(--ink)]">
-                {dealer.creditLimit > 0 ? formatCurrency(dealer.creditLimit) : t('Chưa đặt')}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Credit reserved')}</p>
-              <p className={`mt-1 font-semibold ${dealer.reservedCredit > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-[var(--ink)]'}`}>
-                {dealer.reservedCredit > 0 ? formatCurrency(dealer.reservedCredit) : '—'}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Open receivable')}</p>
-              <p className={`mt-1 font-semibold ${dealer.openReceivable > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-[var(--ink)]'}`}>
-                {dealer.openReceivable > 0 ? formatCurrency(dealer.openReceivable) : '—'}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Credit exposure')}</p>
-              <p className={`mt-1 font-semibold ${dealer.totalCreditExposure > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-[var(--ink)]'}`}>
-                {dealer.totalCreditExposure > 0 ? formatCurrency(dealer.totalCreditExposure) : '—'}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Available credit')}</p>
-              <p className="mt-1 font-semibold text-[var(--ink)]">
-                {dealer.creditLimit > 0 ? formatCurrency(dealer.availableCredit) : t('Chưa đặt')}
-              </p>
-            </div>
           </div>
+
           <p className="mt-3 text-xs text-[var(--muted)]">
-            {t('Lần mua gần nhất')}: {formatDateTime(dealer.lastOrderAt)}
+            {t('Láº§n mua gáº§n nháº¥t')}: {formatDateTime(dealer.lastOrderAt)}
           </p>
         </div>
 
         <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-ghost)] p-5">
-          <p className="text-sm font-semibold text-[var(--ink)]">{t('Cập nhật trạng thái hồ sơ')}</p>
+          <p className="text-sm font-semibold text-[var(--ink)]">{t('Cáº­p nháº­t tráº¡ng thĂ¡i há»“ sÆ¡')}</p>
           <select
-            aria-label={t('Trạng thái đại lý {id}', { id: dealer.id })}
+            aria-label={t('Tráº¡ng thĂ¡i Ä‘áº¡i lĂ½ {id}', { id: dealer.id })}
             className={`${inputClass} mt-3 w-full`}
             onChange={async (event) => {
               const next = event.target.value as DealerStatus
@@ -236,17 +123,17 @@ function DealerDetailPage() {
                 return
               }
 
-              let reason: string | undefined;
+              let reason: string | undefined
               if (next === 'suspended') {
                 const input = await prompt({
-                  title: t('Xác nhận đổi trạng thái'),
-                  message: t('Chuyển đại lý này sang trạng thái "{status}"?', {
+                  title: t('XĂ¡c nháº­n Ä‘á»•i tráº¡ng thĂ¡i'),
+                  message: t('Chuyá»ƒn Ä‘áº¡i lĂ½ nĂ y sang tráº¡ng thĂ¡i "{status}"?', {
                     status: t(dealerStatusLabel[next]),
                   }),
                   tone: 'danger',
                   confirmLabel: t(dealerStatusLabel[next]),
-                  inputLabel: t('Lý do tạm khóa'),
-                  inputPlaceholder: t('Nhập lý do tạm khóa đại lý...'),
+                  inputLabel: t('LĂ½ do táº¡m khĂ³a'),
+                  inputPlaceholder: t('Nháº­p lĂ½ do táº¡m khĂ³a Ä‘áº¡i lĂ½...'),
                 })
                 if (input === null) {
                   event.currentTarget.value = dealer.status
@@ -255,8 +142,8 @@ function DealerDetailPage() {
                 reason = input
               } else {
                 const approved = await confirm({
-                  title: t('Xác nhận đổi trạng thái'),
-                  message: t('Chuyển đại lý này sang trạng thái "{status}"?', {
+                  title: t('XĂ¡c nháº­n Ä‘á»•i tráº¡ng thĂ¡i'),
+                  message: t('Chuyá»ƒn Ä‘áº¡i lĂ½ nĂ y sang tráº¡ng thĂ¡i "{status}"?', {
                     status: t(dealerStatusLabel[next]),
                   }),
                   tone: 'info',
@@ -270,15 +157,15 @@ function DealerDetailPage() {
 
               try {
                 await updateDealerStatus(dealer.id, next, reason)
-                notify(t('Cập nhật {id} -> {status}', { id: dealer.id, status: t(dealerStatusLabel[next]) }), {
-                  title: t('Đại lý'),
+                notify(t('Cáº­p nháº­t {id} -> {status}', { id: dealer.id, status: t(dealerStatusLabel[next]) }), {
+                  title: t('Äáº¡i lĂ½'),
                   variant: 'info',
                 })
               } catch (error) {
                 notify(
-                  error instanceof Error ? error.message : t('Không cập nhật được trạng thái đại lý'),
+                  error instanceof Error ? error.message : t('KhĂ´ng cáº­p nháº­t Ä‘Æ°á»£c tráº¡ng thĂ¡i Ä‘áº¡i lĂ½'),
                   {
-                    title: t('Đại lý'),
+                    title: t('Äáº¡i lĂ½'),
                     variant: 'error',
                   },
                 )
@@ -297,57 +184,13 @@ function DealerDetailPage() {
           </select>
           <p className="mt-3 text-xs text-[var(--muted)]">{t(dealerStatusDescription[dealer.status])}</p>
 
-          <div className="mt-6 border-t border-[var(--border)] pt-5">
-            <p className="text-sm font-semibold text-[var(--ink)]">{t('Cài đặt tài khoản đại lý')}</p>
-            <div className="mt-3 grid gap-3">
-              <label className="space-y-2">
-                <span className={labelClass}>{t('Hạn mức công nợ (VND)')}</span>
-                <input
-                  aria-describedby={formErrors.creditLimit ? 'dealer-credit-error' : undefined}
-                  aria-invalid={Boolean(formErrors.creditLimit)}
-                  className={`${inputClass}${formErrors.creditLimit ? ' border-rose-300' : ''}`}
-                  onChange={(event) => updateFormField('creditLimit', event.target.value)}
-                  type="number"
-                  value={form.creditLimit}
-                />
-                {formErrors.creditLimit ? (
-                  <FieldErrorMessage className={fieldErrorClass} id="dealer-credit-error">
-                    {formErrors.creditLimit}
-                  </FieldErrorMessage>
-                ) : null}
-              </label>
-            </div>
-            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-              <PrimaryButton
-                disabled={isSavingProfile || !isDirty}
-                onClick={() => void handleSaveProfile()}
-                type="button"
-              >
-                {isSavingProfile ? t('Đang lưu...') : t('Lưu thay đổi')}
-              </PrimaryButton>
-              {isDirty ? (
-                <GhostButton
-                  onClick={() => {
-                    setForm({
-                      creditLimit: dealer.creditLimit > 0 ? String(dealer.creditLimit) : '',
-                    })
-                    setFormErrors({})
-                  }}
-                  type="button"
-                >
-                  {t('Hoàn tác')}
-                </GhostButton>
-              ) : null}
-            </div>
-          </div>
-
           <div className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-sm text-[var(--ink)]">
             <div className="flex items-center gap-2 font-semibold text-[var(--ink)]">
               <Phone className="h-4 w-4" />
-              {t('Liên hệ nhanh')}
+              {t('LiĂªn há»‡ nhanh')}
             </div>
-            <p className="mt-2 text-xs text-[var(--muted)]">Email: {dealer.email}</p>
-            <p className="text-xs text-[var(--muted)]">{t('Hotline')}: {dealer.phone}</p>
+            <p className="mt-2 text-xs text-[var(--muted)]">Email: {dealer.email || 'â€”'}</p>
+            <p className="text-xs text-[var(--muted)]">{t('Hotline')}: {dealer.phone || 'â€”'}</p>
           </div>
         </div>
       </div>

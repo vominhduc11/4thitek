@@ -6,7 +6,6 @@ import com.devwonder.backend.dto.admin.AdminBlogResponse;
 import com.devwonder.backend.dto.admin.AdminBlogUpsertRequest;
 import com.devwonder.backend.dto.admin.AdminDashboardResponse;
 import com.devwonder.backend.dto.admin.AdminDealerAccountResponse;
-import com.devwonder.backend.dto.admin.AdminDealerAccountUpdateRequest;
 import com.devwonder.backend.dto.admin.AdminDealerResponse;
 import com.devwonder.backend.dto.admin.AdminDiscountRuleResponse;
 import com.devwonder.backend.dto.admin.AdminDiscountRuleUpsertRequest;
@@ -374,14 +373,6 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success(PagedResponse.from(result, "createdAt")));
     }
 
-    @PutMapping("/dealers/accounts/{id}")
-    public ResponseEntity<ApiResponse<AdminDealerAccountResponse>> updateDealerAccount(
-            @PathVariable("id") Long id,
-            @Valid @RequestBody AdminDealerAccountUpdateRequest request
-    ) {
-        return ResponseEntity.ok(ApiResponse.success(adminManagementService.updateDealerAccount(id, request)));
-    }
-
     @PatchMapping("/dealers/accounts/{id}/status")
     public ResponseEntity<ApiResponse<AdminDealerAccountResponse>> updateDealerAccountStatus(
             @PathVariable("id") Long id,
@@ -521,7 +512,7 @@ public class AdminController {
     }
 
     @GetMapping("/payments/recent")
-    public ResponseEntity<ApiResponse<PagedResponse<AdminRecentPaymentResponse>>> recentDebtPayments(
+    public ResponseEntity<ApiResponse<PagedResponse<AdminRecentPaymentResponse>>> recentPayments(
             @RequestParam(name = "dealerId", required = false) Long dealerId,
             @RequestParam(name = "from", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
@@ -536,7 +527,7 @@ public class AdminController {
             @RequestParam(name = "sortDir", required = false) String sortDir
     ) {
         Pageable pageable = PaginationUtils.toUnsortedPageable(page, size);
-        Page<AdminRecentPaymentResponse> result = adminFinancialService.getRecentDebtPayments(
+        Page<AdminRecentPaymentResponse> result = adminFinancialService.getRecentPayments(
                 dealerId,
                 from,
                 to,

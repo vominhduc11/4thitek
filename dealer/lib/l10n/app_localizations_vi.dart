@@ -180,7 +180,4 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get paymentMethodBankTransfer => 'Chuyển khoản ngân hàng';
-
-  @override
-  String get paymentMethodDebt => 'Ghi nhận công nợ';
 }

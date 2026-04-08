@@ -190,51 +190,24 @@ function OrderDetailPage() {
   }
 
   const paymentMethodLabel =
-    order.paymentMethod === 'debt'
-      ? t('Công nợ')
-      : order.paymentMethod === 'bank_transfer'
-        ? t('Chuyển khoản ngân hàng')
-        : t('Chưa xác định')
+    order.paymentMethod === 'bank_transfer'
+      ? 'Bank transfer'
+      : 'Unknown'
   const paymentStatusLabel =
     order.paymentStatus === 'paid'
-      ? t('Đã thanh toán')
-      : order.paymentStatus === 'debt_recorded'
-        ? t('Open receivable')
-        : order.paymentStatus === 'cancelled'
-          ? t('Đã hủy')
+      ? 'Paid'
+      : order.paymentStatus === 'cancelled'
+          ? 'Cancelled'
           : order.paymentStatus === 'failed'
-            ? t('Thất bại')
-            : t('Chưa thanh toán')
+            ? 'Failed'
+            : 'Pending payment'
 
   const paymentStatusTone =
     order.paymentStatus === 'paid'
       ? 'success' as const
-      : order.paymentStatus === 'debt_recorded'
-        ? 'warning' as const
-        : order.paymentStatus === 'cancelled' || order.paymentStatus === 'failed'
+      : order.paymentStatus === 'cancelled' || order.paymentStatus === 'failed'
           ? 'danger' as const
           : 'neutral' as const
-  const paymentExposureLabel =
-    order.paymentMethod !== 'debt'
-      ? t('Remaining balance')
-      : order.openReceivableAmount > 0
-        ? t('Open receivable')
-        : order.reservedCreditAmount > 0
-          ? t('Credit reserved')
-          : t('Remaining balance')
-  const paymentExposureTone =
-    order.openReceivableAmount > 0
-      ? 'text-rose-600 dark:text-rose-400'
-      : order.reservedCreditAmount > 0
-        ? 'text-amber-700 dark:text-amber-300'
-        : 'text-[var(--ink)]'
-  const paymentExposureAmount =
-    order.openReceivableAmount > 0
-      ? order.openReceivableAmount
-      : order.reservedCreditAmount > 0
-        ? order.reservedCreditAmount
-        : order.outstandingAmount
-
   const adjTypeLabel: Record<BackendOrderAdjustmentType, string> = {
     CORRECTION: t('Điều chỉnh'),
     WRITE_OFF: t('Xóa nợ'),
@@ -301,19 +274,11 @@ function OrderDetailPage() {
               </p>
             </div>
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{paymentExposureLabel}</p>
-              <p className={`mt-1 font-semibold ${paymentExposureTone}`}>
-                {formatCurrency(paymentExposureAmount)}
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Remaining balance')}</p>
+              <p className={`mt-1 font-semibold ${order.outstandingAmount > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-[var(--ink)]'}`}>
+                {formatCurrency(order.outstandingAmount)}
               </p>
             </div>
-            {order.paymentMethod === 'debt' ? (
-              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-                <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Credit exposure')}</p>
-                <p className={`mt-1 font-semibold ${order.creditExposureAmount > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-[var(--ink)]'}`}>
-                  {formatCurrency(order.creditExposureAmount)}
-                </p>
-              </div>
-            ) : null}
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 sm:col-span-2">
               <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Địa chỉ')}</p>
               <p className="mt-1 text-[var(--ink)]">{order.address || '—'}</p>
@@ -455,13 +420,8 @@ function OrderDetailPage() {
                     try {
                       await recordOrderPayment(order.id, {
                         amount,
-                        method: order.paymentMethod ?? undefined,
-                        channel:
-                          order.paymentMethod === 'bank_transfer'
-                            ? 'Admin manual bank transfer confirmation'
-                            : order.paymentMethod === 'debt'
-                              ? 'Admin manual debt confirmation'
-                              : 'Admin manual payment confirmation',
+                        method: 'bank_transfer',
+                        channel: 'Admin manual bank transfer confirmation',
                         transactionCode: transactionCode.trim() || undefined,
                         note: paymentNote.trim() || undefined,
                       })

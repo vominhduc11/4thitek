@@ -28,7 +28,6 @@ import {
   fetchAdminUsers,
   recordAdminOrderPayment,
   updateAdminBlog,
-  updateAdminDealerAccount,
   updateAdminDealerAccountStatus,
   updateAdminDiscountRuleStatus,
   updateAdminOrderStatus,
@@ -102,7 +101,7 @@ type AdminDataContextValue = {
     id: string,
     payload: {
       amount: number
-      method?: 'bank_transfer' | 'debt'
+      method?: 'bank_transfer'
       channel?: string
       transactionCode?: string
       note?: string
@@ -123,10 +122,6 @@ type AdminDataContextValue = {
   deletePost: (id: string) => Promise<void>
   dealers: Dealer[]
   dealersState: AdminResourceState
-  updateDealer: (
-    id: string,
-    payload: Pick<Dealer, 'creditLimit'>,
-  ) => Promise<void>
   updateDealerStatus: (id: string, status: DealerStatus, reason?: string) => Promise<void>
   users: StaffUser[]
   usersState: AdminResourceState
@@ -539,20 +534,6 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     await queryClient.invalidateQueries({ queryKey: resourceQueryKeys.dealers })
   }
 
-  const updateDealer: AdminDataContextValue['updateDealer'] = async (id, payload) => {
-    const token = requireToken()
-    const current = dealers.find((item) => item.id === id)
-    if (!current) {
-      return
-    }
-
-    const updated = await updateAdminDealerAccount(token, Number(id), {
-      creditLimit: payload.creditLimit,
-    })
-    setDealers((previous) => previous.map((item) => (item.id === id ? mapDealer(updated) : item)))
-    await queryClient.invalidateQueries({ queryKey: resourceQueryKeys.dealers })
-  }
-
   const addUser: AdminDataContextValue['addUser'] = async (payload) => {
     const token = requireToken()
     const created = await createAdminUser(token, {
@@ -631,7 +612,6 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     deletePost,
     dealers,
     dealersState: resourceStates.dealers,
-    updateDealer,
     updateDealerStatus,
     users,
     usersState: resourceStates.users,

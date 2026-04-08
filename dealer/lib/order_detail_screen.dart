@@ -263,7 +263,6 @@ class OrderDetailScreen extends StatelessWidget {
     final channels = <String>[
       texts.bankTransferChannelValue,
       texts.cashChannelValue,
-      texts.debtOffsetChannelValue,
     ];
     var selectedChannel = order.paymentMethod == OrderPaymentMethod.bankTransfer
         ? channels.first
@@ -447,7 +446,7 @@ class OrderDetailScreen extends StatelessWidget {
                           }
                           if (amount > order.outstandingAmount) {
                             setDialogState(() {
-                              errorText = texts.amountExceedsDebtMessage;
+                              errorText = texts.amountExceedsOutstandingMessage;
                             });
                             return;
                           }
@@ -913,28 +912,6 @@ class OrderDetailScreen extends StatelessWidget {
                           isWarning: true,
                         ),
                       ],
-                      if (order.reservedCreditAmount > 0) ...[
-                        const SizedBox(height: 8),
-                        _InfoRow(
-                          label: texts.reservedCreditAmountLabel,
-                          value: formatVnd(order.reservedCreditAmount),
-                        ),
-                      ],
-                      if (order.openReceivableAmount > 0) ...[
-                        const SizedBox(height: 8),
-                        _InfoRow(
-                          label: texts.openReceivableAmountLabel,
-                          value: formatVnd(order.openReceivableAmount),
-                          isWarning: true,
-                        ),
-                      ],
-                      if (order.creditExposureAmount > 0) ...[
-                        const SizedBox(height: 8),
-                        _InfoRow(
-                          label: texts.creditExposureAmountLabel,
-                          value: formatVnd(order.creditExposureAmount),
-                        ),
-                      ],
                       const Divider(height: 20),
                       _InfoRow(
                         label: texts.totalLabel,
@@ -1067,7 +1044,7 @@ class _OrderDetailTexts {
   String get backAction => isEnglish ? 'Back' : 'Quay lại';
   String get invalidAmountMessage =>
       isEnglish ? 'Invalid amount.' : 'Số tiền không hợp lệ.';
-  String get amountExceedsDebtMessage => isEnglish
+  String get amountExceedsOutstandingMessage => isEnglish
       ? 'The amount exceeds the remaining outstanding balance.'
       : 'Số tiền vượt quá công nợ còn lại.';
   String get recordPaymentScreenNote => isEnglish
@@ -1126,12 +1103,6 @@ class _OrderDetailTexts {
   String get paidAmountLabel => isEnglish ? 'Paid amount' : 'Đã thanh toán';
   String get outstandingAmountLabel =>
       isEnglish ? 'Outstanding' : 'Còn phải thanh toán';
-  String get reservedCreditAmountLabel =>
-      isEnglish ? 'Credit reserved' : 'Hạn mức đã giữ';
-  String get openReceivableAmountLabel =>
-      isEnglish ? 'Open receivable' : 'Công nợ phải thu';
-  String get creditExposureAmountLabel =>
-      isEnglish ? 'Credit exposure' : 'Tổng dư nợ';
   String get totalLabel => isEnglish ? 'Total' : 'Tổng cộng';
   String get paymentHistoryTitle =>
       isEnglish ? 'Payment history' : 'Lịch sử thanh toán';
@@ -1167,30 +1138,21 @@ class _OrderDetailTexts {
         return isEnglish ? 'Unpaid' : 'Chưa thanh toán';
       case OrderPaymentStatus.paid:
         return isEnglish ? 'Paid' : 'Đã thanh toán';
-      case OrderPaymentStatus.debtRecorded:
-        return isEnglish ? 'Open receivable' : 'Công nợ phải thu';
     }
   }
 
   String get bankTransferChannelValue => 'Chuyển khoản';
   String get cashChannelValue => 'Tiền mặt';
-  String get debtOffsetChannelValue => 'Bù trừ công nợ';
 
   String paymentChannelDisplay(String value) {
     final normalized = value.trim().toLowerCase();
-    if (normalized.contains('chuyển khoản') ||
+    if (normalized.contains('chuy???n kho???n') ||
         normalized.contains('transfer') ||
         normalized.contains('bank')) {
-      return isEnglish ? 'Bank transfer' : 'Chuyển khoản';
+      return isEnglish ? 'Bank transfer' : 'Chuy???n kho???n';
     }
-    if (normalized.contains('tiền mặt') || normalized.contains('cash')) {
-      return isEnglish ? 'Cash' : 'Tiền mặt';
-    }
-    if (normalized.contains('bù trừ') ||
-        normalized.contains('công nợ') ||
-        normalized.contains('debt') ||
-        normalized.contains('offset')) {
-      return isEnglish ? 'Debt offset' : 'Bù trừ công nợ';
+    if (normalized.contains('ti???n m???t') || normalized.contains('cash')) {
+      return isEnglish ? 'Cash' : 'Ti???n m???t';
     }
     return value;
   }
@@ -1539,8 +1501,6 @@ Color _paymentStatusBackground(OrderPaymentStatus status) {
       return const Color(0xFF4A1E24);
     case OrderPaymentStatus.paid:
       return const Color(0xFF1A3F2D);
-    case OrderPaymentStatus.debtRecorded:
-      return const Color(0xFF4C3B16);
   }
 }
 
@@ -1554,8 +1514,6 @@ Color _paymentStatusTextColor(OrderPaymentStatus status) {
       return const Color(0xFFFDA4AF);
     case OrderPaymentStatus.paid:
       return const Color(0xFF86EFAC);
-    case OrderPaymentStatus.debtRecorded:
-      return const Color(0xFFF4D18A);
   }
 }
 
@@ -1626,23 +1584,17 @@ class _OrderItemTile extends StatelessWidget {
 class _PaymentHistoryTile extends StatelessWidget {
   const _PaymentHistoryTile({required this.record});
 
-  final DebtPaymentRecord record;
+  final OrderPaymentRecord record;
 
   IconData _iconForChannel(String channel) {
     final normalized = channel.toLowerCase();
-    if (normalized.contains('chuyển khoản') ||
+    if (normalized.contains('chuy???n kho???n') ||
         normalized.contains('transfer') ||
         normalized.contains('bank')) {
       return Icons.account_balance_outlined;
     }
-    if (normalized.contains('tiền mặt') || normalized.contains('cash')) {
+    if (normalized.contains('ti???n m???t') || normalized.contains('cash')) {
       return Icons.money_outlined;
-    }
-    if (normalized.contains('bù trừ') ||
-        normalized.contains('công nợ') ||
-        normalized.contains('debt') ||
-        normalized.contains('offset')) {
-      return Icons.swap_horiz_outlined;
     }
     return Icons.payments_outlined;
   }

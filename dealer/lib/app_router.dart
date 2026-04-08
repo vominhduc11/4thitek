@@ -8,7 +8,6 @@ import 'cart_screen.dart';
 import 'change_password_screen.dart';
 import 'checkout_screen.dart';
 import 'dealer_routes.dart';
-import 'debt_tracking_screen.dart';
 import 'home_shell.dart';
 import 'inventory_screen.dart';
 import 'login_screen.dart';
@@ -95,10 +94,6 @@ GoRouter buildDealerRouter({
             _ => InventoryStockFilter.all,
           },
         ),
-      ),
-      GoRoute(
-        path: '/debt',
-        builder: (context, state) => const DebtTrackingScreen(),
       ),
       GoRoute(
         path: '/warranty',

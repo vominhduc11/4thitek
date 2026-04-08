@@ -167,10 +167,6 @@ const settingsPageEnTranslations: TranslationMap = {
 const translations: Record<Language, TranslationMap> = {
   vi: {
     ...viAdminEmailVerificationOverrides,
-    "Open receivable": "Công nợ phải thu",
-    "Credit reserved": "Hạn mức đã giữ",
-    "Credit exposure": "Tổng dư nợ",
-    "Available credit": "Hạn mức còn lại",
     "Paid amount": "Đã thanh toán",
     "Remaining balance": "Còn phải thanh toán",
     "Outstanding": "Còn phải thanh toán",
@@ -196,10 +192,6 @@ const translations: Record<Language, TranslationMap> = {
   en: {
     "Block admin sign-in until the account has an email address and that email has been verified.":
       "Block admin sign-in until the account has an email address and that email has been verified.",
-    "Open receivable": "Open receivable",
-    "Credit reserved": "Credit reserved",
-    "Credit exposure": "Credit exposure",
-    "Available credit": "Available credit",
     "Paid amount": "Paid amount",
     "Remaining balance": "Remaining balance",
     "Outstanding": "Outstanding",
@@ -1182,7 +1174,6 @@ const translations: Record<Language, TranslationMap> = {
     "Các video ở tab này hiển thị thành khu vực video riêng trên trang sản phẩm. Video chèn giữa nội dung dùng ở tab \"Mô tả chi tiết\".": "Videos in this tab display as a separate video area on the product page. Videos inserted between content are used in the \"Detailed description\" tab.",
     "Có thay đổi chưa lưu trong biểu mẫu thanh toán.": "There are unsaved changes in the payments form.",
     "Có thay đổi chưa lưu trong hồ sơ đại lý.": "There are unsaved changes in the agent profile.",
-    "Công nợ": "Debt",
     "Cần xác nhận trước khi điều chỉnh đơn đã hoàn tất": "Confirmation is required before adjusting the completed order",
     "Cập nhật trạng thái": "Update status",
     "Cập nhật trạng thái hồ sơ": "Update profile status",
@@ -1205,9 +1196,6 @@ const translations: Record<Language, TranslationMap> = {
     "Hoàn tác": "Undo",
     "Hành động": "Act",
     "Hành động này sẽ xóa đơn khỏi danh sách.": "This action will remove the application from the list.",
-    "Hạn mức công nợ": "Debt limit",
-    "Hạn mức công nợ (VND)": "Debt limit (VND)",
-    "Hạn mức công nợ phải là số không âm.": "Debt limit must be a non-negative number.",
     "Hủy thao tác": "Cancel",
     "Hủy xuất bản sản phẩm này?": "Unpublish this product?",
     "ID thực thể": "Entity ID",
@@ -1316,7 +1304,6 @@ const translations: Record<Language, TranslationMap> = {
     "Xuống": "Down",
     "Xây dựng phần mô tả chi tiết bằng các khối nội dung. Thứ tự các khối cũng là thứ tự hiển thị trên trang sản phẩm.": "Build detailed descriptions using content blocks. The order of blocks is also the order displayed on the product page.",
     "Xóa bộ lọc": "Clear filter",
-    "Xóa nợ": "Delete debt",
     "Xóa vĩnh viễn sản phẩm": "Permanently delete the product",
     "Xóa vĩnh viễn sản phẩm này?": "Permanently delete this product?",
     "Đang tạo...": "Creating...",

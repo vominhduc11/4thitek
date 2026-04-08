@@ -325,6 +325,27 @@ body.product-detail-body::before {
     backface-visibility: hidden;
 }
 
+.three-stage-frame::after {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    border-radius: inherit;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    pointer-events: none;
+}
+
+.three-stage-frame::before {
+    content: '';
+    position: absolute;
+    inset-inline: 14%;
+    bottom: 9%;
+    height: 18%;
+    border-radius: 999px;
+    background: radial-gradient(circle, rgba(41, 171, 226, 0.22), rgba(41, 171, 226, 0));
+    filter: blur(28px);
+    pointer-events: none;
+}
+
 .animation-paused {
     animation-play-state: paused !important;
 }

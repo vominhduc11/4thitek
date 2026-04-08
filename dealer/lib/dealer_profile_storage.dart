@@ -80,7 +80,6 @@ const String _profileCityKey = 'dealer_profile_city';
 const String _profileCountryKey = 'dealer_profile_country';
 const String _profilePolicyKey = 'dealer_profile_policy';
 const String _profileAvatarUrlKey = 'dealer_profile_avatar_url';
-const String _profileCreditLimitKey = 'dealer_profile_credit_limit';
 const String _profileVatPercentKey = 'dealer_profile_vat_percent';
 
 const Duration _profileRequestTimeout = Duration(seconds: 30);
@@ -105,7 +104,6 @@ class DealerProfile {
     required this.country,
     required this.salesPolicy,
     this.vatPercent = kVatPercent,
-    this.creditLimit = 0,
     this.avatarUrl,
   });
 
@@ -120,7 +118,6 @@ class DealerProfile {
   final String country;
   final String salesPolicy;
   final int vatPercent;
-  final int creditLimit;
   final String? avatarUrl;
 
   /// Full address joined for display (checkout, account screen, etc.)
@@ -139,7 +136,6 @@ class DealerProfile {
     String? country,
     String? salesPolicy,
     int? vatPercent,
-    int? creditLimit,
     String? avatarUrl,
   }) {
     return DealerProfile(
@@ -154,7 +150,6 @@ class DealerProfile {
       country: country ?? this.country,
       salesPolicy: salesPolicy ?? this.salesPolicy,
       vatPercent: vatPercent ?? this.vatPercent,
-      creditLimit: creditLimit ?? this.creditLimit,
       avatarUrl: avatarUrl ?? this.avatarUrl,
     );
   }
@@ -171,7 +166,6 @@ class DealerProfile {
     country: 'Việt Nam',
     salesPolicy: '',
     vatPercent: kVatPercent,
-    creditLimit: 0,
     avatarUrl: null,
   );
 }
@@ -253,7 +247,6 @@ Future<void> saveDealerProfile(DealerProfile profile) async {
     country: profile.country.trim(),
     salesPolicy: profile.salesPolicy.trim(),
     vatPercent: profile.vatPercent,
-    creditLimit: profile.creditLimit,
     avatarUrl: profile.avatarUrl?.trim().isEmpty ?? true
         ? null
         : profile.avatarUrl!.trim(),
@@ -338,7 +331,6 @@ Future<void> clearDealerProfileCache() async {
     prefs.remove(_profileCountryKey),
     prefs.remove(_profilePolicyKey),
     prefs.remove(_profileAvatarUrlKey),
-    prefs.remove(_profileCreditLimitKey),
     prefs.remove(_profileVatPercentKey),
   ]);
 }
@@ -361,7 +353,6 @@ Future<DealerProfile?> _loadLocalDealerProfile() async {
     country: prefs.getString(_profileCountryKey) ?? 'Việt Nam',
     salesPolicy: prefs.getString(_profilePolicyKey) ?? '',
     vatPercent: prefs.getInt(_profileVatPercentKey) ?? kVatPercent,
-    creditLimit: prefs.getInt(_profileCreditLimitKey) ?? 0,
     avatarUrl: prefs.getString(_profileAvatarUrlKey),
   );
 }
@@ -380,7 +371,6 @@ Future<void> _saveLocalDealerProfile(DealerProfile profile) async {
     prefs.setString(_profileCountryKey, profile.country),
     prefs.setString(_profilePolicyKey, profile.salesPolicy),
     prefs.setInt(_profileVatPercentKey, profile.vatPercent),
-    prefs.setInt(_profileCreditLimitKey, profile.creditLimit),
     if ((profile.avatarUrl ?? '').trim().isNotEmpty)
       prefs.setString(_profileAvatarUrlKey, profile.avatarUrl!.trim())
     else
@@ -408,7 +398,6 @@ DealerProfile _mapRemoteProfile(
     country: _normalizeString(json['country']) ?? fallback.country,
     salesPolicy: _normalizeString(json['salesPolicy']) ?? fallback.salesPolicy,
     vatPercent: _normalizeVatPercent(json['vatPercent'], fallback.vatPercent),
-    creditLimit: _normalizeInt(json['creditLimit']) ?? fallback.creditLimit,
     avatarUrl: hasAvatarField ? avatarUrl : fallback.avatarUrl,
   );
 }

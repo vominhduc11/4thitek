@@ -337,7 +337,7 @@ class _TabletBrandPanel extends StatelessWidget {
               ),
               _BrandPill(
                 icon: Icons.account_balance_wallet_outlined,
-                text: texts.brandPillDebt,
+                text: texts.brandPillPayments,
               ),
               _BrandPill(
                 icon: Icons.verified_user_outlined,
@@ -1134,7 +1134,7 @@ class _LoginTexts {
       : 'Đăng nhập để quản lý đơn hàng, công nợ và bảo hành cùng 4T HITEK.';
   String get brandPillOrders =>
       isEnglish ? 'Manage orders' : 'Quản lý đơn hàng';
-  String get brandPillDebt => isEnglish ? 'Track credit' : 'Theo dõi công nợ';
+  String get brandPillPayments => isEnglish ? 'Track payments' : 'Theo dõi công nợ';
   String get brandPillWarranty =>
       isEnglish ? 'Process warranties' : 'Xử lý bảo hành';
   String get loginTitle => isEnglish ? 'Dealer sign in' : 'Đăng nhập đại lý';

@@ -9,7 +9,6 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PrimaryKeyJoinColumn;
 import jakarta.persistence.Table;
 import com.devwonder.backend.entity.enums.CustomerStatus;
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
@@ -57,9 +56,6 @@ public class Dealer extends Account {
 
     @Column(name = "sales_policy", length = 4000)
     private String salesPolicy;
-
-    @Column(name = "credit_limit")
-    private BigDecimal creditLimit;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "customer_status", nullable = false)

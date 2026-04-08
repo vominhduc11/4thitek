@@ -26,7 +26,7 @@ class AppLocalizationsEn extends AppLocalizations {
       '1. Create orders quickly from the Products tab.';
 
   @override
-  String get welcomeStepOrders => '2. Track debt and status in the Orders tab.';
+  String get welcomeStepOrders => '2. Track payment status in the Orders tab.';
 
   @override
   String get welcomeStepSearch =>
@@ -180,7 +180,4 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get paymentMethodBankTransfer => 'Bank Transfer';
-
-  @override
-  String get paymentMethodDebt => 'Debt Payment';
 }

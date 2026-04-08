@@ -3,7 +3,6 @@ package com.devwonder.backend;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -98,19 +97,6 @@ class AdminWriteValidationContractTests {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("Validation failed"))
                 .andExpect(jsonPath("$.data.range").value("range is invalid"));
-    }
-
-    @Test
-    void dealerAccountUpdateRequiresCreditLimit() throws Exception {
-        String adminToken = login("validation.admin@example.com", "ChangedPass#456");
-        Dealer dealer = dealerRepository.save(createDealer("dealer.validation@example.com"));
-
-        mockMvc.perform(put("/api/v1/admin/dealers/accounts/{id}", dealer.getId())
-                        .header("Authorization", "Bearer " + adminToken)
-                        .contentType(APPLICATION_JSON)
-                        .content("{}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.data.creditLimit").value("creditLimit is required"));
     }
 
     @Test

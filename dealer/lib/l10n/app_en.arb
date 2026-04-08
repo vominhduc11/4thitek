@@ -5,7 +5,7 @@
   "sessionExpiredMessage": "Your session has expired. Please sign in again.",
   "welcomeTitle": "Welcome to 4T HITEK Dealer",
   "welcomeStepProducts": "1. Create orders quickly from the Products tab.",
-  "welcomeStepOrders": "2. Track debt and status in the Orders tab.",
+  "welcomeStepOrders": "2. Track payment status in the Orders tab.",
   "welcomeStepSearch": "3. Use global search to find orders and products instantly.",
   "getStarted": "Get started",
   "tabProducts": "Products",
@@ -66,6 +66,5 @@
   "notificationsRelatedViewNotifications": "View notifications",
   "notificationsRelatedOpenLink": "Open link",
   "notificationsRelatedOpenOverview": "Open overview",
-  "paymentMethodBankTransfer": "Bank Transfer",
-  "paymentMethodDebt": "Debt Payment"
+  "paymentMethodBankTransfer": "Bank Transfer"
 }

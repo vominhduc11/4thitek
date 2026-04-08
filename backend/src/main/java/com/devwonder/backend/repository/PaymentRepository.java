@@ -31,12 +31,11 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
             from Payment p
             join p.order o
             join o.dealer d
-            where o.paymentMethod = com.devwonder.backend.entity.enums.PaymentMethod.DEBT
-              and coalesce(p.paidAt, p.createdAt) >= :fromInclusive
+            where coalesce(p.paidAt, p.createdAt) >= :fromInclusive
               and coalesce(p.paidAt, p.createdAt) < :toExclusive
             order by coalesce(p.paidAt, p.createdAt) desc, p.id desc
             """)
-    List<Payment> findDebtPaymentsRecordedBetween(
+    List<Payment> findPaymentsRecordedBetween(
             @Param("fromInclusive") Instant fromInclusive,
             @Param("toExclusive") Instant toExclusive
     );
@@ -46,12 +45,11 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
             from Payment p
             join p.order o
             join o.dealer d
-            where o.paymentMethod = com.devwonder.backend.entity.enums.PaymentMethod.DEBT
-              and d.id = :dealerId
+            where d.id = :dealerId
               and coalesce(p.paidAt, p.createdAt) >= :fromInclusive
               and coalesce(p.paidAt, p.createdAt) <= :toInclusive
             """)
-    long countDebtPaymentsForDealerWithinWindow(
+    long countPaymentsForDealerWithinWindow(
             @Param("dealerId") Long dealerId,
             @Param("fromInclusive") Instant fromInclusive,
             @Param("toInclusive") Instant toInclusive

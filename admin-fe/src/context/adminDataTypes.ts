@@ -1,8 +1,8 @@
 import { AUTOMATED_SENDER_EMAIL, BRAND_NAME } from '../config/businessProfile'
 
 export type OrderStatus = 'pending' | 'confirmed' | 'shipping' | 'completed' | 'cancelled'
-export type PaymentMethod = 'bank_transfer' | 'debt' | null
-export type PaymentStatus = 'pending' | 'paid' | 'debt_recorded' | 'cancelled' | 'failed'
+export type PaymentMethod = 'bank_transfer' | null
+export type PaymentStatus = 'pending' | 'paid' | 'cancelled' | 'failed'
 export type BlogStatus = 'published' | 'scheduled' | 'draft'
 export type DealerStatus = 'active' | 'under_review' | 'suspended'
 export type UserStatus = 'active' | 'pending'
@@ -26,9 +26,6 @@ export type Order = {
   paymentStatus: PaymentStatus
   paidAmount: number
   outstandingAmount: number
-  reservedCreditAmount: number
-  openReceivableAmount: number
-  creditExposureAmount: number
   items: number
   address: string
   note: string
@@ -61,11 +58,6 @@ export type Dealer = {
   orders: number
   lastOrderAt: string
   revenue: number
-  creditLimit: number
-  reservedCredit: number
-  openReceivable: number
-  totalCreditExposure: number
-  availableCredit: number
   email: string
   phone: string
   allowedTransitions?: DealerStatus[]

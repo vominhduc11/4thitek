@@ -36,7 +36,6 @@ public final class DealerPortalResponseMapper {
                 dealer.getEmail(),
                 dealer.getAvatarUrl(),
                 dealer.getSalesPolicy(),
-                dealer.getCreditLimit(),
                 vatPercent,
                 dealer.getCreatedAt(),
                 dealer.getUpdatedAt()
@@ -75,9 +74,6 @@ public final class DealerPortalResponseMapper {
                 shippingFee,
                 pricing.totalAmount(),
                 OrderFinancialSupport.paymentDueAmount(order, rules, vatPercent),
-                OrderFinancialSupport.reservedCreditAmount(order, rules, vatPercent),
-                OrderFinancialSupport.openReceivableAmount(order, rules, vatPercent),
-                OrderFinancialSupport.creditExposureAmount(order, rules, vatPercent),
                 order.getReceiverName(),
                 order.getReceiverAddress(),
                 order.getReceiverPhone(),

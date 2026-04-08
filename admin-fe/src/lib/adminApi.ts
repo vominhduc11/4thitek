@@ -24,8 +24,8 @@ export type BackendPagedResponse<T> = {
 export type BackendPublishStatus = 'DRAFT' | 'PUBLISHED'
 export type BackendBlogStatus = 'DRAFT' | 'SCHEDULED' | 'PUBLISHED'
 export type BackendOrderStatus = 'PENDING' | 'CONFIRMED' | 'SHIPPING' | 'COMPLETED' | 'CANCELLED'
-export type BackendPaymentMethod = 'BANK_TRANSFER' | 'DEBT'
-export type BackendPaymentStatus = 'PENDING' | 'PAID' | 'DEBT_RECORDED' | 'CANCELLED' | 'FAILED'
+export type BackendPaymentMethod = 'BANK_TRANSFER'
+export type BackendPaymentStatus = 'PENDING' | 'PAID' | 'CANCELLED' | 'FAILED'
 export type BackendDealerAccountStatus = 'ACTIVE' | 'UNDER_REVIEW' | 'SUSPENDED'
 export type BackendFinancialSettlementType = 'CANCELLATION_REFUND' | 'STALE_ORDER_REVIEW'
 export type BackendStaffUserStatus = 'ACTIVE' | 'PENDING'
@@ -134,9 +134,6 @@ export type BackendOrderResponse = {
   paidAmount?: number | string | null
   totalAmount?: number | string | null
   outstandingAmount?: number | string | null
-  reservedCreditAmount?: number | string | null
-  openReceivableAmount?: number | string | null
-  creditExposureAmount?: number | string | null
   itemCount?: number | null
   address?: string | null
   note?: string | null
@@ -191,11 +188,6 @@ export type BackendDealerAccountResponse = {
   orders?: number | null
   lastOrderAt?: string | null
   revenue?: number | string | null
-  creditLimit?: number | string | null
-  reservedCredit?: number | string | null
-  openReceivable?: number | string | null
-  totalCreditExposure?: number | string | null
-  availableCredit?: number | string | null
   email?: string | null
   phone?: string | null
   allowedTransitions?: BackendDealerAccountStatus[] | null
@@ -207,13 +199,8 @@ export type BackendDealerAccountUpsertRequest = {
   contactName?: string
   status?: BackendDealerAccountStatus
   revenue?: number
-  creditLimit?: number
   email: string
   phone: string
-}
-
-export type BackendDealerAccountUpdateRequest = {
-  creditLimit?: number
 }
 
 export type BackendStaffUserResponse = {
@@ -887,18 +874,6 @@ export const fetchAdminDealerAccounts = (token: string) =>
       }),
     100,
   )
-
-export const updateAdminDealerAccount = (
-  token: string,
-  id: number,
-  body: BackendDealerAccountUpdateRequest,
-) =>
-  authorizedJsonRequest<BackendDealerAccountResponse>({
-    path: `/admin/dealers/accounts/${id}`,
-    token,
-    method: 'PUT',
-    body,
-  })
 
 export const updateAdminDealerAccountStatus = (
   token: string,

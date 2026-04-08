@@ -1,6 +1,6 @@
-import { Bell, CheckCircle2, Clock3, Users } from "lucide-react";
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Bell, CheckCircle2, Clock3, Users } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   EmptyState,
   ErrorState,
@@ -16,116 +16,113 @@ import {
   tableHeadClass,
   tableMetaClass,
   tableRowClass,
-} from "../components/ui-kit";
-import { useAdminData, type DealerStatus } from "../context/AdminDataContext";
-import { useLanguage } from "../context/LanguageContext";
-import { translateCopy } from "../lib/i18n";
-import { useToast } from "../context/ToastContext";
-import { useConfirmDialog } from "../hooks/useConfirmDialog";
+} from '../components/ui-kit'
+import { useAdminData, type DealerStatus } from '../context/AdminDataContext'
+import { useLanguage } from '../context/LanguageContext'
+import { translateCopy } from '../lib/i18n'
+import { useToast } from '../context/ToastContext'
+import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import {
   dealerStatusDescription,
   dealerStatusLabel,
   dealerStatusTone,
   resolveAllowedDealerStatuses,
-} from "../lib/adminLabels";
-import { formatCurrency, formatDateTime } from "../lib/formatters";
+} from '../lib/adminLabels'
+import { formatCurrency, formatDateTime } from '../lib/formatters'
 
 const copyKeys = {
-  title: "Đại lý",
+  title: 'Äáº¡i lĂ½',
   description:
-    "Quản lý hồ sơ đại lý, hạn mức và trạng thái kích hoạt tài khoản.",
-  searchLabel: "Tìm đại lý",
-  searchPlaceholder: "Tìm theo tên, mã hoặc email...",
-  totalDealers: "Tổng đại lý",
-  activeDealers: "Đã kích hoạt",
-  underReview: "Chờ duyệt",
-  suspended: "Tạm khóa",
-  totalRevenue: "Tổng doanh thu",
-  emptyTitle: "Không có đại lý",
-  emptyMessage: "Thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm.",
-  loadTitle: "Không thể tải đại lý",
-  loadFallback: "Không tải được danh sách đại lý",
-  status: "Trạng thái",
-  orders: "Đơn hàng",
-  revenueShort: "Doanh thu",
-  credit: "Hạn mức",
-  actions: "Thao tác",
-  notSet: "Chưa đặt",
-  confirmStatusTitle: "Xác nhận cập nhật trạng thái",
+    'Quáº£n lĂ½ há»“ sÆ¡ Ä‘áº¡i lĂ½, doanh thu vĂ  tráº¡ng thĂ¡i kĂ­ch hoáº¡t tĂ i khoáº£n.',
+  searchLabel: 'TĂ¬m Ä‘áº¡i lĂ½',
+  searchPlaceholder: 'TĂ¬m theo tĂªn, mĂ£ hoáº·c email...',
+  totalDealers: 'Tá»•ng Ä‘áº¡i lĂ½',
+  activeDealers: 'ÄĂ£ kĂ­ch hoáº¡t',
+  underReview: 'Chá» duyá»‡t',
+  suspended: 'Táº¡m khĂ³a',
+  totalRevenue: 'Tá»•ng doanh thu',
+  emptyTitle: 'KhĂ´ng cĂ³ Ä‘áº¡i lĂ½',
+  emptyMessage: 'Thá»­ Ä‘iá»u chá»‰nh bá»™ lá»c hoáº·c tá»« khĂ³a tĂ¬m kiáº¿m.',
+  loadTitle: 'KhĂ´ng thá»ƒ táº£i Ä‘áº¡i lĂ½',
+  loadFallback: 'KhĂ´ng táº£i Ä‘Æ°á»£c danh sĂ¡ch Ä‘áº¡i lĂ½',
+  status: 'Tráº¡ng thĂ¡i',
+  orders: 'ÄÆ¡n hĂ ng',
+  revenueShort: 'Doanh thu',
+  actions: 'Thao tĂ¡c',
+  confirmStatusTitle: 'XĂ¡c nháº­n cáº­p nháº­t tráº¡ng thĂ¡i',
   confirmStatusMessage:
-    'Bạn có chắc muốn chuyển trạng thái đại lý này sang "{status}" không?',
-  updateFailed: "Không cập nhật được trạng thái đại lý",
-} as const;
+    'Báº¡n cĂ³ cháº¯c muá»‘n chuyá»ƒn tráº¡ng thĂ¡i Ä‘áº¡i lĂ½ nĂ y sang "{status}" khĂ´ng?',
+  updateFailed: 'KhĂ´ng cáº­p nháº­t Ä‘Æ°á»£c tráº¡ng thĂ¡i Ä‘áº¡i lĂ½',
+} as const
 
 function DealersPageRevamp() {
-  const { t } = useLanguage();
-  const copy = translateCopy(copyKeys, t);
+  const { t } = useLanguage()
+  const copy = translateCopy(copyKeys, t)
   const DEALER_STATUS_OPTIONS: Array<{
-    value: "all" | DealerStatus;
-    label: string;
+    value: 'all' | DealerStatus
+    label: string
   }> = [
-    { value: "all", label: t("Tất cả") },
-    { value: "active", label: copy.activeDealers },
-    { value: "under_review", label: copy.underReview },
-    { value: "suspended", label: copy.suspended },
-  ];
-  const navigate = useNavigate();
-  const { notify } = useToast();
-  const { dealers, dealersState, updateDealerStatus, reloadResource } =
-    useAdminData();
-  const { confirm, prompt, confirmDialog, promptDialog } = useConfirmDialog();
+    { value: 'all', label: t('Táº¥t cáº£') },
+    { value: 'active', label: copy.activeDealers },
+    { value: 'under_review', label: copy.underReview },
+    { value: 'suspended', label: copy.suspended },
+  ]
+  const navigate = useNavigate()
+  const { notify } = useToast()
+  const { dealers, dealersState, updateDealerStatus, reloadResource } = useAdminData()
+  const { confirm, prompt, confirmDialog, promptDialog } = useConfirmDialog()
 
-  const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | DealerStatus>("all");
-  const toolbarSearchClass = "w-full sm:max-w-sm lg:w-72 xl:w-80";
+  const [query, setQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | DealerStatus>('all')
+  const toolbarSearchClass = 'w-full sm:max-w-sm lg:w-72 xl:w-80'
 
-  const normalizedQuery = query.trim().toLowerCase();
+  const normalizedQuery = query.trim().toLowerCase()
   const filteredDealers = useMemo(
     () =>
       dealers.filter((dealer) => {
         const matchesStatus =
-          statusFilter === "all" ? true : dealer.status === statusFilter;
+          statusFilter === 'all' ? true : dealer.status === statusFilter
         const matchesSearch =
           !normalizedQuery ||
           dealer.name.toLowerCase().includes(normalizedQuery) ||
           dealer.contactName.toLowerCase().includes(normalizedQuery) ||
           dealer.id.toLowerCase().includes(normalizedQuery) ||
-          dealer.email.toLowerCase().includes(normalizedQuery);
-        return matchesStatus && matchesSearch;
+          dealer.email.toLowerCase().includes(normalizedQuery)
+        return matchesStatus && matchesSearch
       }),
     [dealers, normalizedQuery, statusFilter],
-  );
+  )
 
   const stats = useMemo(() => {
-    const active = dealers.filter((item) => item.status === "active").length;
+    const active = dealers.filter((item) => item.status === 'active').length
     const underReview = dealers.filter(
-      (item) => item.status === "under_review",
-    ).length;
+      (item) => item.status === 'under_review',
+    ).length
     const attention = dealers.filter(
-      (item) => item.status === "suspended",
-    ).length;
-    const totalRevenue = dealers.reduce((sum, item) => sum + item.revenue, 0);
-    return { active, underReview, attention, totalRevenue };
-  }, [dealers]);
+      (item) => item.status === 'suspended',
+    ).length
+    const totalRevenue = dealers.reduce((sum, item) => sum + item.revenue, 0)
+    return { active, underReview, attention, totalRevenue }
+  }, [dealers])
 
-  if (dealersState.status === "loading" || dealersState.status === "idle") {
+  if (dealersState.status === 'loading' || dealersState.status === 'idle') {
     return (
       <PagePanel>
         <LoadingRows rows={6} />
       </PagePanel>
-    );
+    )
   }
 
-  if (dealersState.status === "error") {
+  if (dealersState.status === 'error') {
     return (
       <PagePanel>
         <ErrorState
           title={copy.loadTitle}
           message={dealersState.error || copy.loadFallback}
-          onRetry={() => void reloadResource("dealers")}
+          onRetry={() => void reloadResource('dealers')}
         />
       </PagePanel>
-    );
+    )
   }
 
   return (
@@ -147,7 +144,7 @@ function DealersPageRevamp() {
               aria-label={copy.status}
               className={`${inputClass} w-full sm:max-w-[14rem] lg:w-56`}
               onChange={(event) =>
-                setStatusFilter(event.target.value as "all" | DealerStatus)
+                setStatusFilter(event.target.value as 'all' | DealerStatus)
               }
               value={statusFilter}
             >
@@ -187,7 +184,7 @@ function DealersPageRevamp() {
         />
       </div>
       <p className="mt-3 text-sm text-[var(--muted)]">
-        {copy.totalRevenue}:{" "}
+        {copy.totalRevenue}:{' '}
         <span className="font-semibold text-[var(--accent)]">
           {formatCurrency(stats.totalRevenue)}
         </span>
@@ -218,7 +215,7 @@ function DealersPageRevamp() {
                           {dealer.name}
                         </p>
                         <p className={tableMetaClass}>
-                          {dealer.id} · {dealer.email}
+                          {dealer.id} Â· {dealer.email}
                         </p>
                         <p className={tableMetaClass}>{dealer.contactName}</p>
                       </div>
@@ -239,14 +236,6 @@ function DealersPageRevamp() {
                           {formatCurrency(dealer.revenue)}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className={tableMetaClass}>{copy.credit}</span>
-                        <span>
-                          {dealer.creditLimit > 0
-                            ? formatCurrency(dealer.creditLimit)
-                            : copy.notSet}
-                        </span>
-                      </div>
                     </div>
                   </button>
                   <p className={`${tableMetaClass} mt-3`}>
@@ -256,47 +245,47 @@ function DealersPageRevamp() {
                     aria-label={`${copy.status} ${dealer.id}`}
                     className={`mt-4 w-full ${tableActionSelectClass}`}
                     onChange={async (event) => {
-                      const next = event.target.value as DealerStatus;
+                      const next = event.target.value as DealerStatus
                       if (next === dealer.status) {
-                        return;
+                        return
                       }
 
-                      let reason: string | undefined;
-                      if (next === "suspended") {
+                      let reason: string | undefined
+                      if (next === 'suspended') {
                         const input = await prompt({
                           title: copy.confirmStatusTitle,
                           message: copy.confirmStatusMessage.replace(
-                            "{status}",
+                            '{status}',
                             t(dealerStatusLabel[next]),
                           ),
-                          tone: "danger",
+                          tone: 'danger',
                           confirmLabel: t(dealerStatusLabel[next]),
-                          inputLabel: t("Lý do tạm khóa"),
-                          inputPlaceholder: t("Nhập lý do tạm khóa đại lý..."),
-                        });
+                          inputLabel: t('LĂ½ do táº¡m khĂ³a'),
+                          inputPlaceholder: t('Nháº­p lĂ½ do táº¡m khĂ³a Ä‘áº¡i lĂ½...'),
+                        })
                         if (input === null) {
-                          event.currentTarget.value = dealer.status;
-                          return;
+                          event.currentTarget.value = dealer.status
+                          return
                         }
-                        reason = input;
+                        reason = input
                       } else {
                         const approved = await confirm({
                           title: copy.confirmStatusTitle,
                           message: copy.confirmStatusMessage.replace(
-                            "{status}",
+                            '{status}',
                             t(dealerStatusLabel[next]),
                           ),
-                          tone: "warning",
+                          tone: 'warning',
                           confirmLabel: t(dealerStatusLabel[next]),
-                        });
+                        })
                         if (!approved) {
-                          event.currentTarget.value = dealer.status;
-                          return;
+                          event.currentTarget.value = dealer.status
+                          return
                         }
                       }
 
                       try {
-                        await updateDealerStatus(dealer.id, next, reason);
+                        await updateDealerStatus(dealer.id, next, reason)
                       } catch (error) {
                         notify(
                           error instanceof Error
@@ -304,9 +293,9 @@ function DealersPageRevamp() {
                             : copy.updateFailed,
                           {
                             title: copy.title,
-                            variant: "error",
+                            variant: 'error',
                           },
-                        );
+                        )
                       }
                     }}
                     value={dealer.status}
@@ -334,7 +323,6 @@ function DealersPageRevamp() {
                     <th className="px-3 py-2 font-semibold">
                       {copy.revenueShort}
                     </th>
-                    <th className="px-3 py-2 font-semibold">{copy.credit}</th>
                     <th className="px-3 py-2 font-semibold">{copy.actions}</th>
                   </tr>
                 </thead>
@@ -352,7 +340,7 @@ function DealersPageRevamp() {
                           {dealer.name}
                         </p>
                         <p className={tableMetaClass}>
-                          {dealer.id} · {dealer.email}
+                          {dealer.id} Â· {dealer.email}
                         </p>
                         <p className={tableMetaClass}>{dealer.contactName}</p>
                       </td>
@@ -375,11 +363,6 @@ function DealersPageRevamp() {
                       <td className="px-3 py-3 font-semibold text-[var(--accent)]">
                         {formatCurrency(dealer.revenue)}
                       </td>
-                      <td className="px-3 py-3 font-semibold text-[var(--ink)]">
-                        {dealer.creditLimit > 0
-                          ? formatCurrency(dealer.creditLimit)
-                          : copy.notSet}
-                      </td>
                       <td
                         className="rounded-r-2xl px-3 py-3"
                         onClick={(event) => event.stopPropagation()}
@@ -388,47 +371,47 @@ function DealersPageRevamp() {
                           aria-label={`${copy.status} ${dealer.id}`}
                           className={`w-full ${tableActionSelectClass}`}
                           onChange={async (event) => {
-                            const next = event.target.value as DealerStatus;
+                            const next = event.target.value as DealerStatus
                             if (next === dealer.status) {
-                              return;
+                              return
                             }
 
-                            let reason: string | undefined;
-                            if (next === "suspended") {
+                            let reason: string | undefined
+                            if (next === 'suspended') {
                               const input = await prompt({
                                 title: copy.confirmStatusTitle,
                                 message: copy.confirmStatusMessage.replace(
-                                  "{status}",
+                                  '{status}',
                                   t(dealerStatusLabel[next]),
                                 ),
-                                tone: "danger",
+                                tone: 'danger',
                                 confirmLabel: t(dealerStatusLabel[next]),
-                                inputLabel: t("Lý do tạm khóa"),
-                                inputPlaceholder: t("Nhập lý do tạm khóa đại lý..."),
-                              });
+                                inputLabel: t('LĂ½ do táº¡m khĂ³a'),
+                                inputPlaceholder: t('Nháº­p lĂ½ do táº¡m khĂ³a Ä‘áº¡i lĂ½...'),
+                              })
                               if (input === null) {
-                                event.currentTarget.value = dealer.status;
-                                return;
+                                event.currentTarget.value = dealer.status
+                                return
                               }
-                              reason = input;
+                              reason = input
                             } else {
                               const approved = await confirm({
                                 title: copy.confirmStatusTitle,
                                 message: copy.confirmStatusMessage.replace(
-                                  "{status}",
+                                  '{status}',
                                   t(dealerStatusLabel[next]),
                                 ),
-                                tone: "warning",
+                                tone: 'warning',
                                 confirmLabel: t(dealerStatusLabel[next]),
-                              });
+                              })
                               if (!approved) {
-                                event.currentTarget.value = dealer.status;
-                                return;
+                                event.currentTarget.value = dealer.status
+                                return
                               }
                             }
 
                             try {
-                              await updateDealerStatus(dealer.id, next, reason);
+                              await updateDealerStatus(dealer.id, next, reason)
                             } catch (error) {
                               notify(
                                 error instanceof Error
@@ -436,9 +419,9 @@ function DealersPageRevamp() {
                                   : copy.updateFailed,
                                 {
                                   title: copy.title,
-                                  variant: "error",
+                                  variant: 'error',
                                 },
-                              );
+                              )
                             }
                           }}
                           value={dealer.status}
@@ -446,16 +429,14 @@ function DealersPageRevamp() {
                           {resolveAllowedDealerStatuses(
                             dealer.status,
                             dealer.allowedTransitions,
-                          ).map(
-                            (status) => (
-                              <option
-                                key={`${dealer.id}-${status}`}
-                                value={status}
-                              >
-                                {t(dealerStatusLabel[status])}
-                              </option>
-                            ),
-                          )}
+                          ).map((status) => (
+                            <option
+                              key={`${dealer.id}-${status}`}
+                              value={status}
+                            >
+                              {t(dealerStatusLabel[status])}
+                            </option>
+                          ))}
                         </select>
                       </td>
                     </tr>
@@ -469,7 +450,7 @@ function DealersPageRevamp() {
       {confirmDialog}
       {promptDialog}
     </PagePanel>
-  );
+  )
 }
 
-export default DealersPageRevamp;
+export default DealersPageRevamp

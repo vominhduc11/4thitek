@@ -12,12 +12,12 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, Variants } from 'framer-motion';
+import HomeHero3D from '@/components/3d/home/HomeHero3D';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAnimationConfig } from '@/hooks/useReducedMotion';
 import { buildProductPath } from '@/lib/slug';
 import type { SimpleProduct } from '@/types/product';
 
-const HERO_VIDEO = '/videos/hero-road-tech-loop.mp4';
 const HERO_SUMMARY_MAX_LENGTH = 136;
 
 const ensureTerminalPunctuation = (value: string) => (/[.!?…]$/.test(value) ? value : `${value}.`);
@@ -144,24 +144,13 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
             className="relative h-[clamp(39rem,84svh,44rem)] w-full overflow-hidden min-[480px]:h-[clamp(36rem,78svh,41rem)] sm:h-[clamp(34rem,76vw,44rem)] md:h-[clamp(36rem,72vw,48rem)] lg:h-[clamp(28rem,72vw,100vh)]"
             aria-label={t('hero.ariaLabel').replace('{product}', displayName)}
         >
-            <motion.video
-                src={HERO_VIDEO}
-                className="absolute inset-0 hidden h-full w-full object-cover object-center sm:block md:object-[center_46%] lg:object-[center_50%]"
-                autoPlay
-                loop
-                muted
-                playsInline
-                preload="none"
-                poster="/logo-4t.png"
-                variants={videoVariants}
-                initial="hidden"
-                animate="visible"
-                aria-hidden="true"
-            />
+            <motion.div variants={videoVariants} initial="hidden" animate="visible" className="absolute inset-0">
+                <HomeHero3D />
+            </motion.div>
 
             <div className="absolute inset-0 bg-topo opacity-32 sm:hidden" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(41,171,226,0.18),_transparent_42%),linear-gradient(180deg,_#09111A_0%,_#07101A_58%,_#03070D_100%)] sm:hidden" />
-            <div className="absolute inset-0 bg-black/52 sm:bg-black/18 md:bg-black/14" aria-hidden="true" />
+            <div className="absolute inset-0 bg-black/52 sm:bg-black/24 md:bg-black/18" aria-hidden="true" />
             <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(96deg,rgba(7,17,26,0.9)_0%,rgba(7,17,26,0.8)_26%,rgba(7,17,26,0.34)_52%,rgba(7,17,26,0.52)_76%,rgba(7,17,26,0.72)_100%)] sm:bg-[linear-gradient(96deg,rgba(7,17,26,0.92)_0%,rgba(7,17,26,0.68)_28%,rgba(7,17,26,0.16)_54%,rgba(7,17,26,0.34)_74%,rgba(7,17,26,0.62)_100%)]" />
             <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-36 bg-gradient-to-b from-[#06111B] via-[rgba(6,17,27,0.94)] to-transparent min-[480px]:h-32 sm:h-28 sm:via-[rgba(6,17,27,0.78)] md:h-24 md:via-[rgba(6,17,27,0.68)]" />
             <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-28 bg-gradient-to-t from-[#06111B] via-[rgba(6,17,27,0.88)] to-transparent min-[480px]:h-24 sm:h-32 sm:via-[rgba(6,17,27,0.72)]" />

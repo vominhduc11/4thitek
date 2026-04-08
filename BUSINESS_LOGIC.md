@@ -1,3 +1,16 @@
+## 0.0 Runtime Contract Override (2026-04-08)
+
+This override supersedes older debt-related references elsewhere in this document.
+
+- Only `BANK_TRANSFER` is supported for new runtime order and payment flows.
+- Dealers still create the order first. Order creation must generate a real order, assign `orderCode`, reserve stock and serials, and keep idempotency behavior.
+- New checkout orders must start with `order.status = PENDING` and `paymentStatus = PENDING` until bank-transfer money is reconciled.
+- Admin must not confirm or process an unpaid order. Backend enforcement is authoritative: `PENDING -> CONFIRMED` requires `paymentStatus = PAID`.
+- Unpaid `PENDING` orders may expire after the configured timeout and auto-cancel only when no money has been recorded. Timeout cancellation must release reserved inventory and serials.
+- If money has already been recorded for a stale `PENDING` order, the order must not be blindly auto-cancelled; it must stay in manual finance review handling.
+- Historical `DEBT` and `DEBT_RECORDED` data are not auto-converted inside business logic. Clean them up through explicit rollout or migration work before full production rollout.
+
+---
 # Tài liệu Logic Nghiệp Vụ — Hệ thống 4thitek
 
 > Phiên bản: 2026-03-23

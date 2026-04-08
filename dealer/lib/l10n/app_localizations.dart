@@ -131,7 +131,7 @@ abstract class AppLocalizations {
   /// No description provided for @welcomeStepOrders.
   ///
   /// In en, this message translates to:
-  /// **'2. Track debt and status in the Orders tab.'**
+  /// **'2. Track payment status in the Orders tab.'**
   String get welcomeStepOrders;
 
   /// No description provided for @welcomeStepSearch.
@@ -414,13 +414,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Bank Transfer'**
-  String get paymentMethodBankTransfer;
-
-  /// No description provided for @paymentMethodDebt.
-  ///
-  /// In en, this message translates to:
-  /// **'Debt Payment'**
-  String get paymentMethodDebt;
+  String get paymentMethodBankTransfer;
 }
 
 class _AppLocalizationsDelegate

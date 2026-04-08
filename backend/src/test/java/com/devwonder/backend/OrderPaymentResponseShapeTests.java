@@ -126,9 +126,6 @@ class OrderPaymentResponseShapeTests {
                 .andExpect(jsonPath("$.data[0].shippingFee").value(0))
                 .andExpect(jsonPath("$.data[0].totalAmount").isNumber())
                 .andExpect(jsonPath("$.data[0].outstandingAmount").isNumber())
-                .andExpect(jsonPath("$.data[0].reservedCreditAmount").isNumber())
-                .andExpect(jsonPath("$.data[0].openReceivableAmount").isNumber())
-                .andExpect(jsonPath("$.data[0].creditExposureAmount").isNumber())
                 .andExpect(jsonPath("$.data[0].receiverName").value("Dealer Receiver"))
                 .andExpect(jsonPath("$.data[0].receiverAddress").value("123 Contract Street"))
                 .andExpect(jsonPath("$.data[0].receiverPhone").value("0900000000"))
@@ -186,9 +183,6 @@ class OrderPaymentResponseShapeTests {
                 .andExpect(jsonPath("$.data[0].updatedAt").exists())
                 .andExpect(jsonPath("$.data[0].totalAmount").isNumber())
                 .andExpect(jsonPath("$.data[0].outstandingAmount").isNumber())
-                .andExpect(jsonPath("$.data[0].reservedCreditAmount").isNumber())
-                .andExpect(jsonPath("$.data[0].openReceivableAmount").isNumber())
-                .andExpect(jsonPath("$.data[0].creditExposureAmount").isNumber())
                 .andExpect(jsonPath("$.data[0].itemCount").value(1))
                 .andExpect(jsonPath("$.data[0].address").value("123 Contract Street"))
                 .andExpect(jsonPath("$.data[0].note").value("Shape test order note"))
@@ -199,18 +193,17 @@ class OrderPaymentResponseShapeTests {
                 .andExpect(jsonPath("$.data[0].orderItems[0].quantity").value(1))
                 .andExpect(jsonPath("$.data[0].orderItems[0].unitPrice").isNumber())
                 .andExpect(jsonPath("$.data[0].staleReviewRequired").value(false))
-                .andExpect(jsonPath("$.data[0].allowedTransitions").isArray())
-                .andExpect(jsonPath("$.data[0].allowedTransitions[0]").value("COMPLETED"));
+                .andExpect(jsonPath("$.data[0].allowedTransitions").isArray());
     }
 
     @Test
     void adminOrderAndDealerAccountEndpointsExposeBackendTransitionHints() throws Exception {
         String adminToken = login("orders.shape.admin@example.com", "ChangedPass#456");
-        Order confirmedOrder = saveOrderWithStatus(
+        Order unpaidPendingOrder = saveOrderWithStatus(
                 dealer,
                 product,
-                "ORD-SHAPE-CONFIRMED",
-                OrderStatus.CONFIRMED,
+                "ORD-SHAPE-PENDING",
+                OrderStatus.PENDING,
                 PaymentStatus.PENDING,
                 BigDecimal.ZERO
         );
@@ -218,33 +211,29 @@ class OrderPaymentResponseShapeTests {
         mockMvc.perform(get("/api/v1/admin/orders")
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data[0].orderCode").value(confirmedOrder.getOrderCode()))
-                .andExpect(jsonPath("$.data[0].allowedTransitions[0]").value("CONFIRMED"))
-                .andExpect(jsonPath("$.data[0].allowedTransitions[1]").value("SHIPPING"))
-                .andExpect(jsonPath("$.data[0].allowedTransitions[2]").value("CANCELLED"));
+                .andExpect(jsonPath("$.data[0].orderCode").value(unpaidPendingOrder.getOrderCode()))
+                .andExpect(jsonPath("$.data[0].allowedTransitions[0]").value("PENDING"))
+                .andExpect(jsonPath("$.data[0].allowedTransitions[1]").value("CANCELLED"));
 
         mockMvc.perform(get("/api/v1/admin/dealers/accounts")
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
                 .andExpect(jsonPath("$.data[0].id").value(dealer.getId()))
-                .andExpect(jsonPath("$.data[0].reservedCredit").isNumber())
-                .andExpect(jsonPath("$.data[0].openReceivable").isNumber())
-                .andExpect(jsonPath("$.data[0].totalCreditExposure").isNumber())
-                .andExpect(jsonPath("$.data[0].availableCredit").isNumber())
+                .andExpect(jsonPath("$.data[0].revenue").isNumber())
                 .andExpect(jsonPath("$.data[0].allowedTransitions").isArray())
                 .andExpect(jsonPath("$.data[0].allowedTransitions[0]").value("ACTIVE"))
                 .andExpect(jsonPath("$.data[0].allowedTransitions[1]").value("SUSPENDED"));
     }
 
     @Test
-    void adminRecentDebtPaymentsEndpointKeepsResponseShapeAndFlagsBurstActivity() throws Exception {
+    void adminRecentPaymentsEndpointKeepsResponseShapeAndFlagsBurstActivity() throws Exception {
         String adminToken = login("orders.shape.admin@example.com", "ChangedPass#456");
-        saveDebtOrderWithPayment("ORD-DEBT-SHAPE-1", "TX-DEBT-SHAPE-1", Instant.parse("2026-03-10T01:00:00Z"));
-        saveDebtOrderWithPayment("ORD-DEBT-SHAPE-2", "TX-DEBT-SHAPE-2", Instant.parse("2026-03-10T01:20:00Z"));
-        Order flaggedOrder = saveDebtOrderWithPayment(
-                "ORD-DEBT-SHAPE-3",
-                "TX-DEBT-SHAPE-3",
+        saveBankTransferOrderWithPayment("ORD-BANK-SHAPE-1", "TX-BANK-SHAPE-1", Instant.parse("2026-03-10T01:00:00Z"));
+        saveBankTransferOrderWithPayment("ORD-BANK-SHAPE-2", "TX-BANK-SHAPE-2", Instant.parse("2026-03-10T01:20:00Z"));
+        Order flaggedOrder = saveBankTransferOrderWithPayment(
+                "ORD-BANK-SHAPE-3",
+                "TX-BANK-SHAPE-3",
                 Instant.parse("2026-03-10T01:40:00Z")
         );
 
@@ -257,19 +246,48 @@ class OrderPaymentResponseShapeTests {
                 .andExpect(jsonPath("$.data.items").isArray())
                 .andExpect(jsonPath("$.data.items[0].id").isNumber())
                 .andExpect(jsonPath("$.data.items[0].orderId").value(flaggedOrder.getId()))
-                .andExpect(jsonPath("$.data.items[0].orderCode").value("ORD-DEBT-SHAPE-3"))
+                .andExpect(jsonPath("$.data.items[0].orderCode").value("ORD-BANK-SHAPE-3"))
                 .andExpect(jsonPath("$.data.items[0].dealerId").value(dealer.getId()))
                 .andExpect(jsonPath("$.data.items[0].dealerName").isString())
                 .andExpect(jsonPath("$.data.items[0].amount").isNumber())
-                .andExpect(jsonPath("$.data.items[0].method").value("DEBT"))
+                .andExpect(jsonPath("$.data.items[0].method").value("BANK_TRANSFER"))
                 .andExpect(jsonPath("$.data.items[0].status").value("PAID"))
-                .andExpect(jsonPath("$.data.items[0].channel").value("Dealer debt confirmation"))
-                .andExpect(jsonPath("$.data.items[0].transactionCode").value("TX-DEBT-SHAPE-3"))
-                .andExpect(jsonPath("$.data.items[0].note").value("Debt payment shape test"))
-                .andExpect(jsonPath("$.data.items[0].proofFileName").value("proof-debt-shape.png"))
+                .andExpect(jsonPath("$.data.items[0].channel").value("Dealer bank transfer confirmation"))
+                .andExpect(jsonPath("$.data.items[0].transactionCode").value("TX-BANK-SHAPE-3"))
+                .andExpect(jsonPath("$.data.items[0].note").value("Bank transfer payment shape test"))
+                .andExpect(jsonPath("$.data.items[0].proofFileName").value("proof-bank-shape.png"))
                 .andExpect(jsonPath("$.data.items[0].paidAt").exists())
                 .andExpect(jsonPath("$.data.items[0].createdAt").exists())
                 .andExpect(jsonPath("$.data.items[0].reviewSuggested").value(true));
+    }
+
+    @Test
+    void dealerOrderCreateEndpointRejectsDebtPayload() throws Exception {
+        String dealerToken = login(dealer.getEmail(), "Dealer#123");
+
+        mockMvc.perform(post("/api/v1/dealer/orders")
+                        .header("Authorization", "Bearer " + dealerToken)
+                        .header("X-Idempotency-Key", "shape-invalid-debt")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "paymentMethod": "DEBT",
+                                  "receiverName": "Dealer Receiver",
+                                  "receiverAddress": "123 Contract Street",
+                                  "receiverPhone": "0900000000",
+                                  "shippingFee": 0,
+                                  "note": "Reject debt payload",
+                                  "items": [
+                                    {
+                                      "productId": %d,
+                                      "quantity": 1,
+                                      "unitPrice": 100000
+                                    }
+                                  ]
+                                }
+                                """.formatted(product.getId())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Only BANK_TRANSFER is supported"));
     }
 
     private Dealer registerActiveDealer(String prefix) throws Exception {
@@ -386,46 +404,46 @@ class OrderPaymentResponseShapeTests {
             payment.setTransactionCode("TX-SHAPE-001");
             payment.setNote("Shape test payment note");
             payment.setProofFileName("proof-shape.png");
-            payment.setPaidAt(Instant.parse("2026-03-10T02:00:00Z"));
+            payment.setPaidAt(Instant.parse("2026-03-10T00:10:00Z"));
             paymentRepository.saveAndFlush(payment);
         }
 
         return orderRepository.findById(savedOrder.getId()).orElseThrow();
     }
 
-    private Order saveDebtOrderWithPayment(String orderCode, String transactionCode, Instant paidAt) {
-        Order debtOrder = new Order();
-        debtOrder.setDealer(dealer);
-        debtOrder.setOrderCode(orderCode);
-        debtOrder.setStatus(OrderStatus.PENDING);
-        debtOrder.setPaymentMethod(PaymentMethod.DEBT);
-        debtOrder.setPaymentStatus(PaymentStatus.PENDING);
-        debtOrder.setPaidAmount(BigDecimal.valueOf(50_000));
-        debtOrder.setIsDeleted(false);
-        debtOrder.setReceiverName("Debt Dealer Receiver");
-        debtOrder.setReceiverAddress("456 Debt Street");
-        debtOrder.setReceiverPhone("0911000000");
-        debtOrder.setShippingFee(0);
-        debtOrder.setNote("Debt order shape test");
+    private Order saveBankTransferOrderWithPayment(String orderCode, String transactionCode, Instant paidAt) {
+        Order bankTransferOrder = new Order();
+        bankTransferOrder.setDealer(dealer);
+        bankTransferOrder.setOrderCode(orderCode);
+        bankTransferOrder.setStatus(OrderStatus.PENDING);
+        bankTransferOrder.setPaymentMethod(PaymentMethod.BANK_TRANSFER);
+        bankTransferOrder.setPaymentStatus(PaymentStatus.PAID);
+        bankTransferOrder.setPaidAmount(BigDecimal.valueOf(50_000));
+        bankTransferOrder.setIsDeleted(false);
+        bankTransferOrder.setReceiverName("Bank Transfer Dealer Receiver");
+        bankTransferOrder.setReceiverAddress("456 Payment Street");
+        bankTransferOrder.setReceiverPhone("0911000000");
+        bankTransferOrder.setShippingFee(0);
+        bankTransferOrder.setNote("Bank transfer order shape test");
 
         OrderItem item = new OrderItem();
-        item.setOrder(debtOrder);
+        item.setOrder(bankTransferOrder);
         item.setProduct(product);
         item.setQuantity(1);
         item.setUnitPrice(product.getRetailPrice());
-        debtOrder.setOrderItems(new LinkedHashSet<>(Set.of(item)));
+        bankTransferOrder.setOrderItems(new LinkedHashSet<>(Set.of(item)));
 
-        Order savedOrder = orderRepository.saveAndFlush(debtOrder);
+        Order savedOrder = orderRepository.saveAndFlush(bankTransferOrder);
 
         Payment payment = new Payment();
         payment.setOrder(savedOrder);
         payment.setAmount(BigDecimal.valueOf(50_000));
-        payment.setMethod(PaymentMethod.DEBT);
+        payment.setMethod(PaymentMethod.BANK_TRANSFER);
         payment.setStatus(PaymentStatus.PAID);
-        payment.setChannel("Dealer debt confirmation");
+        payment.setChannel("Dealer bank transfer confirmation");
         payment.setTransactionCode(transactionCode);
-        payment.setNote("Debt payment shape test");
-        payment.setProofFileName("proof-debt-shape.png");
+        payment.setNote("Bank transfer payment shape test");
+        payment.setProofFileName("proof-bank-shape.png");
         payment.setPaidAt(paidAt);
         paymentRepository.saveAndFlush(payment);
 

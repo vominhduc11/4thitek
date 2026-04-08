@@ -61,10 +61,10 @@ public class AdminFinancialService {
     private final BulkDiscountRepository bulkDiscountRepository;
     private final AdminSettingsService adminSettingsService;
 
-    // ---- Recent debt payments ----
+    // ---- Recent payments ----
 
     @Transactional(readOnly = true)
-    public Page<AdminRecentPaymentResponse> getRecentDebtPayments(
+    public Page<AdminRecentPaymentResponse> getRecentPayments(
             Long dealerId,
             Instant fromInclusive,
             Instant toInclusive,
@@ -83,8 +83,6 @@ public class AdminFinancialService {
             }
 
             List<Predicate> predicates = new ArrayList<>();
-            predicates.add(criteriaBuilder.equal(root.get("order").get("paymentMethod"), PaymentMethod.DEBT));
-
             if (dealerId != null) {
                 predicates.add(criteriaBuilder.equal(root.get("order").get("dealer").get("id"), dealerId));
             }
@@ -118,11 +116,11 @@ public class AdminFinancialService {
     }
 
     @Transactional(readOnly = true)
-    public List<AdminRecentPaymentResponse> getDebtPaymentsRecordedBetween(
+    public List<AdminRecentPaymentResponse> getPaymentsRecordedBetween(
             Instant fromInclusive,
             Instant toExclusive
     ) {
-        return paymentRepository.findDebtPaymentsRecordedBetween(fromInclusive, toExclusive).stream()
+        return paymentRepository.findPaymentsRecordedBetween(fromInclusive, toExclusive).stream()
                 .map(this::toRecentPaymentResponse)
                 .toList();
     }
@@ -330,7 +328,7 @@ public class AdminFinancialService {
         }
         Instant eventAt = resolvePaymentInstant(payment);
         Instant oneHourEarlier = eventAt.minusSeconds(3600);
-        long dealerPaymentsLastHour = paymentRepository.countDebtPaymentsForDealerWithinWindow(
+        long dealerPaymentsLastHour = paymentRepository.countPaymentsForDealerWithinWindow(
                 dealer.getId(),
                 oneHourEarlier,
                 eventAt

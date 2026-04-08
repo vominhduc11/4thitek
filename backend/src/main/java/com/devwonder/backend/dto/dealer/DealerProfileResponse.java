@@ -17,7 +17,6 @@ public record DealerProfileResponse(
         String email,
         String avatarUrl,
         String salesPolicy,
-        BigDecimal creditLimit,
         Integer vatPercent,
         Instant createdAt,
         Instant updatedAt

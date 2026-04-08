@@ -4,7 +4,6 @@ import com.devwonder.backend.entity.BulkDiscount;
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.OrderItem;
 import com.devwonder.backend.entity.enums.OrderStatus;
-import com.devwonder.backend.entity.enums.PaymentMethod;
 import com.devwonder.backend.entity.enums.PaymentStatus;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -86,9 +85,6 @@ public final class OrderPricingSupport {
         if (paidAmount.compareTo(totalAmount) >= 0 && totalAmount.compareTo(BigDecimal.ZERO) > 0) {
             return PaymentStatus.PAID;
         }
-        if (OrderFinancialSupport.openReceivableAmount(order, rules, vatPercent).compareTo(BigDecimal.ZERO) > 0) {
-            return PaymentStatus.DEBT_RECORDED;
-        }
         return PaymentStatus.PENDING;
     }
 
@@ -147,12 +143,6 @@ public final class OrderPricingSupport {
             return DEFAULT_VAT_PERCENT_FALLBACK;
         }
         return Math.max(0, Math.min(100, vatPercent));
-    }
-
-    private static PaymentMethod defaultPaymentMethod(Order order) {
-        return order == null || order.getPaymentMethod() == null
-                ? PaymentMethod.BANK_TRANSFER
-                : order.getPaymentMethod();
     }
 
     private static boolean matchesOrder(BulkDiscount rule, Order order, int totalItems) {

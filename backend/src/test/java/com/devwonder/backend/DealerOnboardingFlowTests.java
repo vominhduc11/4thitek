@@ -7,7 +7,6 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.devwonder.backend.dto.admin.AdminDealerAccountUpdateRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminDealerAccountStatusRequest;
 import com.devwonder.backend.dto.auth.LoginRequest;
 import com.devwonder.backend.dto.auth.RefreshTokenRequest;
@@ -26,7 +25,6 @@ import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.security.JWTUtils;
 import com.devwonder.backend.service.AdminManagementService;
 import com.devwonder.backend.service.AuthService;
-import java.math.BigDecimal;
 import java.util.HashMap;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
@@ -313,33 +311,4 @@ class DealerOnboardingFlowTests {
         assertThat(saved.getBusinessName()).isNull();
     }
 
-    @Test
-    void updateDealerAccountTierAndCreditLimit() {
-        authService.registerDealer(new RegisterDealerRequest(
-                "dealer.lifecycle@example.com",
-                "DealerPass#123",
-                "Dealer Lifecycle",
-                "Dealer Contact",
-                "555666777",
-                "0912345602",
-                "dealer.lifecycle@example.com",
-                "333 Lifecycle Street",
-                null,
-                "District 7",
-                "Ho Chi Minh City",
-                "Vietnam",
-                null
-        ));
-        Dealer dealer = dealerRepository.findByUsername("dealer.lifecycle@example.com").orElseThrow();
-
-        adminManagementService.updateDealerAccount(
-                dealer.getId(),
-                new AdminDealerAccountUpdateRequest(
-                        BigDecimal.valueOf(100_000_000)
-                )
-        );
-
-        Dealer updated = dealerRepository.findById(dealer.getId()).orElseThrow();
-        assertThat(updated.getCreditLimit()).isEqualByComparingTo(BigDecimal.valueOf(100_000_000));
-    }
 }

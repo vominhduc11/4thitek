@@ -248,7 +248,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     required _OrdersLayoutConfig layout,
     required int resultCount,
     required int pendingCount,
-    required int debtOrderCount,
+    required int outstandingOrderCount,
     required bool hasActiveSearch,
     required bool hasActiveCriteria,
     required String activeCriteriaSummary,
@@ -262,7 +262,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
         colors: colors,
         resultCount: resultCount,
         pendingCount: pendingCount,
-        debtOrderCount: debtOrderCount,
+        outstandingOrderCount: outstandingOrderCount,
         hasActiveSearch: hasActiveSearch,
         hasActiveCriteria: hasActiveCriteria,
         activeCriteriaSummary: activeCriteriaSummary,
@@ -331,10 +331,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
                         : OrderStatus.pending,
                   ),
                 ),
-              if (debtOrderCount > 0)
+              if (outstandingOrderCount > 0)
                 _OrdersSummaryStat(
                   icon: Icons.account_balance_wallet_outlined,
-                  value: '$debtOrderCount',
+                  value: '$outstandingOrderCount',
                   label: texts.outstandingCriteriaLabel,
                   isActive: _query.onlyOutstanding,
                   onTap: _toggleOutstandingQuickFilter,
@@ -421,7 +421,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     required ColorScheme colors,
     required int resultCount,
     required int pendingCount,
-    required int debtOrderCount,
+    required int outstandingOrderCount,
     required bool hasActiveSearch,
     required bool hasActiveCriteria,
     required String activeCriteriaSummary,
@@ -483,10 +483,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
                         : OrderStatus.pending,
                   ),
                 ),
-              if (debtOrderCount > 0)
+              if (outstandingOrderCount > 0)
                 _OrdersCompactStatChip(
                   icon: Icons.account_balance_wallet_outlined,
-                  value: '$debtOrderCount',
+                  value: '$outstandingOrderCount',
                   label: texts.outstandingCriteriaLabel,
                   isActive: _query.onlyOutstanding,
                   onTap: _toggleOutstandingQuickFilter,
@@ -719,7 +719,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     required _OrdersLayoutConfig layout,
     required int resultCount,
     required int pendingCount,
-    required int debtOrderCount,
+    required int outstandingOrderCount,
     required bool hasActiveSearch,
     required bool hasActiveCriteria,
     required String activeCriteriaSummary,
@@ -741,7 +741,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
               layout: layout,
               resultCount: resultCount,
               pendingCount: pendingCount,
-              debtOrderCount: debtOrderCount,
+              outstandingOrderCount: outstandingOrderCount,
               hasActiveSearch: hasActiveSearch,
               hasActiveCriteria: hasActiveCriteria,
               activeCriteriaSummary: activeCriteriaSummary,
@@ -801,7 +801,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
         const OrderQuerySnapshot.empty();
     final allOrders = orderController.orders;
     final pendingCount = querySnapshot.pendingCount;
-    final debtOrderCount = querySnapshot.outstandingOrderCount;
+    final outstandingOrderCount = querySnapshot.outstandingOrderCount;
 
     final statusFilters = <OrderStatus?>[
       null,
@@ -815,7 +815,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
       null,
       OrderPaymentStatus.pending,
       OrderPaymentStatus.paid,
-      OrderPaymentStatus.debtRecorded,
       OrderPaymentStatus.failed,
       OrderPaymentStatus.cancelled,
     ];
@@ -1355,7 +1354,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 layout: layout,
                 resultCount: resultCount,
                 pendingCount: pendingCount,
-                debtOrderCount: debtOrderCount,
+                outstandingOrderCount: outstandingOrderCount,
                 hasActiveSearch: hasActiveSearch,
                 hasActiveCriteria: hasActiveCriteria,
                 activeCriteriaSummary: activeCriteriaSummary,
@@ -2084,8 +2083,6 @@ class _OrdersTexts {
         return isEnglish ? 'Newest first' : 'Mới nhất';
       case OrderSortOption.highestValue:
         return isEnglish ? 'Highest value' : 'Giá trị cao';
-      case OrderSortOption.debtFirst:
-        return isEnglish ? 'Outstanding first' : 'Còn nợ trước';
     }
   }
 
@@ -2117,8 +2114,6 @@ class _OrdersTexts {
         return isEnglish ? 'Unpaid' : 'Chưa thanh toán';
       case OrderPaymentStatus.paid:
         return isEnglish ? 'Paid' : 'Đã thanh toán';
-      case OrderPaymentStatus.debtRecorded:
-        return isEnglish ? 'Open receivable' : 'Công nợ phải thu';
     }
   }
 
@@ -2173,7 +2168,7 @@ class _OrdersTexts {
       : '$count đơn chờ xử lý';
 
   String outstandingOrderCountLabel(int count) => isEnglish
-      ? '$count ${count == 1 ? 'order with open receivable' : 'orders with open receivable'}'
+      ? '$count ${count == 1 ? 'unpaid order' : 'unpaid orders'}'
       : '$count đơn còn nợ';
 
   String relativeTimeLabel(DateTime value, {DateTime? now}) {
@@ -2222,8 +2217,6 @@ IconData _paymentMethodIcon(OrderPaymentMethod method) {
   switch (method) {
     case OrderPaymentMethod.bankTransfer:
       return Icons.account_balance_outlined;
-    case OrderPaymentMethod.debt:
-      return Icons.account_balance_wallet_outlined;
   }
 }
 
@@ -2237,8 +2230,6 @@ IconData _paymentStatusIcon(OrderPaymentStatus status) {
       return Icons.schedule_rounded;
     case OrderPaymentStatus.paid:
       return Icons.verified_outlined;
-    case OrderPaymentStatus.debtRecorded:
-      return Icons.receipt_long_outlined;
   }
 }
 
@@ -2252,8 +2243,6 @@ Color _paymentStatusBackground(OrderPaymentStatus status) {
       return const Color(0xFF4A1E24);
     case OrderPaymentStatus.paid:
       return const Color(0xFF1A3F2D);
-    case OrderPaymentStatus.debtRecorded:
-      return const Color(0xFF4C3B16);
   }
 }
 
@@ -2267,8 +2256,6 @@ Color _paymentStatusTextColor(OrderPaymentStatus status) {
       return const Color(0xFFFDA4AF);
     case OrderPaymentStatus.paid:
       return const Color(0xFF86EFAC);
-    case OrderPaymentStatus.debtRecorded:
-      return const Color(0xFFF4D18A);
   }
 }
 

@@ -18,6 +18,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.validation.FieldError;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -116,6 +117,17 @@ public class RestExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(IllegalArgumentException ex) {
         return ResponseEntity.badRequest().body(ApiResponse.failure(ex.getMessage()));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        Throwable cause = ex.getMostSpecificCause();
+        if (cause instanceof IllegalArgumentException illegalArgumentException
+                && illegalArgumentException.getMessage() != null
+                && !illegalArgumentException.getMessage().isBlank()) {
+            return ResponseEntity.badRequest().body(ApiResponse.failure(illegalArgumentException.getMessage()));
+        }
+        return ResponseEntity.badRequest().body(ApiResponse.failure("Malformed request body"));
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)

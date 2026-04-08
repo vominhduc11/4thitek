@@ -63,8 +63,6 @@ export const toBackendOrderStatus = (status: OrderStatus): BackendOrderStatus =>
 
 export const mapBackendPaymentMethod = (method?: BackendPaymentMethod | null): PaymentMethod => {
   switch (method) {
-    case 'DEBT':
-      return 'debt'
     case 'BANK_TRANSFER':
       return 'bank_transfer'
     default:
@@ -72,15 +70,13 @@ export const mapBackendPaymentMethod = (method?: BackendPaymentMethod | null): P
   }
 }
 
-export const toBackendPaymentMethod = (method: Exclude<PaymentMethod, null>): BackendPaymentMethod =>
-  method === 'debt' ? 'DEBT' : 'BANK_TRANSFER'
+export const toBackendPaymentMethod = (_method: Exclude<PaymentMethod, null>): BackendPaymentMethod =>
+  'BANK_TRANSFER'
 
 export const mapBackendPaymentStatus = (status?: BackendPaymentStatus | null): PaymentStatus => {
   switch (status) {
     case 'PAID':
       return 'paid'
-    case 'DEBT_RECORDED':
-      return 'debt_recorded'
     case 'CANCELLED':
       return 'cancelled'
     case 'FAILED':
@@ -224,9 +220,6 @@ export const mapOrder = (order: BackendOrderResponse): Order => {
     paymentStatus: mapBackendPaymentStatus(order.paymentStatus),
     paidAmount,
     outstandingAmount,
-    reservedCreditAmount: parseFiniteNumber(order.reservedCreditAmount),
-    openReceivableAmount: parseFiniteNumber(order.openReceivableAmount),
-    creditExposureAmount: parseFiniteNumber(order.creditExposureAmount),
     items: Number(order.itemCount ?? 0),
     address: order.address || '',
     note: order.note || '',
@@ -269,11 +262,6 @@ export const mapDealer = (dealer: BackendDealerAccountResponse): Dealer => ({
   orders: Number(dealer.orders ?? 0),
   lastOrderAt: dealer.lastOrderAt || '',
   revenue: Number(dealer.revenue ?? 0),
-  creditLimit: Number(dealer.creditLimit ?? 0),
-  reservedCredit: Number(dealer.reservedCredit ?? 0),
-  openReceivable: Number(dealer.openReceivable ?? 0),
-  totalCreditExposure: Number(dealer.totalCreditExposure ?? 0),
-  availableCredit: Number(dealer.availableCredit ?? 0),
   email: dealer.email || '',
   phone: dealer.phone || '',
   allowedTransitions: mapAllowedDealerTransitions(

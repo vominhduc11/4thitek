@@ -5,7 +5,6 @@ import com.devwonder.backend.dto.admin.AdminBlogResponse;
 import com.devwonder.backend.dto.admin.AdminBlogUpsertRequest;
 import com.devwonder.backend.dto.admin.AdminDashboardResponse;
 import com.devwonder.backend.dto.admin.AdminDealerAccountResponse;
-import com.devwonder.backend.dto.admin.AdminDealerAccountUpdateRequest;
 import com.devwonder.backend.dto.admin.AdminDealerResponse;
 import com.devwonder.backend.dto.admin.AdminDiscountRuleResponse;
 import com.devwonder.backend.dto.admin.AdminDiscountRuleUpsertRequest;
@@ -38,6 +37,7 @@ import com.devwonder.backend.entity.enums.DiscountRuleStatus;
 import com.devwonder.backend.entity.enums.FinancialSettlementStatus;
 import com.devwonder.backend.entity.enums.FinancialSettlementType;
 import com.devwonder.backend.entity.enums.OrderStatus;
+import com.devwonder.backend.entity.enums.PaymentStatus;
 import com.devwonder.backend.entity.enums.ProductSerialStatus;
 import com.devwonder.backend.entity.enums.StaffUserStatus;
 import com.devwonder.backend.exception.BadRequestException;
@@ -223,6 +223,11 @@ public class AdminManagementService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
         OrderStatus previousStatus = order.getStatus();
         OrderStatusTransitionPolicy.assertAdminTransitionAllowed(previousStatus, request.status());
+        if (previousStatus == OrderStatus.PENDING
+                && request.status() == OrderStatus.CONFIRMED
+                && order.getPaymentStatus() != PaymentStatus.PAID) {
+            throw new BadRequestException("Cannot confirm an unpaid order");
+        }
         order.setStatus(request.status());
         applyCompletedAt(order, request.status(), previousStatus);
         if (previousStatus != OrderStatus.CANCELLED && request.status() == OrderStatus.CANCELLED) {
@@ -488,16 +493,6 @@ public class AdminManagementService {
 
     @Transactional
     @CacheEvict(cacheNames = {CacheNames.ADMIN_DASHBOARD, CacheNames.PUBLIC_DEALERS}, allEntries = true)
-    public AdminDealerAccountResponse updateDealerAccount(Long id, AdminDealerAccountUpdateRequest request) {
-        Dealer dealer = dealerRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Dealer account not found"));
-        dealer.setCreditLimit(requireNonNegativeAmount(request.creditLimit(), "creditLimit"));
-        Dealer saved = dealerRepository.save(dealer);
-        return AdminResponseMapper.toDealerAccountResponse(saved, activeDiscountRules(), currentVatPercent());
-    }
-
-    @Transactional
-    @CacheEvict(cacheNames = {CacheNames.ADMIN_DASHBOARD, CacheNames.PUBLIC_DEALERS}, allEntries = true)
     public AdminDealerAccountResponse updateDealerAccountStatus(
             Long id,
             UpdateAdminDealerAccountStatusRequest request
@@ -707,16 +702,6 @@ public class AdminManagementService {
             throw new BadRequestException(fieldName + " must not be blank");
         }
         return normalized;
-    }
-
-    private BigDecimal requireNonNegativeAmount(BigDecimal value, String fieldName) {
-        if (value == null) {
-            return null;
-        }
-        if (value.compareTo(BigDecimal.ZERO) < 0) {
-            throw new BadRequestException(fieldName + " must not be negative");
-        }
-        return value;
     }
 
     private List<BulkDiscount> activeDiscountRules() {

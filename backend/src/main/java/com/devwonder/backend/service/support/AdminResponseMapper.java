@@ -80,15 +80,12 @@ public final class AdminResponseMapper {
                 order.getUpdatedAt(),
                 OrderPricingSupport.computeTotalAmount(order, rules, vatPercent),
                 OrderFinancialSupport.paymentDueAmount(order, rules, vatPercent),
-                OrderFinancialSupport.reservedCreditAmount(order, rules, vatPercent),
-                OrderFinancialSupport.openReceivableAmount(order, rules, vatPercent),
-                OrderFinancialSupport.creditExposureAmount(order, rules, vatPercent),
                 countOrderItems(order),
                 order.getReceiverAddress(),
                 order.getNote(),
                 orderItems,
                 order.getStaleReviewRequired(),
-                OrderStatusTransitionPolicy.allowedAdminTransitions(order.getStatus())
+                resolveAllowedAdminTransitions(order)
         );
     }
 
@@ -157,18 +154,6 @@ public final class AdminResponseMapper {
         BigDecimal revenue = revenueOrders.stream()
                 .map(order -> OrderPricingSupport.computeTotalAmount(order, rules, vatPercent))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal reservedCredit = visibleOrders.stream()
-                .map(order -> OrderFinancialSupport.reservedCreditAmount(order, rules, vatPercent))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal openReceivable = visibleOrders.stream()
-                .map(order -> OrderFinancialSupport.openReceivableAmount(order, rules, vatPercent))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal totalCreditExposure = reservedCredit.add(openReceivable);
-        BigDecimal creditLimit = dealer.getCreditLimit() == null ? BigDecimal.ZERO : dealer.getCreditLimit();
-        BigDecimal availableCredit = creditLimit.subtract(totalCreditExposure);
-        if (availableCredit.compareTo(BigDecimal.ZERO) < 0) {
-            availableCredit = BigDecimal.ZERO;
-        }
         return new AdminDealerAccountResponse(
                 dealer.getId(),
                 firstNonBlank(dealer.getBusinessName(), dealer.getContactName(), dealer.getUsername()),
@@ -178,15 +163,22 @@ public final class AdminResponseMapper {
                 visibleOrders.size(),
                 lastOrderAt,
                 revenue,
-                reservedCredit,
-                openReceivable,
-                totalCreditExposure,
-                availableCredit,
-                dealer.getCreditLimit(),
                 dealer.getEmail(),
                 dealer.getPhone(),
                 DealerAccountStatusTransitionPolicy.allowedTransitions(dealer.getCustomerStatus())
         );
+    }
+
+    private static List<com.devwonder.backend.entity.enums.OrderStatus> resolveAllowedAdminTransitions(Order order) {
+        List<com.devwonder.backend.entity.enums.OrderStatus> transitions =
+                OrderStatusTransitionPolicy.allowedAdminTransitions(order.getStatus());
+        if (order.getStatus() == com.devwonder.backend.entity.enums.OrderStatus.PENDING
+                && order.getPaymentStatus() != com.devwonder.backend.entity.enums.PaymentStatus.PAID) {
+            return transitions.stream()
+                    .filter(status -> status != com.devwonder.backend.entity.enums.OrderStatus.CONFIRMED)
+                    .toList();
+        }
+        return transitions;
     }
 
     public static AdminStaffUserResponse toStaffUserResponse(Admin admin) {

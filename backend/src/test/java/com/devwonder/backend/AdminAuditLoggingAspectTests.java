@@ -153,7 +153,7 @@ class AdminAuditLoggingAspectTests {
                 123L,
                 new RecordPaymentRequest(
                         new BigDecimal("500000"),
-                        PaymentMethod.DEBT,
+                        PaymentMethod.BANK_TRANSFER,
                         "MANUAL",
                         "TX-123",
                         "Confirmed by finance",

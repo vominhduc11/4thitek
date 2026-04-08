@@ -1,4 +1,4 @@
-part of 'dashboard_screen.dart';
+﻿part of 'dashboard_screen.dart';
 
 class _DashboardSnapshot {
   const _DashboardSnapshot({
@@ -13,7 +13,7 @@ class _DashboardSnapshot {
     required this.periodRevenue,
     required this.periodOrderCount,
     required this.periodCompletedOrderCount,
-    required this.totalOutstandingDebt,
+    required this.totalOutstandingAmount,
     required this.periodUnitLabel,
   });
 
@@ -28,7 +28,7 @@ class _DashboardSnapshot {
   final int periodRevenue;
   final int periodOrderCount;
   final int periodCompletedOrderCount;
-  final int totalOutstandingDebt;
+  final int totalOutstandingAmount;
   final String periodUnitLabel;
 }
 
@@ -137,17 +137,20 @@ _DashboardSnapshot _buildDashboardSnapshot({
     periodCompletedOrderCount: periodOrders
         .where((order) => order.status == OrderStatus.completed)
         .length,
-    totalOutstandingDebt: _calculateTotalOutstandingDebt(orders),
+    totalOutstandingAmount: _calculateTotalOutstandingAmount(orders),
     periodUnitLabel: _DashboardTexts(
       isEnglish: isEnglish,
     ).periodUnitLabel(timeFilter),
   );
 }
 
-int _calculateTotalOutstandingDebt(List<Order> orders) {
+int _calculateTotalOutstandingAmount(List<Order> orders) {
   return orders
-      .where((order) => order.openReceivableAmount > 0)
-      .fold<int>(0, (sum, order) => sum + order.openReceivableAmount);
+      .where(
+        (order) =>
+            order.status == OrderStatus.pending && order.outstandingAmount > 0,
+      )
+      .fold<int>(0, (sum, order) => sum + order.outstandingAmount);
 }
 
 class _DashboardLowStockItem {
@@ -460,92 +463,6 @@ List<_CustomerStat> _buildTopCustomers(List<Order> orders) {
       return b.lastOrder.compareTo(a.lastOrder);
     });
   return list;
-}
-
-class _DebtBucket {
-  const _DebtBucket({
-    required this.label,
-    required this.minDay,
-    required this.maxDay,
-    required this.color,
-    this.amount = 0,
-  });
-
-  final String label;
-  final int minDay;
-  final int maxDay;
-  final Color color;
-  final int amount;
-
-  _DebtBucket copyWith({int? amount}) {
-    return _DebtBucket(
-      label: label,
-      minDay: minDay,
-      maxDay: maxDay,
-      color: color,
-      amount: amount ?? this.amount,
-    );
-  }
-}
-
-List<_DebtBucket> _buildDebtBuckets(
-  List<Order> orders, {
-  required DateTime now,
-  required _DashboardTexts texts,
-}) {
-  final buckets = [
-    _DebtBucket(
-      label: texts.debtBucketRangeLabel(0, 30),
-      minDay: 0,
-      maxDay: 30,
-      color: const Color(0xFF1D4ED8),
-    ),
-    _DebtBucket(
-      label: texts.debtBucketRangeLabel(31, 60),
-      minDay: 31,
-      maxDay: 60,
-      color: const Color(0xFF7C3AED),
-    ),
-    _DebtBucket(
-      label: texts.debtBucketRangeLabel(61, 90),
-      minDay: 61,
-      maxDay: 90,
-      color: const Color(0xFFEA580C),
-    ),
-    _DebtBucket(
-      label: texts.debtBucketRangeLabel(91, 9999),
-      minDay: 91,
-      maxDay: 9999,
-      color: const Color(0xFFD92D20),
-    ),
-  ];
-
-  final today = DateTime(now.year, now.month, now.day);
-  final amounts = List<int>.filled(buckets.length, 0);
-
-  for (final order in orders) {
-    if (order.openReceivableAmount <= 0 ||
-        order.status == OrderStatus.cancelled) {
-      continue;
-    }
-    final createdAt = DateTime(
-      order.createdAt.year,
-      order.createdAt.month,
-      order.createdAt.day,
-    );
-    final ageInDays = math.max(0, today.difference(createdAt).inDays);
-    final index = buckets.indexWhere(
-      (bucket) => ageInDays >= bucket.minDay && ageInDays <= bucket.maxDay,
-    );
-    if (index >= 0) {
-      amounts[index] += order.openReceivableAmount;
-    }
-  }
-
-  return [
-    for (var i = 0; i < buckets.length; i++)
-      buckets[i].copyWith(amount: amounts[i]),
-  ];
 }
 
 class _DailyActivation {

@@ -30,9 +30,6 @@ const String _optimisticConflictMessage =
     'The record was modified by another request; please retry';
 const String _roundedPaymentAmountMessage =
     'Payment amount must round to at least 1 VND';
-final RegExp _minimumPartialPaymentPattern = RegExp(
-  r'^Payment amount must be at least (\d+) VND unless it fully settles the outstanding balance$',
-);
 final RegExp _insufficientStockPattern = RegExp(
   r'^Insufficient stock for product (.+)$',
 );
@@ -44,19 +41,6 @@ String? _resolveDynamicOrderMessage(
   String normalized, {
   required bool isEnglish,
 }) {
-  final minimumPartialMatch = _minimumPartialPaymentPattern.firstMatch(
-    normalized,
-  );
-  if (minimumPartialMatch != null) {
-    final minimumAmount = int.tryParse(minimumPartialMatch.group(1) ?? '');
-    final minimumLabel = minimumAmount == null
-        ? '${minimumPartialMatch.group(1)} VND'
-        : formatVnd(minimumAmount);
-    return isEnglish
-        ? 'Each partial debt payment must be at least $minimumLabel unless it clears the remaining outstanding balance.'
-        : 'Mỗi lần thanh toán công nợ từng phần phải từ $minimumLabel trở lên, trừ khi thanh toán hết công nợ còn lại.';
-  }
-
   final insufficientStockMatch = _insufficientStockPattern.firstMatch(
     normalized,
   );
@@ -122,10 +106,6 @@ String resolveOrderControllerMessage(
         return 'Không thể ghi nhận thanh toán. Vui lòng kiểm tra lại.';
       case 'order.message.syncFailed':
         return 'Không thể đồng bộ dữ liệu đơn hàng.';
-      case 'Debt payment is not available for this dealer':
-        return 'Tài khoản chưa được cấp hạn mức công nợ.';
-      case 'Credit limit exceeded':
-        return 'Vượt hạn mức công nợ. Vui lòng kiểm tra lại tổng credit exposure hiện tại trước khi đặt đơn.';
       default:
         if (dynamicMessage != null) {
           return dynamicMessage;
@@ -176,14 +156,6 @@ String resolveOrderControllerMessage(
       return isEnglish
           ? 'Unable to sync order data.'
           : 'Không thể đồng bộ dữ liệu đơn hàng.';
-    case 'Debt payment is not available for this dealer':
-      return isEnglish
-          ? 'This account has not been granted a credit limit yet.'
-          : 'Tài khoản chưa được cấp hạn mức công nợ.';
-    case 'Credit limit exceeded':
-      return isEnglish
-          ? 'Credit limit exceeded. Please review the current credit exposure before placing the order.'
-          : 'Vượt hạn mức công nợ. Vui lòng kiểm tra lại tổng credit exposure hiện tại trước khi đặt đơn.';
     default:
       if (dynamicMessage != null) {
         return dynamicMessage;
@@ -216,7 +188,7 @@ class OrderController extends ChangeNotifier {
     AuthStorage? authStorage,
     http.Client? client,
   }) : _orders = <Order>[],
-       _paymentHistory = <DebtPaymentRecord>[],
+       _paymentHistory = <OrderPaymentRecord>[],
        _productLookup = productLookup {
     _authStorage = authStorage ?? AuthStorage();
     _client = DealerAuthClient(
@@ -227,7 +199,7 @@ class OrderController extends ChangeNotifier {
 
   final List<Order> _orders;
   final Map<String, Order> _orderById = <String, Order>{};
-  final List<DebtPaymentRecord> _paymentHistory;
+  final List<OrderPaymentRecord> _paymentHistory;
   final Product? Function(String productId)? _productLookup;
   late final AuthStorage _authStorage;
   late final http.Client _client;
@@ -236,11 +208,9 @@ class OrderController extends ChangeNotifier {
   final Map<String, ({int amount, DateTime at})> _lastPayment =
       <String, ({int amount, DateTime at})>{};
   List<Order> _sortedOrdersCache = const <Order>[];
-  List<Order> _sortedDebtOrdersCache = const <Order>[];
-  List<DebtPaymentRecord> _sortedPaymentHistoryCache =
-      const <DebtPaymentRecord>[];
+  List<OrderPaymentRecord> _sortedPaymentHistoryCache =
+      const <OrderPaymentRecord>[];
   bool _ordersCacheDirty = true;
-  bool _debtOrdersCacheDirty = true;
   bool _paymentHistoryCacheDirty = true;
   bool _isRecordingPayment = false;
   String? _lastActionMessage;
@@ -265,7 +235,7 @@ class OrderController extends ChangeNotifier {
       _remoteOrderIds.clear();
       _remoteOrderCodes.clear();
       _replaceOrders(const <Order>[]);
-      _replacePaymentHistory(const <DebtPaymentRecord>[]);
+      _replacePaymentHistory(const <OrderPaymentRecord>[]);
       notifyListeners();
     }
   }
@@ -327,7 +297,7 @@ class OrderController extends ChangeNotifier {
     _remoteOrderIds.clear();
     _remoteOrderCodes.clear();
     _replaceOrders(const <Order>[]);
-    _replacePaymentHistory(const <DebtPaymentRecord>[]);
+    _replacePaymentHistory(const <OrderPaymentRecord>[]);
     notifyListeners();
   }
 
@@ -359,67 +329,11 @@ class OrderController extends ChangeNotifier {
     return _sortedOrdersCache;
   }
 
-  List<Order> get debtOrders {
-    if (_debtOrdersCacheDirty) {
-      final list =
-          _orders
-              .where(
-                (order) =>
-                    order.openReceivableAmount > 0 &&
-                    order.status != OrderStatus.cancelled,
-              )
-              .toList(growable: false)
-            ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      _sortedDebtOrdersCache = List<Order>.unmodifiable(list);
-      _debtOrdersCacheDirty = false;
-    }
-    return _sortedDebtOrdersCache;
-  }
-
-  int get totalOutstandingDebt {
-    return _orders
-        .where(
-          (order) => order.openReceivableAmount > 0,
-        )
-        .fold<int>(0, (sum, order) => sum + order.openReceivableAmount);
-  }
-
-  List<Order> get reservedCreditOrders {
-    final list =
-        _orders
-            .where(
-              (order) =>
-                  order.reservedCreditAmount > 0 &&
-                  order.status != OrderStatus.cancelled,
-            )
-            .toList(growable: false)
-          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    return List<Order>.unmodifiable(list);
-  }
-
-  int get totalReservedCredit {
-    return _orders.fold<int>(
-      0,
-      (sum, order) => sum + order.reservedCreditAmount,
-    );
-  }
-
-  int get totalOpenReceivable {
-    return totalOutstandingDebt;
-  }
-
-  int get totalCreditExposure {
-    return _orders.fold<int>(
-      0,
-      (sum, order) => sum + order.creditExposureAmount,
-    );
-  }
-
-  List<DebtPaymentRecord> get paymentHistory {
+  List<OrderPaymentRecord> get paymentHistory {
     if (_paymentHistoryCacheDirty) {
-      final list = List<DebtPaymentRecord>.from(_paymentHistory)
+      final list = List<OrderPaymentRecord>.from(_paymentHistory)
         ..sort((a, b) => b.paidAt.compareTo(a.paidAt));
-      _sortedPaymentHistoryCache = List<DebtPaymentRecord>.unmodifiable(list);
+      _sortedPaymentHistoryCache = List<OrderPaymentRecord>.unmodifiable(list);
       _paymentHistoryCacheDirty = false;
     }
     return _sortedPaymentHistoryCache;
@@ -813,7 +727,7 @@ class OrderController extends ChangeNotifier {
     _replaceOrder(_mapRemoteOrder(data));
   }
 
-  Future<List<DebtPaymentRecord>> _fetchRemotePaymentsForOrder(
+  Future<List<OrderPaymentRecord>> _fetchRemotePaymentsForOrder(
     int remoteOrderId,
   ) async {
     try {
@@ -823,18 +737,18 @@ class OrderController extends ChangeNotifier {
       );
       final payload = _decodeBody(response.body);
       if (response.statusCode >= 400) {
-        return const <DebtPaymentRecord>[];
+        return const <OrderPaymentRecord>[];
       }
       final data = payload['data'];
       if (data is! List) {
-        return const <DebtPaymentRecord>[];
+        return const <OrderPaymentRecord>[];
       }
       return data
           .whereType<Map<String, dynamic>>()
           .map(_mapRemotePayment)
           .toList(growable: false);
     } catch (_) {
-      return const <DebtPaymentRecord>[];
+      return const <OrderPaymentRecord>[];
     }
   }
 
@@ -894,9 +808,6 @@ class OrderController extends ChangeNotifier {
       vatPercentOverride: _parseInt(json['vatPercent'], fallback: kVatPercent),
       vatAmountOverride: _parsePrice(json['vatAmount']),
       totalAmountOverride: _parsePrice(json['totalAmount']),
-      reservedCreditAmountOverride: _parsePrice(json['reservedCreditAmount']),
-      openReceivableAmountOverride: _parsePrice(json['openReceivableAmount']),
-      creditExposureAmountOverride: _parsePrice(json['creditExposureAmount']),
     );
   }
 
@@ -925,11 +836,11 @@ class OrderController extends ChangeNotifier {
     return OrderLineItem(product: product, quantity: quantity);
   }
 
-  DebtPaymentRecord _mapRemotePayment(Map<String, dynamic> json) {
+  OrderPaymentRecord _mapRemotePayment(Map<String, dynamic> json) {
     final remoteOrderId = _parseInt(json['orderId']);
     final orderCode =
         _remoteOrderCodes[remoteOrderId] ?? remoteOrderId.toString();
-    return DebtPaymentRecord(
+    return OrderPaymentRecord(
       id: json['id']?.toString() ?? '',
       orderId: orderCode,
       amount: _parsePrice(json['amount']),
@@ -972,30 +883,17 @@ class OrderController extends ChangeNotifier {
   }
 
   OrderPaymentMethod _mapRemotePaymentMethod(String? raw) {
-    switch ((raw ?? '').trim().toUpperCase()) {
-      case 'DEBT':
-        return OrderPaymentMethod.debt;
-      case 'BANK_TRANSFER':
-      default:
-        return OrderPaymentMethod.bankTransfer;
-    }
+    return OrderPaymentMethod.bankTransfer;
   }
 
   String _toRemotePaymentMethod(OrderPaymentMethod method) {
-    switch (method) {
-      case OrderPaymentMethod.bankTransfer:
-        return 'BANK_TRANSFER';
-      case OrderPaymentMethod.debt:
-        return 'DEBT';
-    }
+    return 'BANK_TRANSFER';
   }
 
   OrderPaymentStatus _mapRemotePaymentStatus(String? raw) {
     switch ((raw ?? '').trim().toUpperCase()) {
       case 'PAID':
         return OrderPaymentStatus.paid;
-      case 'DEBT_RECORDED':
-        return OrderPaymentStatus.debtRecorded;
       case 'CANCELLED':
         return OrderPaymentStatus.cancelled;
       case 'PENDING':
@@ -1145,7 +1043,7 @@ class OrderController extends ChangeNotifier {
     _markOrdersDirty();
   }
 
-  void _replacePaymentHistory(Iterable<DebtPaymentRecord> payments) {
+  void _replacePaymentHistory(Iterable<OrderPaymentRecord> payments) {
     _paymentHistory
       ..clear()
       ..addAll(payments);
@@ -1154,7 +1052,6 @@ class OrderController extends ChangeNotifier {
 
   void _markOrdersDirty() {
     _ordersCacheDirty = true;
-    _debtOrdersCacheDirty = true;
   }
 
   void _markPaymentsDirty() {

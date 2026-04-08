@@ -19,7 +19,6 @@ import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.repository.FinancialSettlementRepository;
 import com.devwonder.backend.repository.OrderRepository;
-import com.devwonder.backend.service.AdminSettingsService;
 import com.devwonder.backend.service.WebSocketEventPublisher;
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
@@ -42,7 +41,6 @@ public class DealerOrderWorkflowSupport {
     private final DealerOrderNotificationSupport dealerOrderNotificationSupport;
     private final WebSocketEventPublisher webSocketEventPublisher;
     private final FinancialSettlementRepository financialSettlementRepository;
-    private final AdminSettingsService adminSettingsService;
 
     /**
      * Creates a dealer order and persists the idempotency key on the order record.
@@ -63,6 +61,7 @@ public class DealerOrderWorkflowSupport {
             int vatPercent,
             String idempotencyKey
     ) {
+        assertBankTransferOnly(request.paymentMethod());
         Order order = new Order();
         order.setDealer(dealer);
         order.setOrderCode(DealerOrderSupport.buildOrderCode(dealer.getId()));
@@ -97,9 +96,6 @@ public class DealerOrderWorkflowSupport {
         }
         order.setOrderItems(items);
         order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules, vatPercent));
-        if (DealerOrderSupport.defaultPaymentMethod(order) == PaymentMethod.DEBT) {
-            assertCreditLimitAvailable(dealer, order, activeDiscountRules);
-        }
 
         Order saved = orderRepository.save(order);
         orderInventorySupport.reserveStock(requestedQuantities, lockedProducts, saved);
@@ -170,45 +166,9 @@ public class DealerOrderWorkflowSupport {
         return DealerPortalResponseMapper.toOrderResponse(saved, activeDiscountRules, vatPercent);
     }
 
-    private void assertCreditLimitAvailable(
-            Dealer dealer,
-            Order draftOrder,
-            List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules
-    ) {
-        if (DealerOrderSupport.defaultPaymentMethod(draftOrder) != PaymentMethod.DEBT) {
-            return;
+    private void assertBankTransferOnly(PaymentMethod paymentMethod) {
+        if (paymentMethod != PaymentMethod.BANK_TRANSFER) {
+            throw new BadRequestException("Only BANK_TRANSFER is supported");
         }
-        BigDecimal creditLimit = zeroIfNull(dealer.getCreditLimit());
-        if (creditLimit.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new BadRequestException("Debt payment is not available for this dealer");
-        }
-        BigDecimal currentOutstandingDebt = orderRepository
-                .findVisibleByDealerIdAndStatusNotAndPaymentMethodOrderByCreatedAtDesc(
-                        dealer.getId(),
-                        OrderStatus.CANCELLED,
-                        PaymentMethod.DEBT
-                )
-                .stream()
-                .map(order -> creditExposureAmount(order, activeDiscountRules))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal projectedOutstandingDebt = currentOutstandingDebt.add(creditExposureAmount(draftOrder, activeDiscountRules));
-        if (projectedOutstandingDebt.compareTo(creditLimit) > 0) {
-            throw new BadRequestException("Credit limit exceeded");
-        }
-    }
-
-    private BigDecimal creditExposureAmount(
-            Order order,
-            List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules
-    ) {
-        return OrderFinancialSupport.creditExposureAmount(order, activeDiscountRules, currentVatPercent());
-    }
-
-    private BigDecimal zeroIfNull(BigDecimal value) {
-        return value == null ? BigDecimal.ZERO : value;
-    }
-
-    private int currentVatPercent() {
-        return adminSettingsService.getEffectiveSettings().vatPercent();
     }
 }

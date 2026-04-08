@@ -28,7 +28,7 @@ class CheckoutScreen extends StatefulWidget {
 }
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
-  OrderPaymentMethod _method = OrderPaymentMethod.bankTransfer;
+  final OrderPaymentMethod _method = OrderPaymentMethod.bankTransfer;
   DealerProfile _profile = DealerProfile.defaults;
   final TextEditingController _orderNoteController = TextEditingController();
   late final BankTransferService _bankTransferService;
@@ -40,8 +40,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String? _profileLoadError;
 
   _CheckoutTexts get _texts => _CheckoutTexts(isEnglish: _isEnglish);
-
-  bool get _canUseDebtPayment => _profile.creditLimit > 0;
 
   @override
   void didChangeDependencies() {
@@ -65,21 +63,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   OrderPaymentStatus get _previewPaymentStatus {
-    switch (_method) {
-      case OrderPaymentMethod.bankTransfer:
-        return OrderPaymentStatus.pending;
-      case OrderPaymentMethod.debt:
-        return OrderPaymentStatus.pending;
-    }
+    return OrderPaymentStatus.pending;
   }
 
-  String get _primaryActionLabel {
-    final texts = _texts;
-    if (_method == OrderPaymentMethod.bankTransfer) {
-      return texts.primaryActionBankTransfer;
-    }
-    return texts.primaryActionConfirmOrder;
-  }
+  String get _primaryActionLabel => _texts.primaryActionBankTransfer;
 
   Future<void> _loadDealerProfile({bool showFailureSnackBar = false}) async {
     if (mounted) {
@@ -93,14 +80,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       if (!mounted) {
         return;
       }
-      final canUseDebtPayment = profile.creditLimit > 0;
       setState(() {
         _profile = profile;
         _isLoadingProfile = false;
         _profileLoadError = null;
-        if (!canUseDebtPayment && _method == OrderPaymentMethod.debt) {
-          _method = OrderPaymentMethod.bankTransfer;
-        }
       });
     } catch (_) {
       if (!mounted) {
@@ -275,57 +258,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    RadioGroup<OrderPaymentMethod>(
-                      groupValue: _method,
-                      onChanged: (value) {
-                        if (value == null) {
-                          return;
-                        }
-                        setState(() => _method = value);
-                        if (value == OrderPaymentMethod.bankTransfer &&
-                            _bankTransferInstructions == null &&
-                            !_isLoadingBankTransferInstructions) {
-                          _loadBankTransferInstructions();
-                        }
-                      },
-                      child: Column(
-                        children: [
-                          RadioListTile<OrderPaymentMethod>(
-                            value: OrderPaymentMethod.bankTransfer,
-                            title: Text(texts.bankTransferTitle),
-                            subtitle: Text(texts.bankTransferSubtitle),
-                          ),
-                          RadioListTile<OrderPaymentMethod>(
-                            value: OrderPaymentMethod.debt,
-                            enabled: _canUseDebtPayment,
-                            title: Text(texts.debtPaymentTitle),
-                            subtitle: Text(
-                              _canUseDebtPayment
-                                  ? texts.remainingCreditLimitLabel(
-                                      formatVnd(
-                                        (_profile.creditLimit -
-                                                orderController
-                                                    .totalCreditExposure)
-                                            .clamp(0, _profile.creditLimit),
-                                      ),
-                                      formatVnd(_profile.creditLimit),
-                                    )
-                                  : texts.debtLimitRequiredMessage,
-                            ),
-                          ),
-                        ],
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.account_balance_outlined),
+                      title: Text(texts.bankTransferTitle),
+                      subtitle: Text(texts.bankTransferSubtitle),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      texts.bankTransferWorkflowHint,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colors.onSurfaceVariant,
+                        fontStyle: FontStyle.italic,
                       ),
                     ),
-                    if (_method == OrderPaymentMethod.debt) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        texts.debtPrecheckHint,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: colors.onSurfaceVariant,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ],
                   ],
                 ),
         ),
@@ -504,7 +450,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       final validationResult = await validationService.validate(
                         _buildCheckoutValidationRequest(
                           cart: cart,
-                          orderController: orderController,
                         ),
                       );
                       if (!context.mounted) {
@@ -518,27 +463,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       }
 
                       BankTransferInstructions? bankTransferInstructions;
-                      if (_method == OrderPaymentMethod.bankTransfer) {
-                        bankTransferInstructions =
-                            await _ensureBankTransferInstructions();
-                        if (!mounted) {
-                          return;
-                        }
-                        if (bankTransferInstructions == null) {
-                          return;
-                        }
-                      } else {
-                        final confirmed = await _showDebtConfirmDialog(
-                          context,
-                          amount: total,
-                          itemCount: cart.totalItems,
-                        );
-                        if (!context.mounted) {
-                          return;
-                        }
-                        if (confirmed != true) {
-                          return;
-                        }
+                      bankTransferInstructions =
+                          await _ensureBankTransferInstructions();
+                      if (!mounted) {
+                        return;
+                      }
+                      if (bankTransferInstructions == null) {
+                        return;
                       }
 
                       await _placeOrder(
@@ -668,7 +599,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   CheckoutValidationRequest _buildCheckoutValidationRequest({
     required CartController cart,
-    required OrderController orderController,
   }) {
     return CheckoutValidationRequest(
       items: cart.items
@@ -683,8 +613,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           .toList(growable: false),
       paymentMethod: _method,
       isCartSyncing: cart.isSyncing,
-      currentCreditExposure: orderController.totalCreditExposure,
-      creditLimit: _profile.creditLimit,
     );
   }
 
@@ -709,17 +637,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     for (final issue in result.issues) {
       switch (issue.code) {
-        case CheckoutValidationIssueCode.debtPaymentUnavailable:
-          _showSnackBar(_texts.debtPaymentUnavailableMessage);
-          return false;
-        case CheckoutValidationIssueCode.debtLimitExceeded:
-          _showSnackBar(
-            _texts.creditLimitExceededMessage(
-              formatVnd(issue.projectedCreditExposure ?? 0),
-              formatVnd(issue.creditLimit ?? 0),
-            ),
-          );
-          return false;
         case CheckoutValidationIssueCode.cartSyncInProgress:
         case CheckoutValidationIssueCode.outOfStock:
         case CheckoutValidationIssueCode.insufficientStock:
@@ -742,61 +659,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           issue.productName ?? '',
           issue.availableStock ?? 0,
         );
-      case CheckoutValidationIssueCode.debtPaymentUnavailable:
-        return texts.debtPaymentUnavailableMessage;
-      case CheckoutValidationIssueCode.debtLimitExceeded:
-        return texts.creditLimitExceededMessage(
-          formatVnd(issue.projectedCreditExposure ?? 0),
-          formatVnd(issue.creditLimit ?? 0),
-        );
     }
-  }
-
-  Future<bool?> _showDebtConfirmDialog(
-    BuildContext context, {
-    required int amount,
-    required int itemCount,
-  }) {
-    final texts = _texts;
-    return showDialog<bool>(
-      context: context,
-      traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
-      requestFocus: true,
-      builder: (dialogContext) {
-        return AlertDialog(
-          scrollable: true,
-          insetPadding: const EdgeInsets.symmetric(
-            horizontal: 24,
-            vertical: 20,
-          ),
-          title: Text(texts.debtConfirmTitle),
-          content: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(texts.debtConfirmDescription),
-                const SizedBox(height: 12),
-                Text(texts.productCountSummary(itemCount)),
-                const SizedBox(height: 4),
-                Text(texts.totalPaymentSummary(formatVnd(amount))),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(texts.cancelAction),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(texts.primaryActionConfirmOrder),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   Future<void> _placeOrder({
@@ -928,131 +791,108 @@ class _CheckoutTexts {
 
   String get profileLoadFailedMessage => isEnglish
       ? 'Unable to load account information. Please retry before placing the order.'
-      : 'Không tải được thông tin tài khoản. Vui lòng tải lại trước khi đặt đơn.';
+      : 'Khong tai duoc thong tin tai khoan. Vui long tai lai truoc khi dat don.';
   String get loadingProfileMessage => isEnglish
       ? 'Loading account information...'
-      : 'Đang tải thông tin tài khoản...';
+      : 'Dang tai thong tin tai khoan...';
   String get primaryActionBankTransfer => isEnglish
       ? 'Create order and view bank transfer details'
-      : 'Tạo đơn và xem thông tin chuyển khoản';
-  String get primaryActionConfirmOrder =>
-      isEnglish ? 'Confirm order' : 'Xác nhận đặt hàng';
+      : 'Tao don va xem thong tin chuyen khoan';
   String cannotLoadBankTransferMessage(Object error) => isEnglish
       ? bankTransferLoadErrorMessage(error, isEnglish: true)
       : bankTransferLoadErrorMessage(error, isEnglish: false);
   String copiedLabelMessage(String label) =>
-      isEnglish ? 'Copied $label' : 'Đã sao chép $label';
-  String get screenTitle => isEnglish ? 'Checkout' : 'Thanh toán';
+      isEnglish ? 'Copied $label' : 'Da sao chep $label';
+  String get screenTitle => isEnglish ? 'Checkout' : 'Thanh toan';
   String get shippingInfoTitle =>
-      isEnglish ? 'Shipping information' : 'Thông tin nhận hàng';
+      isEnglish ? 'Shipping information' : 'Thong tin nhan hang';
   String get editShippingInfoAction =>
-      isEnglish ? 'Edit shipping information' : 'Sửa thông tin nhận hàng';
+      isEnglish ? 'Edit shipping information' : 'Sua thong tin nhan hang';
   String contactPersonLine(String name) =>
-      isEnglish ? 'Contact person: $name' : 'Người liên hệ: $name';
+      isEnglish ? 'Contact person: $name' : 'Nguoi lien he: $name';
   String phoneLine(String phone) =>
-      isEnglish ? 'Phone: $phone' : 'Số điện thoại: $phone';
+      isEnglish ? 'Phone: $phone' : 'So dien thoai: $phone';
   String get paymentMethodTitle =>
-      isEnglish ? 'Payment method' : 'Phương thức thanh toán';
+      isEnglish ? 'Payment method' : 'Phuong thuc thanh toan';
   String get bankTransferTitle =>
-      isEnglish ? 'Bank transfer' : 'Chuyển khoản ngân hàng';
+      isEnglish ? 'Bank transfer' : 'Chuyen khoan ngan hang';
   String get bankTransferSubtitle => isEnglish
       ? 'Create the order first, then let the SePay webhook confirm payment automatically.'
-      : 'Tạo đơn trước, SePay webhook sẽ tự động xác nhận thanh toán.';
-  String get debtPaymentTitle =>
-      isEnglish ? 'Use credit line' : 'Dùng hạn mức công nợ';
-  String remainingCreditLimitLabel(String remaining, String total) => isEnglish
-      ? 'Remaining credit limit: $remaining / $total.'
-      : 'Hạn mức còn lại: $remaining / $total.';
-  String get debtLimitRequiredMessage => isEnglish
-      ? 'A credit limit must be granted before using this option.'
-      : 'Cần được cấp hạn mức công nợ trước khi dùng tùy chọn này.';
-  String get debtPrecheckHint => isEnglish
-      ? 'Shown credit eligibility is based on the latest synced data. The backend revalidates the credit limit when the order is created and only opens a receivable after completion.'
-      : 'Thông tin đủ điều kiện công nợ hiển thị dựa trên dữ liệu đồng bộ mới nhất. Backend sẽ kiểm tra lại hạn mức khi tạo đơn và chỉ mở công nợ sau khi đơn hoàn tất.';
+      : 'Tao don truoc, sau do de SePay webhook tu dong xac nhan thanh toan.';
+  String get bankTransferWorkflowHint => isEnglish
+      ? 'The order is created first and stays pending until payment is reconciled. Admin only processes paid orders, and unpaid pending orders may be auto-cancelled after the timeout.'
+      : 'Don duoc tao truoc va giu trang thai cho den khi doi soat thanh toan. Admin chi xu ly don da thanh toan, va don cho chua thanh toan co the tu huy khi het thoi gian cho.';
   String productsInOrderTitle(int totalItems) => isEnglish
       ? 'Products in order ($totalItems)'
-      : 'Sản phẩm trong đơn ($totalItems)';
+      : 'San pham trong don ($totalItems)';
   String productLineCount(int count) =>
-      isEnglish ? '$count line items' : '$count dòng sản phẩm';
+      isEnglish ? '$count line items' : '$count dong san pham';
   String get expandProductsHint => isEnglish
       ? 'Tap to view each product in detail'
-      : 'Nhấn để xem chi tiết từng sản phẩm';
-  String get orderNoteTitle => isEnglish ? 'Order note' : 'Ghi chú đơn hàng';
+      : 'Nhan de xem chi tiet tung san pham';
+  String get orderNoteTitle => isEnglish ? 'Order note' : 'Ghi chu don hang';
   String get orderNoteHint => isEnglish
       ? 'Example: deliver during office hours, call before delivery, invoice note...'
-      : 'Ví dụ: giao giờ hành chính, gọi trước khi giao, lưu ý xuất hóa đơn...';
+      : 'Vi du: giao gio hanh chinh, goi truoc khi giao, luu y xuat hoa don...';
   String get orderSummaryTitle =>
-      isEnglish ? 'Order summary' : 'Tóm tắt đơn hàng';
-  String get itemCountLabel => isEnglish ? 'Item count' : 'Số lượng sản phẩm';
-  String get subtotalLabel => isEnglish ? 'Subtotal' : 'Tạm tính';
+      isEnglish ? 'Order summary' : 'Tom tat don hang';
+  String get itemCountLabel => isEnglish ? 'Item count' : 'So luong san pham';
+  String get subtotalLabel => isEnglish ? 'Subtotal' : 'Tam tinh';
   String discountLabel(int percent) =>
-      isEnglish ? 'Discount ($percent%)' : 'Chiết khấu ($percent%)';
+      isEnglish ? 'Discount ($percent%)' : 'Chiet khau ($percent%)';
   String get afterDiscountLabel =>
-      isEnglish ? 'After discount' : 'Sau chiết khấu';
+      isEnglish ? 'After discount' : 'Sau chiet khau';
   String vatLabel(int percent) =>
       isEnglish ? 'VAT ($percent%)' : 'VAT ($percent%)';
   String get paymentStatusLabelTitle =>
-      isEnglish ? 'Payment status' : 'Trạng thái thanh toán';
+      isEnglish ? 'Payment status' : 'Trang thai thanh toan';
   String get bankTransferSummaryHint => isEnglish
       ? 'The order will be created first. Then transfer the exact amount with the exact order ID so the SePay webhook can reconcile it automatically.'
-      : 'Đơn sẽ được tạo trước. Sau đó hãy chuyển khoản đúng số tiền và đúng mã đơn để SePay webhook đối soát tự động.';
+      : 'Don se duoc tao truoc. Sau do hay chuyen khoan dung so tien va dung ma don de SePay webhook doi soat tu dong.';
   String get loadingBankTransferMessage => isEnglish
       ? 'Loading bank transfer information from the system...'
-      : 'Đang tải thông tin chuyển khoản từ hệ thống...';
+      : 'Dang tai thong tin chuyen khoan tu he thong...';
   String get bankTransferUnavailableMessage => isEnglish
       ? 'Bank transfer information could not be loaded yet. Please try again before placing the order.'
-      : 'Chưa tải được thông tin chuyển khoản. Hãy thử lại trước khi đặt đơn.';
-  String get retryAction => isEnglish ? 'Retry' : 'Tải lại';
-  String get totalLabel => isEnglish ? 'Total' : 'Tổng cộng';
+      : 'Chua tai duoc thong tin chuyen khoan. Hay thu lai truoc khi dat don.';
+  String get retryAction => isEnglish ? 'Retry' : 'Tai lai';
+  String get totalLabel => isEnglish ? 'Total' : 'Tong cong';
   String get pricingNote => isEnglish
       ? 'Note: The actual order price is calculated using the current price at checkout time, and may differ if product prices changed since the last refresh.'
-      : 'Lưu ý: Giá thực tế trong đơn được tính theo giá hiện hành tại thời điểm đặt hàng và có thể khác nếu giá sản phẩm thay đổi từ lần tải gần nhất.';
-  String get debtPaymentUnavailableMessage => isEnglish
-      ? 'This account has not been granted a credit limit yet.'
-      : 'Tài khoản chưa được cấp hạn mức công nợ.';
-  String creditLimitExceededMessage(String projected, String limit) => isEnglish
-      ? 'Credit limit exceeded. Projected credit exposure $projected is greater than limit $limit.'
-      : 'Vượt hạn mức công nợ. Dư nợ dự kiến $projected lớn hơn hạn mức $limit.';
+      : 'Luu y: Gia thuc te trong don duoc tinh theo gia hien hanh tai thoi diem dat hang va co the khac neu gia san pham thay doi tu lan tai gan nhat.';
   String get cannotCreateOrderMessage => isEnglish
       ? 'Unable to create the order. Please try again.'
-      : 'Không thể tạo đơn hàng. Vui lòng thử lại.';
+      : 'Khong the tao don hang. Vui long thu lai.';
   String stockIssue(String productName, int stock) => isEnglish
       ? '$productName only has $stock items left in stock.'
-      : '$productName chỉ còn $stock sản phẩm trong kho.';
-  String get debtConfirmTitle =>
-      isEnglish ? 'Confirm credit reservation' : 'Xác nhận giữ hạn mức công nợ';
-  String get debtConfirmDescription => isEnglish
-      ? 'The order will be created now and reserve the matching credit limit. Any unpaid balance becomes a receivable only after the order is completed.'
-      : 'Đơn sẽ được tạo ngay và giữ chỗ hạn mức công nợ tương ứng. Phần chưa thanh toán chỉ trở thành công nợ sau khi đơn hoàn tất.';
+      : '$productName chi con $stock san pham trong kho.';
   String productCountSummary(int count) =>
-      isEnglish ? 'Item count: $count' : 'Số lượng sản phẩm: $count';
+      isEnglish ? 'Item count: $count' : 'So luong san pham: $count';
   String totalPaymentSummary(String amount) =>
-      isEnglish ? 'Total payment: $amount' : 'Tổng thanh toán: $amount';
-  String get cancelAction => isEnglish ? 'Cancel' : 'Hủy';
+      isEnglish ? 'Total payment: $amount' : 'Tong thanh toan: $amount';
+  String get cancelAction => isEnglish ? 'Cancel' : 'Huy';
   String get validationDialogTitle =>
-      isEnglish ? 'Order needs adjustments' : 'Đơn hàng cần điều chỉnh';
+      isEnglish ? 'Order needs adjustments' : 'Don hang can dieu chinh';
   String get validationDialogSubtitle =>
-      isEnglish ? 'Please review:' : 'Vui lòng kiểm tra:';
+      isEnglish ? 'Please review:' : 'Vui long kiem tra:';
   String get cartSyncInProgressMessage => isEnglish
       ? 'The cart is still syncing. Please wait a moment and try again.'
-      : 'Giỏ hàng vẫn đang đồng bộ. Vui lòng đợi một chút rồi thử lại.';
-  String get closeAction => isEnglish ? 'Close' : 'Đóng';
+      : 'Gio hang van dang dong bo. Vui long doi mot chut roi thu lai.';
+  String get closeAction => isEnglish ? 'Close' : 'Dong';
   String outOfStockIssue(String productName) => isEnglish
       ? '$productName is currently out of stock.'
-      : '$productName hiện đã hết hàng.';
+      : '$productName hien da het hang.';
 
   String paymentStatusLabel(OrderPaymentStatus status) {
     switch (status) {
       case OrderPaymentStatus.cancelled:
-        return isEnglish ? 'Cancelled' : 'Đã hủy';
+        return isEnglish ? 'Cancelled' : 'Da huy';
       case OrderPaymentStatus.failed:
-        return isEnglish ? 'Failed' : 'Thất bại';
+        return isEnglish ? 'Failed' : 'That bai';
       case OrderPaymentStatus.pending:
-        return isEnglish ? 'Unpaid' : 'Chưa thanh toán';
+        return isEnglish ? 'Unpaid' : 'Chua thanh toan';
       case OrderPaymentStatus.paid:
-        return isEnglish ? 'Paid' : 'Đã thanh toán';
-      case OrderPaymentStatus.debtRecorded:
-        return isEnglish ? 'Open receivable' : 'Công nợ phải thu';
+        return isEnglish ? 'Paid' : 'Da thanh toan';
     }
   }
 }

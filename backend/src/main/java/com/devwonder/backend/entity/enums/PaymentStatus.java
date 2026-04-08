@@ -10,10 +10,6 @@ public enum PaymentStatus {
      */
     PAID,
     /**
-     * A receivable was recognized for a completed debt order that still has unpaid balance.
-     */
-    DEBT_RECORDED,
-    /**
      * Legacy compatibility value for historical payment-attempt failures. Current runtime
      * paths do not emit FAILED for aggregate order.paymentStatus or new payment writes.
      */

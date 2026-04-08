@@ -4,7 +4,7 @@ import 'query_page.dart';
 
 const Object _queryUnset = Object();
 
-enum OrderSortOption { newest, highestValue, debtFirst }
+enum OrderSortOption { newest, highestValue }
 
 class OrderListQuery {
   const OrderListQuery({
@@ -143,7 +143,7 @@ class LocalOrderQueryDataSource implements OrderQueryDataSource {
     final outstandingOrderCount = items
         .where(
           (order) =>
-              order.openReceivableAmount > 0 &&
+              order.outstandingAmount > 0 &&
               order.status != OrderStatus.cancelled,
         )
         .length;
@@ -189,7 +189,7 @@ List<Order> _applyOrderQuery(List<Order> orders, OrderListQuery query) {
           return false;
         }
         if (query.onlyOutstanding &&
-            (order.openReceivableAmount <= 0 ||
+            (order.outstandingAmount <= 0 ||
                 order.status == OrderStatus.cancelled)) {
           return false;
         }
@@ -223,15 +223,6 @@ List<Order> _applyOrderQuery(List<Order> orders, OrderListQuery query) {
         final totalCompare = b.total.compareTo(a.total);
         if (totalCompare != 0) {
           return totalCompare;
-        }
-        return b.createdAt.compareTo(a.createdAt);
-      });
-      break;
-    case OrderSortOption.debtFirst:
-      sorted.sort((a, b) {
-        final debtCompare = b.openReceivableAmount.compareTo(a.openReceivableAmount);
-        if (debtCompare != 0) {
-          return debtCompare;
         }
         return b.createdAt.compareTo(a.createdAt);
       });

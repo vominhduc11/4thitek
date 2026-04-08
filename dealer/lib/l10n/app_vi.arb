@@ -66,6 +66,5 @@
   "notificationsRelatedViewNotifications": "Xem thông báo",
   "notificationsRelatedOpenLink": "Mở liên kết",
   "notificationsRelatedOpenOverview": "Mở tổng quan",
-  "paymentMethodBankTransfer": "Chuyển khoản ngân hàng",
-  "paymentMethodDebt": "Ghi nhận công nợ"
+  "paymentMethodBankTransfer": "Chuyển khoản ngân hàng"
 }

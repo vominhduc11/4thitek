@@ -5,8 +5,6 @@ enum CheckoutValidationIssueCode {
   cartSyncInProgress,
   outOfStock,
   insufficientStock,
-  debtPaymentUnavailable,
-  debtLimitExceeded,
 }
 
 class CheckoutValidationItem {
@@ -38,28 +36,20 @@ class CheckoutValidationRequest {
     required this.items,
     required this.paymentMethod,
     required this.isCartSyncing,
-    required this.currentCreditExposure,
-    required this.creditLimit,
   });
 
   final List<CheckoutValidationItem> items;
   final OrderPaymentMethod paymentMethod;
   final bool isCartSyncing;
-  final int currentCreditExposure;
-  final int creditLimit;
 
   int get totalAmount {
     return items.fold<int>(0, (sum, item) => sum + item.lineTotal);
   }
 
-  int get projectedCreditExposure => currentCreditExposure + totalAmount;
-
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'paymentMethod': paymentMethod.name,
       'items': items.map((item) => item.toJson()).toList(growable: false),
-      'currentCreditExposure': currentCreditExposure,
-      'creditLimit': creditLimit,
     };
   }
 }
@@ -70,16 +60,12 @@ class CheckoutValidationIssue {
     this.productId,
     this.productName,
     this.availableStock,
-    this.projectedCreditExposure,
-    this.creditLimit,
   });
 
   final CheckoutValidationIssueCode code;
   final String? productId;
   final String? productName;
   final int? availableStock;
-  final int? projectedCreditExposure;
-  final int? creditLimit;
 }
 
 class CheckoutValidationResult {
@@ -128,7 +114,7 @@ class LocalCheckoutValidationDataSource
     CheckoutValidationRequest request,
   ) async {
     // Dealer-side checkout validation is a pre-flight UX guard only.
-    // Backend remains authoritative for stock, pricing, and debt eligibility.
+    // Backend remains authoritative for stock and order/payment rules.
     final issues = <CheckoutValidationIssue>[];
     if (request.isCartSyncing) {
       issues.add(
@@ -162,24 +148,6 @@ class LocalCheckoutValidationDataSource
             productId: item.productId,
             productName: item.productName,
             availableStock: availableStock,
-          ),
-        );
-      }
-    }
-
-    if (request.paymentMethod == OrderPaymentMethod.debt) {
-      if (request.creditLimit <= 0) {
-        issues.add(
-          const CheckoutValidationIssue(
-            code: CheckoutValidationIssueCode.debtPaymentUnavailable,
-          ),
-        );
-      } else if (request.projectedCreditExposure > request.creditLimit) {
-        issues.add(
-          CheckoutValidationIssue(
-            code: CheckoutValidationIssueCode.debtLimitExceeded,
-            projectedCreditExposure: request.projectedCreditExposure,
-            creditLimit: request.creditLimit,
           ),
         );
       }

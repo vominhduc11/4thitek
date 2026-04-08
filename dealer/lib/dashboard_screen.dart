@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:fl_chart/fl_chart.dart';
@@ -22,7 +22,6 @@ import 'warranty_hub_screen.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/skeleton_box.dart';
-import 'debt_tracking_screen.dart';
 import 'inventory_screen.dart';
 
 part 'dashboard_screen_support.dart';
@@ -33,7 +32,6 @@ const _tabletBreakpoint = AppBreakpoints.tablet;
 const _desktopBreakpoint = AppBreakpoints.desktop;
 const _overviewCompactBreakpoint = 480.0;
 const _donutStackBreakpoint = 600.0;
-const _compactDebtRowBreakpoint = 420.0;
 const _maxDashboardContentWidth = 1280.0;
 const _dashboardCardRadius = 20.0;
 const _dashboardCardPadding = 18.0;
@@ -395,7 +393,6 @@ class _DashboardTexts {
       ? 'Keep common dealer tasks within one tap instead of switching between tabs.'
       : 'Giữ các tác vụ đại lý thường dùng trong một chạm thay vì phải chuyển tab.';
   String get createOrderLabel => isEnglish ? 'New order' : 'Tạo đơn';
-  String get debtLabel => isEnglish ? 'Credit' : 'Công nợ';
   String get inventoryLabel => isEnglish ? 'Inventory' : 'Kho';
   String get warrantyLabel => isEnglish ? 'Warranty' : 'Bảo hành';
   String get trackingSectionTitle =>
@@ -458,8 +455,8 @@ class _DashboardTexts {
   String overviewRevenueLabel(String periodUnitLabel) => isEnglish
       ? 'Purchase value this $periodUnitLabel'
       : 'Giá trị nhập hàng trong $periodUnitLabel';
-  String get overviewDebtLabel =>
-      isEnglish ? 'Open receivables' : 'Công nợ phải thu';
+  String get overviewOutstandingLabel =>
+      isEnglish ? 'Outstanding balance' : 'Còn phải thanh toán';
   String overviewOrdersLabel(String periodUnitLabel) =>
       isEnglish ? 'Orders this $periodUnitLabel' : 'Đơn trong $periodUnitLabel';
 
@@ -521,8 +518,6 @@ class _DashboardTexts {
         return isEnglish ? 'Unpaid' : 'Chưa thanh toán';
       case OrderPaymentStatus.paid:
         return isEnglish ? 'Paid' : 'Đã thanh toán';
-      case OrderPaymentStatus.debtRecorded:
-        return isEnglish ? 'Receivable' : 'Phải thu';
     }
   }
 
@@ -609,44 +604,6 @@ class _DashboardTexts {
       ? 'Choose another status or switch the tracking period.'
       : 'Hãy chọn trạng thái khác hoặc chuyển kỳ theo dõi.';
 
-  String get debtAgingTitle =>
-      isEnglish ? 'Debt by age' : 'Công nợ theo tuổi nợ';
-  String get viewDebtListAction => isEnglish ? 'View list' : 'Xem danh sách';
-  String totalDebtLabel(int total) => isEnglish
-      ? 'Total debt: ${formatVnd(total)}'
-      : 'Tổng công nợ: ${formatVnd(total)}';
-  String get debtAgingHint => isEnglish
-      ? 'Debt aging is grouped by order creation date for orders that still have an outstanding balance.'
-      : 'Tuổi nợ được nhóm theo ngày tạo đơn với các đơn vẫn còn dư nợ.';
-  String get debtAgingEmptyMessage => isEnglish
-      ? 'No debt has been recorded yet.'
-      : 'Hiện chưa có công nợ phát sinh.';
-  String get debtAgingEmptyDescription => isEnglish
-      ? 'Debt will appear after transactions are recorded.'
-      : 'Công nợ sẽ hiển thị sau khi có giao dịch.';
-  String get openDebtListAction =>
-      isEnglish ? 'Open debt list' : 'Mở danh sách công nợ';
-  String get openDebtListSemantic =>
-      isEnglish ? 'Open debt list' : 'Mở danh sách công nợ';
-  String bucketValueLabel(int amount) => isEnglish
-      ? 'Value: ${formatVnd(amount)}'
-      : 'Giá trị: ${formatVnd(amount)}';
-
-  String bucketDescription(_DebtBucket bucket) {
-    if (bucket.minDay >= 91) {
-      return isEnglish
-          ? 'This overdue bucket is high risk and should be prioritized for follow-up.'
-          : 'Nhóm nợ quá hạn cao, cần ưu tiên theo dõi và thu hồi.';
-    }
-    return isEnglish
-        ? 'This bucket includes debts from ${bucket.minDay} to ${bucket.maxDay} days.'
-        : 'Nhóm này bao gồm các khoản nợ từ ${bucket.minDay} đến ${bucket.maxDay} ngày.';
-  }
-
-  String get over90DayNote => isEnglish
-      ? '>90 days includes all overdue debt from 91 days onward.'
-      : '>90 ngày bao gồm toàn bộ công nợ quá hạn từ 91 ngày trở lên.';
-
   String get warrantyStatusTitle =>
       isEnglish ? 'Serial status' : 'Trạng thái serial';
   String get metricUnavailableLabel =>
@@ -666,12 +623,6 @@ class _DashboardTexts {
       ? 'The app currently has activation history, but backend data for real serial-status categories is not available here.'
       : 'Ứng dụng hiện có lịch sử kích hoạt, nhưng backend chưa cung cấp nhóm trạng thái serial thực cho màn hình này.';
 
-  String debtBucketRangeLabel(int minDay, int maxDay) {
-    if (maxDay >= 9999) {
-      return isEnglish ? '>90 days' : '>90 ngày';
-    }
-    return isEnglish ? '$minDay-$maxDay days' : '$minDay-$maxDay ngày';
-  }
 }
 
 class DashboardScreen extends StatefulWidget {
@@ -785,12 +736,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ).push(MaterialPageRoute(builder: (_) => const ProductListScreen()));
   }
 
-  void _openDebtTracking() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const DebtTrackingScreen()));
-  }
-
   void _openInventoryScreen() {
     if (widget.onSwitchTab != null) {
       widget.onSwitchTab!(3);
@@ -893,7 +838,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final periodRevenue = snapshot.periodRevenue;
     final periodOrderCount = snapshot.periodOrderCount;
     final periodCompletedOrderCount = snapshot.periodCompletedOrderCount;
-    final totalOutstandingDebt = snapshot.totalOutstandingDebt;
+    final totalOutstandingAmount = snapshot.totalOutstandingAmount;
     final unreadNotificationCount =
         context
             .dependOnInheritedWidgetOfExactType<NotificationScope>()
@@ -928,15 +873,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: _OrderStatusDistributionCard(
             orders: periodOrders,
             onCreateOrder: _openCreateOrderFlow,
-          ),
-        ),
-      ),
-      FadeSlideIn(
-        delay: const Duration(milliseconds: 120),
-        child: RepaintBoundary(
-          child: _AgingDebtCard(
-            buckets: _buildDebtBuckets(snapshotOrders, now: now, texts: texts),
-            onViewAll: _openDebtTracking,
           ),
         ),
       ),
@@ -1043,7 +979,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             FadeSlideIn(
               child: RepaintBoundary(
                 child: _OverviewCard(
-                  totalDebt: totalOutstandingDebt,
+                  totalOutstandingAmount: totalOutstandingAmount,
                   periodRevenue: periodRevenue,
                   periodOrders: periodOrderCount,
                   periodCompletedOrders: periodCompletedOrderCount,
@@ -1059,13 +995,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: RepaintBoundary(
                 child: _DashboardQuickActionsCard(
                   onCreateOrder: _openCreateOrderFlow,
-                  onOpenDebtTracking: _openDebtTracking,
                   onOpenInventory: _openInventoryScreen,
                   onOpenWarrantyHub: _openWarrantyHub,
                   title: texts.quickActionsTitle,
                   subtitle: texts.quickActionsSubtitle,
                   createOrderLabel: texts.createOrderLabel,
-                  debtLabel: texts.debtLabel,
                   inventoryLabel: texts.inventoryLabel,
                   warrantyLabel: texts.warrantyLabel,
                 ),
@@ -1283,25 +1217,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
 class _DashboardQuickActionsCard extends StatelessWidget {
   const _DashboardQuickActionsCard({
     required this.onCreateOrder,
-    required this.onOpenDebtTracking,
     required this.onOpenInventory,
     required this.onOpenWarrantyHub,
     required this.title,
     required this.subtitle,
     required this.createOrderLabel,
-    required this.debtLabel,
     required this.inventoryLabel,
     required this.warrantyLabel,
   });
 
   final VoidCallback onCreateOrder;
-  final VoidCallback onOpenDebtTracking;
   final VoidCallback onOpenInventory;
   final VoidCallback onOpenWarrantyHub;
   final String title;
   final String subtitle;
   final String createOrderLabel;
-  final String debtLabel;
   final String inventoryLabel;
   final String warrantyLabel;
 
@@ -1313,11 +1243,6 @@ class _DashboardQuickActionsCard extends StatelessWidget {
         label: createOrderLabel,
         onPressed: onCreateOrder,
         isPrimary: true,
-      ),
-      _DashboardQuickActionButton(
-        icon: Icons.account_balance_wallet_outlined,
-        label: debtLabel,
-        onPressed: onOpenDebtTracking,
       ),
       _DashboardQuickActionButton(
         icon: Icons.inventory_2_outlined,
@@ -1520,7 +1445,7 @@ class _DashboardExpandableInsights extends StatelessWidget {
 
 class _OverviewCard extends StatelessWidget {
   const _OverviewCard({
-    required this.totalDebt,
+    required this.totalOutstandingAmount,
     required this.periodRevenue,
     required this.periodOrders,
     required this.periodCompletedOrders,
@@ -1529,7 +1454,7 @@ class _OverviewCard extends StatelessWidget {
     required this.texts,
   });
 
-  final int totalDebt;
+  final int totalOutstandingAmount;
   final int periodRevenue;
   final int periodOrders;
   final int periodCompletedOrders;
@@ -1542,7 +1467,7 @@ class _OverviewCard extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final revenueAccent = cs.primary;
-    final debtAccent = cs.error;
+    final outstandingAccent = cs.error;
     final orderAccent = cs.secondary;
     final completionRateAccent = cs.tertiary;
     final completionRate = periodOrders == 0
@@ -1593,11 +1518,11 @@ class _OverviewCard extends StatelessWidget {
           const SizedBox(height: 12),
           LayoutBuilder(
             builder: (context, constraints) {
-              final debtCard = _OverviewMetricTile(
+              final outstandingCard = _OverviewMetricTile(
                 icon: Icons.account_balance_wallet_rounded,
-                accentColor: debtAccent,
-                label: texts.overviewDebtLabel,
-                value: _formatCompactVnd(totalDebt),
+                accentColor: outstandingAccent,
+                label: texts.overviewOutstandingLabel,
+                value: _formatCompactVnd(totalOutstandingAmount),
                 isPrimary: false,
               );
               final orderCard = _OverviewMetricTile(
@@ -1614,7 +1539,11 @@ class _OverviewCard extends StatelessWidget {
                 value: '$completionRate%',
                 isPrimary: false,
               );
-              final cards = [debtCard, orderCard, completionRateCard];
+              final cards = [
+                outstandingCard,
+                orderCard,
+                completionRateCard,
+              ];
               final compact = constraints.maxWidth < 360;
               final useTwoColumns =
                   constraints.maxWidth >= 360 &&
@@ -3072,452 +3001,6 @@ class _StatusBar extends StatelessWidget {
     );
   }
 }
-
-class _AgingDebtCard extends StatelessWidget {
-  const _AgingDebtCard({required this.buckets, required this.onViewAll});
-
-  final List<_DebtBucket> buckets;
-  final VoidCallback onViewAll;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final texts = _DashboardTexts(
-      isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
-    );
-    final total = buckets.fold<int>(0, (sum, b) => sum + b.amount);
-    final showEmpty = total == 0;
-
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final isCompactHeader = constraints.maxWidth < 360;
-                final actionButton = TextButton.icon(
-                  onPressed: onViewAll,
-                  style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    minimumSize: const Size(48, 48),
-                    foregroundColor: Theme.of(context).colorScheme.primary,
-                  ),
-                  icon: const Icon(Icons.list_alt_outlined, size: 18),
-                  label: Text(texts.viewDebtListAction),
-                );
-
-                if (showEmpty) {
-                  return Text(
-                    texts.debtAgingTitle,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  );
-                }
-                if (isCompactHeader) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        texts.debtAgingTitle,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      actionButton,
-                    ],
-                  );
-                }
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        texts.debtAgingTitle,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    actionButton,
-                  ],
-                );
-              },
-            ),
-            if (!showEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                texts.totalDebtLabel(total),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: theme.colorScheme.outlineVariant),
-                ),
-                child: Text(
-                  texts.debtAgingHint,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: _dashboardMutedText(context),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-            const SizedBox(height: 12),
-            if (showEmpty)
-              _EmptyCard(
-                title: texts.debtAgingTitle,
-                message: texts.debtAgingEmptyMessage,
-                description: texts.debtAgingEmptyDescription,
-                icon: Icons.account_balance_wallet_outlined,
-                ctaLabel: texts.openDebtListAction,
-                ctaSemanticLabel: texts.openDebtListSemantic,
-                ctaIcon: Icons.list_alt_outlined,
-                onCtaPressed: onViewAll,
-              )
-            else
-              Column(
-                children: buckets.map((bucket) {
-                  final ratio = total == 0 ? 0.0 : bucket.amount / total;
-                  final percent = total == 0 ? 0 : (ratio * 100).round();
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: _AgingDebtRow(
-                      bucket: bucket,
-                      ratio: ratio,
-                      percent: percent,
-                      onTap: () => _showBucketDetailSheet(
-                        context: context,
-                        bucket: bucket,
-                        total: total,
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showBucketDetailSheet({
-    required BuildContext context,
-    required _DebtBucket bucket,
-    required int total,
-  }) {
-    final texts = _DashboardTexts(
-      isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
-    );
-    final ratio = total == 0 ? 0.0 : bucket.amount / total;
-    final percent = total == 0 ? 0 : (ratio * 100).round();
-
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      requestFocus: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        final theme = Theme.of(context);
-        return SafeArea(
-          top: false,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 560),
-              child: RepaintBoundary(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 10,
-                              height: 10,
-                              decoration: BoxDecoration(
-                                color: bucket.color,
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                bucket.label,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                            Text(
-                              '$percent%',
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                color: theme.colorScheme.onSurface,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          texts.bucketValueLabel(bucket.amount),
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurface,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          texts.bucketDescription(bucket),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: _dashboardMutedText(context),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        if (bucket.minDay >= 91) ...[
-                          const SizedBox(height: 6),
-                          Text(
-                            texts.over90DayNote,
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: const Color(0xFF334155),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 12),
-                        FilledButton.tonalIcon(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            onViewAll();
-                          },
-                          icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                          label: Text(texts.openDebtListAction),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _AgingDebtRow extends StatelessWidget {
-  const _AgingDebtRow({
-    required this.bucket,
-    required this.ratio,
-    required this.percent,
-    this.onTap,
-  });
-
-  final _DebtBucket bucket;
-  final double ratio;
-  final int percent;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final label = Row(
-      children: [
-        Icon(
-          _bucketIcon(bucket),
-          size: 14,
-          color: _dashboardMutedText(context),
-        ),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Text(
-            bucket.label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: const Color(0xFF334155),
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-      ],
-    );
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isCompact = constraints.maxWidth < _compactDebtRowBreakpoint;
-        final value = ConstrainedBox(
-          constraints: BoxConstraints(
-            minWidth: isCompact ? 74 : 92,
-            maxWidth: isCompact ? 108 : 124,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                formatVnd(bucket.amount),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: theme.colorScheme.onSurface,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              Text(
-                '$percent%',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: _dashboardMutedText(context),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        );
-
-        final content = isCompact
-            ? Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(child: label),
-                      const SizedBox(width: 8),
-                      value,
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  _buildRatioBar(),
-                ],
-              )
-            : Row(
-                children: [
-                  Expanded(flex: 3, child: label),
-                  const SizedBox(width: 10),
-                  Expanded(flex: 4, child: _buildRatioBar()),
-                  const SizedBox(width: 10),
-                  value,
-                ],
-              );
-
-        return InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(10),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
-            child: content,
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildRatioBar() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final clamped = ratio.clamp(0.0, 1.0).toDouble();
-        final fillWidth = clamped == 0
-            ? 0.0
-            : math.max(6.0, constraints.maxWidth * clamped);
-
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(999),
-          child: Stack(
-            alignment: Alignment.centerLeft,
-            children: [
-              Container(
-                height: 11,
-                color: bucket.color.withValues(alpha: 0.14),
-              ),
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: CustomPaint(
-                    painter: _BarGuidePainter(
-                      color: const Color(0xFF94A3B8).withValues(alpha: 0.22),
-                    ),
-                  ),
-                ),
-              ),
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 420),
-                curve: Curves.easeOutCubic,
-                width: fillWidth,
-                height: 11,
-                decoration: BoxDecoration(
-                  color: bucket.color,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  IconData _bucketIcon(_DebtBucket bucket) {
-    if (bucket.maxDay <= 30) {
-      return Icons.schedule_outlined;
-    }
-    if (bucket.maxDay <= 60) {
-      return Icons.timelapse_outlined;
-    }
-    if (bucket.maxDay <= 90) {
-      return Icons.hourglass_bottom_outlined;
-    }
-    return Icons.warning_amber_rounded;
-  }
-}
-
-class _BarGuidePainter extends CustomPainter {
-  const _BarGuidePainter({required this.color});
-
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1;
-    for (final marker in const [0.25, 0.5, 0.75]) {
-      final x = size.width * marker;
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _BarGuidePainter oldDelegate) {
-    return oldDelegate.color != color;
-  }
-}
-
 // ignore: unused_element
 class _NoticeCard extends StatelessWidget {
   const _NoticeCard({required this.notice});

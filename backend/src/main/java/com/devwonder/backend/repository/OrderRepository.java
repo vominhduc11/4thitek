@@ -2,7 +2,6 @@ package com.devwonder.backend.repository;
 
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.enums.OrderStatus;
-import com.devwonder.backend.entity.enums.PaymentMethod;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -138,22 +137,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             where lower(o.orderCode) = lower(:orderCode)
             """)
     Optional<Order> findByOrderCodeIgnoreCaseForUpdate(@Param("orderCode") String orderCode);
-
-    @EntityGraph(attributePaths = {"orderItems", "orderItems.product", "dealer", "payments"})
-    @Query("""
-            select o
-            from Order o
-            where o.dealer.id = :dealerId
-              and (o.isDeleted = false or o.isDeleted is null)
-              and o.status <> :cancelledStatus
-              and o.paymentMethod = :paymentMethod
-            order by o.createdAt desc
-            """)
-    List<Order> findVisibleByDealerIdAndStatusNotAndPaymentMethodOrderByCreatedAtDesc(
-            @Param("dealerId") Long dealerId,
-            @Param("cancelledStatus") OrderStatus cancelledStatus,
-            @Param("paymentMethod") PaymentMethod paymentMethod
-    );
 
     @EntityGraph(attributePaths = {"orderItems", "orderItems.product", "dealer", "payments"})
     @Query("""

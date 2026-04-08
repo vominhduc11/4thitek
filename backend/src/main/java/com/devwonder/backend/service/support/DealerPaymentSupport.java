@@ -31,10 +31,6 @@ public class DealerPaymentSupport {
     @Value("${app.payment.large-amount-proof-threshold:10000000}")
     private long largeAmountProofThreshold;
 
-    /** Dealer debt payments below this amount are rejected unless they fully settle the order. */
-    @Value("${app.payment.minimum-debt-payment-amount:100000}")
-    private long minimumDebtPaymentAmount;
-
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
     private final DealerOrderNotificationSupport dealerOrderNotificationSupport;
@@ -70,10 +66,8 @@ public class DealerPaymentSupport {
             boolean allowManualBankTransfer,
             List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules
     ) {
-        if (order.getPaymentMethod() == PaymentMethod.BANK_TRANSFER) {
-            if (!allowManualBankTransfer && isSepayEnabled()) {
-                throw new BadRequestException("Bank transfer payments are confirmed by SePay webhook");
-            }
+        if (!allowManualBankTransfer && isSepayEnabled()) {
+            throw new BadRequestException("Bank transfer payments are confirmed by SePay webhook");
         }
         if (order.getStatus() == OrderStatus.CANCELLED) {
             throw new BadRequestException("Cannot record payment for cancelled order");
@@ -90,12 +84,6 @@ public class DealerPaymentSupport {
         if (amount.compareTo(outstandingAmount) > 0) {
             throw new BadRequestException("Payment amount exceeds outstanding balance");
         }
-        if (!allowManualBankTransfer && order.getPaymentMethod() == PaymentMethod.DEBT) {
-            assertMinimumDebtPayment(amount, outstandingAmount);
-        }
-        // TODO(backlog/F20): automated daily debt reconciliation and anomaly scoring are
-        // not implemented yet; current release controls are proof threshold, duplicate
-        // detection, transaction-code uniqueness, and manual settlement review.
         // BUSINESS_LOGIC.md Section 3.13 [Policy]: dealer payments on large-outstanding orders
         // (outstandingAmount >= 10,000,000 VNĐ) MUST include proofFileName.
         if (!allowManualBankTransfer) {
@@ -122,7 +110,11 @@ public class DealerPaymentSupport {
         Payment payment = new Payment();
         payment.setOrder(order);
         payment.setAmount(amount);
-        payment.setMethod(request.method() == null ? DealerOrderSupport.defaultPaymentMethod(order) : request.method());
+        PaymentMethod method = request.method() == null ? PaymentMethod.BANK_TRANSFER : request.method();
+        if (method != PaymentMethod.BANK_TRANSFER) {
+            throw new BadRequestException("Only BANK_TRANSFER is supported");
+        }
+        payment.setMethod(method);
         payment.setStatus(PaymentStatus.PAID);
         payment.setChannel(DealerRequestSupport.defaultIfBlank(request.channel(), payment.getMethod().name()));
         payment.setTransactionCode(transactionCode);
@@ -138,23 +130,6 @@ public class DealerPaymentSupport {
             dealerOrderNotificationSupport.notifyPaymentRecorded(dealer, order, amount);
         }
         return DealerPortalResponseMapper.toPaymentResponse(savedPayment);
-    }
-
-    private void assertMinimumDebtPayment(BigDecimal amount, BigDecimal outstandingAmount) {
-        BigDecimal minimumAmount = BigDecimal.valueOf(minimumDebtPaymentAmount);
-        if (minimumAmount.compareTo(ONE_VND) <= 0) {
-            return;
-        }
-        if (amount.compareTo(outstandingAmount) == 0) {
-            return;
-        }
-        if (amount.compareTo(minimumAmount) < 0) {
-            throw new BadRequestException(
-                    "Payment amount must be at least "
-                            + minimumAmount.toPlainString()
-                            + " VND unless it fully settles the outstanding balance"
-            );
-        }
     }
 
     private BigDecimal computeOutstandingAmount(

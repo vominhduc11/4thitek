@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class DebtPaymentReconciliationJob {
+public class PaymentReconciliationJob {
 
     private static final DateTimeFormatter REPORT_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm z");
 
@@ -33,7 +33,7 @@ public class DebtPaymentReconciliationJob {
             cron = "${app.payment.reconciliation-cron:0 0 0 * * *}",
             zone = "${app.payment.reconciliation-zone:Asia/Ho_Chi_Minh}"
     )
-    public void sendDailyDebtPaymentReport() {
+    public void sendDailyPaymentReport() {
         if (!asyncMailService.isEnabled()) {
             return;
         }
@@ -48,12 +48,12 @@ public class DebtPaymentReconciliationJob {
         Instant fromInclusive = windowStart.toInstant();
         Instant toExclusive = windowEnd.toInstant();
 
-        List<AdminRecentPaymentResponse> payments = adminFinancialService.getDebtPaymentsRecordedBetween(
+        List<AdminRecentPaymentResponse> payments = adminFinancialService.getPaymentsRecordedBetween(
                 fromInclusive,
                 toExclusive
         );
         long flaggedCount = payments.stream().filter(item -> Boolean.TRUE.equals(item.reviewSuggested())).count();
-        String subject = "[4T HITEK] Daily debt reconciliation report - " + windowStart.toLocalDate();
+        String subject = "[4T HITEK] Daily bank transfer reconciliation report - " + windowStart.toLocalDate();
         String body = buildBody(windowStart, windowEnd, payments, flaggedCount);
         for (String recipient : recipients) {
             asyncMailService.sendText(recipient, subject, body);
@@ -82,7 +82,7 @@ public class DebtPaymentReconciliationJob {
             long flaggedCount
     ) {
         StringBuilder body = new StringBuilder();
-        body.append("Debt payment reconciliation report").append('\n')
+        body.append("Bank transfer payment reconciliation report").append('\n')
                 .append("Window: ")
                 .append(REPORT_DATE_FORMAT.format(windowStart))
                 .append(" -> ")
@@ -96,7 +96,7 @@ public class DebtPaymentReconciliationJob {
                 .append("\n\n");
 
         if (payments.isEmpty()) {
-            body.append("No dealer debt payments were recorded in this window.").append('\n');
+            body.append("No bank transfer payments were recorded in this window.").append('\n');
             return body.toString();
         }
 
