@@ -28,10 +28,23 @@ export type AdminNewDealerEvent = {
   status: string
 }
 
+export type AdminNotificationEvent = {
+  id: number
+  accountId: number | null
+  title: string
+  body: string
+  isRead: boolean | null
+  type: string | null
+  link: string | null
+  deepLink: string | null
+  createdAt: string | null
+}
+
 type AdminWsCallbacks = {
   onNewOrder?: (event: AdminNewOrderEvent) => void
   onNewDealer?: (event: AdminNewDealerEvent) => void
   onNewSupportTicket?: (event: AdminNewSupportTicketEvent) => void
+  onNotificationCreated?: (event: AdminNotificationEvent) => void
 }
 
 export function useAdminWebSocket(token: string | null, callbacks: AdminWsCallbacks) {
@@ -82,6 +95,15 @@ export function useAdminWebSocket(token: string | null, callbacks: AdminWsCallba
           try {
             const event = JSON.parse(message.body) as AdminNewDealerEvent
             callbacksRef.current.onNewDealer?.(event)
+          } catch {
+            // ignore parse errors
+          }
+        })
+
+        client.subscribe('/user/queue/notifications', (message) => {
+          try {
+            const event = JSON.parse(message.body) as AdminNotificationEvent
+            callbacksRef.current.onNotificationCreated?.(event)
           } catch {
             // ignore parse errors
           }

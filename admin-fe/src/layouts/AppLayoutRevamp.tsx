@@ -50,6 +50,7 @@ import { useAdminData } from "../context/AdminDataContext";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { translateCopy } from "../lib/i18n";
+import { emitAdminRealtimeNotification } from "../lib/adminRealtime";
 import { useProducts } from "../context/ProductsContext";
 import { useToast } from "../context/ToastContext";
 import { useClickOutside } from "../hooks/useClickOutside";
@@ -239,6 +240,9 @@ function AppLayoutRevamp() {
         title: copy.nav.support,
         variant: "info",
       });
+    },
+    onNotificationCreated: (event) => {
+      emitAdminRealtimeNotification(event);
     },
   });
 

@@ -9,6 +9,7 @@ import com.devwonder.backend.dto.admin.AdminSerialImportRequest;
 import com.devwonder.backend.dto.admin.AdminSerialResponse;
 import com.devwonder.backend.dto.admin.UpdateAdminSerialStatusRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminWarrantyStatusRequest;
+import com.devwonder.backend.entity.AuditLog;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.OrderItem;
@@ -21,6 +22,7 @@ import com.devwonder.backend.entity.enums.PaymentStatus;
 import com.devwonder.backend.entity.enums.ProductSerialStatus;
 import com.devwonder.backend.entity.enums.WarrantyStatus;
 import com.devwonder.backend.exception.BadRequestException;
+import com.devwonder.backend.repository.AuditLogRepository;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.ProductRepository;
@@ -67,8 +69,12 @@ class AdminSerialInvariantTests {
     @Autowired
     private ProductStockSyncSupport productStockSyncSupport;
 
+    @Autowired
+    private AuditLogRepository auditLogRepository;
+
     @BeforeEach
     void setUp() {
+        auditLogRepository.deleteAll();
         warrantyRegistrationRepository.deleteAll();
         productSerialRepository.deleteAll();
         orderRepository.deleteAll();
@@ -417,6 +423,58 @@ class AdminSerialInvariantTests {
         assertThat(productSerialRepository.findById(serial.getId()).orElseThrow().getStatus())
                 .isEqualTo(ProductSerialStatus.AVAILABLE);
         assertThat(productRepository.findById(product.getId()).orElseThrow().getStock()).isEqualTo(1);
+    }
+
+    @Test
+    void rmaPassQcClearsOwnershipVoidsWarrantyAndPersistsProofUrlsInAudit() {
+        Dealer dealer = dealerRepository.save(createDealer("dealer-rma@example.com"));
+        Product product = productRepository.save(createProduct("SKU-RMA-PASSQC-LINKED"));
+        Order order = orderRepository.save(createOrder(dealer, product, "ORD-RMA-PASSQC"));
+        ProductSerial serial = createSerial(
+                dealer,
+                order,
+                product,
+                "RMA-PASSQC-LINKED-1",
+                ProductSerialStatus.INSPECTING
+        );
+        ProductSerial savedSerial = productSerialRepository.save(serial);
+        WarrantyRegistration warranty = warrantyRegistrationRepository.save(createWarranty(
+                savedSerial,
+                dealer,
+                order,
+                WarrantyStatus.ACTIVE
+        ));
+
+        savedSerial.setWarranty(warranty);
+        productSerialRepository.saveAndFlush(savedSerial);
+        productStockSyncSupport.syncProductStock(product);
+
+        adminRmaService.applyRmaAction(
+                savedSerial.getId(),
+                new AdminRmaRequest(
+                        RmaAction.PASS_QC,
+                        "Passed inspection after RMA",
+                        List.of("https://proof.example/rma-pass-1.jpg", "https://proof.example/rma-pass-2.jpg")
+                ),
+                "admin"
+        );
+
+        ProductSerial reloadedSerial = productSerialRepository.findById(savedSerial.getId()).orElseThrow();
+        WarrantyRegistration reloadedWarranty =
+                warrantyRegistrationRepository.findById(warranty.getId()).orElseThrow();
+        AuditLog auditLog = auditLogRepository.findAll().stream()
+                .filter(entry -> "RMA_PASS_QC".equals(entry.getAction()))
+                .findFirst()
+                .orElseThrow();
+
+        assertThat(reloadedSerial.getStatus()).isEqualTo(ProductSerialStatus.AVAILABLE);
+        assertThat(reloadedSerial.getDealer()).isNull();
+        assertThat(reloadedSerial.getOrder()).isNull();
+        assertThat(reloadedWarranty.getStatus()).isEqualTo(WarrantyStatus.VOID);
+        assertThat(productRepository.findById(product.getId()).orElseThrow().getStock()).isEqualTo(1);
+        assertThat(auditLog.getPayload()).contains("proofUrls");
+        assertThat(auditLog.getPayload()).contains("https://proof.example/rma-pass-1.jpg");
+        assertThat(auditLog.getPayload()).contains("https://proof.example/rma-pass-2.jpg");
     }
 
     private Dealer createDealer(String email) {

@@ -29,6 +29,7 @@ import {
   tableActionSelectClass,
   textareaClass,
 } from "../components/ui-kit";
+import { subscribeAdminRealtimeNotification } from "../lib/adminRealtime";
 
 const STATUS_OPTIONS: BackendFinancialSettlementStatus[] = [
   "PENDING",
@@ -131,6 +132,12 @@ function FinancialSettlementsPageRevamp() {
 
   useEffect(() => {
     void load(statusFilter);
+  }, [load, statusFilter]);
+
+  useEffect(() => {
+    return subscribeAdminRealtimeNotification(() => {
+      void load(statusFilter);
+    });
   }, [load, statusFilter]);
 
   const selectedItem = useMemo(

@@ -1,6 +1,6 @@
 'use client';
 
-import { startTransition, useEffect, useMemo, useState } from 'react';
+import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, type Variants } from 'framer-motion';
 import ProductDetails from '@/app/products/[id]/components/ProductDetails';
 import ProductHero from '@/app/products/[id]/components/ProductHero';
@@ -83,6 +83,8 @@ export default function ProductPageClient({ initialProductData, initialRelatedPr
     const [currentSection, setCurrentSection] = useState<SectionKey>('details');
     const [showStickyNav, setShowStickyNav] = useState(false);
     const [headerHeight, setHeaderHeight] = useState(76);
+    const mobileNavRef = useRef<HTMLDivElement>(null);
+    const desktopNavRef = useRef<HTMLDivElement>(null);
     const activeBreadcrumb = breadcrumbItems.find((item) => item.section === currentSection)?.label || breadcrumbItems[0]?.label || '';
 
     useEffect(() => {
@@ -117,17 +119,25 @@ export default function ProductPageClient({ initialProductData, initialRelatedPr
     }, []);
 
     useEffect(() => {
-        const el = document.getElementById('hero-breadcrumb');
+        const el = document.getElementById('hero-nav-sentinel');
         if (!el) {
-            setShowStickyNav(true);
+            setShowStickyNav(false);
             return;
         }
-        const observer = new IntersectionObserver(([entry]) => setShowStickyNav(!entry.isIntersecting), {
-            threshold: 0,
-            rootMargin: `-${headerHeight}px 0px 0px 0px`
-        });
-        observer.observe(el);
-        return () => observer.disconnect();
+
+        const updateStickyNav = () => {
+            const shouldShow = el.getBoundingClientRect().top <= headerHeight + 12;
+            setShowStickyNav((previous) => (previous === shouldShow ? previous : shouldShow));
+        };
+
+        updateStickyNav();
+        window.addEventListener('scroll', updateStickyNav, { passive: true });
+        window.addEventListener('resize', updateStickyNav);
+
+        return () => {
+            window.removeEventListener('scroll', updateStickyNav);
+            window.removeEventListener('resize', updateStickyNav);
+        };
     }, [headerHeight]);
 
     const renderSectionContent = () => {
@@ -241,9 +251,12 @@ export default function ProductPageClient({ initialProductData, initialRelatedPr
         }
 
         requestAnimationFrame(() => {
-            const el = document.getElementById('product-details');
+            const el = document.getElementById('product-section-anchor');
             if (!el) return;
-            const stickyNavHeight = window.innerWidth < 700 ? 64 : 44;
+            const stickyNavHeight =
+                window.innerWidth < 768
+                    ? mobileNavRef.current?.getBoundingClientRect().height ?? 0
+                    : desktopNavRef.current?.getBoundingClientRect().height ?? 0;
             const navOffset = showStickyNav ? headerHeight + stickyNavHeight : headerHeight;
             const top = el.getBoundingClientRect().top + window.scrollY - navOffset;
             window.scrollTo({ top, behavior: 'smooth' });
@@ -252,7 +265,7 @@ export default function ProductPageClient({ initialProductData, initialRelatedPr
 
     const renderMobileSectionNav = () => (
         <nav
-            className="custom-scrollbar flex items-center gap-2 overflow-x-auto px-4 py-3"
+            className="scrollbar-none flex items-center gap-2 overflow-x-auto px-4 py-3"
             aria-label={t('products.detail.selectSection')}
         >
             {breadcrumbItems.map((item) => {
@@ -290,8 +303,12 @@ export default function ProductPageClient({ initialProductData, initialRelatedPr
 
             {/* Mobile section nav (< md) */}
             <motion.div
-                className="fixed left-0 right-0 border-b border-[var(--brand-border)] bg-[rgba(6,17,27,0.95)] backdrop-blur-sm md:hidden"
+                ref={mobileNavRef}
+                className={`fixed left-0 right-0 border-b border-[var(--brand-border)] bg-[rgba(6,17,27,0.95)] shadow-[0_14px_26px_rgba(1,8,15,0.28)] backdrop-blur-sm md:hidden ${
+                    showStickyNav ? 'visible' : 'invisible'
+                }`}
                 style={{ zIndex: Z_INDEX.STICKY, top: headerHeight }}
+                aria-hidden={!showStickyNav}
                 animate={{
                     opacity: showStickyNav ? 1 : 0,
                     y: showStickyNav ? 0 : -8,
@@ -306,8 +323,12 @@ export default function ProductPageClient({ initialProductData, initialRelatedPr
 
             {/* Desktop section tab nav (md+) */}
             <motion.div
-                className="fixed left-0 right-0 hidden border-b border-[var(--brand-border)] bg-[rgba(6,17,27,0.95)] backdrop-blur-sm md:block"
+                ref={desktopNavRef}
+                className={`fixed left-0 right-0 hidden border-b border-[var(--brand-border)] bg-[rgba(6,17,27,0.95)] shadow-[0_14px_26px_rgba(1,8,15,0.24)] backdrop-blur-sm md:block ${
+                    showStickyNav ? 'visible' : 'invisible'
+                }`}
                 style={{ zIndex: Z_INDEX.STICKY, top: headerHeight }}
+                aria-hidden={!showStickyNav}
                 animate={{
                     opacity: showStickyNav ? 1 : 0,
                     y: showStickyNav ? 0 : -8,
@@ -350,7 +371,7 @@ export default function ProductPageClient({ initialProductData, initialRelatedPr
                         <div className="absolute inset-x-[-6%] top-8 h-32 bg-[radial-gradient(ellipse_at_center,rgba(41,171,226,0.12)_0%,rgba(22,50,71,0.18)_38%,rgba(8,18,30,0)_78%)] blur-[64px] md:top-10 md:h-40 lg:h-48" />
                     </div>
 
-                    <div id="product-details" className="relative z-10 overflow-hidden pt-4 md:pt-6 lg:pt-8">
+                    <div id="product-section-anchor" className="relative z-10 overflow-hidden pt-4 md:pt-6 lg:pt-8">
                         <AnimatePresence mode="wait">{renderSectionContent()}</AnimatePresence>
                     </div>
                     <div className="relative z-10 pt-2 md:pt-4">

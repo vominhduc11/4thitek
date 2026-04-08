@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>Previously used a {@code ConcurrentHashMap} which was lost on restart and incorrect
  * for multi-instance deployments. This implementation delegates directly to the
- * {@code orders.idempotency_key} column which already carries a unique DB constraint,
+ * {@code orders.idempotency_key} column, combined with the dealer foreign key,
  * making it restart-safe and consistent across instances without an additional table.
  *
  * <p>TTL semantics are preserved: {@link #get} returns a hit only when the order was

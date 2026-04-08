@@ -349,23 +349,9 @@ class ApiService {
     }
 
     async checkWarranty(serialNumber: string): Promise<ApiResponse<WarrantyCheckData>> {
-        const response = await this.request<WarrantyCheckData>(API_ENDPOINTS.WARRANTY.CHECK(serialNumber), {
+        return this.request<WarrantyCheckData>(API_ENDPOINTS.WARRANTY.CHECK(serialNumber), {
             cache: 'no-store'
         });
-        if (!response.data?.productSerial) {
-            return response;
-        }
-
-        return {
-            success: true,
-            data: {
-                ...response.data,
-                productSerial: {
-                    ...response.data.productSerial,
-                    image: this.wrapImage(response.data.productSerial.image)
-                }
-            }
-        };
     }
 
     async fetchContentSection<T>(section: string, lang: string = this.language): Promise<ApiResponse<T>> {

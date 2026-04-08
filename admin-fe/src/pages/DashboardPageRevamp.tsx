@@ -38,6 +38,7 @@ import {
   type BackendDashboardResponse,
 } from "../lib/adminApi";
 import { formatCurrency, formatNumber } from "../lib/formatters";
+import { subscribeAdminRealtimeNotification } from "../lib/adminRealtime";
 
 ChartJS.register(
   CategoryScale,
@@ -116,6 +117,25 @@ function DashboardPageRevamp() {
     copyRef.current = copy;
   }, [copy]);
 
+  const loadDashboard = useMemo(
+    () => async (token: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const payload = await fetchAdminDashboard(token);
+        setDashboard(payload);
+      } catch (loadError) {
+        const message =
+          loadError instanceof Error ? loadError.message : copyRef.current.loadTitle;
+        setError(message);
+        notify(message, { title: copyRef.current.title, variant: "error" });
+      } finally {
+        setLoading(false);
+      }
+    },
+    [notify],
+  );
+
   useEffect(() => {
     const updateThemeTokens = () => setThemeTokens(getThemeTokens());
     updateThemeTokens();
@@ -137,38 +157,17 @@ function DashboardPageRevamp() {
       return;
     }
 
-    let cancelled = false;
+    void loadDashboard(accessToken);
+  }, [accessToken, loadDashboard]);
 
-    const loadDashboard = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const payload = await fetchAdminDashboard(accessToken);
-        if (!cancelled) {
-          setDashboard(payload);
-        }
-      } catch (loadError) {
-        if (!cancelled) {
-          const message =
-            loadError instanceof Error
-              ? loadError.message
-              : copyRef.current.loadTitle;
-          setError(message);
-          notify(message, { title: copyRef.current.title, variant: "error" });
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void loadDashboard();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [accessToken, notify]);
+  useEffect(() => {
+    if (!accessToken) {
+      return
+    }
+    return subscribeAdminRealtimeNotification(() => {
+      void loadDashboard(accessToken)
+    })
+  }, [accessToken, loadDashboard]);
 
   const orderStatusChart = useMemo<ChartData<"doughnut">>(
     () => ({

@@ -197,15 +197,13 @@ extension OrderPaymentMethodLabel on OrderPaymentMethod {
   }
 }
 
-enum OrderPaymentStatus { pending, paid, cancelled, failed }
+enum OrderPaymentStatus { pending, paid, cancelled }
 
 extension OrderPaymentStatusLabel on OrderPaymentStatus {
   String get label {
     switch (this) {
       case OrderPaymentStatus.cancelled:
         return '\u0110\u00E3 h\u1EE7y';
-      case OrderPaymentStatus.failed:
-        return 'Th\u1EA5t b\u1EA1i';
       case OrderPaymentStatus.pending:
         return 'Ch\u01B0a thanh to\u00E1n';
       case OrderPaymentStatus.paid:

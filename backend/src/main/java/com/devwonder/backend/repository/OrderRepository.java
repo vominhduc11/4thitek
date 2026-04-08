@@ -189,7 +189,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     /**
      * Finds PENDING orders belonging to SUSPENDED dealers whose suspension timestamp
      * is before the given grace period cutoff (i.e., suspended more than 24h ago).
-     * Used by PendingOrderTimeoutJob to auto-cancel on dealer suspension grace expiry.
+     * PendingOrderTimeoutJob still applies the recorded-money guard before deciding
+     * whether the order can auto-cancel or must go to manual finance review.
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""

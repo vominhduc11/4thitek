@@ -93,7 +93,7 @@ export default function ProductHero({
 
     return (
         <motion.section
-            className="relative flex min-h-[58vh] items-start justify-center overflow-visible sm:min-h-[75vh] md:min-h-[85vh] md:items-start lg:min-h-screen lg:items-center xl:min-h-screen"
+            className="relative flex min-h-[58vh] items-start justify-center overflow-visible sm:min-h-[75vh] md:min-h-[85vh] md:items-start lg:min-h-screen lg:items-start xl:min-h-screen"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6 }}
@@ -117,10 +117,10 @@ export default function ProductHero({
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(41,171,226,0.24),_transparent_45%),linear-gradient(180deg,_#07111A_0%,_#08131D_55%,_#03070d_100%)] sm:hidden" />
 
                 {/* Fallback gradient (desktop) */}
-                <div className="absolute inset-0 hidden sm:block bg-[linear-gradient(135deg,rgba(41,171,226,0.18),rgba(0,113,188,0.14),rgba(3,7,13,0.96))]" />
+                <div className="absolute inset-0 hidden sm:block bg-[linear-gradient(135deg,rgba(41,171,226,0.14),rgba(0,113,188,0.1),rgba(3,7,13,0.97))]" />
 
                 {/* Dark overlay */}
-                <div className="absolute inset-0 bg-black/30" />
+                <div className="absolute inset-0 bg-[rgba(3,10,18,0.46)]" />
 
                 {/* Edge gradient vignettes — simplified (2 divs not 10) */}
                 <div className="absolute inset-x-0 top-0 z-10 h-40 bg-gradient-to-b from-black to-transparent" />
@@ -136,34 +136,31 @@ export default function ProductHero({
             </div>
 
             {/* Vertical "PRODUCT" label — left side, desktop only */}
-            <div className="absolute left-4 top-1/2 z-30 hidden -translate-y-1/2 sm:block md:left-8 xl:left-12 3xl:left-32">
-                <div
-                    className="text-xs font-black uppercase tracking-[0.3em] text-white/50 md:text-sm lg:text-base 3xl:text-xl"
-                    style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
-                >
-                    {t('products.detail.productLabel')}
-                </div>
-            </div>
 
             {/* Main content */}
-            <div className="relative z-10 mx-auto w-full max-w-5xl min-[1400px]:max-w-6xl 2xl:max-w-[1300px] 3xl:max-w-[1600px] px-4 text-center pt-36 pb-10 xs:pt-40 sm:pb-32 md:pt-56 md:pb-64 lg:pt-0 lg:pb-0 xl:pb-52 2xl:pb-60 3xl:pb-64">
-                <div className="flex flex-col items-center gap-5 md:gap-10 3xl:gap-16">
+            <div className="relative z-10 mx-auto w-full max-w-5xl min-[1400px]:max-w-6xl 2xl:max-w-[1300px] 3xl:max-w-[1600px] px-4 text-center pt-32 pb-14 xs:pt-36 sm:pb-32 md:pt-56 md:pb-64 lg:pt-28 lg:pb-28 xl:pt-24 xl:pb-48 2xl:pt-28 2xl:pb-56 3xl:pt-36 3xl:pb-64">
+                <div className="flex flex-col items-center gap-6 md:gap-10 3xl:gap-16">
                     {/* Title */}
-                    <AnimatePresence mode="wait">
-                        <motion.h1
-                            key={product.id + '-title'}
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 10 }}
-                            transition={{ duration: 0.4, ease: 'easeOut' }}
-                            className="max-w-2xl 2xl:max-w-3xl 3xl:max-w-6xl px-4 text-[1.95rem] font-extrabold leading-tight text-white sm:text-3xl md:text-3xl lg:text-3xl xl:text-4xl 2xl:text-[2.75rem] 3xl:text-6xl tracking-tight"
-                        >
-                            {product.name}
-                        </motion.h1>
-                    </AnimatePresence>
+                    <div className="flex flex-col items-center gap-3 md:gap-4">
+                        <span className="brand-eyebrow rounded-full border border-[rgba(41,171,226,0.22)] bg-[rgba(7,17,27,0.58)] px-4 py-2 text-[11px] tracking-[0.22em] text-[rgba(223,245,252,0.74)] shadow-[0_10px_26px_rgba(1,8,15,0.18)] backdrop-blur-md">
+                            {t('products.detail.productLabel')}
+                        </span>
+                        <AnimatePresence mode="wait">
+                            <motion.h1
+                                key={product.id + '-title'}
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 10 }}
+                                transition={{ duration: 0.4, ease: 'easeOut' }}
+                                className="max-w-2xl px-4 text-[1.95rem] font-extrabold leading-[1.05] text-white [text-shadow:0_10px_24px_rgba(1,8,15,0.45)] sm:text-3xl md:max-w-3xl md:text-4xl lg:max-w-4xl lg:text-[3.15rem] xl:text-[3.55rem] 2xl:max-w-5xl 2xl:text-[4rem] 3xl:max-w-6xl 3xl:text-[5rem] tracking-tight"
+                            >
+                                {product.name}
+                            </motion.h1>
+                        </AnimatePresence>
+                    </div>
 
                     {/* Product image + Action buttons side by side on lg+ */}
-                    <div className="flex w-full flex-col items-center justify-center gap-5 lg:flex-row lg:gap-16 xl:gap-24 min-[1400px]:gap-28 3xl:gap-40">
+                    <div className="flex w-full flex-col items-center justify-center gap-5 lg:flex-row lg:items-center lg:gap-16 xl:gap-24 min-[1400px]:gap-28 3xl:gap-40">
                         {/* Shuffle button - Left side on lg+ */}
                         <div className="hidden lg:block w-40 xl:w-48 flex-shrink-0 text-right">
                             <motion.button
@@ -183,7 +180,7 @@ export default function ProductHero({
                         </div>
 
                         {/* Product image */}
-                        <div className="relative mx-auto h-40 w-full max-w-[220px] flex-shrink-0 xs:h-44 xs:max-w-[240px] sm:h-64 sm:max-w-sm md:h-72 md:max-w-md lg:mx-0 lg:h-80 lg:max-w-lg xl:h-96 xl:max-w-xl min-[1400px]:h-[440px] min-[1400px]:max-w-[580px] 3xl:h-[600px] 3xl:max-w-3xl">
+                        <div className="relative mx-auto h-48 w-full max-w-[260px] flex-shrink-0 xs:h-52 xs:max-w-[280px] sm:h-64 sm:max-w-sm md:h-72 md:max-w-md lg:mx-0 lg:h-80 lg:max-w-lg xl:h-96 xl:max-w-xl min-[1400px]:h-[440px] min-[1400px]:max-w-[580px] 3xl:h-[600px] 3xl:max-w-3xl">
                             {/* Mobile decorative glow behind image */}
                             <div className="absolute inset-0 rounded-full bg-[rgba(41,171,226,0.12)] blur-[80px] lg:hidden" />
 
@@ -231,7 +228,7 @@ export default function ProductHero({
                         </div>
 
                         {/* Mobile Action buttons (shown only on < lg) */}
-                        <div className="flex w-full max-w-[300px] items-center justify-center gap-2.5 lg:hidden sm:max-w-sm">
+                        <div className="flex w-full max-w-[340px] items-center justify-center gap-3 lg:hidden sm:max-w-sm">
                             <motion.button
                                 onClick={handleShuffleProduct}
                                 disabled={isShuffling}
@@ -247,7 +244,7 @@ export default function ProductHero({
 
                             <motion.button
                                 onClick={handleFindRetailer}
-                                className="flex flex-1 items-center justify-center gap-2 rounded-full border border-[var(--brand-border-strong)] bg-[rgba(41,171,226,0.1)] px-5 py-3 text-[11px] font-bold uppercase tracking-[0.12em] text-white shadow-lg active:bg-[rgba(41,171,226,0.18)] xs:text-xs"
+                                className="flex flex-1 items-center justify-center gap-2 rounded-full border border-[rgba(41,171,226,0.3)] bg-[rgba(41,171,226,0.16)] px-5 py-3 text-[11px] font-bold uppercase tracking-[0.12em] text-white shadow-[0_14px_24px_rgba(1,8,15,0.28)] active:bg-[rgba(41,171,226,0.24)] xs:text-xs"
                                 whileTap={{ scale: 0.98 }}
                             >
                                 <span className="whitespace-nowrap">{t('products.detail.findRetailer')}</span>
@@ -271,6 +268,8 @@ export default function ProductHero({
             </div>
 
             {/* Hero breadcrumb — bottom of hero, md+ only */}
+            <div id="hero-nav-sentinel" className="pointer-events-none absolute inset-x-0 bottom-12 h-px md:bottom-28 lg:bottom-36" />
+
             {breadcrumbItems.length > 0 && (
                 <div className="hidden md:block">
                     <motion.div

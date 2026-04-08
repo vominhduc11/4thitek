@@ -29,6 +29,7 @@ import {
   tableActionSelectClass,
   textareaClass,
 } from "../components/ui-kit";
+import { subscribeAdminRealtimeNotification } from "../lib/adminRealtime";
 
 const STATUS_OPTIONS: BackendUnmatchedPaymentStatus[] = [
   "PENDING",
@@ -149,6 +150,12 @@ function UnmatchedPaymentsPageRevamp() {
   useEffect(() => {
     void loadPage(0, statusFilter);
   }, [loadPage, statusFilter]);
+
+  useEffect(() => {
+    return subscribeAdminRealtimeNotification(() => {
+      void loadPage(page, statusFilter);
+    });
+  }, [loadPage, page, statusFilter]);
 
   const handlePageChange = (nextPage: number) => {
     void loadPage(nextPage, statusFilter);

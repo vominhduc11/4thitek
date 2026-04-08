@@ -192,6 +192,61 @@ class PendingOrderTimeoutJobTests {
         assertThat(settlements.get(0).getType()).isEqualTo(FinancialSettlementType.STALE_ORDER_REVIEW);
     }
 
+    @Test
+    void suspendedDealerPendingOrderWithRecordedMoneyRequiresManualReviewInsteadOfAutoCancel() {
+        Dealer dealer = dealerRepository.save(createDealer("timeout-suspended-paid@example.com"));
+        Product product = saveProduct("SKU-TIMEOUT-3", BigDecimal.valueOf(120_000), 1);
+
+        var createdOrder = dealerPortalService.createOrder(
+                dealer.getUsername(),
+                new CreateDealerOrderRequest(
+                        PaymentMethod.BANK_TRANSFER,
+                        "Dealer receiver",
+                        "789 Timeout Street",
+                        "0900000000",
+                        0,
+                        "Suspended dealer stale review",
+                        List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
+                ),
+                UUID.randomUUID().toString()
+        );
+
+        adminManagementService.recordOrderPayment(
+                createdOrder.id(),
+                new RecordPaymentRequest(
+                        createdOrder.totalAmount(),
+                        PaymentMethod.BANK_TRANSFER,
+                        "Admin manual confirmation",
+                        "TIMEOUT-TX-002",
+                        "Money recorded before suspended dealer sweep",
+                        null,
+                        Instant.parse("2026-03-10T03:00:00Z")
+                )
+        );
+
+        dealer.setCustomerStatus(CustomerStatus.SUSPENDED);
+        dealer.setSuspendedAt(Instant.now().minusSeconds(30 * 3600L));
+        dealerRepository.saveAndFlush(dealer);
+
+        pendingOrderTimeoutJob.processStaleOrders();
+
+        Order reviewedOrder = orderRepository.findById(createdOrder.id()).orElseThrow();
+        ProductSerial reservedSerial = productSerialRepository.findAll().stream()
+                .filter(serial -> serial.getOrder() != null && reviewedOrder.getId().equals(serial.getOrder().getId()))
+                .findFirst()
+                .orElseThrow();
+        List<FinancialSettlement> settlements = financialSettlementRepository.findByOrderIdOrderByCreatedAtDesc(reviewedOrder.getId());
+
+        assertThat(reviewedOrder.getStatus()).isEqualTo(OrderStatus.PENDING);
+        assertThat(reviewedOrder.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
+        assertThat(reviewedOrder.getStaleReviewRequired()).isTrue();
+        assertThat(reviewedOrder.getFinancialSettlementRequired()).isTrue();
+        assertThat(reservedSerial.getStatus()).isEqualTo(ProductSerialStatus.RESERVED);
+        assertThat(settlements).hasSize(1);
+        assertThat(settlements.get(0).getType()).isEqualTo(FinancialSettlementType.STALE_ORDER_REVIEW);
+        assertThat(settlements.get(0).getStatus()).isEqualTo(FinancialSettlementStatus.PENDING);
+    }
+
     private Dealer createDealer(String username) {
         Dealer dealer = new Dealer();
         dealer.setUsername(username);

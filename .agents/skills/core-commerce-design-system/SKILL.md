@@ -1,56 +1,57 @@
 # TKHITEK Core Commerce Design Skill
 
-## Nguon chuan
-- Brand guideline chinh: `D:\TKHITEK_BRANDGUIDELINE.pdf`
-- Business/contract phai uu tien theo repo source of truth hien hanh, khong duoc tu y doi route, slug, SEO, API contract, hay business state.
+## Nguồn chuẩn
+- Brand guideline chính: `D:\TKHITEK_BRANDGUIDELINE.pdf`
+- Business/contract phải ưu tiên theo repo source of truth hiện hành, không được tự ý đổi route, slug, SEO, API contract, hay business state.
 
-## Rule bat buoc
-- Khong duoc bi loi ma hoa tieng Viet.
-- Khi sua file co noi dung tieng Viet, phai giu UTF-8, sua toi thieu, uu tien `apply_patch`, va kiem tra lai noi dung sau khi sua.
-- Neu terminal hien thi mojibake, khong duoc tiep tuc ghi de mo quang; phai doc lai file an toan truoc khi sua tiep.
+## Rule bắt buộc
+- Không được bị lỗi mã hóa tiếng Việt.
+- Mọi nội dung tiếng Việt phải được viết có dấu, không dùng tiếng Việt không dấu trừ khi là mã, tên file, biến, lệnh, hoặc chuỗi kỹ thuật bắt buộc phải giữ nguyên.
+- Khi sửa file có nội dung tiếng Việt, phải giữ UTF-8, sửa tối thiểu, ưu tiên `apply_patch`, và kiểm tra lại nội dung sau khi sửa.
+- Nếu terminal hiển thị mojibake, không được tiếp tục ghi đè mù quáng; phải đọc lại file an toàn trước khi sửa tiếp.
 
-## Dinh huong thuong hieu
-- Cam hung thuong hieu la cong nghe, vien tuong, tu do, chuyen dong, tre trung, va tinh than kham pha.
-- Giao dien phai premium, ky thuat, gon, ro, co cau truc, khong duoc generic hoac qua trang tri.
-- Noi dung phai uu tien ro gia tri san pham, do tin cay, va kha nang chuyen doi truoc cac hieu ung trang tri.
+## Định hướng thương hiệu
+- Cảm hứng thương hiệu là công nghệ, viễn tưởng, tự do, chuyển động, trẻ trung, và tinh thần khám phá.
+- Giao diện phải premium, kỹ thuật, gọn, rõ, có cấu trúc, không được generic hoặc quá trang trí.
+- Nội dung phải ưu tiên rõ giá trị sản phẩm, độ tin cậy, và khả năng chuyển đổi trước các hiệu ứng trang trí.
 
-## Mau sac
-- Mau nhan dien chinh: `#29ABE2`, `#0071BC`, `#3F4856`.
-- Co the dung gradient giua `#29ABE2` va `#0071BC` lam diem nhan thuong hieu.
-- Mau phu tro tu guideline: `#2BE086`, `#BDF919`, `#05A7AF`, `#0B5FF4`.
-- Khong dung mau phu tro de thay mau logo chinh.
-- Uu tien ty trong thi giac theo tinh than guideline: xanh/gradient la diem nhan chinh, mau toi va trung tinh chi dong vai tro nen, chu, va can bang.
+## Màu sắc
+- Màu nhận diện chính: `#29ABE2`, `#0071BC`, `#3F4856`.
+- Có thể dùng gradient giữa `#29ABE2` và `#0071BC` làm điểm nhấn thương hiệu.
+- Màu phụ trợ từ guideline: `#2BE086`, `#BDF919`, `#05A7AF`, `#0B5FF4`.
+- Không dùng màu phụ trợ để thay màu logo chính.
+- Ưu tiên tỷ trọng thị giác theo tinh thần guideline: xanh/gradient là điểm nhấn chính, màu tối và trung tính chỉ đóng vai trò nền, chữ, và cân bằng.
 
 ## Typography
-- Font chinh: `Source Sans Pro`.
-- Font phu chi dung trong truong hop nhan manh hoac ngoai le: `Montserrat`.
-- Khong dung qua 2 font trong cung mot bo cuc.
-- Uu tien cap bac ro rang, de doc, do tuong phan cao, va nhat quan tren desktop/mobile.
+- Font chính: `Source Sans Pro`.
+- Font phụ chỉ dùng trong trường hợp nhấn mạnh hoặc ngoại lệ: `Montserrat`.
+- Không dùng quá 2 font trong cùng một bố cục.
+- Ưu tiên cấp bậc rõ ràng, dễ đọc, độ tương phản cao, và nhất quán trên desktop/mobile.
 
-## Logo va icon
-- Logo TKHITEK duoc xay dung tu monogram `T` + `K`, goi tinh than canh chim, tu do, va chuyen dong.
-- Phai ton trong cac bien the light/dark/positive/negative tuy theo nen.
-- Trong cung mot bo giao tiep, cach dung mau va bien the logo phai nhat quan.
-- O kich thuoc rat nho, duoc uu tien favicon/icon treatment va luoc bot chi tiet/slogan neu guideline yeu cau.
-- Icon he thong chi nen dung cac mau nhan dien hoac bien the trang/den phu hop nen.
+## Logo và icon
+- Logo TKHITEK được xây dựng từ monogram `T` + `K`, gợi tinh thần cánh chim, tự do, và chuyển động.
+- Phải tôn trọng các biến thể light/dark/positive/negative tùy theo nền.
+- Trong cùng một bộ giao tiếp, cách dùng màu và biến thể logo phải nhất quán.
+- Ở kích thước rất nhỏ, được ưu tiên favicon/icon treatment và lược bớt chi tiết/slogan nếu guideline yêu cầu.
+- Icon hệ thống chỉ nên dùng các màu nhận diện hoặc biến thể trắng/đen phù hợp nền.
 
-## Layout va grid
-- Desktop uu tien bo cuc sach, can bang, de doc, co hierarchy ro.
-- Su dung grid co ky luat; giu gutter trai/phai ro rang va noi dung nam trong mot he thong cot on dinh.
-- Khong tao layout tax vo ly cho nguoi dung, nhat la tren desktop.
-- Cac section phai thong nhat spacing, alignment, va rhythm; CTA hierarchy phai ro rang tren toan trang.
+## Layout và grid
+- Desktop ưu tiên bố cục sạch, cân bằng, dễ đọc, có hierarchy rõ.
+- Sử dụng grid có kỷ luật; giữ gutter trái/phải rõ ràng và nội dung nằm trong một hệ thống cột ổn định.
+- Không tạo layout tắc vô lý cho người dùng, nhất là trên desktop.
+- Các section phải thống nhất spacing, alignment, và rhythm; CTA hierarchy phải rõ ràng trên toàn trang.
 
-## Hinh anh va treatment
-- Hinh anh nen dong nhat voi mau thuong hieu; co the dung lop mau hoac blend mode nhu `Darken`, `Multiply`, `Overlay` neu phu hop.
-- Hieu ung chi la bo tro; khong duoc lam giam do doc, do tuong phan, hoac tinh chuyen nghiep.
+## Hình ảnh và treatment
+- Hình ảnh nên đồng nhất với màu thương hiệu; có thể dùng lớp màu hoặc blend mode như `Darken`, `Multiply`, `Overlay` nếu phù hợp.
+- Hiệu ứng chỉ là bổ trợ; không được làm giảm độ đọc, độ tương phản, hoặc tính chuyên nghiệp.
 
-## Social va content
-- Chat giong hinh anh/noi dung phai truyen tai cong nghe, tre trung, phong cach, va kha nang ung dung thuc te.
-- CTA phai co thu tu uu tien ro: mot huong chuyen doi chinh va mot vai huong phu, khong duoc canh tranh lan nhau.
-- Empty state, loading state, trust signal, va editorial block phai dung ngu nghia; khong duoc dung copy sai trang thai.
+## Social và content
+- Chất giọng hình ảnh/nội dung phải truyền tải công nghệ, trẻ trung, phong cách, và khả năng ứng dụng thực tế.
+- CTA phải có thứ tự ưu tiên rõ: một hướng chuyển đổi chính và một vài hướng phụ, không được cạnh tranh lẫn nhau.
+- Empty state, loading state, trust signal, và editorial block phải đúng ngữ nghĩa; không được dùng copy sai trạng thái.
 
-## Nguyen tac thuc thi
-- Uu tien refactor co trong tam, khong broad rewrite neu khong can thiet.
-- Tai su dung token, component, va pattern san co truoc khi tao moi.
-- Bao toan accessibility va progressive enhancement.
-- Bat cu thay doi nao lien quan toi brand/UI phai duoc doi chieu voi `D:\TKHITEK_BRANDGUIDELINE.pdf` truoc khi chot.
+## Nguyên tắc thực thi
+- Ưu tiên refactor có trọng tâm, không broad rewrite nếu không cần thiết.
+- Tái sử dụng token, component, và pattern sẵn có trước khi tạo mới.
+- Bảo toàn accessibility và progressive enhancement.
+- Bất cứ thay đổi nào liên quan tới brand/UI phải được đối chiếu với `D:\TKHITEK_BRANDGUIDELINE.pdf` trước khi chốt.

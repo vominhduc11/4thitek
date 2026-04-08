@@ -514,7 +514,7 @@ class OrderController extends ChangeNotifier {
     final prev = _lastPayment[orderId];
     if (prev != null &&
         prev.amount == safeAmount &&
-        DateTime.now().difference(prev.at).inSeconds < 5) {
+        DateTime.now().difference(prev.at).inSeconds < 30) {
       return false;
     }
     _lastPayment[orderId] = (amount: safeAmount, at: DateTime.now());

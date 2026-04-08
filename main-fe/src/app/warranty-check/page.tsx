@@ -4,56 +4,18 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AvoidSidebar from '@/components/ui/AvoidSidebar';
 import { HeroSection, WarrantyForm, WarrantyResult } from './components';
-import { WarrantyInfo, WarrantyCheckData } from '@/types/warranty';
+import { WarrantyInfo } from '@/types/warranty';
 import { apiService } from '@/services/apiService';
 import { ERROR_MESSAGES, ErrorType } from '@/constants/warranty';
 import { handleApiError } from '@/utils/errorHandler';
-import { parseImageUrl } from '@/utils/media';
 import { useLanguage } from '@/context/LanguageContext';
-import { formatWarrantyBoundaryDate, formatWarrantyPurchaseDate } from '@/lib/warrantyDate';
+import { toWarrantyInfo } from '@/lib/warrantyLookup';
 
 const WarrantyCheckPage = () => {
     const { locale } = useLanguage();
     const [warrantyInfo, setWarrantyInfo] = useState<WarrantyInfo | null>(null);
     const [showResult, setShowResult] = useState(false);
     const [errorInfo, setErrorInfo] = useState<{ message: string; type: ErrorType } | null>(null);
-
-    // Helper function to parse product image JSON
-    const parseProductImage = (imageData: string): string | undefined => {
-        const resolved = parseImageUrl(imageData);
-        return resolved || undefined;
-    };
-
-    // Helper function to convert API data to UI format
-    const convertApiDataToWarrantyInfo = (apiData: WarrantyCheckData): WarrantyInfo => {
-        if (!apiData?.purchaseDate) {
-            throw new Error(ERROR_MESSAGES.PURCHASE_DATE_MISSING);
-        }
-        if (!apiData?.warrantyEnd) {
-            throw new Error(ERROR_MESSAGES.WARRANTY_END_MISSING);
-        }
-        if (!apiData?.productSerial) {
-            throw new Error(ERROR_MESSAGES.SERIAL_MISSING);
-        }
-
-        const statusMapping: { [key: string]: 'active' | 'expired' | 'void' | 'invalid' } = {
-            ACTIVE: 'active',
-            EXPIRED: 'expired',
-            VOID: 'void'
-        };
-
-        return {
-            serialNumber: apiData.productSerial.serialNumber,
-            productName: apiData.productSerial.productName,
-            purchaseDate: formatWarrantyPurchaseDate(apiData.purchaseDate, locale),
-            warrantyStatus: statusMapping[apiData.status] || 'invalid',
-            warrantyEndDate: formatWarrantyBoundaryDate(apiData.warrantyEnd, locale),
-            remainingDays: Math.max(0, apiData.remainingDays ?? 0),
-            warrantyCode: apiData.warrantyCode,
-            productSku: apiData.productSerial.productSku,
-            productImage: parseProductImage(apiData.productSerial.image)
-        };
-    };
 
     const handleFormSubmit = async (data: { serialNumber: string }) => {
         // Reset previous state
@@ -64,9 +26,17 @@ const WarrantyCheckPage = () => {
             const response = await apiService.checkWarranty(data.serialNumber);
 
             if (response.success && response.data) {
-                const warrantyData = convertApiDataToWarrantyInfo(response.data);
-                setWarrantyInfo(warrantyData);
-                setErrorInfo(null);
+                const warrantyData = toWarrantyInfo(response.data, locale);
+                if (warrantyData) {
+                    setWarrantyInfo(warrantyData);
+                    setErrorInfo(null);
+                } else {
+                    setWarrantyInfo(null);
+                    setErrorInfo({
+                        message: ERROR_MESSAGES.SERIAL_NOT_FOUND,
+                        type: 'not_found'
+                    });
+                }
             } else {
                 setWarrantyInfo(null);
                 setErrorInfo({

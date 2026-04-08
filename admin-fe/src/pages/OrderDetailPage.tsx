@@ -198,14 +198,12 @@ function OrderDetailPage() {
       ? 'Paid'
       : order.paymentStatus === 'cancelled'
           ? 'Cancelled'
-          : order.paymentStatus === 'failed'
-            ? 'Failed'
-            : 'Pending payment'
+          : 'Pending payment'
 
   const paymentStatusTone =
     order.paymentStatus === 'paid'
       ? 'success' as const
-      : order.paymentStatus === 'cancelled' || order.paymentStatus === 'failed'
+      : order.paymentStatus === 'cancelled'
           ? 'danger' as const
           : 'neutral' as const
   const adjTypeLabel: Record<BackendOrderAdjustmentType, string> = {

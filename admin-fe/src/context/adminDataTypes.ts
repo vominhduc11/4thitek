@@ -2,7 +2,7 @@ import { AUTOMATED_SENDER_EMAIL, BRAND_NAME } from '../config/businessProfile'
 
 export type OrderStatus = 'pending' | 'confirmed' | 'shipping' | 'completed' | 'cancelled'
 export type PaymentMethod = 'bank_transfer' | null
-export type PaymentStatus = 'pending' | 'paid' | 'cancelled' | 'failed'
+export type PaymentStatus = 'pending' | 'paid' | 'cancelled'
 export type BlogStatus = 'published' | 'scheduled' | 'draft'
 export type DealerStatus = 'active' | 'under_review' | 'suspended'
 export type UserStatus = 'active' | 'pending'

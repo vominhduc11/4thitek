@@ -143,6 +143,22 @@ class IdempotencyStoreTests {
         assertThat(orderRepository.count()).isEqualTo(2L);
     }
 
+    @Test
+    void sameKeyCanBeReusedByDifferentDealersWithoutCrossDealerHit() {
+        Dealer otherDealer = dealerRepository.save(createDealer("other-idempotency-dealer@example.com"));
+        String key = UUID.randomUUID().toString();
+
+        DealerOrderResponse first = dealerPortalService.createOrder(
+                dealer.getUsername(), createRequest(), key);
+        DealerOrderResponse second = dealerPortalService.createOrder(
+                otherDealer.getUsername(), createRequest(), key);
+
+        assertThat(first.id()).isNotEqualTo(second.id());
+        assertThat(orderRepository.count()).isEqualTo(2L);
+        assertThat(idempotencyStore.get(key, dealer.getId())).contains(first.id());
+        assertThat(idempotencyStore.get(key, otherDealer.getId())).contains(second.id());
+    }
+
     // ── expired key is ignored ────────────────────────────────────────────────
 
     @Test

@@ -27,6 +27,45 @@ describe('adminDataMappers', () => {
     expect(mapped.allowedTransitions).toEqual(['pending', 'confirmed', 'cancelled'])
   })
 
+  it('maps backend payment status using the current runtime contract', () => {
+    const cancelled = mapOrder({
+      id: 43,
+      orderCode: 'SCS-43',
+      dealerName: 'Dealer B',
+      totalAmount: 120000,
+      status: 'PENDING',
+      paymentMethod: 'BANK_TRANSFER',
+      paymentStatus: 'CANCELLED',
+      paidAmount: 0,
+      outstandingAmount: 120000,
+      itemCount: 1,
+      address: '456 Test',
+      note: null,
+      createdAt: '2026-03-13T00:00:00Z',
+      allowedTransitions: ['PENDING', 'CANCELLED'],
+    })
+
+    const pending = mapOrder({
+      id: 44,
+      orderCode: 'SCS-44',
+      dealerName: 'Dealer C',
+      totalAmount: 120000,
+      status: 'PENDING',
+      paymentMethod: 'BANK_TRANSFER',
+      paymentStatus: undefined,
+      paidAmount: 0,
+      outstandingAmount: 120000,
+      itemCount: 1,
+      address: '789 Test',
+      note: null,
+      createdAt: '2026-03-13T00:00:00Z',
+      allowedTransitions: ['PENDING', 'CANCELLED'],
+    })
+
+    expect(cancelled.paymentStatus).toBe('cancelled')
+    expect(pending.paymentStatus).toBe('pending')
+  })
+
   it('maps nested admin settings payloads', () => {
     const mapped = mapBackendSettings({
       id: 1,

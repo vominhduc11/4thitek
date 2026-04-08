@@ -1,5 +1,6 @@
 package com.devwonder.backend;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -8,7 +9,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.enums.CustomerStatus;
+import com.devwonder.backend.exception.UnauthorizedException;
 import com.devwonder.backend.repository.DealerRepository;
+import com.devwonder.backend.service.DealerPortalService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -36,6 +39,9 @@ class DealerPortalAccessBoundaryTests {
 
     @Autowired
     private DealerRepository dealerRepository;
+
+    @Autowired
+    private DealerPortalService dealerPortalService;
 
     @Test
     void underReviewDealerCannotLoginToDealerPortal() throws Exception {
@@ -99,6 +105,15 @@ class DealerPortalAccessBoundaryTests {
                                 """.formatted(refreshToken)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error").value(containsString("t\u1ea1m kh\u00f3a")));
+    }
+
+    @Test
+    void serviceLayerDealerPortalLookupRejectsSuspendedDealer() throws Exception {
+        registerDealer("Dealer.Service.Suspend", CustomerStatus.SUSPENDED);
+
+        assertThatThrownBy(() -> dealerPortalService.getOrders("dealer.service.suspend@example.com"))
+                .isInstanceOf(UnauthorizedException.class)
+                .hasMessageContaining("t\u1ea1m kh\u00f3a");
     }
 
     private void registerDealer(String localPart, CustomerStatus status) throws Exception {

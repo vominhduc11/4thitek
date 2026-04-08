@@ -438,7 +438,7 @@ Nếu `sepay.enabled=true`, dealer **không thể** tự ghi payment cho đơn b
 - `amount > 0` (`@DecimalMin(0.01)`)
 - `amount â‰¤ outstandingAmount`
 - `outstandingAmount > 0` — đơn đã đủ → từ chối
-- Trùng lặp: cùng `orderId` + `amount` trong **5 giây** → từ chối (check DB trực tiếp)
+- Trùng lặp: cùng `orderId` + `amount` trong **30 giây** → từ chối (check DB trực tiếp)
 - `transactionCode` unique toàn hệ thống (nếu có)
 - Dùng `SELECT FOR UPDATE` trên row Order
 
@@ -802,7 +802,7 @@ UNDER_REVIEW ──► ACTIVE ◄──► SUSPENDED
 |---|---|---|
 | `UNDER_REVIEW → ACTIVE` | Admin | Email + in-app notification |
 | `UNDER_REVIEW → SUSPENDED` | Admin | Email + in-app notification |
-| `ACTIVE → SUSPENDED` | Admin | Email + notification; token hết hạn không refresh được; đơn PENDING của dealer auto-cancel sau grace period 24h (serial `RESERVED → AVAILABLE`); đơn CONFIRMED/SHIPPING giữ nguyên để admin xử lý |
+| `ACTIVE → SUSPENDED` | Admin | Email + notification; token hết hạn không refresh được; đơn `PENDING` của dealer chỉ auto-cancel sau grace period 24h khi **chưa ghi nhận tiền**; nếu đã có `paidAmount > 0` thì phải chuyển sang manual finance review; đơn CONFIRMED/SHIPPING giữ nguyên để admin xử lý |
 | `SUSPENDED → ACTIVE` | Admin | Email + notification; dealer có thể login lại; đơn CONFIRMED/SHIPPING tiếp tục flow bình thường |
 
 Admin cập nhật `creditLimit` độc lập hoặc cùng lúc đổi status.
@@ -1192,7 +1192,7 @@ Xem đơn PENDING → Duyệt (CONFIRMED) → Chuẩn bị hàng (SHIPPING) → 
 |---|---|
 | Tạo đơn với `X-Idempotency-Key` trùng (retry trong 10 phút) | Trả response cũ, không tạo đơn mới, không reserve serial lần nữa |
 | SePay webhook đến khi dealer đang hủy đơn đồng thời | `SELECT FOR UPDATE` trên row Order — một trong hai thắng; nếu order đã CANCELLED khi webhook xử lý → ghi `UnmatchedPayment` reason `ORDER_CANCELLED` |
-| Dealer bị SUSPENDED khi có đơn PENDING | Đơn PENDING auto-cancel sau grace period 24h (serial giải phóng); đơn CONFIRMED/SHIPPING giữ nguyên để admin xử lý |
+| Dealer bị SUSPENDED khi có đơn PENDING | Sau grace period 24h: nếu `paidAmount = 0` thì auto-cancel và giải phóng serial; nếu `paidAmount > 0` thì **không auto-cancel**, phải vào `STALE_ORDER_REVIEW`; đơn CONFIRMED/SHIPPING giữ nguyên để admin xử lý |
 | Dealer bị SUSPENDED khi có đơn CONFIRMED/SHIPPING | Đơn giữ nguyên trạng thái; admin tiếp tục xử lý; dealer không thể thao tác thêm |
 | Admin hạ `creditLimit` xuống thấp hơn `currentOutstandingDebt` hiện tại | Không block — chỉ block đơn mới; đơn cũ và debt hiện tại giữ nguyên; admin nhận notification về credit limit violation |
 | Batch warranty activation partial failure (Section 3.8) | Mỗi serial được kích hoạt độc lập; serial thành công không rollback khi serial khác fail; response trả partial-success summary với list success/fail per serial |
@@ -1310,9 +1310,9 @@ RETURNED  ──► INSPECTING ──► AVAILABLE
 5. Không cho reset thẳng `DEFECTIVE/RETURNED → AVAILABLE` — **bắt buộc** qua `INSPECTING`
 6. Audit log ghi đầy đủ: actor, serial, action, reason, proofUrls, timestamp
 
-#### Debt payment verification `[Policy]`
+#### Debt payment verification `[Historical / rollout-only]`
 
-**Quyết định:** Dealer ghi payment cho đơn còn nợ và payment có hiệu lực ngay. Đây là **accepted business risk** — ưu tiên tốc độ vận hành trên xác minh trước.
+**Lưu ý runtime:** mục này chỉ còn giá trị cho dữ liệu lịch sử hoặc kế hoạch rollout dọn nợ cũ. Runtime hiện tại cho đơn mới chỉ còn `BANK_TRANSFER`; không tạo mới `DEBT` / `DEBT_RECORDED` trong flow vận hành hiện hành.
 
 **Compensating controls bắt buộc:**
 1. **Daily reconciliation report:** System job tạo báo cáo hàng ngày lúc 00:00 liệt kê tất cả dealer payments ghi nhận trong 24h qua, gửi email cho admin/finance

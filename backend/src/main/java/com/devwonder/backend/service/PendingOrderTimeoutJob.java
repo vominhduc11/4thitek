@@ -77,13 +77,20 @@ public class PendingOrderTimeoutJob {
             }
         }
 
-        // Also auto-cancel PENDING orders of dealers suspended > 24h ago (BUSINESS_LOGIC.md Section 8.2)
+        // Dealers suspended past the grace period still follow the same money guard:
+        // unpaid orders can auto-cancel, but any recorded money must stay in manual review.
         Instant suspendedGraceCutoff = Instant.now().minusSeconds(24 * 3600L);
         List<Order> suspendedDealerOrders = orderRepository.findPendingOrdersOfSuspendedDealersBefore(suspendedGraceCutoff);
         for (Order order : suspendedDealerOrders) {
             try {
-                autoCancelOrder(order);
-                cancelled++;
+                BigDecimal paid = zeroIfNull(order.getPaidAmount());
+                if (paid.compareTo(BigDecimal.ZERO) <= 0) {
+                    autoCancelOrder(order);
+                    cancelled++;
+                } else {
+                    flagOrderForStaleReview(order, paid);
+                    flaggedForReview++;
+                }
             } catch (RuntimeException ex) {
                 log.error("Failed to auto-cancel PENDING order id={} for suspended dealer", order.getId(), ex);
             }

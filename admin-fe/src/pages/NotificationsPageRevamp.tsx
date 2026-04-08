@@ -36,6 +36,7 @@ import {
   tableRowClass,
   textareaClass,
 } from "../components/ui-kit";
+import { subscribeAdminRealtimeNotification } from "../lib/adminRealtime";
 
 const AUDIENCE_OPTIONS: BackendNotificationCreateRequest["audience"][] = [
   "DEALERS",
@@ -248,6 +249,15 @@ function NotificationsPageRevamp() {
 
     void loadAllItems();
   }, [hasSearchQuery, loadAllItems]);
+
+  useEffect(() => {
+    return subscribeAdminRealtimeNotification(() => {
+      void loadData(page);
+      if (hasSearchQuery) {
+        void loadAllItems();
+      }
+    });
+  }, [hasSearchQuery, loadAllItems, loadData, page]);
 
   const sourceItems = hasSearchQuery ? allItems : items;
 

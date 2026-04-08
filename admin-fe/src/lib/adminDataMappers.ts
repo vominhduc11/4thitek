@@ -79,8 +79,6 @@ export const mapBackendPaymentStatus = (status?: BackendPaymentStatus | null): P
       return 'paid'
     case 'CANCELLED':
       return 'cancelled'
-    case 'FAILED':
-      return 'failed'
     default:
       return 'pending'
   }

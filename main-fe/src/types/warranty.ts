@@ -138,23 +138,13 @@ export interface WarrantyCheckResponse {
 }
 
 export interface WarrantyCheckData {
-    id: number;
-    idProductSerial: number;
-    warrantyCode: string;
-    status: 'ACTIVE' | 'EXPIRED' | 'VOID';
-    purchaseDate: string;
-    warrantyStart: string | null;
-    warrantyEnd: string | null;
+    status: 'ACTIVE' | 'EXPIRED' | 'VOID' | 'invalid';
+    productName: string | null;
+    serialNumber: string;
+    purchaseDate: string | null;
+    warrantyEndDate: string | null;
     remainingDays: number;
-    createdAt: string;
-    productSerial: {
-        id: number;
-        serialNumber: string;
-        productName: string;
-        productSku: string;
-        status: string;
-        image: string;
-    };
+    warrantyCode: string | null;
 }
 
 // UI interface for warranty check results

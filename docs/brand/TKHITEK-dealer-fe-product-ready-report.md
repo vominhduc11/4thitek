@@ -4,12 +4,12 @@
 
 | Surface | Scope | Status | Notes |
 | --- | --- | --- | --- |
-| Routes / screens | `launch`, `login`, `forgot_password`, `home shell`, `dashboard`, `products`, `product detail`, `cart`, `checkout`, `orders`, `order detail`, `debt`, `notifications`, `inventory`, `account`, `account settings`, `preferences`, `support`, `warranty hub`, `warranty activation`, `warranty export` | `done` | Core dealer journeys now sit on the same TK HiTek Material 3 token system with role-appropriate brand density. |
-| Dialogs | confirm logout, cancel order, debt/payment dialogs, auth/system dialogs | `inherits shared system` | Dialog styling is centralized by `main.dart` plus shared panel tokens. |
+| Routes / screens | `launch`, `login`, `forgot_password`, `home shell`, `dashboard`, `products`, `product detail`, `cart`, `checkout`, `orders`, `order detail`, `notifications`, `inventory`, `account`, `account settings`, `preferences`, `support`, `warranty hub`, `warranty activation`, `warranty export` | `done` | Core dealer journeys now sit on the same TK HiTek Material 3 token system with role-appropriate brand density. Runtime hiện hành là `BANK_TRANSFER` only; debt screen không còn thuộc surface active. |
+| Dialogs | confirm logout, cancel order, payment dialogs, auth/system dialogs | `inherits shared system` | Dialog styling is centralized by `main.dart` plus shared panel tokens. |
 | Bottom sheets | notification detail, transfer/payment sheets, operational mobile sheets | `inherits shared system` | Radius, dark panel, drag handle and CTA tone are now shared by theme primitives. |
 | Drawers / navigation shell | app shell, rail, bottom nav, launch shell, app bars | `done` | Dealer shell now uses one restrained brand language instead of page-by-page blue variants. |
 | Shared components | brand identity, section card, stock badge, support history widgets | `done` | Shared widgets are now the visual source of truth for operational cards and statuses. |
-| Tables / dense lists | order list, debt history, notification list, support history, inventory list | `inherits shared system` | Readability is preserved with Source Sans priority, tighter surfaces and restrained accents. |
+| Tables / dense lists | order list, notification list, support history, inventory list | `inherits shared system` | Readability is preserved with Source Sans priority, tighter surfaces and restrained accents. |
 | Forms | login, forgot password, checkout, account settings, operational search/filter inputs | `done` | Focus rings, CTA hierarchy, card surfaces and spacing are aligned. |
 | Loading / empty / error / success | launch shell, auth states, notification empty state, support history states, cart/checkout feedback | `done` | States now use consistent panel, border and accent rules instead of isolated one-off treatments. |
 | Responsive / adaptive | mobile, tablet, desktop shell and high-density panels | `done` | Shared token layer supports mobile bottom nav, tablet/desktop rail and adaptive panel widths. |
@@ -18,7 +18,7 @@
 
 ### Điểm đã khóa tốt
 
-- `dashboard`, `cart`, `checkout`, `debt`, `orders`, `notifications`, `account` đều đã giữ ưu tiên vận hành: data và action dễ quét hơn brand expression.
+- `dashboard`, `cart`, `checkout`, `orders`, `notifications`, `account` đều đã giữ ưu tiên vận hành: data và action dễ quét hơn brand expression.
 - `login` và `forgot password` đã cùng một identity với phần app shell, không còn cảm giác tách thành một app khác.
 - `catalog` và `product detail` vẫn giữ đủ chất thương hiệu qua màu, hình, badge và panel, nhưng không cản search/filter/cart flow.
 - `notifications` được nâng từ danh sách thô lên panel có summary, unread emphasis và empty state đúng brand.
@@ -89,7 +89,7 @@
 - `dealer/lib/orders_screen.dart`
 - `dealer/lib/order_detail_screen.dart`
 - `dealer/lib/order_success_screen.dart`
-- `dealer/lib/debt_tracking_screen.dart`
+- Debt tracking screen đã được loại khỏi runtime surface hiện hành; nếu cần đối chiếu dữ liệu cũ thì xem tài liệu historical debt rollout.
 - `dealer/lib/inventory_screen.dart`
 - `dealer/lib/inventory_product_detail_screen.dart`
 - `dealer/lib/account_screen.dart`
@@ -135,12 +135,12 @@
 - [ ] Stock filter và sort trên `product_list_screen.dart` không bị mất state khi đổi breakpoint
 - [ ] Search CTA, filter chips và active states vẫn rõ trên mobile/tablet/desktop
 
-### Cart / checkout / payment / debt
+### Cart / checkout / payment
 
 - [ ] Cart quantity debounce vẫn đúng và không lệch calculation
 - [ ] Checkout summary vẫn đúng subtotal, discount, VAT, total
-- [ ] Payment method switch không ảnh hưởng flow bank transfer/debt hiện tại
-- [ ] Debt flow vẫn hiển thị đúng outstanding, payment history, upload proof nếu có
+- [ ] Payment method bank transfer không ảnh hưởng flow runtime hiện tại
+- [ ] Không còn debt flow active trong runtime mới; UI không được gợi ý debt như một payment authority
 
 ### Order flows
 
@@ -191,5 +191,5 @@
 - Không đổi pricing logic
 - Không đổi cart calculation
 - Không đổi discount logic
-- Không đổi order / payment / debt logic
+- Không đổi order / payment logic; debt chỉ còn là historical compatibility note ngoài runtime flow mới
 - Không đổi data shape, controller signature hay infra

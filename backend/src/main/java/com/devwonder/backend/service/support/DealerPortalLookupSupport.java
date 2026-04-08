@@ -5,6 +5,7 @@ import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.OrderRepository;
+import com.devwonder.backend.service.DealerAccountLifecycleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -14,15 +15,20 @@ public class DealerPortalLookupSupport {
 
     private final DealerRepository dealerRepository;
     private final OrderRepository orderRepository;
+    private final DealerAccountLifecycleService dealerAccountLifecycleService;
 
     public Dealer requireDealerByUsername(String username) {
-        return dealerRepository.findByUsername(username)
+        Dealer dealer = dealerRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Dealer not found"));
+        dealerAccountLifecycleService.assertDealerPortalAccess(dealer);
+        return dealer;
     }
 
     public Dealer requireDealerByUsernameForUpdate(String username) {
-        return dealerRepository.findByUsernameForUpdate(username)
+        Dealer dealer = dealerRepository.findByUsernameForUpdate(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Dealer not found"));
+        dealerAccountLifecycleService.assertDealerPortalAccess(dealer);
+        return dealer;
     }
 
     public Order requireDealerOrder(Long dealerId, Long orderId) {

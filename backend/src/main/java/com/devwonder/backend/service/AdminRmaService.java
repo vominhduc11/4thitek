@@ -9,9 +9,11 @@ import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.ProductSerial;
 import com.devwonder.backend.entity.WarrantyRegistration;
 import com.devwonder.backend.entity.enums.ProductSerialStatus;
+import com.devwonder.backend.entity.enums.WarrantyStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.repository.ProductSerialRepository;
+import com.devwonder.backend.repository.WarrantyRegistrationRepository;
 import com.devwonder.backend.service.support.ProductStockSyncSupport;
 import java.util.EnumSet;
 import java.util.List;
@@ -45,6 +47,7 @@ public class AdminRmaService {
     );
 
     private final ProductSerialRepository productSerialRepository;
+    private final WarrantyRegistrationRepository warrantyRegistrationRepository;
     private final AuditLogService auditLogService;
     private final ProductStockSyncSupport productStockSyncSupport;
 
@@ -54,6 +57,7 @@ public class AdminRmaService {
                 .orElseThrow(() -> new ResourceNotFoundException("Serial not found: " + serialId));
 
         String reason = request.reason() == null ? null : request.reason().trim();
+        List<String> proofUrls = request.proofUrls() == null ? List.of() : request.proofUrls();
         if (reason == null || reason.isBlank()) {
             throw new BadRequestException("reason is required for RMA action");
         }
@@ -76,7 +80,6 @@ public class AdminRmaService {
                             "PASS_QC is only allowed for INSPECTING serials. Current status: " + previousStatus
                     );
                 }
-                List<String> proofUrls = request.proofUrls();
                 if (proofUrls == null || proofUrls.isEmpty()) {
                     throw new BadRequestException("At least one proofUrl is required for PASS_QC action");
                 }
@@ -93,6 +96,9 @@ public class AdminRmaService {
             default -> throw new BadRequestException("Unknown RMA action: " + request.action());
         }
 
+        if (newStatus == ProductSerialStatus.AVAILABLE) {
+            applyPassQcSideEffects(serial);
+        }
         serial.setStatus(newStatus);
         ProductSerial saved = productSerialRepository.save(serial);
 
@@ -115,7 +121,8 @@ public class AdminRmaService {
                 + ",\"action\":\"" + request.action().name() + "\""
                 + ",\"previousStatus\":\"" + previousStatus + "\""
                 + ",\"newStatus\":\"" + newStatus + "\""
-                + ",\"reason\":\"" + escapeJson(reason) + "\"}"
+                + ",\"reason\":\"" + escapeJson(reason) + "\""
+                + ",\"proofUrls\":" + toJsonArray(proofUrls) + "}"
         );
         auditLogService.save(auditLog);
 
@@ -153,6 +160,17 @@ public class AdminRmaService {
         );
     }
 
+    private void applyPassQcSideEffects(ProductSerial serial) {
+        serial.setDealer(null);
+        serial.setOrder(null);
+        WarrantyRegistration warranty = serial.getWarranty();
+        if (warranty == null) {
+            return;
+        }
+        warranty.setStatus(WarrantyStatus.VOID);
+        warrantyRegistrationRepository.save(warranty);
+    }
+
     private String firstNonBlank(String... values) {
         for (String v : values) {
             if (v != null && !v.isBlank()) {
@@ -167,5 +185,11 @@ public class AdminRmaService {
             return "";
         }
         return value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private String toJsonArray(List<String> values) {
+        return values.stream()
+                .map(value -> "\"" + escapeJson(value) + "\"")
+                .collect(java.util.stream.Collectors.joining(",", "[", "]"));
     }
 }

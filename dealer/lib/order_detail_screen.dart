@@ -1132,8 +1132,6 @@ class _OrderDetailTexts {
     switch (status) {
       case OrderPaymentStatus.cancelled:
         return isEnglish ? 'Cancelled' : 'Đã hủy';
-      case OrderPaymentStatus.failed:
-        return isEnglish ? 'Failed' : 'Thất bại';
       case OrderPaymentStatus.pending:
         return isEnglish ? 'Unpaid' : 'Chưa thanh toán';
       case OrderPaymentStatus.paid:
@@ -1495,8 +1493,6 @@ Color _paymentStatusBackground(OrderPaymentStatus status) {
   switch (status) {
     case OrderPaymentStatus.cancelled:
       return const Color(0xFF3B1F26);
-    case OrderPaymentStatus.failed:
-      return const Color(0xFF3B1F26);
     case OrderPaymentStatus.pending:
       return const Color(0xFF4A1E24);
     case OrderPaymentStatus.paid:
@@ -1507,8 +1503,6 @@ Color _paymentStatusBackground(OrderPaymentStatus status) {
 Color _paymentStatusTextColor(OrderPaymentStatus status) {
   switch (status) {
     case OrderPaymentStatus.cancelled:
-      return const Color(0xFFFDA4AF);
-    case OrderPaymentStatus.failed:
       return const Color(0xFFFDA4AF);
     case OrderPaymentStatus.pending:
       return const Color(0xFFFDA4AF);
