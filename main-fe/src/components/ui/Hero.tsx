@@ -1,7 +1,6 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import type { ReactNode } from 'react';
 import Breadcrumb from './Breadcrumb';
 import { Z_INDEX } from '@/constants/zIndex';
 
@@ -12,7 +11,6 @@ interface BreadcrumbItem {
 }
 
 interface HeroProps {
-    accent?: ReactNode;
     breadcrumbItems?: BreadcrumbItem[];
     breadcrumbWrapperClassName?: string;
     videoSrc?: string;
@@ -22,7 +20,6 @@ const defaultBreadcrumbWrapperClassName = 'ml-0 sm:ml-16 md:ml-20 px-4 sm:px-6 m
 const defaultVideoSrc = '/videos/hero-brand-network-service-loop.mp4';
 
 export default function Hero({
-    accent,
     breadcrumbItems = [],
     breadcrumbWrapperClassName = defaultBreadcrumbWrapperClassName,
     videoSrc = defaultVideoSrc
@@ -51,7 +48,6 @@ export default function Hero({
             <div className="absolute inset-0 z-10 bg-[radial-gradient(circle_at_top_right,rgba(41,171,226,0.32),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(0,113,188,0.26),transparent_32%)]" />
             <div className="absolute inset-0 z-10 bg-[linear-gradient(180deg,transparent_0%,rgba(6,17,27,0.1)_45%,rgba(6,17,27,0.86)_100%)]" />
             <div className="absolute inset-x-0 top-0 z-10 h-1 bg-[linear-gradient(90deg,rgba(41,171,226,0),rgba(41,171,226,0.82),rgba(0,113,188,0))]" />
-            {accent}
 
             {/* Breadcrumb - Aligned with content below */}
             {breadcrumbItems.length > 0 && (

@@ -6,9 +6,7 @@ import { CiShuffle } from 'react-icons/ci';
 import { FiHeadphones } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import ProductShowcase3D from '@/components/3d/product/ProductShowcase3D';
 import { useLanguage } from '@/context/LanguageContext';
-import { resolveProductModelAsset } from '@/lib/3d/productModelRegistry';
 import { buildProductPath } from '@/lib/slug';
 import type { Product } from '@/types/product';
 
@@ -80,7 +78,6 @@ export default function ProductHero({
     const [isShuffling, setIsShuffling] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
     const router = useRouter();
-    const modelUrl = resolveProductModelAsset(product.id);
 
     const handleFindRetailer = () => {
         router.push('/become_our_reseller#dealer-network');
@@ -199,16 +196,10 @@ export default function ProductHero({
                                     exit={{ opacity: 0, scale: 1.05, y: -20 }}
                                     transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
                                 >
-                                    <ProductShowcase3D
-                                        className="h-full w-full"
-                                        modelUrl={modelUrl}
-                                        poster={
-                                            <ProductImageWithFallback
-                                                src={product.images?.[0]?.url || ''}
-                                                alt={product.name}
-                                                className="relative h-full w-full drop-shadow-[0_20px_60px_rgba(0,0,0,0.6)] 3xl:drop-shadow-[0_40px_100px_rgba(0,0,0,0.7)]"
-                                            />
-                                        }
+                                    <ProductImageWithFallback
+                                        src={product.images?.[0]?.url || ''}
+                                        alt={product.name}
+                                        className="relative h-full w-full drop-shadow-[0_20px_60px_rgba(0,0,0,0.6)] 3xl:drop-shadow-[0_40px_100px_rgba(0,0,0,0.7)]"
                                     />
                                 </motion.div>
                             </AnimatePresence>
