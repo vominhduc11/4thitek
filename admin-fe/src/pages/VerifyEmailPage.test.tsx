@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+﻿// @vitest-environment jsdom
 import { cleanup, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -68,17 +68,11 @@ describe("VerifyEmailPage", () => {
     renderPage("/verify-email?token=valid-token");
 
     expect(verifyAdminEmailMock).toHaveBeenCalledWith("valid-token");
+    expect(await screen.findByRole("heading", { name: "Email đã được xác thực" })).toBeTruthy();
     expect(
-      await screen.findByRole("heading", { name: "Email verified" }),
+      await screen.findByText("Xác thực email thành công. Bạn có thể đăng nhập ngay bây giờ."),
     ).toBeTruthy();
-    expect(
-      await screen.findByText("Email verification successful. You can now sign in."),
-    ).toBeTruthy();
-    expect(
-      screen.getByRole("link", { name: "Continue to sign in" }).getAttribute(
-        "href",
-      ),
-    ).toBe("/login");
+    expect(screen.getByRole("link", { name: "Tiếp tục đăng nhập" }).getAttribute("href")).toBe("/login");
   });
 
   it("shows an expired-token message when verification fails", async () => {
@@ -91,16 +85,12 @@ describe("VerifyEmailPage", () => {
 
     renderPage("/verify-email?token=expired-token");
 
-    expect(
-      await screen.findByRole("heading", { name: "Verification failed" }),
-    ).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Xác thực thất bại" })).toBeTruthy();
     expect(
       await screen.findByText(
-        "This verification link has expired. Request a new verification email from the sign-in page.",
+        "Liên kết xác thực này đã hết hạn. Hãy yêu cầu email xác thực mới từ trang đăng nhập.",
       ),
     ).toBeTruthy();
-    expect(
-      screen.getByRole("link", { name: "Back to sign in" }).getAttribute("href"),
-    ).toBe("/login");
+    expect(screen.getByRole("link", { name: "Quay lại đăng nhập" }).getAttribute("href")).toBe("/login");
   });
 });

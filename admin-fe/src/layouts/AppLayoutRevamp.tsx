@@ -1,4 +1,4 @@
-import {
+﻿import {
   BadgeAlert,
   Bell,
   BellDot,
@@ -205,8 +205,15 @@ function AppLayoutRevamp() {
   const { notify } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-  const { orders, dealers, posts, discountRules, users, reloadResource } =
-    useAdminData();
+  const {
+    orders,
+    dealers,
+    posts,
+    discountRules,
+    users,
+    ensureResourceLoaded,
+    reloadResource,
+  } = useAdminData();
   const { products } = useProducts();
 
   const { theme, toggleTheme } = useTheme();
@@ -648,6 +655,34 @@ function AppLayoutRevamp() {
         : searchResults.slice(0, SEARCH_RESULT_LIMIT),
     [searchResults, showAllSearchResults],
   );
+
+  useEffect(() => {
+    const shouldLoadSearchData = isSearchOpen || globalQuery.trim().length > 0;
+    if (!shouldLoadSearchData) {
+      return;
+    }
+
+    void ensureResourceLoaded("orders");
+    void ensureResourceLoaded("dealers");
+    void ensureResourceLoaded("posts");
+    void ensureResourceLoaded("discountRules");
+    if (hasRole("SUPER_ADMIN")) {
+      void ensureResourceLoaded("users");
+    }
+  }, [ensureResourceLoaded, globalQuery, hasRole, isSearchOpen]);
+
+  useEffect(() => {
+    if (!isAlertsOpen) {
+      return;
+    }
+
+    void ensureResourceLoaded("orders");
+    void ensureResourceLoaded("dealers");
+    void ensureResourceLoaded("posts");
+    if (hasRole("SUPER_ADMIN")) {
+      void ensureResourceLoaded("users");
+    }
+  }, [ensureResourceLoaded, hasRole, isAlertsOpen]);
 
   const closeTransientUi = useCallback((options?: { clearQuery?: boolean }) => {
     if (options?.clearQuery) {
@@ -1254,3 +1289,4 @@ function AppLayoutRevamp() {
 }
 
 export default AppLayoutRevamp;
+

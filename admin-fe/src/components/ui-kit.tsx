@@ -1,4 +1,4 @@
-import { AlertTriangle, Search, type LucideIcon } from "lucide-react";
+﻿import { AlertTriangle, Search, type LucideIcon } from "lucide-react";
 import ReactPaginate from "react-paginate";
 import type {
   ButtonHTMLAttributes,
@@ -7,6 +7,7 @@ import type {
   InputHTMLAttributes,
   ReactNode,
 } from "react";
+import { useLanguage } from "../context/LanguageContext";
 
 const cx = (...classes: Array<string | false | null | undefined>) =>
   classes.filter(Boolean).join(" ");
@@ -311,44 +312,56 @@ export const ErrorState = ({
   title,
   message,
   onRetry,
-  retryLabel = "Thử lại",
+  retryLabel,
   icon: Icon = AlertTriangle,
   className,
-}: ErrorStateProps) => (
-  <div
-    aria-live="assertive"
-    className={cx(
-      "rounded-[20px] border border-[var(--error-border)] bg-[var(--error-bg)] px-6 py-10 text-center",
-      className,
-    )}
-    role="alert"
-  >
-    <Icon aria-hidden="true" className="mx-auto h-10 w-10 text-[var(--destructive)]" />
-    <p className="mt-4 text-base font-semibold text-[var(--error-text)]">{title}</p>
-    <p className="mt-2 text-sm text-[var(--error-text)]">{message}</p>
-    {onRetry ? (
-      <button className="mt-4 inline-flex items-center justify-center rounded-full bg-[var(--destructive)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--destructive)] focus-visible:ring-offset-2" onClick={onRetry} type="button">
-        {retryLabel}
-      </button>
-    ) : null}
-  </div>
-);
+}: ErrorStateProps) => {
+  const { t } = useLanguage();
+
+  return (
+    <div
+      aria-live="assertive"
+      className={cx(
+        "rounded-[20px] border border-[var(--error-border)] bg-[var(--error-bg)] px-6 py-10 text-center",
+        className,
+      )}
+      role="alert"
+    >
+      <Icon aria-hidden="true" className="mx-auto h-10 w-10 text-[var(--destructive)]" />
+      <p className="mt-4 text-base font-semibold text-[var(--error-text)]">{title}</p>
+      <p className="mt-2 text-sm text-[var(--error-text)]">{message}</p>
+      {onRetry ? (
+        <button
+          className="mt-4 inline-flex items-center justify-center rounded-full bg-[var(--destructive)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--destructive)] focus-visible:ring-offset-2"
+          onClick={onRetry}
+          type="button"
+        >
+          {retryLabel ?? t("Thử lại")}
+        </button>
+      ) : null}
+    </div>
+  );
+};
 
 type LoadingRowsProps = {
   rows?: number;
 };
 
-export const LoadingRows = ({ rows = 4 }: LoadingRowsProps) => (
-  <div className="grid gap-3" aria-busy="true" aria-live="polite" role="status">
-    <span className="sr-only">Loading content</span>
-    {Array.from({ length: rows }).map((_, index) => (
-      <div
-        key={`skeleton-row-${index}`}
-        className="h-16 animate-pulse rounded-[18px] bg-[linear-gradient(90deg,rgba(41,171,226,0.08),rgba(255,255,255,0.72),rgba(41,171,226,0.08))] dark:bg-[linear-gradient(90deg,rgba(41,171,226,0.12),rgba(18,34,48,0.88),rgba(41,171,226,0.12))]"
-      />
-    ))}
-  </div>
-);
+export const LoadingRows = ({ rows = 4 }: LoadingRowsProps) => {
+  const { t } = useLanguage();
+
+  return (
+    <div className="grid gap-3" aria-busy="true" aria-live="polite" role="status">
+      <span className="sr-only">{t("Đang tải nội dung")}</span>
+      {Array.from({ length: rows }).map((_, index) => (
+        <div
+          key={`skeleton-row-${index}`}
+          className="h-16 animate-pulse rounded-[18px] bg-[linear-gradient(90deg,rgba(41,171,226,0.08),rgba(255,255,255,0.72),rgba(41,171,226,0.08))] dark:bg-[linear-gradient(90deg,rgba(41,171,226,0.12),rgba(18,34,48,0.88),rgba(41,171,226,0.12))]"
+        />
+      ))}
+    </div>
+  );
+};
 
 type PaginationNavProps = {
   page: number;
@@ -420,3 +433,4 @@ export const PaginationNav = ({
     </div>
   );
 };
+

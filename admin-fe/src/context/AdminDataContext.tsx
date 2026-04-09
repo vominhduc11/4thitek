@@ -138,6 +138,7 @@ type AdminDataContextValue = {
   isSettingsLoading: boolean
   isSettingsSaving: boolean
   updateSettings: (patch: Partial<AppSettings>) => Promise<void>
+  ensureResourceLoaded: (resource: AdminResourceKey) => Promise<void>
   reloadResource: (resource: AdminResourceKey) => Promise<void>
 }
 
@@ -393,14 +394,6 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     [canManageUsers, location.pathname],
   )
 
-  const shellResources = useMemo<AdminResourceKey[]>(
-    () =>
-      canManageUsers
-        ? ['posts', 'discountRules', 'users']
-        : ['posts', 'discountRules'],
-    [canManageUsers],
-  )
-
   useEffect(() => {
     if (!accessToken) {
       return
@@ -413,15 +406,12 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     })
   }, [accessToken, loadResource, requiredResources])
 
-  useEffect(() => {
-    if (!accessToken) {
-      return
-    }
-
-    shellResources.forEach((resource) => {
-      void loadResource(resource, { notifyOnError: false })
-    })
-  }, [accessToken, loadResource, shellResources])
+  const ensureResourceLoaded: AdminDataContextValue['ensureResourceLoaded'] = useCallback(
+    async (resource) => {
+      await loadResource(resource, { notifyOnError: false })
+    },
+    [loadResource],
+  )
 
   const reloadResource: AdminDataContextValue['reloadResource'] = useCallback(
     async (resource) => {
@@ -629,6 +619,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     isSettingsLoading: resourceStates.settings.status === 'loading',
     isSettingsSaving,
     updateSettings,
+    ensureResourceLoaded,
     reloadResource,
   }
 

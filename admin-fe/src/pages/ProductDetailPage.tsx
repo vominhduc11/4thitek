@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   Archive,
@@ -976,10 +976,10 @@ function ProductDetailPage() {
   }
 
   return (
-    <section className="space-y-6">
-        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
+    <section className="space-y-6 pb-8">
+        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_18px_45px_rgba(15,23,42,0.08)] sm:p-6">
+          <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+          <div className="min-w-0">
             <Link
               className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400"
               to="/products"
@@ -993,7 +993,7 @@ function ProductDetailPage() {
             <p className="mt-2 text-sm text-slate-500">
               {shortDescription}
             </p>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
               <span
                 className={
                   'inline-flex items-center gap-1 rounded-full px-3 py-1 font-semibold ' +
@@ -1059,7 +1059,7 @@ function ProductDetailPage() {
                 {t('Mới ra mắt')}
               </button>
             </div>
-            <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+            <div className="mt-4 flex flex-wrap items-center gap-2.5 text-xs text-slate-500">
               <span className="rounded-full bg-slate-900/5 px-3 py-1 font-semibold">
                 SKU {product.sku}
               </span>
@@ -1068,7 +1068,7 @@ function ProductDetailPage() {
               </span>
             </div>
           </div>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap items-center gap-2.5 xl:max-w-[28rem] xl:justify-end">
           {isEditing ? (
             <>
                 <button
@@ -1195,9 +1195,19 @@ function ProductDetailPage() {
         ) : null}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
-        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
-          <div className="flex items-center gap-4">
+      <div className="grid gap-6 xl:grid-cols-[1.05fr_1.35fr]">
+        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_18px_45px_rgba(15,23,42,0.08)] sm:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                {t('Tổng quan sản phẩm')}
+              </p>
+              <p className="mt-1 text-sm text-slate-500">
+                {t('Ảnh đại diện, giá bán, trạng thái và mức tồn kho hiện tại.')}
+              </p>
+            </div>
+          </div>
+          <div className="mt-5 flex items-center gap-4">
             <img
               className="h-24 w-24 rounded-3xl border border-slate-200 bg-slate-50 object-cover"
               src={
@@ -1267,11 +1277,19 @@ function ProductDetailPage() {
           </div>
         </div>
 
-        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
+        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_18px_45px_rgba(15,23,42,0.08)] sm:p-6">
+          <div className="mb-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+              {t('Thông tin cơ bản')}
+            </p>
+            <p className="mt-1 text-sm text-slate-500">
+              {t('Tên sản phẩm, xuất bản, giá bán, bảo hành và mô tả ngắn.')}
+            </p>
+          </div>
           {isEditing ? (
             <form
               id="product-edit-form"
-              className="space-y-4"
+              className="space-y-5"
               onSubmit={handleSave}
             >
               <div className="grid gap-4 sm:grid-cols-2">
@@ -1428,8 +1446,15 @@ function ProductDetailPage() {
         </div>
       </div>
 
-      <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
-        <h4 className="text-sm font-semibold text-slate-900">{t('Thông số')}</h4>
+      <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_18px_45px_rgba(15,23,42,0.08)] sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+              {t('Thông số')}
+            </p>
+            <h4 className="mt-1 text-base font-semibold text-slate-900">{t('Cấu hình và thông số kỹ thuật')}</h4>
+          </div>
+        </div>
         {isEditing ? (
           <div className="mt-4 space-y-3 rounded-2xl border border-slate-200 bg-[var(--surface-muted)] p-4">
             {draft.specifications.length === 0 ? (
@@ -1529,8 +1554,15 @@ function ProductDetailPage() {
         )}
       </div>
 
-      <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
-        <h4 className="text-sm font-semibold text-slate-900">{t('Mô tả (Descriptions)')}</h4>
+      <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_18px_45px_rgba(15,23,42,0.08)] sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+              {t('Nội dung sản phẩm')}
+            </p>
+            <h4 className="mt-1 text-base font-semibold text-slate-900">{t('Mô tả chi tiết')}</h4>
+          </div>
+        </div>
         {isEditing ? (
           <div className="mt-4 space-y-3 rounded-2xl border border-slate-200 bg-[var(--surface-muted)] p-4">
             <div className="flex flex-wrap items-start justify-between gap-2 text-sm text-slate-700">
@@ -1952,8 +1984,15 @@ function ProductDetailPage() {
         )}
       </div>
 
-      <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
-        <h4 className="text-sm font-semibold text-slate-900">{t('Video')}</h4>
+      <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_18px_45px_rgba(15,23,42,0.08)] sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+              {t('Video')}
+            </p>
+            <h4 className="mt-1 text-base font-semibold text-slate-900">{t('Video giới thiệu và hướng dẫn')}</h4>
+          </div>
+        </div>
         {isEditing ? (
           <div className="mt-4 space-y-3 rounded-2xl border border-slate-200 bg-[var(--surface-muted)] p-4">
             <div className="flex flex-wrap items-start justify-between gap-2 text-sm text-slate-700">
@@ -2154,3 +2193,4 @@ function ProductDetailPage() {
 }
 
 export default ProductDetailPage
+

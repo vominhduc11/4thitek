@@ -1,5 +1,5 @@
-import { Landmark, RefreshCw } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { Landmark, RefreshCw } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   fetchAdminFinancialSettlements,
   resolveAdminFinancialSettlement,
@@ -9,7 +9,6 @@ import {
 } from "../lib/adminApi";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
-import { translateCopy } from "../lib/i18n";
 import { useToast } from "../context/ToastContext";
 import { formatCurrency, formatDateTime } from "../lib/formatters";
 import {
@@ -18,12 +17,12 @@ import {
   FieldErrorMessage,
   GhostButton,
   LoadingRows,
+  PageHeader,
   PagePanel,
   PrimaryButton,
   StatCard,
   StatusBadge,
   bodyTextClass,
-  cardTitleClass,
   inputClass,
   softCardClass,
   tableActionSelectClass,
@@ -38,7 +37,7 @@ const STATUS_OPTIONS: BackendFinancialSettlementStatus[] = [
   "CREDITED",
 ];
 
-const STATUS_RESOLVE_OPTIONS: BackendFinancialSettlementStatus[] = [
+const RESOLUTION_OPTIONS: BackendFinancialSettlementStatus[] = [
   "REFUNDED",
   "WRITTEN_OFF",
   "CREDITED",
@@ -51,80 +50,169 @@ const statusTone = {
   CREDITED: "success",
 } as const;
 
-const copyKeys = {
-  title: "Quyết toán tài chính",
-  description:
-    "Các mục quyết toán tài chính đơn hàng chờ xử lý. Xem xét và giải quyết từng trường hợp.",
-  status: "Trạng thái",
-  all: "Tất cả",
-  pending: "Chờ xử lý",
-  refunded: "Đã hoàn tiền",
-  writtenOff: "Đã xóa sổ",
-  credited: "Đã ghi có",
-  orderId: "Mã đơn hàng",
-  orderCode: "Mã đơn",
-  type: "Loại",
-  amount: "Số tiền",
-  createdBy: "Tạo bởi",
-  createdAt: "Ngày tạo",
-  resolution: "Ghi chú xử lý",
-  resolvedBy: "Xử lý bởi",
-  resolvedAt: "Thời điểm xử lý",
-  newStatus: "Trạng thái mới",
-  resolutionNote: "Ghi chú (bắt buộc)",
-  resolutionPlaceholder: "Mô tả cách xử lý mục quyết toán này...",
-  save: "Lưu xử lý",
-  reload: "Tải lại",
-  emptyTitle: "Không có mục phù hợp",
-  emptyMessage: "Thử thay đổi bộ lọc hoặc tải lại dữ liệu.",
-  loadTitle: "Không tải được danh sách",
-  loadFallback: "Danh sách quyết toán chưa thể tải.",
-  saveError: "Không lưu được thay đổi.",
-  resolutionRequired: "Ghi chú xử lý là bắt buộc.",
-  statPending: "Chờ xử lý",
+const copyByLanguage = {
+  vi: {
+    title: "Quyết toán tài chính",
+    description:
+      "Xử lý các mục hoàn tiền, ghi có hoặc xóa sổ từ một workspace rõ ràng thay vì chỉ xem danh sách.",
+    status: "Trạng thái",
+    all: "Tất cả",
+    pending: "Chờ xử lý",
+    refunded: "Đã hoàn tiền",
+    writtenOff: "Đã xóa sổ",
+    credited: "Đã ghi có",
+    queueTitle: "Danh sách quyết toán",
+    queueHint: "Chọn một mục để xem đầy đủ bối cảnh và ra quyết định.",
+    detailTitle: "Chi tiết xử lý",
+    detailHint: "Xem loại quyết toán, lịch sử và chốt kết quả ngay tại panel này.",
+    type: "Loại",
+    amount: "Số tiền",
+    orderCode: "Mã đơn",
+    createdBy: "Tạo bởi",
+    createdAt: "Tạo lúc",
+    resolvedBy: "Xử lý bởi",
+    resolvedAt: "Xử lý lúc",
+    resolution: "Ghi chú xử lý",
+    newStatus: "Trạng thái mới",
+    resolutionNote: "Ghi chú bắt buộc",
+    resolutionPlaceholder: "Mô tả cách bạn đã xử lý mục quyết toán này...",
+    resolutionRequired: "Ghi chú xử lý là bắt buộc.",
+    save: "Lưu quyết định",
+    reload: "Tải lại",
+    emptyTitle: "Không có mục quyết toán phù hợp",
+    emptyMessage: "Thử thay đổi bộ lọc hoặc tải lại dữ liệu.",
+    loadTitle: "Không tải được danh sách quyết toán",
+    loadMessage: "Vui lòng kiểm tra kết nối và thử lại.",
+    loadFallback: "Danh sách quyết toán chưa thể tải.",
+    saveError: "Không lưu được thay đổi.",
+    saveSuccess: "Đã cập nhật quyết toán.",
+    noSelectionTitle: "Chưa chọn mục quyết toán",
+    noSelectionMessage: "Hãy chọn một mục ở danh sách để xem đầy đủ chi tiết và xử lý.",
+    summaryOpen: "Mục đang mở",
+    summaryPending: "Chờ xử lý",
+    summaryResolved: "Đã giải quyết",
+    pendingBanner: "Mục này vẫn đang chờ quyết định",
+    pendingHint: "Luôn ghi rõ lý do để đội vận hành theo dõi lại sau này.",
+    typeCancellationRefund: "Hoàn hoặc điều chỉnh khi hủy đơn",
+    typeStaleOrderReview: "Rà soát đơn quá hạn",
+    previousLabel: "Trước",
+    nextLabel: "Tiếp",
+    missing: "Chưa có",
+  },
+  en: {
+    title: "Financial settlements",
+    description:
+      "Handle refunds, credits, and write-offs from a focused workspace instead of a passive list.",
+    status: "Status",
+    all: "All",
+    pending: "Pending",
+    refunded: "Refunded",
+    writtenOff: "Written off",
+    credited: "Credited",
+    queueTitle: "Settlement queue",
+    queueHint: "Select an item to review the full context and make a decision.",
+    detailTitle: "Resolution details",
+    detailHint: "Review the settlement type, audit trail, and finalize the outcome from this panel.",
+    type: "Type",
+    amount: "Amount",
+    orderCode: "Order code",
+    createdBy: "Created by",
+    createdAt: "Created at",
+    resolvedBy: "Resolved by",
+    resolvedAt: "Resolved at",
+    resolution: "Resolution note",
+    newStatus: "New status",
+    resolutionNote: "Required note",
+    resolutionPlaceholder: "Describe how this settlement item was handled...",
+    resolutionRequired: "A resolution note is required.",
+    save: "Save decision",
+    reload: "Reload",
+    emptyTitle: "No settlement items found",
+    emptyMessage: "Try a different filter or reload the data.",
+    loadTitle: "Unable to load settlements",
+    loadMessage: "Please check your connection and try again.",
+    loadFallback: "The settlement list could not be loaded.",
+    saveError: "Could not save changes.",
+    saveSuccess: "Settlement updated.",
+    noSelectionTitle: "No settlement selected",
+    noSelectionMessage: "Choose an item from the queue to inspect details and resolve it.",
+    summaryOpen: "Open items",
+    summaryPending: "Pending",
+    summaryResolved: "Resolved",
+    pendingBanner: "This item still needs a decision",
+    pendingHint: "Always record the reasoning so operations can review it later.",
+    typeCancellationRefund: "Cancellation refund or adjustment",
+    typeStaleOrderReview: "Stale order review",
+    previousLabel: "Previous",
+    nextLabel: "Next",
+    missing: "Not provided",
+  },
 } as const;
 
 function FinancialSettlementsPageRevamp() {
-  const { t } = useLanguage();
-  const copy = translateCopy(copyKeys, t);
+  const { language } = useLanguage();
+  const copy = copyByLanguage[language];
   const { accessToken } = useAuth();
   const { notify } = useToast();
 
   const [items, setItems] = useState<BackendFinancialSettlementResponse[]>([]);
-  const [statusFilter, setStatusFilter] = useState<
-    "ALL" | BackendFinancialSettlementStatus
-  >("ALL");
-
+  const [statusFilter, setStatusFilter] = useState<"ALL" | BackendFinancialSettlementStatus>("ALL");
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [statusDraft, setStatusDraft] =
-    useState<BackendFinancialSettlementStatus>("REFUNDED");
+  const [statusDraft, setStatusDraft] = useState<BackendFinancialSettlementStatus>("REFUNDED");
   const [resolutionDraft, setResolutionDraft] = useState("");
-
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
+
+  const statusLabels: Record<BackendFinancialSettlementStatus, string> = {
+    PENDING: copy.pending,
+    REFUNDED: copy.refunded,
+    WRITTEN_OFF: copy.writtenOff,
+    CREDITED: copy.credited,
+  };
+
+  const typeLabels: Record<BackendFinancialSettlementType, string> = {
+    CANCELLATION_REFUND: copy.typeCancellationRefund,
+    STALE_ORDER_REVIEW: copy.typeStaleOrderReview,
+  };
+
+  const settlementTypeLabel = (type?: BackendFinancialSettlementType | null) =>
+    type ? typeLabels[type] ?? type : copy.missing;
 
   const load = useCallback(
-    async (status: "ALL" | BackendFinancialSettlementStatus) => {
-      if (!accessToken) return;
+    async (nextStatus: "ALL" | BackendFinancialSettlementStatus) => {
+      if (!accessToken) {
+        return;
+      }
+
+      const requestId = ++requestIdRef.current;
       setIsLoading(true);
       setError(null);
       setSaveError(null);
+
       try {
         const data = await fetchAdminFinancialSettlements(accessToken, {
-          status: status === "ALL" ? undefined : status,
+          status: nextStatus === "ALL" ? undefined : nextStatus,
         });
+
+        if (requestIdRef.current !== requestId) {
+          return;
+        }
+
         setItems(data);
-        setSelectedId(
-          (current) => data.find((item) => item.id === current)?.id ?? null,
-        );
+        setSelectedId((current) => data.find((item) => item.id === current)?.id ?? data[0]?.id ?? null);
       } catch (loadError) {
-        setError(
-          loadError instanceof Error ? loadError.message : copy.loadFallback,
-        );
+        if (requestIdRef.current !== requestId) {
+          return;
+        }
+
+        setError(loadError instanceof Error ? loadError.message : copy.loadFallback);
       } finally {
-        setIsLoading(false);
+        if (requestIdRef.current === requestId) {
+          setIsLoading(false);
+        }
       }
     },
     [accessToken, copy.loadFallback],
@@ -145,57 +233,50 @@ function FinancialSettlementsPageRevamp() {
     [items, selectedId],
   );
 
-  const handleSelect = (item: BackendFinancialSettlementResponse) => {
-    setSelectedId(item.id);
-    setSaveError(null);
-    setStatusDraft(
-      item.status === "PENDING" ? "REFUNDED" : (item.status ?? "REFUNDED"),
-    );
-    setResolutionDraft(item.resolution ?? "");
-  };
+  useEffect(() => {
+    if (!selectedItem) {
+      setStatusDraft("REFUNDED");
+      setResolutionDraft("");
+      return;
+    }
+
+    setStatusDraft(selectedItem.status === "PENDING" ? "REFUNDED" : selectedItem.status ?? "REFUNDED");
+    setResolutionDraft(selectedItem.resolution ?? "");
+  }, [selectedItem]);
 
   const pendingCount = useMemo(
     () => items.filter((item) => item.status === "PENDING").length,
     [items],
   );
-  const statusLabels: Record<BackendFinancialSettlementStatus, string> = {
-    PENDING: copy.pending,
-    REFUNDED: copy.refunded,
-    WRITTEN_OFF: copy.writtenOff,
-    CREDITED: copy.credited,
-  };
-  const typeLabels: Record<BackendFinancialSettlementType, string> = {
-    CANCELLATION_REFUND: "Hoàn/điều chỉnh khi hủy đơn",
-    STALE_ORDER_REVIEW: "Rà soát đơn quá hạn",
-  };
-  const settlementTypeLabel = (type?: BackendFinancialSettlementType | null) =>
-    type ? typeLabels[type] ?? type : "—";
+
+  const resolvedCount = useMemo(() => Math.max(items.length - pendingCount, 0), [items.length, pendingCount]);
 
   const handleSave = async () => {
-    if (!accessToken || !selectedItem) return;
+    if (!accessToken || !selectedItem) {
+      return;
+    }
+
     const trimmedResolution = resolutionDraft.trim();
     if (!trimmedResolution) {
+      setSaveError(copy.resolutionRequired);
       notify(copy.resolutionRequired, { title: copy.title, variant: "error" });
       return;
     }
+
     setSaveError(null);
     setIsSaving(true);
+
     try {
-      const updated = await resolveAdminFinancialSettlement(
-        accessToken,
-        selectedItem.id,
-        {
-          status: statusDraft,
-          resolution: trimmedResolution,
-        },
-      );
-      setItems((current) =>
-        current.map((item) => (item.id === updated.id ? updated : item)),
-      );
+      const updated = await resolveAdminFinancialSettlement(accessToken, selectedItem.id, {
+        status: statusDraft,
+        resolution: trimmedResolution,
+      });
+      setItems((current) => current.map((item) => (item.id === updated.id ? updated : item)));
       setSelectedId(updated.id);
-    } catch (saveError) {
-      setSaveError(t("Lưu không thành công. Vui lòng thử lại."));
-      notify(saveError instanceof Error ? saveError.message : copy.saveError, {
+      notify(copy.saveSuccess, { title: copy.title, variant: "success" });
+    } catch (nextError) {
+      setSaveError(copy.saveError);
+      notify(nextError instanceof Error ? nextError.message : copy.saveError, {
         title: copy.title,
         variant: "error",
       });
@@ -204,7 +285,7 @@ function FinancialSettlementsPageRevamp() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && items.length === 0) {
     return (
       <PagePanel>
         <LoadingRows rows={6} />
@@ -215,57 +296,43 @@ function FinancialSettlementsPageRevamp() {
   if (error) {
     return (
       <PagePanel>
-        <ErrorState
-          title={t("Không tải được dữ liệu")}
-          message={t("Vui lòng kiểm tra kết nối và thử lại.")}
-          onRetry={() => void load(statusFilter)}
-        />
+        <ErrorState title={copy.loadTitle} message={copy.loadMessage} onRetry={() => void load(statusFilter)} />
       </PagePanel>
     );
   }
 
   return (
     <PagePanel>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h3 className={cardTitleClass}>{copy.title}</h3>
-          <p className={bodyTextClass}>{copy.description}</p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <select
-            aria-label={copy.status}
-            className={`${inputClass} w-auto`}
-            value={statusFilter}
-            onChange={(e) =>
-              setStatusFilter(
-                e.target.value as "ALL" | BackendFinancialSettlementStatus,
-              )
-            }
-          >
-            <option value="ALL">{copy.all}</option>
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s} value={s}>
-                {statusLabels[s] ?? copy.pending}
-              </option>
-            ))}
-          </select>
-          <GhostButton
-            onClick={() => void load(statusFilter)}
-            aria-label={copy.reload}
-          >
-            <RefreshCw className="h-4 w-4" />
-          </GhostButton>
-        </div>
-      </div>
+      <PageHeader
+        title={copy.title}
+        subtitle={copy.description}
+        actions={
+          <div className="flex w-full flex-col gap-3 lg:w-auto lg:flex-row lg:items-center">
+            <select
+              aria-label={copy.status}
+              className={`${inputClass} w-full min-w-[12rem] lg:w-auto`}
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value as "ALL" | BackendFinancialSettlementStatus)}
+            >
+              <option value="ALL">{copy.all}</option>
+              {STATUS_OPTIONS.map((status) => (
+                <option key={status} value={status}>
+                  {statusLabels[status]}
+                </option>
+              ))}
+            </select>
+            <GhostButton onClick={() => void load(statusFilter)} type="button">
+              <RefreshCw className="h-4 w-4" />
+              {copy.reload}
+            </GhostButton>
+          </div>
+        }
+      />
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          icon={Landmark}
-          label={copy.statPending}
-          value={String(items.length)}
-          hint={`${pendingCount} ${copy.pending}`}
-          tone="warning"
-        />
+      <div className="grid gap-3 md:grid-cols-3">
+        <StatCard icon={Landmark} label={copy.summaryOpen} value={String(items.length)} tone="info" />
+        <StatCard icon={Landmark} label={copy.summaryPending} value={String(pendingCount)} tone="warning" />
+        <StatCard icon={Landmark} label={copy.summaryResolved} value={String(resolvedCount)} tone="success" />
       </div>
 
       {items.length === 0 ? (
@@ -273,193 +340,145 @@ function FinancialSettlementsPageRevamp() {
           <EmptyState title={copy.emptyTitle} message={copy.emptyMessage} />
         </div>
       ) : (
-        <div className="mt-6 flex flex-col gap-6 xl:flex-row xl:items-start">
-          {/* List */}
-          <div className="min-w-0 flex-1">
-            <div className={`${softCardClass} overflow-hidden`}>
-              <div className="divide-y divide-[var(--border)]">
+        <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(22rem,0.95fr)] xl:items-start">
+          <section className="min-w-0 space-y-4">
+            <div className={`${softCardClass} p-4`}>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">{copy.queueTitle}</p>
+                  <p className={bodyTextClass}>{copy.queueHint}</p>
+                </div>
+                <StatusBadge tone="warning">{pendingCount} {copy.pending}</StatusBadge>
+              </div>
+              <div className="mt-4 divide-y divide-[var(--border)]">
                 {items.map((item) => {
                   const isSelected = item.id === selectedId;
                   return (
                     <button
                       key={item.id}
                       type="button"
+                      aria-pressed={isSelected}
+                      aria-current={isSelected ? "true" : undefined}
                       className={[
-                        "w-full px-4 py-3 text-left transition",
+                        "w-full rounded-2xl px-4 py-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2",
                         isSelected
-                          ? "bg-[var(--accent-soft)]/40"
+                          ? "bg-[var(--accent-soft)]/45 shadow-[inset_0_0_0_1px_rgba(41,171,226,0.32)]"
                           : "hover:bg-[var(--surface)]",
                       ].join(" ")}
-                      onClick={() => handleSelect(item)}
+                      onClick={() => setSelectedId(item.id)}
                     >
-                      <div className="flex items-center justify-between gap-3">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-[var(--ink)]">
-                            {item.orderCode ?? `#${item.id}`}
-                          </p>
-                          <p className="text-xs text-[var(--muted)]">
-                            {settlementTypeLabel(item.type)}
-                            {item.createdBy ? ` · ${item.createdBy}` : ""}
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="truncate text-sm font-semibold text-[var(--ink)]">
+                              {item.orderCode ?? `#${item.id}`}
+                            </p>
+                            <StatusBadge tone={statusTone[item.status ?? "PENDING"]}>{statusLabels[item.status ?? "PENDING"]}</StatusBadge>
+                          </div>
+                          <p className="mt-1 text-xs text-[var(--muted)]">{settlementTypeLabel(item.type)}</p>
+                          <p className="mt-2 text-xs text-[var(--muted)]">
+                            {copy.createdAt}: {item.createdAt ? formatDateTime(item.createdAt) : copy.missing}
                           </p>
                         </div>
-                        <div className="flex shrink-0 flex-col items-end gap-1">
-                          <span className="text-sm font-semibold text-[var(--ink)]">
-                            {item.amount != null
-                              ? formatCurrency(Number(item.amount))
-                              : "—"}
-                          </span>
-                          <StatusBadge
-                            tone={statusTone[item.status ?? "PENDING"]}
-                          >
-                            {statusLabels[item.status ?? "PENDING"] ??
-                              copy.pending}
-                          </StatusBadge>
+                        <div className="shrink-0 text-right">
+                          <p className="text-sm font-semibold text-[var(--ink)]">
+                            {item.amount != null ? formatCurrency(Number(item.amount)) : copy.missing}
+                          </p>
+                          <p className="mt-1 text-xs text-[var(--muted)]">{item.createdBy ?? copy.missing}</p>
                         </div>
                       </div>
-                      {item.createdAt && (
-                        <p className="mt-1 text-xs text-[var(--muted)]">
-                          {copy.createdAt}: {formatDateTime(item.createdAt)}
-                        </p>
-                      )}
                     </button>
                   );
                 })}
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* Detail / resolve panel */}
-          {selectedItem && (
-            <div className={`${softCardClass} w-full xl:w-96 xl:shrink-0`}>
-              <p className="text-sm font-semibold text-[var(--ink)]">
-                {selectedItem.orderCode ?? `#${selectedItem.id}`}
-              </p>
+          <section className="xl:sticky xl:top-24">
+            <div className={`${softCardClass} p-5`}>
+              {selectedItem ? (
+                <>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">{copy.detailTitle}</p>
+                      <h2 className="mt-1 text-lg font-semibold text-[var(--ink)]">{selectedItem.orderCode ?? `#${selectedItem.id}`}</h2>
+                      <p className="mt-1 text-sm text-[var(--muted)]">{copy.detailHint}</p>
+                    </div>
+                    <StatusBadge tone={statusTone[selectedItem.status ?? "PENDING"]}>{statusLabels[selectedItem.status ?? "PENDING"]}</StatusBadge>
+                  </div>
 
-              <dl className="mt-4 space-y-2 text-sm">
-                {[
-                  {
-                    label: copy.type,
-                    value: settlementTypeLabel(selectedItem.type),
-                  },
-                  {
-                    label: copy.amount,
-                    value:
-                      selectedItem.amount != null
-                        ? formatCurrency(Number(selectedItem.amount))
-                        : "—",
-                  },
-                  {
-                    label: copy.orderCode,
-                    value: selectedItem.orderCode ?? "—",
-                  },
-                  {
-                    label: copy.createdBy,
-                    value: selectedItem.createdBy ?? "—",
-                  },
-                  {
-                    label: copy.createdAt,
-                    value: selectedItem.createdAt
-                      ? formatDateTime(selectedItem.createdAt)
-                      : "—",
-                  },
-                  ...(selectedItem.resolution
-                    ? [
-                        {
-                          label: copy.resolution,
-                          value: selectedItem.resolution,
-                        },
-                      ]
-                    : []),
-                  ...(selectedItem.resolvedBy
-                    ? [
-                        {
-                          label: copy.resolvedBy,
-                          value: selectedItem.resolvedBy,
-                        },
-                      ]
-                    : []),
-                  ...(selectedItem.resolvedAt
-                    ? [
-                        {
-                          label: copy.resolvedAt,
-                          value: formatDateTime(selectedItem.resolvedAt),
-                        },
-                      ]
-                    : []),
-                ].map(({ label, value }) => (
-                  <div key={label} className="flex justify-between gap-3">
-                    <dt className="text-[var(--muted)]">{label}</dt>
-                    <dd className="text-right font-medium text-[var(--ink)]">
-                      {value}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-
-              {selectedItem.status === "PENDING" && (
-                <div className="mt-5 space-y-3 border-t border-[var(--border)] pt-4">
-                  <div>
-                    <label
-                      htmlFor="settle-status"
-                      className="mb-1 block text-xs font-semibold text-[var(--muted)]"
-                    >
-                      {copy.newStatus}
-                    </label>
-                    <select
-                      id="settle-status"
-                      className={`${tableActionSelectClass} w-full`}
-                      value={statusDraft}
-                      onChange={(e) => {
-                        setSaveError(null);
-                        setStatusDraft(
-                          e.target.value as BackendFinancialSettlementStatus,
-                        );
-                      }}
-                    >
-                      {STATUS_RESOLVE_OPTIONS.map((s) => (
-                        <option key={s} value={s}>
-                          {s === "REFUNDED"
-                            ? copy.refunded
-                            : s === "WRITTEN_OFF"
-                              ? copy.writtenOff
-                              : copy.credited}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="settle-note"
-                      className="mb-1 block text-xs font-semibold text-[var(--muted)]"
-                    >
-                      {copy.resolutionNote}
-                    </label>
-                    <textarea
-                      id="settle-note"
-                      className={textareaClass}
-                      placeholder={copy.resolutionPlaceholder}
-                      value={resolutionDraft}
-                      onChange={(e) => {
-                        setSaveError(null);
-                        setResolutionDraft(e.target.value);
-                      }}
-                      rows={3}
-                    />
-                  </div>
-                  <PrimaryButton
-                    onClick={() => void handleSave()}
-                    disabled={isSaving || !resolutionDraft.trim()}
-                    className="w-full"
-                  >
-                    {copy.save}
-                  </PrimaryButton>
-                  {saveError ? (
-                    <FieldErrorMessage>{saveError}</FieldErrorMessage>
+                  {selectedItem.status === "PENDING" ? (
+                    <div className="mt-4 rounded-[18px] border border-[var(--tone-warning-border)] bg-[var(--tone-warning-bg)] px-4 py-3">
+                      <p className="text-sm font-semibold text-[var(--tone-warning-text)]">{copy.pendingBanner}</p>
+                      <p className="mt-1 text-sm text-[var(--tone-warning-text)]/90">{copy.pendingHint}</p>
+                    </div>
                   ) : null}
-                </div>
+
+                  <dl className="mt-5 space-y-3 text-sm">
+                    {[
+                      { label: copy.type, value: settlementTypeLabel(selectedItem.type) },
+                      { label: copy.amount, value: selectedItem.amount != null ? formatCurrency(Number(selectedItem.amount)) : copy.missing },
+                      { label: copy.orderCode, value: selectedItem.orderCode ?? copy.missing },
+                      { label: copy.createdBy, value: selectedItem.createdBy ?? copy.missing },
+                      { label: copy.createdAt, value: selectedItem.createdAt ? formatDateTime(selectedItem.createdAt) : copy.missing },
+                      { label: copy.resolvedBy, value: selectedItem.resolvedBy ?? copy.missing },
+                      { label: copy.resolvedAt, value: selectedItem.resolvedAt ? formatDateTime(selectedItem.resolvedAt) : copy.missing },
+                      { label: copy.resolution, value: selectedItem.resolution ?? copy.missing },
+                    ].map((entry) => (
+                      <div key={entry.label} className="grid gap-1 border-b border-[var(--border)] pb-3 sm:grid-cols-[9rem_minmax(0,1fr)] sm:items-start">
+                        <dt className="text-[var(--muted)]">{entry.label}</dt>
+                        <dd className="font-medium text-[var(--ink)] sm:text-right">{entry.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+
+                  <div className="mt-5 space-y-3 border-t border-[var(--border)] pt-5">
+                    <div>
+                      <label htmlFor="settlement-status" className="mb-1 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+                        {copy.newStatus}
+                      </label>
+                      <select
+                        id="settlement-status"
+                        className={`${tableActionSelectClass} w-full`}
+                        value={statusDraft}
+                        onChange={(event) => {
+                          setSaveError(null);
+                          setStatusDraft(event.target.value as BackendFinancialSettlementStatus);
+                        }}
+                      >
+                        {RESOLUTION_OPTIONS.map((status) => (
+                          <option key={status} value={status}>
+                            {statusLabels[status]}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="settlement-resolution" className="mb-1 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+                        {copy.resolutionNote}
+                      </label>
+                      <textarea
+                        id="settlement-resolution"
+                        className={textareaClass}
+                        placeholder={copy.resolutionPlaceholder}
+                        value={resolutionDraft}
+                        onChange={(event) => {
+                          setSaveError(null);
+                          setResolutionDraft(event.target.value);
+                        }}
+                      />
+                    </div>
+                    {saveError ? <FieldErrorMessage message={saveError} /> : null}
+                    <PrimaryButton className="w-full" disabled={isSaving} onClick={() => void handleSave()} type="button">
+                      {isSaving ? "..." : copy.save}
+                    </PrimaryButton>
+                  </div>
+                </>
+              ) : (
+                <EmptyState title={copy.noSelectionTitle} message={copy.noSelectionMessage} />
               )}
             </div>
-          )}
+          </section>
         </div>
       )}
     </PagePanel>

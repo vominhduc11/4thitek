@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+﻿// @vitest-environment jsdom
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
@@ -101,16 +101,14 @@ describe("LoginPage", () => {
     });
 
     expect(
-      screen.getByText("Your admin email address must be verified before you can sign in."),
+      screen.getByText("Email admin cần được xác thực trước khi bạn có thể đăng nhập."),
     ).toBeTruthy();
     expect(
       screen.getByText(
-        "Check your inbox and spam folder for the verification email, then try signing in again.",
+        "Kiểm tra hộp thư đến và thư rác để tìm email xác thực, sau đó thử đăng nhập lại.",
       ),
     ).toBeTruthy();
-    expect(
-      screen.getByRole("button", { name: "Resend verification email" }),
-    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Gửi lại email xác thực" })).toBeTruthy();
   });
 
   it("resends the verification email for the entered identity", async () => {
@@ -132,21 +130,17 @@ describe("LoginPage", () => {
     await user.type(screen.getByPlaceholderText("Nhập tên đăng nhập"), "ops@example.com");
     await user.type(screen.getByPlaceholderText("Nhập mật khẩu"), "ChangedPass#456");
     await user.click(screen.getByRole("button", { name: "Đăng nhập" }));
-    await screen.findByRole("button", { name: "Resend verification email" });
+    await screen.findByRole("button", { name: "Gửi lại email xác thực" });
 
-    await user.click(
-      screen.getByRole("button", { name: "Resend verification email" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Gửi lại email xác thực" }));
 
     await waitFor(() => {
-      expect(resendAdminEmailVerificationMock).toHaveBeenCalledWith(
-        "ops@example.com",
-      );
+      expect(resendAdminEmailVerificationMock).toHaveBeenCalledWith("ops@example.com");
     });
 
     expect(
       await screen.findByText(
-        "If an unverified admin account exists for this identity, a verification email has been sent.",
+        "Nếu định danh này tương ứng với một tài khoản admin chưa xác thực, email xác thực đã được gửi.",
       ),
     ).toBeTruthy();
   });
@@ -168,7 +162,7 @@ describe("LoginPage", () => {
 
     expect(
       await screen.findByText(
-        "Your admin account needs an email address before sign-in can continue. Please contact your system owner.",
+        "Tài khoản admin cần có email trước khi có thể tiếp tục đăng nhập. Vui lòng liên hệ chủ hệ thống.",
       ),
     ).toBeTruthy();
   });
