@@ -765,7 +765,7 @@ function AppLayoutRevamp() {
       className={
         mobile
           ? "brand-admin-shell flex h-full min-h-0 flex-col gap-5 border-r border-[var(--brand-border)] px-5 py-6 text-slate-100"
-          : "brand-admin-shell hidden min-h-0 flex-col gap-5 border-r border-[var(--brand-border)] px-5 py-6 text-slate-100 lg:flex lg:w-72 lg:shrink-0 xl:w-[304px]"
+          : "brand-admin-shell hidden min-h-0 flex-col gap-5 border-r border-[var(--brand-border)] px-5 py-6 text-slate-100 lg:flex lg:w-[296px] lg:shrink-0 xl:w-[336px]"
       }
     >
       <div className="flex items-center gap-3">
@@ -828,20 +828,32 @@ function AppLayoutRevamp() {
                       end={item.to === "/"}
                       className={({ isActive }) =>
                         [
-                          "group flex items-center justify-between gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition",
+                          "group grid grid-cols-[auto,minmax(0,1fr),auto] items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-medium transition",
                           isActive
                             ? "bg-[linear-gradient(135deg,rgba(41,171,226,0.18),rgba(0,113,188,0.18))] text-white shadow-[inset_0_0_0_1px_rgba(41,171,226,0.34)]"
                             : "text-slate-300 hover:bg-[rgba(41,171,226,0.1)] hover:text-white",
                         ].join(" ")
                       }
+                      title={item.label}
                     >
-                      <span className="flex min-w-0 items-center gap-3">
-                        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-[rgba(41,171,226,0.14)] text-blue-200">
-                          <Icon className="h-4 w-4" />
-                        </span>
-                        <span className="truncate">{item.label}</span>
-                      </span>
-                      <ChevronRight className="h-4 w-4 shrink-0 text-white/30 transition group-hover:translate-x-0.5" />
+                      {({ isActive }) => (
+                        <>
+                          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-[rgba(41,171,226,0.14)] text-blue-200">
+                            <Icon className="h-4 w-4" />
+                          </span>
+                          <span className="min-w-0 text-sm leading-5 text-inherit break-words">
+                            {item.label}
+                          </span>
+                          <ChevronRight
+                            className={[
+                              "h-4 w-4 shrink-0 transition",
+                              isActive
+                                ? "translate-x-0 text-white/70"
+                                : "text-white/20 group-hover:translate-x-0.5 group-hover:text-white/50",
+                            ].join(" ")}
+                          />
+                        </>
+                      )}
                     </NavLink>
                   );
                 })}
@@ -1204,7 +1216,7 @@ function AppLayoutRevamp() {
       />
 
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-[min(86vw,304px)] transform transition duration-300 ease-out lg:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 w-[min(88vw,340px)] transform transition duration-300 ease-out lg:hidden ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
