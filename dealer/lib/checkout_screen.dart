@@ -234,7 +234,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       return FadeSlideIn(
         delay: const Duration(milliseconds: 60),
         child: SectionCard(
-          title: texts.paymentMethodTitle,
+          title: texts.paymentFlowTitle,
           icon: Icons.account_balance_wallet_outlined,
           child: _isLoadingProfile
               ? _CheckoutStatePanel(
@@ -258,20 +258,127 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.account_balance_outlined),
-                      title: Text(texts.bankTransferTitle),
-                      subtitle: Text(texts.bankTransferSubtitle),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      texts.bankTransferWorkflowHint,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: colors.onSurfaceVariant,
-                        fontStyle: FontStyle.italic,
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: colors.primaryContainer.withValues(alpha: 0.22),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: colors.primary.withValues(alpha: 0.16),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: colors.surface.withValues(alpha: 0.78),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                alignment: Alignment.center,
+                                child: Icon(
+                                  Icons.account_balance_outlined,
+                                  color: colors.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      texts.bankTransferTitle,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleSmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      texts.bankTransferSubtitle,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: colors.onSurfaceVariant,
+                                            height: 1.4,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              _CheckoutMethodBadge(label: texts.fixedFlowBadge),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          Text(
+                            texts.paymentFlowDescription,
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: colors.onSurface,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.45,
+                                ),
+                          ),
+                        ],
                       ),
                     ),
+                    const SizedBox(height: 14),
+                    _CheckoutFlowStep(
+                      index: 1,
+                      title: texts.paymentStepCreateTitle,
+                      description: texts.paymentStepCreateDescription,
+                    ),
+                    const SizedBox(height: 10),
+                    _CheckoutFlowStep(
+                      index: 2,
+                      title: texts.paymentStepTransferTitle,
+                      description: texts.paymentStepTransferDescription,
+                    ),
+                    const SizedBox(height: 10),
+                    _CheckoutFlowStep(
+                      index: 3,
+                      title: texts.paymentStepConfirmTitle,
+                      description: texts.paymentStepConfirmDescription,
+                    ),
+                    const SizedBox(height: 14),
+                    if (_isLoadingBankTransferInstructions)
+                      _CheckoutStatePanel(
+                        icon: Icons.account_balance_outlined,
+                        message: texts.loadingBankTransferMessage,
+                        tone: _CheckoutStateTone.info,
+                        dense: true,
+                      )
+                    else if (_bankTransferInstructions == null)
+                      _CheckoutStatePanel(
+                        icon: Icons.sync_problem_outlined,
+                        message: texts.bankTransferUnavailableMessage,
+                        tone: _CheckoutStateTone.error,
+                        dense: true,
+                        action: TextButton.icon(
+                          onPressed: _isSubmitting
+                              ? null
+                              : () => _loadBankTransferInstructions(
+                                  showError: true,
+                                ),
+                          icon: const Icon(Icons.refresh_outlined, size: 18),
+                          label: Text(texts.retryAction),
+                        ),
+                      )
+                    else
+                      _CheckoutTransferPreviewCard(
+                        texts: texts,
+                        instructions: _bankTransferInstructions!,
+                      ),
                   ],
                 ),
         ),
@@ -378,37 +485,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
               if (_method == OrderPaymentMethod.bankTransfer) ...[
                 const SizedBox(height: 8),
-                Text(
-                  texts.bankTransferSummaryHint,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: colors.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
+                _CheckoutStatePanel(
+                  icon: Icons.info_outline,
+                  message: texts.bankTransferSummaryHint,
+                  tone: _CheckoutStateTone.info,
+                  dense: true,
                 ),
-                if (_isLoadingBankTransferInstructions) ...[
-                  const SizedBox(height: 8),
-                  _CheckoutStatePanel(
-                    icon: Icons.account_balance_outlined,
-                    message: texts.loadingBankTransferMessage,
-                    tone: _CheckoutStateTone.info,
-                    dense: true,
-                  ),
-                ] else if (_bankTransferInstructions == null) ...[
-                  const SizedBox(height: 8),
-                  _CheckoutStatePanel(
-                    icon: Icons.sync_problem_outlined,
-                    message: texts.bankTransferUnavailableMessage,
-                    tone: _CheckoutStateTone.error,
-                    dense: true,
-                    action: TextButton(
-                      onPressed: _isSubmitting
-                          ? null
-                          : () =>
-                                _loadBankTransferInstructions(showError: true),
-                      child: Text(texts.retryAction),
-                    ),
-                  ),
-                ],
               ],
               const Divider(height: 20),
               _SummaryRow(
@@ -448,9 +530,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       final validationService =
                           _buildCheckoutValidationService();
                       final validationResult = await validationService.validate(
-                        _buildCheckoutValidationRequest(
-                          cart: cart,
-                        ),
+                        _buildCheckoutValidationRequest(cart: cart),
                       );
                       if (!context.mounted) {
                         return;
@@ -796,8 +876,8 @@ class _CheckoutTexts {
       ? 'Loading account information...'
       : 'Đang tải thông tin tài khoản...';
   String get primaryActionBankTransfer => isEnglish
-      ? 'Create order and view bank transfer details'
-      : 'Tạo đơn và xem thông tin chuyển khoản';
+      ? 'Create order and open transfer instructions'
+      : 'Tạo đơn và mở hướng dẫn chuyển khoản';
   String cannotLoadBankTransferMessage(Object error) =>
       bankTransferLoadErrorMessage(error, isEnglish: isEnglish);
   String copiedLabelMessage(String label) =>
@@ -811,16 +891,44 @@ class _CheckoutTexts {
       isEnglish ? 'Contact person: $name' : 'Người liên hệ: $name';
   String phoneLine(String phone) =>
       isEnglish ? 'Phone: $phone' : 'Số điện thoại: $phone';
-  String get paymentMethodTitle =>
-      isEnglish ? 'Payment method' : 'Phương thức thanh toán';
+  String get paymentFlowTitle =>
+      isEnglish ? 'Payment flow' : 'Quy trình thanh toán';
+  String get fixedFlowBadge => isEnglish ? 'Fixed flow' : 'Luồng cố định';
   String get bankTransferTitle =>
       isEnglish ? 'Bank transfer' : 'Chuyển khoản ngân hàng';
   String get bankTransferSubtitle => isEnglish
-      ? 'Create the order first, then let the SePay webhook confirm payment automatically.'
-      : 'Tạo đơn trước, sau đó để SePay webhook tự động xác nhận thanh toán.';
-  String get bankTransferWorkflowHint => isEnglish
-      ? 'The order is created first and stays pending until payment is reconciled. Admin only processes paid orders, and unpaid pending orders may be auto-cancelled after the timeout.'
-      : 'Đơn được tạo trước và giữ trạng thái chờ đến khi đối soát thanh toán. Admin chỉ xử lý đơn đã thanh toán, và đơn chờ chưa thanh toán có thể tự hủy khi hết thời gian chờ.';
+      ? 'Dealer orders currently use one verified transfer flow managed through SePay reconciliation.'
+      : 'Đơn đại lý hiện dùng một luồng chuyển khoản cố định và được đối soát qua SePay.';
+  String get paymentFlowDescription => isEnglish
+      ? 'Create the order first, then transfer the exact amount using the exact order ID so the system can reconcile payment automatically.'
+      : 'Hệ thống sẽ tạo đơn trước. Sau đó bạn chuyển đúng số tiền và đúng mã đơn để hệ thống đối soát thanh toán tự động.';
+  String get paymentStepCreateTitle =>
+      isEnglish ? 'Create the order first' : 'Tạo đơn hàng trước';
+  String get paymentStepCreateDescription => isEnglish
+      ? 'The order is recorded immediately and remains pending while payment is being matched.'
+      : 'Đơn được ghi nhận ngay và giữ trạng thái chờ trong lúc hệ thống đối soát thanh toán.';
+  String get paymentStepTransferTitle => isEnglish
+      ? 'Transfer with the exact amount'
+      : 'Chuyển khoản đúng số tiền';
+  String get paymentStepTransferDescription => isEnglish
+      ? 'Use the receiving account shown below. Transfer content is the order ID generated after you place the order.'
+      : 'Dùng tài khoản nhận tiền bên dưới. Nội dung chuyển khoản sẽ là mã đơn được tạo sau khi bạn đặt hàng.';
+  String get paymentStepConfirmTitle =>
+      isEnglish ? 'Wait for automatic confirmation' : 'Chờ xác nhận tự động';
+  String get paymentStepConfirmDescription => isEnglish
+      ? 'SePay webhook updates payment status automatically. Admin only processes orders after successful payment.'
+      : 'SePay webhook sẽ tự cập nhật trạng thái thanh toán. Admin chỉ xử lý đơn sau khi thanh toán được xác nhận.';
+  String get transferPreviewTitle =>
+      isEnglish ? 'Receiving account' : 'Tài khoản nhận chuyển khoản';
+  String get transferPreviewHint => isEnglish
+      ? 'Transfer content appears after order creation because it uses the generated order ID.'
+      : 'Nội dung chuyển khoản chỉ xuất hiện sau khi tạo đơn vì sẽ dùng đúng mã đơn vừa phát sinh.';
+  String get providerLabel => isEnglish ? 'Provider' : 'Nhà cung cấp';
+  String get bankNameLabel => isEnglish ? 'Bank' : 'Ngân hàng';
+  String get accountNumberLabel =>
+      isEnglish ? 'Account number' : 'Số tài khoản';
+  String get accountHolderLabel =>
+      isEnglish ? 'Account holder' : 'Chủ tài khoản';
   String productsInOrderTitle(int totalItems) => isEnglish
       ? 'Products in order ($totalItems)'
       : 'Sản phẩm trong đơn ($totalItems)';
@@ -891,6 +999,209 @@ class _CheckoutTexts {
       case OrderPaymentStatus.paid:
         return isEnglish ? 'Paid' : 'Đã thanh toán';
     }
+  }
+}
+
+class _CheckoutMethodBadge extends StatelessWidget {
+  const _CheckoutMethodBadge({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: colors.surface.withValues(alpha: 0.86),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: colors.outlineVariant),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          color: colors.primary,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+class _CheckoutFlowStep extends StatelessWidget {
+  const _CheckoutFlowStep({
+    required this.index,
+    required this.title,
+    required this.description,
+  });
+
+  final int index;
+  final String title;
+  final String description;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: colors.primaryContainer,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            '$index',
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: colors.primary,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                description,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colors.onSurfaceVariant,
+                  height: 1.45,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CheckoutTransferPreviewCard extends StatelessWidget {
+  const _CheckoutTransferPreviewCard({
+    required this.texts,
+    required this.instructions,
+  });
+
+  final _CheckoutTexts texts;
+  final BankTransferInstructions instructions;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.8)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            texts.transferPreviewTitle,
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            texts.transferPreviewHint,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: colors.onSurfaceVariant,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 14),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final useTwoColumns = constraints.maxWidth >= 560;
+              final itemWidth = useTwoColumns
+                  ? (constraints.maxWidth - 12) / 2
+                  : constraints.maxWidth;
+              final fields = [
+                _CheckoutTransferDetail(
+                  label: texts.providerLabel,
+                  value: instructions.provider,
+                ),
+                _CheckoutTransferDetail(
+                  label: texts.bankNameLabel,
+                  value: instructions.bankName,
+                ),
+                _CheckoutTransferDetail(
+                  label: texts.accountNumberLabel,
+                  value: instructions.accountNumber,
+                ),
+                _CheckoutTransferDetail(
+                  label: texts.accountHolderLabel,
+                  value: instructions.accountHolder,
+                ),
+              ];
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: fields
+                    .map((field) => SizedBox(width: itemWidth, child: field))
+                    .toList(growable: false),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CheckoutTransferDetail extends StatelessWidget {
+  const _CheckoutTransferDetail({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.7)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: colors.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              height: 1.35,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

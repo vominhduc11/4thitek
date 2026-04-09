@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:fl_chart/fl_chart.dart';
@@ -390,20 +390,31 @@ class _DashboardTexts {
   String get quickActionsTitle =>
       isEnglish ? 'Quick actions' : 'Thao tác nhanh';
   String get quickActionsSubtitle => isEnglish
-      ? 'Keep common dealer tasks within one tap instead of switching between tabs.'
-      : 'Giữ các tác vụ đại lý thường dùng trong một chạm thay vì phải chuyển tab.';
+      ? 'Complete common dealer tasks right from the dashboard without losing context.'
+      : 'Hoàn thành các tác vụ đại lý thường dùng ngay từ dashboard mà không mất ngữ cảnh.';
   String get createOrderLabel => isEnglish ? 'New order' : 'Tạo đơn';
   String get inventoryLabel => isEnglish ? 'Inventory' : 'Kho';
   String get warrantyLabel => isEnglish ? 'Warranty' : 'Bảo hành';
   String get trackingSectionTitle =>
       isEnglish ? 'Operational insights' : 'Góc nhìn vận hành';
+  String get trackingSectionSubtitle => isEnglish
+      ? 'Prioritize revenue and order momentum first, then review supporting inventory and warranty signals.'
+      : 'Ưu tiên doanh thu và nhịp đơn hàng trước, sau đó mới rà các tín hiệu hỗ trợ từ kho và bảo hành.';
   String get mobileInsightsTitle =>
       isEnglish ? 'Inventory and warranty' : 'Kho và bảo hành';
   String get mobileInsightsSubtitle => isEnglish
       ? 'Secondary charts stay collapsed on mobile, but remain available when needed.'
       : 'Các biểu đồ phụ được thu gọn trên mobile nhưng vẫn sẵn sàng khi cần.';
+  String get secondaryInsightsTitle =>
+      isEnglish ? 'Supporting insights' : 'Chỉ báo hỗ trợ';
+  String get secondaryInsightsSubtitle => isEnglish
+      ? 'Use these panels for stock, activation, and serial-state follow-up after reviewing the primary metrics.'
+      : 'Dùng nhóm này để rà tồn kho, kích hoạt và trạng thái serial sau khi đã xem các chỉ số ưu tiên.';
   String get recentOrdersTitle =>
       isEnglish ? 'Recent orders' : 'Đơn hàng gần đây';
+  String get recentOrdersSubtitle => isEnglish
+      ? 'Keep track of the latest orders in the current reporting window.'
+      : 'Theo dõi những đơn mới nhất trong kỳ đang xem.';
   String get viewAllAction => isEnglish ? 'View all' : 'Xem tất cả';
   String get recentOrdersEmptyMessage => isEnglish
       ? 'There are no orders in the selected period yet.'
@@ -450,8 +461,8 @@ class _DashboardTexts {
   String get overviewTitle =>
       isEnglish ? 'Operational overview' : 'Tổng quan vận hành';
   String overviewContext(String contextLabel) => isEnglish
-      ? 'Data window: $contextLabel'
-      : 'Bối cảnh dữ liệu: $contextLabel';
+      ? 'Reporting window: $contextLabel'
+      : 'Kỳ theo dõi: $contextLabel';
   String overviewRevenueLabel(String periodUnitLabel) => isEnglish
       ? 'Purchase value this $periodUnitLabel'
       : 'Giá trị nhập hàng trong $periodUnitLabel';
@@ -620,7 +631,6 @@ class _DashboardTexts {
   String get warrantyStatusUnavailableDescription => isEnglish
       ? 'The app currently has activation history, but backend data for real serial-status categories is not available here.'
       : 'Ứng dụng hiện có lịch sử kích hoạt, nhưng backend chưa cung cấp nhóm trạng thái serial thực cho màn hình này.';
-
 }
 
 class DashboardScreen extends StatefulWidget {
@@ -927,6 +937,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final timeFilterLabel = _timeFilter == _DashboardTimeFilter.month
         ? texts.filterByMonthLabel
         : texts.filterByQuarterLabel;
+    final collapseSecondaryInsights = screenWidth < 1180;
+
+    Widget buildInsightGrid(List<Widget> cards) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final cols = constraints.maxWidth >= _desktopBreakpoint
+              ? 3
+              : constraints.maxWidth >= _tabletBreakpoint
+              ? 2
+              : 1;
+          final childWidth =
+              (constraints.maxWidth - (cols - 1) * _dashboardGridSpacing) /
+              cols;
+          return Wrap(
+            spacing: _dashboardGridSpacing,
+            runSpacing: _dashboardGridSpacing,
+            children: cards
+                .map((card) => SizedBox(width: childWidth, child: card))
+                .toList(growable: false),
+          );
+        },
+      );
+    }
 
     final Widget content;
     if (_loadState == _DashboardLoadState.loading) {
@@ -1006,7 +1039,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             SizedBox(height: sectionSpacing),
             FadeSlideIn(
               delay: const Duration(milliseconds: 95),
-              child: _SectionTitle(title: texts.trackingSectionTitle),
+              child: _SectionTitle(
+                title: texts.trackingSectionTitle,
+                subtitle: texts.trackingSectionSubtitle,
+              ),
             ),
             const SizedBox(height: 8),
             if (isMobile) ...[
@@ -1023,32 +1059,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 subtitle: texts.mobileInsightsSubtitle,
                 children: secondaryTrackingCards,
               ),
-            ] else
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final cols = constraints.maxWidth >= _desktopBreakpoint
-                      ? 3
-                      : constraints.maxWidth >= _tabletBreakpoint
-                      ? 2
-                      : 1;
-                  final childWidth =
-                      (constraints.maxWidth -
-                          (cols - 1) * _dashboardGridSpacing) /
-                      cols;
-                  return Wrap(
-                    spacing: _dashboardGridSpacing,
-                    runSpacing: _dashboardGridSpacing,
-                    children: [
-                      ...primaryTrackingCards.map(
-                        (card) => SizedBox(width: childWidth, child: card),
-                      ),
-                      ...secondaryTrackingCards.map(
-                        (card) => SizedBox(width: childWidth, child: card),
-                      ),
-                    ],
-                  );
-                },
-              ),
+            ] else ...[
+              buildInsightGrid(primaryTrackingCards),
+              SizedBox(height: sectionSpacing),
+              if (collapseSecondaryInsights)
+                _DashboardExpandableInsights(
+                  title: texts.secondaryInsightsTitle,
+                  subtitle: texts.secondaryInsightsSubtitle,
+                  children: secondaryTrackingCards,
+                )
+              else ...[
+                _SectionTitle(
+                  title: texts.secondaryInsightsTitle,
+                  subtitle: texts.secondaryInsightsSubtitle,
+                  compact: true,
+                ),
+                const SizedBox(height: 8),
+                buildInsightGrid(secondaryTrackingCards),
+              ],
+            ],
             SizedBox(height: sectionSpacing),
             FadeSlideIn(
               delay: const Duration(milliseconds: 140),
@@ -1067,13 +1096,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   );
 
                   if (periodOrders.isEmpty) {
-                    return _SectionTitle(title: texts.recentOrdersTitle);
+                    return _SectionTitle(
+                      title: texts.recentOrdersTitle,
+                      subtitle: texts.recentOrdersSubtitle,
+                    );
                   }
                   if (isCompactHeader) {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _SectionTitle(title: texts.recentOrdersTitle),
+                        _SectionTitle(
+                          title: texts.recentOrdersTitle,
+                          subtitle: texts.recentOrdersSubtitle,
+                        ),
                         const SizedBox(height: 4),
                         actionButton,
                       ],
@@ -1082,7 +1117,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   return Row(
                     children: [
                       Expanded(
-                        child: _SectionTitle(title: texts.recentOrdersTitle),
+                        child: _SectionTitle(
+                          title: texts.recentOrdersTitle,
+                          subtitle: texts.recentOrdersSubtitle,
+                        ),
                       ),
                       actionButton,
                     ],
@@ -1537,11 +1575,7 @@ class _OverviewCard extends StatelessWidget {
                 value: '$completionRate%',
                 isPrimary: false,
               );
-              final cards = [
-                outstandingCard,
-                orderCard,
-                completionRateCard,
-              ];
+              final cards = [outstandingCard, orderCard, completionRateCard];
               final compact = constraints.maxWidth < 360;
               final useTwoColumns =
                   constraints.maxWidth >= 360 &&
@@ -2999,6 +3033,7 @@ class _StatusBar extends StatelessWidget {
     );
   }
 }
+
 // ignore: unused_element
 class _NoticeCard extends StatelessWidget {
   const _NoticeCard({required this.notice});
@@ -3045,17 +3080,41 @@ class _NoticeCard extends StatelessWidget {
 }
 
 class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.title});
+  const _SectionTitle({
+    required this.title,
+    this.subtitle,
+    this.compact = false,
+  });
 
   final String title;
+  final String? subtitle;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: Theme.of(
-        context,
-      ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+    final theme = Theme.of(context);
+    final subtitle = this.subtitle;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        if (subtitle != null && subtitle.trim().isNotEmpty) ...[
+          SizedBox(height: compact ? 2 : 4),
+          Text(
+            subtitle,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: _dashboardMutedText(context),
+              height: 1.45,
+              fontWeight: compact ? FontWeight.w500 : FontWeight.w600,
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
@@ -3535,7 +3594,7 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
                           return LineTooltipItem(
                             isEnglish
                                 ? '${_formatPointLabel(data[idx])} - ${spot.y.toInt()} activations'
-                                : '${_formatPointLabel(data[idx])} - ${spot.y.toInt()} l??t',
+                                : '${_formatPointLabel(data[idx])} - ${spot.y.toInt()} lượt kích hoạt',
                             const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,

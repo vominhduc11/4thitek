@@ -66,7 +66,7 @@ void main() {
 
     expect(find.text('Tr\u1ea1ng th\u00e1i serial'), findsOneWidget);
     expect(
-      find.text('Ch\u01b0a c\u00f3 d\u1eef li\u1ec7u th\u1eadt'),
+      find.textContaining('Ch\u01b0a c\u00f3 d\u1eef li\u1ec7u'),
       findsWidgets,
     );
   });

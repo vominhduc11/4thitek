@@ -136,6 +136,116 @@ class _CartScreenState extends State<CartScreen> {
         );
     }
 
+    Future<bool> confirmSwipeRemoval(CartItem item) async {
+      if (isCartSyncing || cart.isSyncingProduct(item.product.id)) {
+        return false;
+      }
+      final result = await showModalBottomSheet<bool>(
+        context: context,
+        showDragHandle: true,
+        useSafeArea: true,
+        backgroundColor: colors.surface,
+        builder: (sheetContext) {
+          final sheetTheme = Theme.of(sheetContext);
+          final sheetColors = sheetTheme.colorScheme;
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  texts.swipeDeleteConfirmTitle,
+                  style: sheetTheme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  texts.swipeDeleteConfirmMessage(item.product.name),
+                  style: sheetTheme.textTheme.bodyMedium?.copyWith(
+                    color: sheetColors.onSurfaceVariant,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: sheetColors.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: sheetColors.outlineVariant.withValues(alpha: 0.75),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ProductImage(
+                        product: item.product,
+                        width: 48,
+                        height: 48,
+                        borderRadius: BorderRadius.circular(14),
+                        iconSize: 18,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.product.name,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: sheetTheme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              texts.itemCountLabel(item.quantity),
+                              style: sheetTheme.textTheme.bodySmall?.copyWith(
+                                color: sheetColors.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(sheetContext).pop(false),
+                        child: Text(texts.keepItemAction),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: () => Navigator.of(sheetContext).pop(true),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: sheetColors.error,
+                          foregroundColor: sheetColors.onError,
+                        ),
+                        icon: const Icon(Icons.delete_outline, size: 18),
+                        label: Text(texts.confirmDeleteAction),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      );
+      return result ?? false;
+    }
+
     Future<void> goCheckout() async {
       if (!hasAnyOrderableItems || isCartSyncing) {
         return;
@@ -275,6 +385,7 @@ class _CartScreenState extends State<CartScreen> {
                 texts.swipeDeleteHint,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: colors.onSurfaceVariant,
+                  height: 1.45,
                 ),
               ),
             ],
@@ -348,6 +459,7 @@ class _CartScreenState extends State<CartScreen> {
                 quantityFieldWidth: quantityFieldWidth,
                 isWide: useWideItemLayout,
                 onRemove: () => unawaited(removeItemWithUndo(item)),
+                onConfirmDismiss: () => confirmSwipeRemoval(item),
                 onQuantityChanged: (value) =>
                     _scheduleQuantitySync(cart, item, value),
               ),
@@ -1027,6 +1139,7 @@ class _CartItemCard extends StatelessWidget {
     required this.quantityFieldWidth,
     required this.isWide,
     required this.onRemove,
+    required this.onConfirmDismiss,
     required this.onQuantityChanged,
   });
 
@@ -1037,6 +1150,7 @@ class _CartItemCard extends StatelessWidget {
   final double quantityFieldWidth;
   final bool isWide;
   final VoidCallback onRemove;
+  final Future<bool> Function() onConfirmDismiss;
   final ValueChanged<double> onQuantityChanged;
 
   @override
@@ -1156,6 +1270,10 @@ class _CartItemCard extends StatelessWidget {
         direction: isSyncingItem
             ? DismissDirection.none
             : DismissDirection.endToStart,
+        dismissThresholds: const <DismissDirection, double>{
+          DismissDirection.endToStart: 0.42,
+        },
+        confirmDismiss: (_) => onConfirmDismiss(),
         background: Container(
           alignment: Alignment.centerRight,
           padding: const EdgeInsets.only(right: 20),
@@ -1163,10 +1281,20 @@ class _CartItemCard extends StatelessWidget {
             color: colors.error,
             borderRadius: BorderRadius.circular(18),
           ),
-          child: const Icon(
-            Icons.delete_outline,
-            color: Colors.white,
-            size: 24,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              const Icon(Icons.delete_outline, color: Colors.white, size: 24),
+              const SizedBox(height: 6),
+              Text(
+                texts.swipeDeleteAffordance,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ),
         ),
         onDismissed: (_) => onRemove(),
@@ -1662,8 +1790,8 @@ class _CartTexts {
       : 'Vui lòng chờ đồng bộ giỏ hàng hoàn tất trước khi thanh toán.';
 
   String get swipeDeleteHint => isEnglish
-      ? 'You can also swipe an item left to remove it.'
-      : 'Bạn cũng có thể vuốt sang trái để xóa sản phẩm.';
+      ? 'Use the delete button for instant removal, or swipe left and confirm to avoid accidental deletion.'
+      : 'Bạn có thể dùng nút xóa để bỏ ngay, hoặc vuốt sang trái rồi xác nhận để tránh xóa nhầm.';
 
   String removedFromCart(String productName) => isEnglish
       ? 'Removed $productName from cart'
@@ -1676,12 +1804,22 @@ class _CartTexts {
   String get undoAction => isEnglish ? 'Undo' : 'Hoàn tác';
 
   String get deleteTooltip => isEnglish ? 'Remove from cart' : 'Xóa khỏi giỏ';
+  String get swipeDeleteAffordance =>
+      isEnglish ? 'Review delete' : 'Xác nhận xóa';
+  String get swipeDeleteConfirmTitle =>
+      isEnglish ? 'Remove item from cart?' : 'Xóa sản phẩm khỏi giỏ?';
+  String swipeDeleteConfirmMessage(String productName) => isEnglish
+      ? 'This swipe will remove $productName from the cart. You can still undo it from the snackbar right after.'
+      : 'Thao tác vuốt này sẽ xóa $productName khỏi giỏ. Bạn vẫn có thể hoàn tác ngay sau đó từ thanh thông báo.';
+  String get keepItemAction => isEnglish ? 'Keep item' : 'Giữ lại';
+  String get confirmDeleteAction => isEnglish ? 'Delete item' : 'Xóa sản phẩm';
 
   String cartItemSemantics(String productName) =>
       isEnglish ? 'Cart item $productName' : 'Mục giỏ hàng $productName';
 
-  String get cartItemHint =>
-      isEnglish ? 'Swipe left to remove' : 'Vuốt sang trái để xóa';
+  String get cartItemHint => isEnglish
+      ? 'Swipe left and confirm to remove'
+      : 'Vuốt sang trái rồi xác nhận để xóa';
 
   String lineTotalLabel(String amount) =>
       isEnglish ? 'Line total: $amount' : 'Tổng dòng: $amount';
