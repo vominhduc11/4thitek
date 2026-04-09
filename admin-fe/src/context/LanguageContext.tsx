@@ -1309,7 +1309,7 @@ const translations: Record<Language, TranslationMap> = {
     "Số tiền phải khác 0": "The amount must be non-zero",
     "Số tiền thanh toán không hợp lệ": "Invalid payment amount",
     "Thay thế dữ liệu hiện tại?": "Replace existing data?",
-    "Thành tiền": "Make money",
+    "Thành tiền": "Line total",
     "Thêm điều chỉnh": "Add adjustments",
     "Thêm điều chỉnh tài chính": "Add financial adjustments",
     "Thất bại": "Failure",
