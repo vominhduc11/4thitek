@@ -6,12 +6,14 @@ import com.devwonder.backend.dto.admin.AdminBlogResponse;
 import com.devwonder.backend.dto.admin.AdminBlogUpsertRequest;
 import com.devwonder.backend.dto.admin.AdminDashboardResponse;
 import com.devwonder.backend.dto.admin.AdminDealerAccountResponse;
+import com.devwonder.backend.dto.admin.AdminDealerAccountSummaryResponse;
 import com.devwonder.backend.dto.admin.AdminDealerResponse;
 import com.devwonder.backend.dto.admin.AdminDiscountRuleResponse;
 import com.devwonder.backend.dto.admin.AdminDiscountRuleUpsertRequest;
 import com.devwonder.backend.dto.admin.AdminNotificationDispatchResponse;
 import com.devwonder.backend.dto.admin.AdminNotificationResponse;
 import com.devwonder.backend.dto.admin.AdminOrderResponse;
+import com.devwonder.backend.dto.admin.AdminOrderSummaryResponse;
 import com.devwonder.backend.dto.admin.AdminProductResponse;
 import com.devwonder.backend.dto.admin.AdminProductUpsertRequest;
 import com.devwonder.backend.dto.admin.AdminReportExportResponse;
@@ -47,6 +49,7 @@ import com.devwonder.backend.dto.customer.ChangePasswordRequest;
 import com.devwonder.backend.dto.dealer.RecordPaymentRequest;
 import com.devwonder.backend.dto.dealer.DealerProductSerialResponse;
 import com.devwonder.backend.dto.dealer.UpdateDealerOrderStatusRequest;
+import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.dto.pagination.PagedResponse;
 import com.devwonder.backend.dto.serial.SerialImportSummaryResponse;
@@ -149,11 +152,17 @@ public class AdminController {
             @RequestParam(name = "size", required = false) Integer size,
             @RequestParam(name = "sortBy", required = false) String sortBy,
             @RequestParam(name = "sortDir", required = false) String sortDir,
-            @RequestParam(name = "status", required = false) OrderStatus status
+            @RequestParam(name = "status", required = false) OrderStatus status,
+            @RequestParam(name = "query", required = false) String query
     ) {
         Pageable pageable = PaginationUtils.toPageable(page, size, sortBy, sortDir, "createdAt");
-        Page<AdminOrderResponse> result = adminManagementService.getOrders(pageable, status);
+        Page<AdminOrderResponse> result = adminManagementService.getOrders(pageable, status, query);
         return ResponseEntity.ok(ApiResponse.success(PagedResponse.from(result, "createdAt")));
+    }
+
+    @GetMapping("/orders/summary")
+    public ResponseEntity<ApiResponse<AdminOrderSummaryResponse>> orderSummary() {
+        return ResponseEntity.ok(ApiResponse.success(adminManagementService.getOrderSummary()));
     }
 
     @PatchMapping("/orders/{id}/status")
@@ -381,11 +390,18 @@ public class AdminController {
             @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false) Integer size,
             @RequestParam(name = "sortBy", required = false) String sortBy,
-            @RequestParam(name = "sortDir", required = false) String sortDir
+            @RequestParam(name = "sortDir", required = false) String sortDir,
+            @RequestParam(name = "status", required = false) CustomerStatus status,
+            @RequestParam(name = "query", required = false) String query
     ) {
         Pageable pageable = PaginationUtils.toPageable(page, size, sortBy, sortDir, "createdAt");
-        Page<AdminDealerAccountResponse> result = adminManagementService.getDealerAccounts(pageable);
+        Page<AdminDealerAccountResponse> result = adminManagementService.getDealerAccounts(pageable, status, query);
         return ResponseEntity.ok(ApiResponse.success(PagedResponse.from(result, "createdAt")));
+    }
+
+    @GetMapping("/dealers/accounts/summary")
+    public ResponseEntity<ApiResponse<AdminDealerAccountSummaryResponse>> dealerAccountSummary() {
+        return ResponseEntity.ok(ApiResponse.success(adminManagementService.getDealerAccountSummary()));
     }
 
     @PatchMapping("/dealers/accounts/{id}/status")

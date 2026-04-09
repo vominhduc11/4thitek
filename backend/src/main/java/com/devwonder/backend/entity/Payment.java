@@ -3,7 +3,6 @@ package com.devwonder.backend.entity;
 import com.devwonder.backend.entity.enums.PaymentMethod;
 import com.devwonder.backend.entity.enums.PaymentStatus;
 import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -39,7 +38,7 @@ public class Payment {
     @Column(name = "amount")
     private BigDecimal amount;
 
-    @Convert(converter = PaymentMethodConverter.class)
+    @Enumerated(EnumType.STRING)
     @Column(name = "method")
     private PaymentMethod method;
 

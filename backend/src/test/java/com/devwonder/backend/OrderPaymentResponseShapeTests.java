@@ -262,21 +262,21 @@ class OrderPaymentResponseShapeTests {
     }
 
     @Test
-    void dealerOrderCreateEndpointRejectsDebtPayload() throws Exception {
+    void dealerOrderCreateEndpointRejectsUnsupportedPaymentMethodPayload() throws Exception {
         String dealerToken = login(dealer.getEmail(), "Dealer#123");
 
         mockMvc.perform(post("/api/v1/dealer/orders")
                         .header("Authorization", "Bearer " + dealerToken)
-                        .header("X-Idempotency-Key", "shape-invalid-debt")
+                        .header("X-Idempotency-Key", "shape-invalid-payment-method")
                         .contentType(APPLICATION_JSON)
                         .content("""
                                 {
-                                  "paymentMethod": "DEBT",
+                                  "paymentMethod": "CASH",
                                   "receiverName": "Dealer Receiver",
                                   "receiverAddress": "123 Contract Street",
                                   "receiverPhone": "0900000000",
                                   "shippingFee": 0,
-                                  "note": "Reject debt payload",
+                                  "note": "Reject unsupported payment payload",
                                   "items": [
                                     {
                                       "productId": %d,

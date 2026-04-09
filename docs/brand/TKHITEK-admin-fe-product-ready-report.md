@@ -42,7 +42,7 @@
 ### Residual notes
 
 - `CreateProductPage.tsx`, `ProductDetailPage.tsx` and some serial-management surfaces still contain many legacy utility strings. They now render inside the new token system, but code-level consistency there is lower than the rest of the revamp.
-- That is a styling-implementation debt, not a runtime or logic blocker. Build verification passed without introducing permission, reporting or CRUD regressions.
+- That is a styling implementation gap, not a runtime or logic blocker. Build verification passed without introducing permission, reporting or CRUD regressions.
 
 ## 3. Danh Sách File Cần Sửa
 

@@ -1,5 +1,5 @@
 import { AlertTriangle, LoaderCircle, Package, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   EmptyState,
@@ -8,6 +8,7 @@ import {
   LoadingRows,
   PageHeader,
   PagePanel,
+  PaginationNav,
   SearchInput,
   StatCard,
   StatusBadge,
@@ -19,7 +20,8 @@ import {
   tableRowClass,
   tableValueClass,
 } from "../components/ui-kit";
-import { useAdminData, type OrderStatus } from "../context/AdminDataContext";
+import { useAdminData, type Order, type OrderStatus } from "../context/AdminDataContext";
+import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { translateCopy } from "../lib/i18n";
 import { useToast } from "../context/ToastContext";
@@ -30,6 +32,13 @@ import {
   resolveAllowedOrderStatuses,
 } from "../lib/adminLabels";
 import { formatCurrency } from "../lib/formatters";
+import {
+  fetchAdminOrdersPaged,
+  fetchAdminOrderSummary,
+} from "../lib/adminApi";
+import { mapOrder, toBackendOrderStatus } from "../lib/adminDataMappers";
+
+const PAGE_SIZE = 25;
 
 const canDeleteOrder = (status: OrderStatus) => status === "cancelled";
 
@@ -78,43 +87,133 @@ function OrdersPageRevamp() {
   ];
   const { notify } = useToast();
   const navigate = useNavigate();
-  const {
-    orders,
-    ordersState,
-    deleteOrder,
-    updateOrderStatus,
-    reloadResource,
-  } = useAdminData();
+  const { accessToken } = useAuth();
+  const { deleteOrder, updateOrderStatus } = useAdminData();
   const { confirm, confirmDialog } = useConfirmDialog();
 
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalItems, setTotalItems] = useState(0);
+  const [stats, setStats] = useState({
+    total: 0,
+    pending: 0,
+    shipping: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | OrderStatus>("all");
-  const [localError, setLocalError] = useState<string | null>(null);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const toolbarSearchClass = "w-full sm:max-w-sm lg:w-72 xl:w-80";
+  const requestIdRef = useRef(0);
+  const summaryRequestIdRef = useRef(0);
 
-  const normalizedQuery = query.trim().toLowerCase();
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedQuery(query.trim());
+    }, 300);
 
-  const filteredOrders = useMemo(
-    () =>
-      orders.filter((order) => {
-        const matchesStatus =
-          statusFilter === "all" ? true : order.status === statusFilter;
-        const matchesQuery =
-          !normalizedQuery ||
-          order.id.toLowerCase().includes(normalizedQuery) ||
-          order.orderCode.toLowerCase().includes(normalizedQuery) ||
-          order.dealer.toLowerCase().includes(normalizedQuery);
-        return matchesStatus && matchesQuery;
-      }),
-    [normalizedQuery, orders, statusFilter],
+    return () => window.clearTimeout(timer);
+  }, [query]);
+
+  const loadSummary = useCallback(async () => {
+    if (!accessToken) {
+      return;
+    }
+
+    const requestId = ++summaryRequestIdRef.current;
+
+    try {
+      const summary = await fetchAdminOrderSummary(accessToken);
+      if (summaryRequestIdRef.current !== requestId) {
+        return;
+      }
+
+      setStats({
+        total: Number(summary.total ?? 0),
+        pending: Number(summary.pending ?? 0),
+        shipping: Number(summary.shipping ?? 0),
+      });
+    } catch {
+      if (summaryRequestIdRef.current !== requestId) {
+        return;
+      }
+
+      setStats({
+        total: 0,
+        pending: 0,
+        shipping: 0,
+      });
+    }
+  }, [accessToken]);
+
+  const loadPage = useCallback(
+    async (nextPage: number) => {
+      if (!accessToken) {
+        return;
+      }
+
+      const requestId = ++requestIdRef.current;
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetchAdminOrdersPaged(accessToken, {
+          page: nextPage,
+          size: PAGE_SIZE,
+          status:
+            statusFilter === "all"
+              ? undefined
+              : toBackendOrderStatus(statusFilter),
+          query: debouncedQuery || undefined,
+        });
+
+        if (requestIdRef.current !== requestId) {
+          return;
+        }
+
+        setOrders(response.items.map(mapOrder));
+        setPage(response.page);
+        setTotalPages(response.totalPages);
+        setTotalItems(response.totalElements);
+      } catch (loadError) {
+        if (requestIdRef.current !== requestId) {
+          return;
+        }
+
+        const message =
+          loadError instanceof Error ? loadError.message : copy.loadFallback;
+        setError(message);
+        notify(message, {
+          title: copy.title,
+          variant: "error",
+        });
+      } finally {
+        if (requestIdRef.current === requestId) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [accessToken, copy.loadFallback, copy.title, debouncedQuery, notify, statusFilter],
   );
 
-  const stats = useMemo(() => {
-    const pending = orders.filter((item) => item.status === "pending").length;
-    const shipping = orders.filter((item) => item.status === "shipping").length;
-    return { pending, shipping };
-  }, [orders]);
+  useEffect(() => {
+    void loadSummary();
+  }, [loadSummary]);
+
+  useEffect(() => {
+    void loadPage(0);
+  }, [loadPage]);
+
+  const reloadCurrentPage = useCallback(
+    async (nextPage?: number) => {
+      const pageToLoad = nextPage ?? page;
+      await Promise.all([loadPage(pageToLoad), loadSummary()]);
+    },
+    [loadPage, loadSummary, page],
+  );
 
   const handleStatusChange = async (
     orderId: string,
@@ -144,6 +243,7 @@ function OrdersPageRevamp() {
     try {
       setUpdatingOrderId(orderId);
       await updateOrderStatus(orderId, nextStatus);
+      await reloadCurrentPage();
     } catch (updateError) {
       notify(
         updateError instanceof Error ? updateError.message : copy.updateFailed,
@@ -152,6 +252,7 @@ function OrdersPageRevamp() {
           variant: "error",
         },
       );
+      revert();
     } finally {
       setUpdatingOrderId(null);
     }
@@ -171,6 +272,8 @@ function OrdersPageRevamp() {
 
     try {
       await deleteOrder(orderId);
+      const nextPage = page > 0 && orders.length === 1 ? page - 1 : page;
+      await reloadCurrentPage(nextPage);
     } catch (deleteError) {
       notify(
         deleteError instanceof Error ? deleteError.message : copy.deleteFailed,
@@ -182,7 +285,7 @@ function OrdersPageRevamp() {
     }
   };
 
-  if (ordersState.status === "loading" || ordersState.status === "idle") {
+  if (isLoading && totalItems === 0 && orders.length === 0) {
     return (
       <PagePanel>
         <LoadingRows rows={6} />
@@ -190,15 +293,14 @@ function OrdersPageRevamp() {
     );
   }
 
-  if (localError || ordersState.status === "error") {
+  if (error) {
     return (
       <PagePanel>
         <ErrorState
           title={copy.loadTitle}
-          message={localError || ordersState.error || copy.loadFallback}
+          message={error}
           onRetry={() => {
-            setLocalError(null);
-            void reloadResource("orders");
+            void reloadCurrentPage();
           }}
         />
       </PagePanel>
@@ -207,10 +309,7 @@ function OrdersPageRevamp() {
 
   return (
     <PagePanel>
-      <PageHeader
-        title={copy.title}
-        subtitle={copy.description}
-      />
+      <PageHeader title={copy.title} subtitle={copy.description} />
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <SearchInput
@@ -238,11 +337,7 @@ function OrdersPageRevamp() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <StatCard
-          label={copy.totalOrders}
-          value={orders.length}
-          tone="neutral"
-        />
+        <StatCard label={copy.totalOrders} value={stats.total} tone="neutral" />
         <StatCard
           label={copy.pendingOrders}
           value={stats.pending}
@@ -256,7 +351,9 @@ function OrdersPageRevamp() {
       </div>
 
       <div className="mt-6">
-        {filteredOrders.length === 0 ? (
+        {isLoading ? (
+          <LoadingRows rows={6} />
+        ) : orders.length === 0 ? (
           <EmptyState
             icon={Package}
             title={copy.emptyTitle}
@@ -265,7 +362,7 @@ function OrdersPageRevamp() {
         ) : (
           <>
             <div className="grid gap-3 md:hidden">
-              {filteredOrders.map((order) => {
+              {orders.map((order) => {
                 const isUpdating = updatingOrderId === order.id;
                 return (
                   <article key={order.id} className={tableCardClass}>
@@ -320,16 +417,11 @@ function OrdersPageRevamp() {
                           {resolveAllowedOrderStatuses(
                             order.status,
                             order.allowedTransitions,
-                          ).map(
-                            (option) => (
-                              <option
-                                key={`${order.id}-${option}`}
-                                value={option}
-                              >
-                                {t(orderStatusLabel[option])}
-                              </option>
-                            ),
-                          )}
+                          ).map((option) => (
+                            <option key={`${order.id}-${option}`} value={option}>
+                              {t(orderStatusLabel[option])}
+                            </option>
+                          ))}
                         </select>
                         {isUpdating ? (
                           <LoaderCircle
@@ -375,7 +467,7 @@ function OrdersPageRevamp() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredOrders.map((order) => {
+                  {orders.map((order) => {
                     const isUpdating = updatingOrderId === order.id;
                     return (
                       <tr
@@ -391,7 +483,7 @@ function OrdersPageRevamp() {
                             {order.orderCode}
                             {order.staleReviewRequired && (
                               <AlertTriangle
-                                className="h-3 w-3 text-rose-500 shrink-0"
+                                className="h-3 w-3 shrink-0 text-rose-500"
                                 aria-label="Cần xem xét"
                               />
                             )}
@@ -432,16 +524,14 @@ function OrdersPageRevamp() {
                                 {resolveAllowedOrderStatuses(
                                   order.status,
                                   order.allowedTransitions,
-                                ).map(
-                                  (option) => (
-                                    <option
-                                      key={`${order.id}-${option}`}
-                                      value={option}
-                                    >
-                                      {t(orderStatusLabel[option])}
-                                    </option>
-                                  ),
-                                )}
+                                ).map((option) => (
+                                  <option
+                                    key={`${order.id}-${option}`}
+                                    value={option}
+                                  >
+                                    {t(orderStatusLabel[option])}
+                                  </option>
+                                ))}
                               </select>
                               {isUpdating ? (
                                 <LoaderCircle
@@ -472,6 +562,18 @@ function OrdersPageRevamp() {
                 </tbody>
               </table>
             </div>
+
+            <PaginationNav
+              page={page}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              pageSize={PAGE_SIZE}
+              onPageChange={(nextPage) => {
+                void loadPage(nextPage);
+              }}
+              previousLabel={t("Trước")}
+              nextLabel={t("Sau")}
+            />
           </>
         )}
       </div>

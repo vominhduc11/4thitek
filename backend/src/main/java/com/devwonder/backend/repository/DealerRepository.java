@@ -33,6 +33,43 @@ public interface DealerRepository extends JpaRepository<Dealer, Long> {
     List<Dealer> findAllByCustomerStatusOrderByCreatedAtDesc(CustomerStatus status);
     Page<Dealer> findAllByCustomerStatus(CustomerStatus status, Pageable pageable);
 
+    @Query(
+            value = """
+                    select d
+                    from Dealer d
+                    where (:status is null or d.customerStatus = :status)
+                      and (
+                        :query is null
+                        or lower(coalesce(d.businessName, '')) like :query
+                        or lower(coalesce(d.contactName, '')) like :query
+                        or lower(coalesce(d.username, '')) like :query
+                        or lower(coalesce(d.email, '')) like :query
+                        or lower(coalesce(d.phone, '')) like :query
+                        or lower(str(d.id)) like :query
+                      )
+                    order by d.createdAt desc
+                    """,
+            countQuery = """
+                    select count(d)
+                    from Dealer d
+                    where (:status is null or d.customerStatus = :status)
+                      and (
+                        :query is null
+                        or lower(coalesce(d.businessName, '')) like :query
+                        or lower(coalesce(d.contactName, '')) like :query
+                        or lower(coalesce(d.username, '')) like :query
+                        or lower(coalesce(d.email, '')) like :query
+                        or lower(coalesce(d.phone, '')) like :query
+                        or lower(str(d.id)) like :query
+                      )
+                    """
+    )
+    Page<Dealer> findAllByCustomerStatusAndQueryOrderByCreatedAtDesc(
+            CustomerStatus status,
+            String query,
+            Pageable pageable
+    );
+
     @Query("select d.id from Dealer d")
     List<Long> findAllIds();
 }

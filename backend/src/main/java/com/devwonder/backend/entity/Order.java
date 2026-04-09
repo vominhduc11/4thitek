@@ -3,7 +3,6 @@ package com.devwonder.backend.entity;
 import com.devwonder.backend.entity.enums.PaymentStatus;
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.PaymentMethod;
-import jakarta.persistence.Convert;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -61,7 +60,7 @@ public class Order {
     @Column(name = "status")
     private OrderStatus status;
 
-    @Convert(converter = PaymentMethodConverter.class)
+    @Enumerated(EnumType.STRING)
     @Column(name = "payment_method")
     private PaymentMethod paymentMethod;
 

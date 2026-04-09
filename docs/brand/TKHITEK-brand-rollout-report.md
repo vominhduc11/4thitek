@@ -18,7 +18,7 @@
 
 | Surface                 | Scope audited                                                                                                                                                         | Status                   | Notes                                                                                |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------ |
-| Routes / screens        | Launch, login, forgot password, dashboard, product list/detail, cart, checkout, orders, notifications, inventory, warranty hub/activation/export, support history | `done`                   | Material 3 theme now drives the core B2B screens and role-specific widgets. Dealer debt flow is historical-only and not part of the active runtime surface. |
+| Routes / screens        | Launch, login, forgot password, dashboard, product list/detail, cart, checkout, orders, notifications, inventory, warranty hub/activation/export, support history | `done`                   | Material 3 theme now drives the core B2B screens and role-specific widgets. Dealer runtime keeps a single bank-transfer payment model across active transactional flows. |
 | Dialogs                 | App-wide dialog theme, form dialogs, system dialogs                                                                                                                   | `inherits shared system` | Dialog styling is controlled from `main.dart` theme primitives.                      |
 | Bottom sheets           | Bottom sheet theme, mobile operational sheets                                                                                                                         | `inherits shared system` | Bottom sheets inherit the new brand surface, radius and typography rules.            |
 | Drawers                 | Dealer shell / navigation containers                                                                                                                                  | `inherits shared system` | Navigation surfaces inherit theme-level shell styling.                               |
@@ -207,5 +207,5 @@
 
 - Brand audit này không thay đổi backend invariants đã đúng
 - Runtime order mới vẫn là `BANK_TRANSFER` only
-- Debt chỉ còn là historical compatibility note ngoài runtime surface active
+- Dealer/admin/payment copy now reflects the active bank-transfer-only runtime
 - Brand accent priority remains blue / gradient first across all three FE

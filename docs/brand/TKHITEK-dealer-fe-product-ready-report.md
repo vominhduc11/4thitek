@@ -4,7 +4,7 @@
 
 | Surface | Scope | Status | Notes |
 | --- | --- | --- | --- |
-| Routes / screens | `launch`, `login`, `forgot_password`, `home shell`, `dashboard`, `products`, `product detail`, `cart`, `checkout`, `orders`, `order detail`, `notifications`, `inventory`, `account`, `account settings`, `preferences`, `support`, `warranty hub`, `warranty activation`, `warranty export` | `done` | Core dealer journeys now sit on the same TK HiTek Material 3 token system with role-appropriate brand density. Runtime hiện hành là `BANK_TRANSFER` only; debt screen không còn thuộc surface active. |
+| Routes / screens | `launch`, `login`, `forgot_password`, `home shell`, `dashboard`, `products`, `product detail`, `cart`, `checkout`, `orders`, `order detail`, `notifications`, `inventory`, `account`, `account settings`, `preferences`, `support`, `warranty hub`, `warranty activation`, `warranty export` | `done` | Core dealer journeys now sit on the same TK HiTek Material 3 token system with role-appropriate brand density. Runtime hiện hành là `BANK_TRANSFER` only across active checkout and payment flows. |
 | Dialogs | confirm logout, cancel order, payment dialogs, auth/system dialogs | `inherits shared system` | Dialog styling is centralized by `main.dart` plus shared panel tokens. |
 | Bottom sheets | notification detail, transfer/payment sheets, operational mobile sheets | `inherits shared system` | Radius, dark panel, drag handle and CTA tone are now shared by theme primitives. |
 | Drawers / navigation shell | app shell, rail, bottom nav, launch shell, app bars | `done` | Dealer shell now uses one restrained brand language instead of page-by-page blue variants. |
@@ -89,7 +89,7 @@
 - `dealer/lib/orders_screen.dart`
 - `dealer/lib/order_detail_screen.dart`
 - `dealer/lib/order_success_screen.dart`
-- Debt tracking screen đã được loại khỏi runtime surface hiện hành; nếu cần đối chiếu dữ liệu cũ thì xem tài liệu `historical compatibility only`.
+- Legacy payment tracking screens are no longer part of the audited runtime surface.
 - `dealer/lib/inventory_screen.dart`
 - `dealer/lib/inventory_product_detail_screen.dart`
 - `dealer/lib/account_screen.dart`
@@ -140,7 +140,7 @@
 - [ ] Cart quantity debounce vẫn đúng và không lệch calculation
 - [ ] Checkout summary vẫn đúng subtotal, discount, VAT, total
 - [ ] Payment method bank transfer không ảnh hưởng flow runtime hiện tại
-- [ ] Không còn debt flow active trong runtime mới; UI không được gợi ý debt như một payment authority
+- [ ] Active runtime keeps only the supported bank-transfer payment flow
 
 ### Order flows
 
@@ -191,5 +191,5 @@
 - Không đổi pricing logic
 - Không đổi cart calculation
 - Không đổi discount logic
-- Không đổi order / payment invariants đã đúng; debt chỉ còn là historical compatibility note ngoài runtime flow mới
+- Không đổi order / payment invariants đã đúng; runtime vẫn giữ mô hình thanh toán bank transfer hiện hành
 - Không đổi data shape, controller signature hay infra

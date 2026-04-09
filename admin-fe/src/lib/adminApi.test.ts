@@ -90,4 +90,57 @@ describe('adminApi importAdminSerials', () => {
       skippedCount: 1,
     })
   })
+
+  it('builds paged order requests with server-side filters instead of fetching every page', async () => {
+    vi.stubEnv('VITE_API_BASE_URL', 'https://api.example.com/api/v1')
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          success: true,
+          data: {
+            items: [
+              {
+                id: 10,
+                orderCode: 'ORD-10',
+                dealerName: 'Dealer A',
+              },
+            ],
+            page: 1,
+            size: 25,
+            totalElements: 52,
+            totalPages: 3,
+            sortBy: 'createdAt',
+          },
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { fetchAdminOrdersPaged } = await importAdminApi()
+    const result = await fetchAdminOrdersPaged('access-token', {
+      page: 1,
+      size: 25,
+      status: 'PENDING',
+      query: 'ord-10',
+    })
+
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe(
+      '/api/v1/admin/orders/page?page=1&size=25&status=PENDING&query=ord-10',
+    )
+    expect(result).toMatchObject({
+      items: [
+        {
+          id: 10,
+          orderCode: 'ORD-10',
+          dealerName: 'Dealer A',
+        },
+      ],
+      totalElements: 52,
+      totalPages: 3,
+    })
+  })
 })

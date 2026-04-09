@@ -5,10 +5,12 @@ import com.devwonder.backend.dto.admin.AdminBlogResponse;
 import com.devwonder.backend.dto.admin.AdminBlogUpsertRequest;
 import com.devwonder.backend.dto.admin.AdminDashboardResponse;
 import com.devwonder.backend.dto.admin.AdminDealerAccountResponse;
+import com.devwonder.backend.dto.admin.AdminDealerAccountSummaryResponse;
 import com.devwonder.backend.dto.admin.AdminDealerResponse;
 import com.devwonder.backend.dto.admin.AdminDiscountRuleResponse;
 import com.devwonder.backend.dto.admin.AdminDiscountRuleUpsertRequest;
 import com.devwonder.backend.dto.admin.AdminOrderResponse;
+import com.devwonder.backend.dto.admin.AdminOrderSummaryResponse;
 import com.devwonder.backend.dto.admin.AdminProductResponse;
 import com.devwonder.backend.dto.admin.AdminProductUpsertRequest;
 import com.devwonder.backend.dto.admin.AdminStaffUserResponse;
@@ -82,6 +84,7 @@ import java.time.YearMonth;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
@@ -207,13 +210,31 @@ public class AdminManagementService {
 
     @Transactional(readOnly = true)
     public Page<AdminOrderResponse> getOrders(Pageable pageable, OrderStatus status) {
+        return getOrders(pageable, status, null);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AdminOrderResponse> getOrders(Pageable pageable, OrderStatus status, String query) {
         List<BulkDiscount> activeDiscountRules = activeDiscountRules();
         int vatPercent = currentVatPercent();
         Pageable effectivePageable = pageable == null || pageable.isUnpaged()
                 ? PageRequest.of(0, 100)
                 : pageable;
-        return orderRepository.findVisibleByStatusAndCreatedAtDesc(status, effectivePageable)
+        return orderRepository.findVisibleByStatusAndQueryOrderByCreatedAtDesc(
+                        status,
+                        normalizeContainsQuery(query),
+                        effectivePageable
+                )
                 .map(order -> AdminResponseMapper.toOrderResponse(order, activeDiscountRules, vatPercent));
+    }
+
+    @Transactional(readOnly = true)
+    public AdminOrderSummaryResponse getOrderSummary() {
+        return new AdminOrderSummaryResponse(
+                orderRepository.countVisibleOrders(),
+                orderRepository.countVisibleOrdersByStatus(OrderStatus.PENDING),
+                orderRepository.countVisibleOrdersByStatus(OrderStatus.SHIPPING)
+        );
     }
 
     @Transactional
@@ -482,13 +503,43 @@ public class AdminManagementService {
 
     @Transactional(readOnly = true)
     public Page<AdminDealerAccountResponse> getDealerAccounts(Pageable pageable) {
+        return getDealerAccounts(pageable, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AdminDealerAccountResponse> getDealerAccounts(
+            Pageable pageable,
+            CustomerStatus status,
+            String query
+    ) {
         List<BulkDiscount> activeDiscountRules = activeDiscountRules();
         int vatPercent = currentVatPercent();
         Pageable effectivePageable = pageable == null || pageable.isUnpaged()
                 ? PageRequest.of(0, 100)
                 : pageable;
-        return dealerRepository.findAllByOrderByCreatedAtDesc(effectivePageable)
+        return dealerRepository.findAllByCustomerStatusAndQueryOrderByCreatedAtDesc(
+                        status,
+                        normalizeContainsQuery(query),
+                        effectivePageable
+                )
                 .map(dealer -> AdminResponseMapper.toDealerAccountResponse(dealer, activeDiscountRules, vatPercent));
+    }
+
+    @Transactional(readOnly = true)
+    public AdminDealerAccountSummaryResponse getDealerAccountSummary() {
+        List<BulkDiscount> activeDiscountRules = activeDiscountRules();
+        int vatPercent = currentVatPercent();
+        java.math.BigDecimal totalRevenue = dealerRepository.findAllByOrderByCreatedAtDesc().stream()
+                .map(dealer -> AdminResponseMapper.toDealerAccountResponse(dealer, activeDiscountRules, vatPercent).revenue())
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+        return new AdminDealerAccountSummaryResponse(
+                dealerRepository.count(),
+                dealerRepository.countByCustomerStatus(CustomerStatus.ACTIVE),
+                dealerRepository.countByCustomerStatus(CustomerStatus.UNDER_REVIEW),
+                dealerRepository.countByCustomerStatus(CustomerStatus.SUSPENDED),
+                totalRevenue
+        );
     }
 
     @Transactional
@@ -762,6 +813,15 @@ public class AdminManagementService {
 
     private String valueAsString(Object value) {
         return value == null ? null : String.valueOf(value);
+    }
+
+    private String normalizeContainsQuery(String query) {
+        if (query == null) {
+            return null;
+        }
+
+        String normalized = query.trim().toLowerCase(Locale.ROOT);
+        return normalized.isEmpty() ? null : "%" + normalized + "%";
     }
 
     private int safeStock(Product product) {

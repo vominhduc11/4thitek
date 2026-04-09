@@ -168,13 +168,16 @@ export const getRequiredResources = (
   if (pathname === '/' || pathname.startsWith('/products')) {
     return []
   }
-  if (pathname.startsWith('/orders')) {
+  if (pathname.startsWith('/orders/')) {
     return ['orders']
   }
   if (pathname.startsWith('/blogs')) {
     return ['posts']
   }
-  if (pathname.startsWith('/dealers')) {
+  if (pathname.startsWith('/dealers/')) {
+    return ['dealers']
+  }
+  if (pathname.startsWith('/payments')) {
     return ['dealers']
   }
   if (pathname.startsWith('/users')) {
@@ -393,8 +396,8 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
   const shellResources = useMemo<AdminResourceKey[]>(
     () =>
       canManageUsers
-        ? ['orders', 'posts', 'dealers', 'discountRules', 'users']
-        : ['orders', 'posts', 'dealers', 'discountRules'],
+        ? ['posts', 'discountRules', 'users']
+        : ['posts', 'discountRules'],
     [canManageUsers],
   )
 

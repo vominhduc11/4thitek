@@ -1,5 +1,5 @@
 import { Bell, CheckCircle2, Clock3, Users } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   EmptyState,
@@ -7,6 +7,7 @@ import {
   LoadingRows,
   PageHeader,
   PagePanel,
+  PaginationNav,
   SearchInput,
   StatCard,
   StatusBadge,
@@ -17,7 +18,8 @@ import {
   tableMetaClass,
   tableRowClass,
 } from '../components/ui-kit'
-import { useAdminData, type DealerStatus } from '../context/AdminDataContext'
+import { useAdminData, type Dealer, type DealerStatus } from '../context/AdminDataContext'
+import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import { translateCopy } from '../lib/i18n'
 import { useToast } from '../context/ToastContext'
@@ -29,6 +31,13 @@ import {
   resolveAllowedDealerStatuses,
 } from '../lib/adminLabels'
 import { formatCurrency, formatDateTime } from '../lib/formatters'
+import {
+  fetchAdminDealerAccountsPaged,
+  fetchAdminDealerAccountSummary,
+} from '../lib/adminApi'
+import { mapDealer, toBackendDealerAccountStatus } from '../lib/adminDataMappers'
+
+const PAGE_SIZE = 25
 
 const copyKeys = {
   title: 'Đại lý',
@@ -69,43 +78,137 @@ function DealersPageRevamp() {
   ]
   const navigate = useNavigate()
   const { notify } = useToast()
-  const { dealers, dealersState, updateDealerStatus, reloadResource } = useAdminData()
+  const { accessToken } = useAuth()
+  const { updateDealerStatus } = useAdminData()
   const { confirm, prompt, confirmDialog, promptDialog } = useConfirmDialog()
 
+  const [dealers, setDealers] = useState<Dealer[]>([])
+  const [page, setPage] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
+  const [totalItems, setTotalItems] = useState(0)
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    underReview: 0,
+    suspended: 0,
+    totalRevenue: 0,
+  })
   const [query, setQuery] = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | DealerStatus>('all')
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const toolbarSearchClass = 'w-full sm:max-w-sm lg:w-72 xl:w-80'
+  const requestIdRef = useRef(0)
+  const summaryRequestIdRef = useRef(0)
 
-  const normalizedQuery = query.trim().toLowerCase()
-  const filteredDealers = useMemo(
-    () =>
-      dealers.filter((dealer) => {
-        const matchesStatus =
-          statusFilter === 'all' ? true : dealer.status === statusFilter
-        const matchesSearch =
-          !normalizedQuery ||
-          dealer.name.toLowerCase().includes(normalizedQuery) ||
-          dealer.contactName.toLowerCase().includes(normalizedQuery) ||
-          dealer.id.toLowerCase().includes(normalizedQuery) ||
-          dealer.email.toLowerCase().includes(normalizedQuery)
-        return matchesStatus && matchesSearch
-      }),
-    [dealers, normalizedQuery, statusFilter],
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedQuery(query.trim())
+    }, 300)
+
+    return () => window.clearTimeout(timer)
+  }, [query])
+
+  const loadSummary = useCallback(async () => {
+    if (!accessToken) {
+      return
+    }
+
+    const requestId = ++summaryRequestIdRef.current
+
+    try {
+      const summary = await fetchAdminDealerAccountSummary(accessToken)
+      if (summaryRequestIdRef.current !== requestId) {
+        return
+      }
+
+      setStats({
+        total: Number(summary.total ?? 0),
+        active: Number(summary.active ?? 0),
+        underReview: Number(summary.underReview ?? 0),
+        suspended: Number(summary.suspended ?? 0),
+        totalRevenue: Number(summary.totalRevenue ?? 0),
+      })
+    } catch {
+      if (summaryRequestIdRef.current !== requestId) {
+        return
+      }
+
+      setStats({
+        total: 0,
+        active: 0,
+        underReview: 0,
+        suspended: 0,
+        totalRevenue: 0,
+      })
+    }
+  }, [accessToken])
+
+  const loadPage = useCallback(
+    async (nextPage: number) => {
+      if (!accessToken) {
+        return
+      }
+
+      const requestId = ++requestIdRef.current
+      setIsLoading(true)
+      setError(null)
+
+      try {
+        const response = await fetchAdminDealerAccountsPaged(accessToken, {
+          page: nextPage,
+          size: PAGE_SIZE,
+          status:
+            statusFilter === 'all'
+              ? undefined
+              : toBackendDealerAccountStatus(statusFilter),
+          query: debouncedQuery || undefined,
+        })
+
+        if (requestIdRef.current !== requestId) {
+          return
+        }
+
+        setDealers(response.items.map(mapDealer))
+        setPage(response.page)
+        setTotalPages(response.totalPages)
+        setTotalItems(response.totalElements)
+      } catch (loadError) {
+        if (requestIdRef.current !== requestId) {
+          return
+        }
+
+        const message =
+          loadError instanceof Error ? loadError.message : copy.loadFallback
+        setError(message)
+        notify(message, { title: copy.title, variant: 'error' })
+      } finally {
+        if (requestIdRef.current === requestId) {
+          setIsLoading(false)
+        }
+      }
+    },
+    [accessToken, copy.loadFallback, copy.title, debouncedQuery, notify, statusFilter],
   )
 
-  const stats = useMemo(() => {
-    const active = dealers.filter((item) => item.status === 'active').length
-    const underReview = dealers.filter(
-      (item) => item.status === 'under_review',
-    ).length
-    const attention = dealers.filter(
-      (item) => item.status === 'suspended',
-    ).length
-    const totalRevenue = dealers.reduce((sum, item) => sum + item.revenue, 0)
-    return { active, underReview, attention, totalRevenue }
-  }, [dealers])
+  useEffect(() => {
+    void loadSummary()
+  }, [loadSummary])
 
-  if (dealersState.status === 'loading' || dealersState.status === 'idle') {
+  useEffect(() => {
+    void loadPage(0)
+  }, [loadPage])
+
+  const reloadCurrentPage = useCallback(
+    async (nextPage?: number) => {
+      const pageToLoad = nextPage ?? page
+      await Promise.all([loadPage(pageToLoad), loadSummary()])
+    },
+    [loadPage, loadSummary, page],
+  )
+
+  if (isLoading && totalItems === 0 && dealers.length === 0) {
     return (
       <PagePanel>
         <LoadingRows rows={6} />
@@ -113,13 +216,13 @@ function DealersPageRevamp() {
     )
   }
 
-  if (dealersState.status === 'error') {
+  if (error) {
     return (
       <PagePanel>
         <ErrorState
           title={copy.loadTitle}
-          message={dealersState.error || copy.loadFallback}
-          onRetry={() => void reloadResource('dealers')}
+          message={error}
+          onRetry={() => void reloadCurrentPage()}
         />
       </PagePanel>
     )
@@ -159,11 +262,7 @@ function DealersPageRevamp() {
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          icon={Users}
-          label={copy.totalDealers}
-          value={dealers.length}
-        />
+        <StatCard icon={Users} label={copy.totalDealers} value={stats.total} />
         <StatCard
           icon={CheckCircle2}
           label={copy.activeDealers}
@@ -179,7 +278,7 @@ function DealersPageRevamp() {
         <StatCard
           icon={Bell}
           label={copy.suspended}
-          value={stats.attention}
+          value={stats.suspended}
           tone="warning"
         />
       </div>
@@ -191,7 +290,9 @@ function DealersPageRevamp() {
       </p>
 
       <div className="mt-6">
-        {filteredDealers.length === 0 ? (
+        {isLoading ? (
+          <LoadingRows rows={6} />
+        ) : dealers.length === 0 ? (
           <EmptyState
             icon={Users}
             title={copy.emptyTitle}
@@ -200,7 +301,7 @@ function DealersPageRevamp() {
         ) : (
           <>
             <div className="grid gap-3 md:hidden">
-              {filteredDealers.map((dealer) => (
+              {dealers.map((dealer) => (
                 <article key={dealer.id} className={tableCardClass}>
                   <button
                     className="w-full text-left"
@@ -286,16 +387,18 @@ function DealersPageRevamp() {
 
                       try {
                         await updateDealerStatus(dealer.id, next, reason)
-                      } catch (error) {
+                        await reloadCurrentPage()
+                      } catch (updateError) {
                         notify(
-                          error instanceof Error
-                            ? error.message
+                          updateError instanceof Error
+                            ? updateError.message
                             : copy.updateFailed,
                           {
                             title: copy.title,
                             variant: 'error',
                           },
                         )
+                        event.currentTarget.value = dealer.status
                       }
                     }}
                     value={dealer.status}
@@ -327,7 +430,7 @@ function DealersPageRevamp() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredDealers.map((dealer) => (
+                  {dealers.map((dealer) => (
                     <tr
                       className={tableRowClass}
                       key={dealer.id}
@@ -412,16 +515,18 @@ function DealersPageRevamp() {
 
                             try {
                               await updateDealerStatus(dealer.id, next, reason)
-                            } catch (error) {
+                              await reloadCurrentPage()
+                            } catch (updateError) {
                               notify(
-                                error instanceof Error
-                                  ? error.message
+                                updateError instanceof Error
+                                  ? updateError.message
                                   : copy.updateFailed,
                                 {
                                   title: copy.title,
                                   variant: 'error',
                                 },
                               )
+                              event.currentTarget.value = dealer.status
                             }
                           }}
                           value={dealer.status}
@@ -444,6 +549,18 @@ function DealersPageRevamp() {
                 </tbody>
               </table>
             </div>
+
+            <PaginationNav
+              page={page}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              pageSize={PAGE_SIZE}
+              onPageChange={(nextPage) => {
+                void loadPage(nextPage)
+              }}
+              previousLabel={t('Trước')}
+              nextLabel={t('Sau')}
+            />
           </>
         )}
       </div>

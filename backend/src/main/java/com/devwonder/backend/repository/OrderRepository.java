@@ -67,6 +67,48 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             value = """
                     select o
                     from Order o
+                    left join o.dealer d
+                    where (o.isDeleted = false or o.isDeleted is null)
+                      and (:status is null or o.status = :status)
+                      and (
+                        :query is null
+                        or lower(coalesce(o.orderCode, '')) like :query
+                        or lower(coalesce(d.businessName, '')) like :query
+                        or lower(coalesce(d.contactName, '')) like :query
+                        or lower(coalesce(d.username, '')) like :query
+                        or lower(coalesce(d.email, '')) like :query
+                        or lower(str(o.id)) like :query
+                      )
+                    order by o.createdAt desc
+                    """,
+            countQuery = """
+                    select count(o)
+                    from Order o
+                    left join o.dealer d
+                    where (o.isDeleted = false or o.isDeleted is null)
+                      and (:status is null or o.status = :status)
+                      and (
+                        :query is null
+                        or lower(coalesce(o.orderCode, '')) like :query
+                        or lower(coalesce(d.businessName, '')) like :query
+                        or lower(coalesce(d.contactName, '')) like :query
+                        or lower(coalesce(d.username, '')) like :query
+                        or lower(coalesce(d.email, '')) like :query
+                        or lower(str(o.id)) like :query
+                      )
+                    """
+    )
+    Page<Order> findVisibleByStatusAndQueryOrderByCreatedAtDesc(
+            @Param("status") OrderStatus status,
+            @Param("query") String query,
+            Pageable pageable
+    );
+
+    @EntityGraph(attributePaths = {"orderItems", "orderItems.product", "dealer", "payments"})
+    @Query(
+            value = """
+                    select o
+                    from Order o
                     where o.dealer.id = :dealerId
                       and (o.isDeleted = false or o.isDeleted is null)
                     """,

@@ -145,6 +145,12 @@ export type BackendOrderResponse = {
   allowedTransitions?: BackendOrderStatus[] | null
 }
 
+export type BackendOrderSummaryResponse = {
+  total: number
+  pending: number
+  shipping: number
+}
+
 export type BackendOrderAdjustmentType = 'CORRECTION' | 'WRITE_OFF' | 'CREDIT_NOTE' | 'REFUND_RECORD'
 
 export type BackendOrderAdjustmentResponse = {
@@ -192,6 +198,14 @@ export type BackendDealerAccountResponse = {
   email?: string | null
   phone?: string | null
   allowedTransitions?: BackendDealerAccountStatus[] | null
+}
+
+export type BackendDealerAccountSummaryResponse = {
+  total: number
+  active: number
+  underReview: number
+  suspended: number
+  totalRevenue: number | string
 }
 
 export type BackendDealerAccountUpsertRequest = {
@@ -817,6 +831,29 @@ export const fetchAdminOrders = (token: string) =>
     100,
   )
 
+export const fetchAdminOrdersPaged = (
+  token: string,
+  params?: {
+    page?: number
+    size?: number
+    status?: BackendOrderStatus
+    query?: string
+    sortBy?: string
+    sortDir?: string
+  },
+) =>
+  authorizedJsonRequest<BackendPagedResponse<BackendOrderResponse>>({
+    path: '/admin/orders/page',
+    token,
+    params,
+  })
+
+export const fetchAdminOrderSummary = (token: string) =>
+  authorizedJsonRequest<BackendOrderSummaryResponse>({
+    path: '/admin/orders/summary',
+    token,
+  })
+
 export const updateAdminOrderStatus = (
   token: string,
   id: number,
@@ -884,6 +921,29 @@ export const fetchAdminDealerAccounts = (token: string) =>
       }),
     100,
   )
+
+export const fetchAdminDealerAccountsPaged = (
+  token: string,
+  params?: {
+    page?: number
+    size?: number
+    status?: BackendDealerAccountStatus
+    query?: string
+    sortBy?: string
+    sortDir?: string
+  },
+) =>
+  authorizedJsonRequest<BackendPagedResponse<BackendDealerAccountResponse>>({
+    path: '/admin/dealers/accounts/page',
+    token,
+    params,
+  })
+
+export const fetchAdminDealerAccountSummary = (token: string) =>
+  authorizedJsonRequest<BackendDealerAccountSummaryResponse>({
+    path: '/admin/dealers/accounts/summary',
+    token,
+  })
 
 export const updateAdminDealerAccountStatus = (
   token: string,
