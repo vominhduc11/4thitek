@@ -5,14 +5,13 @@ import 'package:flutter/services.dart';
 
 import 'app_settings_controller.dart';
 import 'breakpoints.dart';
+import 'dealer_navigation.dart';
 import 'inventory_service.dart';
 import 'models.dart';
-import 'order_detail_screen.dart';
 import 'serial_scan_screen.dart';
 import 'utils.dart';
 import 'warranty_controller.dart';
 import 'warranty_export_screen.dart';
-import 'warranty_models.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/product_image.dart';
 
@@ -165,12 +164,15 @@ class _InventoryProductDetailScreenState
     final warrantyController = WarrantyScope.of(context);
     final productSku = widget.product.sku.trim();
     final remoteSerialByValue = <String, DealerInventorySerialRecord>{
-      for (final item in _remoteSerials ?? const <DealerInventorySerialRecord>[])
+      for (final item
+          in _remoteSerials ?? const <DealerInventorySerialRecord>[])
         item.record.serial: item,
     };
 
     final serialRecords =
-        _remoteSerials?.map((record) => record.record).toList(growable: false) ??
+        _remoteSerials
+            ?.map((record) => record.record)
+            .toList(growable: false) ??
         warrantyController
             .importedSerialsForProduct(widget.product.id)
             .where((record) => widget.orderIds.toSet().contains(record.orderId))
@@ -500,7 +502,9 @@ class _InventoryProductDetailScreenState
                 const SizedBox(height: _detailSectionSpacing),
                 if (_remoteLoadErrorMessage != null)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: _detailSectionSpacing),
+                    padding: const EdgeInsets.only(
+                      bottom: _detailSectionSpacing,
+                    ),
                     child: _SerialEmptyStateCard(
                       icon: Icons.sync_problem_outlined,
                       message: _remoteLoadErrorMessage!,
@@ -542,16 +546,11 @@ class _InventoryProductDetailScreenState
                         child: _SerialTile(
                           record: record,
                           status: status,
-                          onOpenOrder: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    OrderDetailScreen(orderId: record.orderId),
-                              ),
-                            );
-                          },
+                          onOpenOrder: () =>
+                              context.pushDealerOrderDetail(record.orderId),
                           onCopy: () => _copySerial(record.serial),
-                          onViewTimeline: remoteSerialByValue[record.serial] == null
+                          onViewTimeline:
+                              remoteSerialByValue[record.serial] == null
                               ? null
                               : () => _openSerialTimeline(
                                   remoteSerialByValue[record.serial]!,
@@ -642,7 +641,9 @@ class _InventoryProductDetailScreenState
     );
   }
 
-  Future<void> _openSerialTimeline(DealerInventorySerialRecord remoteRecord) async {
+  Future<void> _openSerialTimeline(
+    DealerInventorySerialRecord remoteRecord,
+  ) async {
     final texts = _inventoryProductDetailTexts(context);
     await showModalBottomSheet<void>(
       context: context,
@@ -686,10 +687,7 @@ class _InventoryProductDetailScreenState
               }
 
               final detail = snapshot.data!;
-              return _InventoryTimelineSheet(
-                detail: detail,
-                texts: texts,
-              );
+              return _InventoryTimelineSheet(detail: detail, texts: texts);
             },
           ),
         );
@@ -1013,10 +1011,7 @@ class _SerialTile extends StatelessWidget {
 }
 
 class _InventoryTimelineSheet extends StatelessWidget {
-  const _InventoryTimelineSheet({
-    required this.detail,
-    required this.texts,
-  });
+  const _InventoryTimelineSheet({required this.detail, required this.texts});
 
   final DealerInventorySerialDetailRecord detail;
   final _InventoryProductDetailTexts texts;
@@ -1045,9 +1040,9 @@ class _InventoryTimelineSheet extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             texts.timelineTitle(serial.serial),
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 4),
           Text(
@@ -1061,7 +1056,7 @@ class _InventoryTimelineSheet extends StatelessWidget {
             child: ListView.separated(
               shrinkWrap: true,
               itemCount: detail.timeline.isEmpty ? 1 : detail.timeline.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              separatorBuilder: (_, index) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
                 if (detail.timeline.isEmpty) {
                   return _SerialEmptyStateCard(
@@ -1131,7 +1126,7 @@ class _InventoryProductDetailTexts {
   String filterAllLabel(int count) =>
       isEnglish ? 'All ($count)' : 'Tất cả ($count)';
   String filterReadyLabel(int count) =>
-      isEnglish ? 'Ready ($count)' : 'Sẵn sàng ($count)';
+      isEnglish ? 'Ready to sell ($count)' : 'Sẵn sàng bán ($count)';
   String filterWarrantyLabel(int count) =>
       isEnglish ? 'Warranty ($count)' : 'Bảo hành ($count)';
   String filterIssueLabel(int count) =>
@@ -1142,9 +1137,11 @@ class _InventoryProductDetailTexts {
   String latestImportedLabel(String dateTimeLabel) => isEnglish
       ? 'Latest import: $dateTimeLabel'
       : 'Nhập gần nhất: $dateTimeLabel';
-  String get readyMetricLabel => isEnglish ? 'Ready' : 'Sẵn sàng';
-  String get importedMetricLabel => isEnglish ? 'Imported' : 'Đã nhập';
-  String get warrantyMetricLabel => isEnglish ? 'Warranty' : 'Bảo hành';
+  String get readyMetricLabel => isEnglish ? 'Ready to sell' : 'Sẵn sàng bán';
+  String get importedMetricLabel =>
+      isEnglish ? 'Imported serials' : 'Serial đã nhập';
+  String get warrantyMetricLabel =>
+      isEnglish ? 'Activated / warranty' : 'Đã kích hoạt / bảo hành';
   String get issueMetricLabel => isEnglish ? 'Needs attention' : 'Cần xử lý';
   String get exportAction => isEnglish ? 'Export stock' : 'Xuất hàng';
   String get scanQrAction => isEnglish ? 'Scan QR' : 'Quét QR';
@@ -1160,7 +1157,7 @@ class _InventoryProductDetailTexts {
       isEnglish ? 'The scanned code is not valid.' : 'Mã quét không hợp lệ.';
   String copiedSerialMessage(String serial) =>
       isEnglish ? 'Copied serial $serial.' : 'Đã sao chép serial $serial.';
-  String get readyStatusLabel => isEnglish ? 'Ready' : 'Sẵn sàng';
+  String get readyStatusLabel => isEnglish ? 'Ready to sell' : 'Sẵn sàng bán';
   String get warrantyStatusLabel =>
       isEnglish ? 'Under warranty' : 'Đang bảo hành';
   String get inspectingStatusLabel =>

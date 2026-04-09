@@ -862,9 +862,7 @@ class _HeroInfoChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.surfaceContainerLow,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: colors.outlineVariant.withValues(alpha: 0.5),
-        ),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.5)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

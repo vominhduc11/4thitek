@@ -43,9 +43,8 @@ class _CartIconButtonTexts {
 
   String get tooltip => isEnglish ? 'Cart' : 'Giỏ hàng';
 
-  String cartWithItemsLabel(int count) => isEnglish
-      ? 'Cart, $count items'
-      : 'Giỏ hàng, $count sản phẩm';
+  String cartWithItemsLabel(int count) =>
+      isEnglish ? 'Cart, $count items' : 'Giỏ hàng, $count sản phẩm';
 
   String get emptyCartLabel =>
       isEnglish ? 'Cart, no items yet' : 'Giỏ hàng, chưa có sản phẩm';

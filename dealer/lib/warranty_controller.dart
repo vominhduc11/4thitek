@@ -119,10 +119,7 @@ String resolveWarrantySyncMessage(String? message, {required bool isEnglish}) {
   }
 }
 
-String warrantySyncErrorMessage(
-  Object? error, {
-  required bool isEnglish,
-}) {
+String warrantySyncErrorMessage(Object? error, {required bool isEnglish}) {
   final message = switch (error) {
     WarrantySyncException() => error.message,
     String() => error,
@@ -432,7 +429,6 @@ class WarrantyController extends ChangeNotifier {
       );
     }
 
-
     final order = _orderLookup?.call(orderId);
     if (order == null || order.status != OrderStatus.completed) {
       return warrantySerialValidationMessage(
@@ -445,10 +441,7 @@ class WarrantyController extends ChangeNotifier {
   }
 
   /// Validates a serial for the serial-first export flow (no orderId constraint).
-  String? validateSerialForExport(
-    String serial, {
-    required bool isEnglish,
-  }) {
+  String? validateSerialForExport(String serial, {required bool isEnglish}) {
     final normalized = _normalizeSerial(serial);
     if (normalized.isEmpty) {
       return warrantySerialValidationMessage(
@@ -516,24 +509,25 @@ class WarrantyController extends ChangeNotifier {
       return false;
     }
 
-    final results = await Future.wait<
-      ({WarrantyActivationRecord? record, String? errorMessage})
-    >(
-      newActivations.map((record) async {
-        try {
-          await _createRemoteActivation(record);
-          return (record: record, errorMessage: null);
-        } catch (error) {
-          return (
-            record: null,
-            errorMessage: _normalizeWarrantySyncFailure(
-              error,
-              fallbackCode: WarrantySyncMessageCode.activationFailed,
-            ),
-          );
-        }
-      }),
-    );
+    final results =
+        await Future.wait<
+          ({WarrantyActivationRecord? record, String? errorMessage})
+        >(
+          newActivations.map((record) async {
+            try {
+              await _createRemoteActivation(record);
+              return (record: record, errorMessage: null);
+            } catch (error) {
+              return (
+                record: null,
+                errorMessage: _normalizeWarrantySyncFailure(
+                  error,
+                  fallbackCode: WarrantySyncMessageCode.activationFailed,
+                ),
+              );
+            }
+          }),
+        );
     final successful = results
         .where((result) => result.record != null)
         .map((result) => result.record!)
@@ -827,8 +821,9 @@ class WarrantyController extends ChangeNotifier {
         cached?.activatedAt ??
         purchaseDate;
     final rawWarrantyEnd = _parseDateTimeValue(json['warrantyEnd']);
-    final warrantyEnd =
-        rawWarrantyEnd == null ? null : _normalizeLocalDate(rawWarrantyEnd);
+    final warrantyEnd = rawWarrantyEnd == null
+        ? null
+        : _normalizeLocalDate(rawWarrantyEnd);
 
     return WarrantyActivationRecord(
       orderId: orderCode,
@@ -862,12 +857,11 @@ class WarrantyController extends ChangeNotifier {
         _normalizeString(json['customerAddress']) ?? cached?.customerAddress,
         order?.receiverAddress,
       ),
-      warrantyMonths:
-          warrantyEnd != null
-              ? _resolveWarrantyMonths(purchaseDate, warrantyEnd)
-              : (cached?.warrantyMonths ??
-                    product?.warrantyMonths ??
-                    _resolveWarrantyMonths(purchaseDate, warrantyEnd)),
+      warrantyMonths: warrantyEnd != null
+          ? _resolveWarrantyMonths(purchaseDate, warrantyEnd)
+          : (cached?.warrantyMonths ??
+                product?.warrantyMonths ??
+                _resolveWarrantyMonths(purchaseDate, warrantyEnd)),
       activatedAt: activatedAt,
       purchaseDate: purchaseDate,
       warrantyEnd: warrantyEnd,
@@ -1085,8 +1079,9 @@ class WarrantyController extends ChangeNotifier {
     final activatedAt =
         _parseDateTimeValue(json['activatedAt']) ?? purchaseDate;
     final rawWarrantyEnd = _parseDateTimeValue(json['warrantyEnd']);
-    final warrantyEnd =
-        rawWarrantyEnd == null ? null : _normalizeLocalDate(rawWarrantyEnd);
+    final warrantyEnd = rawWarrantyEnd == null
+        ? null
+        : _normalizeLocalDate(rawWarrantyEnd);
     return WarrantyActivationRecord(
       orderId: _normalizeString(json['orderId']) ?? '',
       productId: _normalizeString(json['productId']) ?? '',

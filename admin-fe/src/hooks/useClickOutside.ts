@@ -11,13 +11,17 @@ export function useClickOutside(
   useEffect(() => {
     if (!enabled) return;
 
-    const handler = (event: MouseEvent) => {
+    const handler = (event: Event) => {
       if (ref.current && !ref.current.contains(event.target as Node)) {
         callbackRef.current();
       }
     };
 
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    document.addEventListener("pointerdown", handler, true);
+    document.addEventListener("touchstart", handler, true);
+    return () => {
+      document.removeEventListener("pointerdown", handler, true);
+      document.removeEventListener("touchstart", handler, true);
+    };
   }, [ref, enabled]);
 }

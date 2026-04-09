@@ -11,7 +11,14 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, GripVertical, RotateCcw, X } from "lucide-react";
 import { ProductVideoPreview } from "../components/ProductVideoPreview";
 import { RichTextEditor } from "../components/RichTextEditor";
-import { FieldErrorMessage, PagePanel } from "../components/ui-kit";
+import {
+  FieldErrorMessage,
+  GhostButton,
+  PageHeader,
+  PagePanel,
+  StatusBadge,
+  sectionCardClass,
+} from "../components/ui-kit";
 import { useAuth } from "../context/AuthContext";
 import { useProducts } from "../context/ProductsContext";
 import { useLanguage } from "../context/LanguageContext";
@@ -1209,7 +1216,7 @@ function CreateProductPage() {
       >
         <div aria-busy={isFormLocked}>
           {/* Header */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="sr-only">
             <button
               type="button"
               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
@@ -1222,6 +1229,51 @@ function CreateProductPage() {
             <h3 className="text-lg font-semibold text-slate-900 sm:text-right">
               {t("Tạo sản phẩm")}
             </h3>
+          </div>
+
+          <div className={sectionCardClass}>
+            <PageHeader
+              title={t("Táº¡o sáº£n pháº©m")}
+              subtitle={t("Thiáº¿t láº­p thĂ´ng tin cÆ¡ báº£n, mĂ´ táº£, thĂ´ng sá»‘ vĂ  video trÆ°á»›c khi xuáº¥t báº£n sáº£n pháº©m má»›i.")}
+              actions={
+                <GhostButton
+                  disabled={isFormLocked}
+                  icon={<ArrowLeft className="h-4 w-4" />}
+                  onClick={() => void requestNavigateAway()}
+                  type="button"
+                >
+                  {t("Vá» sáº£n pháº©m")}
+                </GhostButton>
+              }
+            />
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
+                  {t("Tab hiá»‡n táº¡i")}
+                </p>
+                <p className="mt-1 text-sm font-semibold text-[var(--ink)]">
+                  {t(productTabs.find((tab) => tab.id === activeTab)?.label ?? "ThĂ´ng tin")}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
+                  {t("Tráº¡ng thĂ¡i biá»ƒu máº«u")}
+                </p>
+                <div className="mt-1">
+                  <StatusBadge tone={isCreateFormDirty ? "warning" : "neutral"}>
+                    {isCreateFormDirty ? t("ChÆ°a lÆ°u") : t("ÄĂ£ sáºµn sĂ ng")}
+                  </StatusBadge>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
+                  {t("Táº£i tĂ i nguyĂªn")}
+                </p>
+                <p className="mt-1 text-sm font-semibold text-[var(--ink)]">
+                  {isUploading ? t("Äang táº£i {count} tá»‡p", { count: uploadingCount }) : t("KhĂ´ng cĂ³ tá»‡p Ä‘ang táº£i")}
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Tabs */}
@@ -2648,7 +2700,10 @@ function CreateProductPage() {
           )}
 
           {/* Actions */}
-          <div className="sticky bottom-4 z-10 mt-6 flex flex-col-reverse gap-3 rounded-2xl border border-slate-200/70 bg-white/95 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.12)] backdrop-blur sm:flex-row sm:justify-end">
+          <div className="sticky bottom-3 z-10 mt-6 flex flex-col gap-3 rounded-[22px] border border-[var(--brand-border)] bg-[var(--surface)]/95 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.12)] backdrop-blur sm:bottom-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-[var(--muted)]">
+              {t("Kiá»ƒm tra tab hiá»‡n táº¡i vĂ  cĂ¡c trÆ°á»ng báº¯t buá»™c trÆ°á»›c khi táº¡o sáº£n pháº©m má»›i.")}
+            </p>
             <button
               type="button"
               disabled={isFormLocked}
@@ -2660,7 +2715,7 @@ function CreateProductPage() {
             <button
               type="button"
               disabled={isFormLocked}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[18px] bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow-[0_14px_28px_rgba(0,113,188,0.24)] transition hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
               onClick={handleCreateProductSubmit}
             >
               {isCreating ? (

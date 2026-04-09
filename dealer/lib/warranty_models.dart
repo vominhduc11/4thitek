@@ -70,11 +70,7 @@ class WarrantyActivationRecord {
   // instead of overflowing into the next month (e.g. Jan 31 + 1 = Feb 28, not Mar 3).
   DateTime get expiresAt {
     if (warrantyEnd != null) {
-      return DateTime(
-        warrantyEnd!.year,
-        warrantyEnd!.month,
-        warrantyEnd!.day,
-      );
+      return DateTime(warrantyEnd!.year, warrantyEnd!.month, warrantyEnd!.day);
     }
     final target = DateTime(
       purchaseDate.year,

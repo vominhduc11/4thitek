@@ -509,11 +509,7 @@ class _MobileBottomNavItem extends StatelessWidget {
                     )!;
                     return Transform.translate(
                       offset: Offset(0, -1 * value),
-                      child: Icon(
-                        icon,
-                        size: iconSize,
-                        color: iconColor,
-                      ),
+                      child: Icon(icon, size: iconSize, color: iconColor),
                     );
                   },
                 ),

@@ -7,7 +7,7 @@ import 'package:flutter_spinbox/flutter_spinbox.dart';
 import 'app_settings_controller.dart';
 import 'breakpoints.dart';
 import 'cart_controller.dart';
-import 'checkout_screen.dart';
+import 'dealer_navigation.dart';
 import 'global_search.dart';
 import 'models.dart';
 import 'utils.dart';
@@ -250,9 +250,7 @@ class _CartScreenState extends State<CartScreen> {
       if (!hasAnyOrderableItems || isCartSyncing) {
         return;
       }
-      await Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (context) => const CheckoutScreen()));
+      await context.pushDealerCheckout();
     }
 
     Widget buildSummaryPanel({

@@ -1,13 +1,15 @@
 import 'package:dealer_hub/app_settings_controller.dart';
+import 'package:dealer_hub/dealer_routes.dart';
 import 'package:dealer_hub/inventory_screen.dart';
+import 'package:dealer_hub/inventory_service.dart';
 import 'package:dealer_hub/models.dart';
 import 'package:dealer_hub/notification_controller.dart';
 import 'package:dealer_hub/order_controller.dart';
 import 'package:dealer_hub/warranty_controller.dart';
 import 'package:dealer_hub/warranty_hub_screen.dart';
-import 'package:dealer_hub/warranty_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -27,7 +29,7 @@ void main() {
       find.byKey(const ValueKey<String>('inventory-import-action')),
     );
     await tester.pump();
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 500));
 
     expect(find.byType(WarrantyHubScreen), findsOneWidget);
   });
@@ -61,7 +63,7 @@ void main() {
       320,
       scrollable: scrollableFinder,
     );
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 400));
 
     final scrolledTop = tester.getTopLeft(controlsFinder).dy;
 
@@ -89,7 +91,7 @@ void main() {
       const Offset(0, -320),
     );
     await tester.pump();
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 400));
 
     final firstTile = find.text('Inventory Item 1');
     final secondTile = find.text('Inventory Item 2');
@@ -106,6 +108,7 @@ Future<void> _pumpInventoryScreen(
   required OrderController orderController,
   required WarrantyController warrantyController,
 }) async {
+  final importedSerials = warrantyController.importedSerials;
   await tester.pumpWidget(
     AppSettingsScope(
       controller: AppSettingsController(),
@@ -115,7 +118,25 @@ Future<void> _pumpInventoryScreen(
           controller: warrantyController,
           child: OrderScope(
             controller: orderController,
-            child: const MaterialApp(home: InventoryScreen()),
+            child: MaterialApp.router(
+              routerConfig: GoRouter(
+                initialLocation: DealerRoutePath.inventory,
+                routes: <RouteBase>[
+                  GoRoute(
+                    path: DealerRoutePath.inventory,
+                    builder: (context, state) => InventoryScreen(
+                      inventoryService: _FakeInventoryService(
+                        items: _buildSummaryRecords(importedSerials),
+                      ),
+                    ),
+                  ),
+                  GoRoute(
+                    path: DealerRoutePath.warranty,
+                    builder: (context, state) => const WarrantyHubScreen(),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -123,7 +144,54 @@ Future<void> _pumpInventoryScreen(
   );
 
   await tester.pump();
-  await tester.pumpAndSettle();
+  await tester.pump(const Duration(milliseconds: 500));
+}
+
+List<DealerInventoryProductRecord> _buildSummaryRecords(
+  List<ImportedSerialRecord> serials,
+) {
+  final buckets = <String, List<ImportedSerialRecord>>{};
+  for (final serial in serials) {
+    buckets
+        .putIfAbsent(serial.productId, () => <ImportedSerialRecord>[])
+        .add(serial);
+  }
+
+  return buckets.entries
+      .map((entry) {
+        final productSerials = entry.value;
+        final first = productSerials.first;
+        final readyCount = productSerials
+            .where((item) => item.status == ImportedSerialStatus.available)
+            .length;
+        final warrantyCount = productSerials
+            .where((item) => item.status == ImportedSerialStatus.warranty)
+            .length;
+        final issueCount = productSerials
+            .where((item) => item.status == ImportedSerialStatus.defective)
+            .length;
+
+        return DealerInventoryProductRecord(
+          product: Product(
+            id: first.productId,
+            name: first.productName,
+            sku: first.productSku,
+            shortDescription: 'Inventory ${first.productSku}',
+            price: 1000000,
+            stock: 200,
+            warrantyMonths: 12,
+          ),
+          totalSerials: productSerials.length,
+          readySerials: readyCount,
+          warrantySerials: warrantyCount,
+          issueSerials: issueCount,
+          latestImportedAt: productSerials
+              .map((item) => item.importedAt)
+              .reduce((left, right) => left.isAfter(right) ? left : right),
+          orderCodes: productSerials.map((item) => item.orderId).toList(),
+        );
+      })
+      .toList(growable: false);
 }
 
 void _setSurfaceSize(WidgetTester tester, Size size) {
@@ -222,29 +290,35 @@ class _FakeWarrantyController extends WarrantyController {
   List<ImportedSerialRecord> get importedSerials => _importedSerials;
 
   @override
-  int get importedSerialCount => _importedSerials.length;
-
-  @override
-  int get activatedImportedSerialCount {
-    return _importedSerials
-        .where((record) => record.status == ImportedSerialStatus.warranty)
-        .length;
-  }
-
-  @override
-  int get availableImportedSerialCount {
-    return _importedSerials
-        .where(
-          (record) =>
-              record.status == ImportedSerialStatus.available ||
-              record.status == ImportedSerialStatus.assigned,
-        )
-        .length;
-  }
-
-  @override
   DateTime? get lastRemoteSyncAt => _lastRemoteSyncAt;
 
+}
+
+class _FakeInventoryService extends InventoryService {
+  _FakeInventoryService({required this.items}) : super();
+
+  final List<DealerInventoryProductRecord> items;
+
   @override
-  Future<void> load({bool forceRefresh = false}) async {}
+  Future<DealerInventorySummaryRecord> fetchSummary() async {
+    var readySerials = 0;
+    var warrantySerials = 0;
+    var issueSerials = 0;
+    for (final item in items) {
+      readySerials += item.readySerials;
+      warrantySerials += item.warrantySerials;
+      issueSerials += item.issueSerials;
+    }
+    return DealerInventorySummaryRecord(
+      totalProducts: items.length,
+      totalSerials: readySerials + warrantySerials + issueSerials,
+      readySerials: readySerials,
+      warrantySerials: warrantySerials,
+      issueSerials: issueSerials,
+      items: items,
+    );
+  }
+
+  @override
+  void close() {}
 }

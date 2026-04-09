@@ -1,21 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-import 'account_settings_screen.dart';
-import 'app_preferences_screen.dart';
 import 'auth_storage.dart';
 import 'cart_controller.dart';
-import 'change_password_screen.dart';
+import 'dealer_navigation.dart';
 import 'dealer_profile_storage.dart';
 import 'file_reference.dart';
 import 'l10n/app_localizations.dart';
 import 'notification_controller.dart';
 import 'order_controller.dart';
 import 'push_messaging_controller.dart';
-import 'support_screen.dart';
 import 'warranty_controller.dart';
-import 'warranty_hub_screen.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/notification_icon_button.dart';
 import 'widgets/section_card.dart';
@@ -85,18 +80,14 @@ class _AccountScreenState extends State<AccountScreen> {
 
   Future<void> _openAccountSettings() async {
     if (_isLoggingOut) return;
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const AccountSettingsScreen()));
+    await context.pushDealerAccountSettings();
     if (!mounted) return;
     await _loadProfile();
   }
 
   Future<void> _openSupport() async {
     if (_isLoggingOut) return;
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const SupportScreen()));
+    await context.pushDealerSupport();
   }
 
   Future<void> _openWarrantyHub() async {
@@ -106,23 +97,17 @@ class _AccountScreenState extends State<AccountScreen> {
       WarrantyScope.of(context).load(forceRefresh: true),
     ]);
     if (!mounted) return;
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const WarrantyHubScreen()));
+    await context.pushDealerWarrantyHub();
   }
 
   Future<void> _openChangePassword() async {
     if (_isLoggingOut) return;
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const ChangePasswordScreen()));
+    await context.pushDealerChangePassword();
   }
 
   Future<void> _openAppPreferences() async {
     if (_isLoggingOut) return;
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const AppPreferencesScreen()));
+    await context.pushDealerAccountPreferences();
   }
 
   Future<bool?> _confirmLogout(AppLocalizations l10n) {
@@ -134,8 +119,13 @@ class _AccountScreenState extends State<AccountScreen> {
       builder: (dialogContext) {
         return RepaintBoundary(
           child: AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-            insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 20,
+            ),
             title: Text(l10n.accountLogoutConfirmTitle),
             content: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 400),
@@ -190,7 +180,7 @@ class _AccountScreenState extends State<AccountScreen> {
       await warrantyController.clearSessionData();
       if (!mounted) return;
       shouldResetLoading = false;
-      context.go('/login');
+      context.goToDealerLogin();
     } finally {
       if (mounted && shouldResetLoading) {
         setState(() => _isLoggingOut = false);
@@ -226,7 +216,11 @@ class _AccountScreenState extends State<AccountScreen> {
     final width = MediaQuery.sizeOf(context).width;
     final isTablet = width >= 768;
     final isDesktop = width >= 1180;
-    final contentMaxWidth = isDesktop ? 1240.0 : isTablet ? 960.0 : 760.0;
+    final contentMaxWidth = isDesktop
+        ? 1240.0
+        : isTablet
+        ? 960.0
+        : 760.0;
     final isEnglish = Localizations.localeOf(context).languageCode == 'en';
     final profileErrorDetails = _profileErrorDetails(context);
     final padding = EdgeInsets.fromLTRB(
@@ -254,7 +248,7 @@ class _AccountScreenState extends State<AccountScreen> {
             padding: const EdgeInsets.only(right: 12),
             child: NotificationIconButton(
               count: NotificationScope.of(context).unreadCount,
-              onPressed: () => context.push('/notifications'),
+              onPressed: () => context.pushDealerNotifications(),
             ),
           ),
         ],
@@ -271,7 +265,12 @@ class _AccountScreenState extends State<AccountScreen> {
                 child: _isProfileLoading
                     ? _buildLoadingView(context, l10n, padding)
                     : (_profileError != null || _profile == null)
-                    ? _buildErrorView(context, l10n, profileErrorDetails, padding)
+                    ? _buildErrorView(
+                        context,
+                        l10n,
+                        profileErrorDetails,
+                        padding,
+                      )
                     : _buildContentView(
                         context: context,
                         l10n: l10n,
@@ -349,9 +348,19 @@ class _AccountScreenState extends State<AccountScreen> {
                   flex: 7,
                   child: Column(
                     children: [
-                      wrap(_buildHeroCard(context, _profile!, isEnglish, false)),
+                      wrap(
+                        _buildHeroCard(context, _profile!, isEnglish, false),
+                      ),
                       const SizedBox(height: 18),
-                      wrap(_buildProfileSection(context, _profile!, isEnglish, true, l10n)),
+                      wrap(
+                        _buildProfileSection(
+                          context,
+                          _profile!,
+                          isEnglish,
+                          true,
+                          l10n,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -371,7 +380,15 @@ class _AccountScreenState extends State<AccountScreen> {
           else ...[
             wrap(_buildHeroCard(context, _profile!, isEnglish, true)),
             const SizedBox(height: 16),
-            wrap(_buildProfileSection(context, _profile!, isEnglish, isTablet, l10n)),
+            wrap(
+              _buildProfileSection(
+                context,
+                _profile!,
+                isEnglish,
+                isTablet,
+                l10n,
+              ),
+            ),
             const SizedBox(height: 16),
             wrap(_buildActionsSection(isEnglish, isTablet)),
             const SizedBox(height: 16),
@@ -660,9 +677,19 @@ class _AccountScreenState extends State<AccountScreen> {
     AppLocalizations l10n,
   ) {
     final tiles = [
-      _infoTile(context, Icons.badge_outlined, l10n.accountContactLabel, profile.contactName),
+      _infoTile(
+        context,
+        Icons.badge_outlined,
+        l10n.accountContactLabel,
+        profile.contactName,
+      ),
       _infoTile(context, Icons.email_outlined, 'Email', profile.email),
-      _infoTile(context, Icons.phone_outlined, l10n.accountPhoneLabel, profile.phone),
+      _infoTile(
+        context,
+        Icons.phone_outlined,
+        l10n.accountPhoneLabel,
+        profile.phone,
+      ),
       _infoTile(
         context,
         Icons.local_shipping_outlined,
@@ -729,8 +756,8 @@ class _AccountScreenState extends State<AccountScreen> {
         Icons.support_agent_outlined,
         isEnglish ? 'Support center' : 'Trung tâm hỗ trợ',
         isEnglish
-            ? 'Open dealer support and rider assistance channels.'
-            : 'Mở các kênh hỗ trợ đại lý và trợ giúp người đi phượt.',
+            ? 'Open dealer support and operational assistance channels.'
+            : 'Mở các kênh hỗ trợ đại lý và trợ giúp vận hành.',
         _isLoggingOut ? null : _openSupport,
       ),
       _actionTile(
@@ -1137,9 +1164,13 @@ class _AccountScreenState extends State<AccountScreen> {
             const SizedBox(height: 16),
             const Row(
               children: [
-                Expanded(child: SkeletonBox(width: double.infinity, height: 50)),
+                Expanded(
+                  child: SkeletonBox(width: double.infinity, height: 50),
+                ),
                 SizedBox(width: 12),
-                Expanded(child: SkeletonBox(width: double.infinity, height: 50)),
+                Expanded(
+                  child: SkeletonBox(width: double.infinity, height: 50),
+                ),
               ],
             ),
           ],
@@ -1212,7 +1243,9 @@ class _AccountScreenState extends State<AccountScreen> {
     List<Color>? gradient,
   }) {
     return BoxDecoration(
-      color: gradient == null ? (background ?? colors.surfaceContainerHigh) : null,
+      color: gradient == null
+          ? (background ?? colors.surfaceContainerHigh)
+          : null,
       borderRadius: BorderRadius.circular(radius),
       border: Border.all(
         color: borderColor ?? colors.outlineVariant.withValues(alpha: 0.55),

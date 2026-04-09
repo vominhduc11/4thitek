@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'app_settings_controller.dart';
 import 'breakpoints.dart';
+import 'dealer_navigation.dart';
 import 'global_search.dart';
 import 'inventory_product_detail_screen.dart';
 import 'inventory_service.dart';
@@ -12,7 +13,6 @@ import 'order_controller.dart';
 import 'serial_scan_screen.dart';
 import 'utils.dart';
 import 'warranty_export_screen.dart';
-import 'warranty_hub_screen.dart';
 import 'warranty_controller.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/product_image.dart';
@@ -134,9 +134,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
       if (!mounted) {
         return;
       }
-      _cachedInventoryItems = summary.items.map(_mapRemoteInventoryItem).toList(
-        growable: false,
-      );
+      _cachedInventoryItems = summary.items
+          .map(_mapRemoteInventoryItem)
+          .toList(growable: false);
       setState(() {
         _inventoryCacheDirty = false;
         _syncWarningMessage = null;
@@ -582,17 +582,13 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }
     switch (action) {
       case 'import':
-        await Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => const WarrantyHubScreen()));
+        await context.pushDealerWarrantyHub();
         return;
       case 'scan':
         await _handleScanSerial();
         return;
       case 'export':
-        await Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => const WarrantyExportScreen()));
+        await context.pushDealerWarrantyExport();
         return;
     }
   }
@@ -1798,56 +1794,6 @@ class _InventoryStatusPill extends StatelessWidget {
   }
 }
 
-class _InventoryMetricTag extends StatelessWidget {
-  const _InventoryMetricTag({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.accentColor,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color accentColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLow.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: accentColor.withValues(alpha: 0.18)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 15, color: accentColor),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            value,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: accentColor,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _SkeletonBox extends StatefulWidget {
   const _SkeletonBox({required this.height, this.radius = 10});
 
@@ -2138,19 +2084,19 @@ class _InventoryTexts {
   String get totalProductsHelperText =>
       isEnglish ? 'Tracked SKUs' : 'SKU đang theo dõi';
   String get totalInventoryLabel =>
-      isEnglish ? 'Ready inventory' : 'Tồn kho sẵn sàng';
+      isEnglish ? 'Ready to sell' : 'Sẵn sàng bán';
   String get totalInventoryHelperText =>
-      isEnglish ? 'Ready serials' : 'Serial sẵn sàng';
+      isEnglish ? 'Sellable serials' : 'Serial có thể bán ngay';
   String get lowStockSummaryLabel => isEnglish ? 'Low stock' : 'Sắp hết hàng';
   String get lowStockSummaryHelperText =>
       isEnglish ? 'Needs replenishment soon' : 'Cần nhập thêm sớm';
   String get filterAllLabel => isEnglish ? 'All' : 'Tất cả';
-  String get filterInStockLabel => isEnglish ? 'Ready' : 'Sẵn sàng';
+  String get filterInStockLabel => isEnglish ? 'Ready to sell' : 'Sẵn sàng bán';
   String get filterLowStockLabel => isEnglish ? 'Low stock' : 'Sắp hết';
   String get filterOutOfStockLabel => isEnglish ? 'Out of stock' : 'Hết hàng';
   String get sortByNameOption => isEnglish ? 'By name' : 'Theo tên';
   String get sortByQuantityOption =>
-      isEnglish ? 'By ready quantity' : 'Theo số lượng sẵn sàng';
+      isEnglish ? 'By ready-to-sell quantity' : 'Theo số lượng sẵn sàng bán';
   String get sortByImportedDateOption =>
       isEnglish ? 'By imported date' : 'Theo ngày nhập';
   String get openSortMenuSemantic =>
@@ -2170,7 +2116,7 @@ class _InventoryTexts {
       isEnglish ? 'Scan QR / Barcode' : 'Quét QR / Barcode';
   String get invalidScannedCodeMessage =>
       isEnglish ? 'The scanned code is not valid.' : 'Mã quét không hợp lệ.';
-  String get inStockStatus => isEnglish ? 'Ready' : 'Sẵn sàng';
+  String get inStockStatus => isEnglish ? 'Ready to sell' : 'Sẵn sàng';
   String get lowStockStatus => isEnglish ? 'Low stock' : 'Sắp hết';
   String get outOfStockStatus => isEnglish ? 'Out of stock' : 'Hết hàng';
   String productTileSemantic(
@@ -2184,10 +2130,12 @@ class _InventoryTexts {
   String productImageLabel(String productName) => isEnglish
       ? 'Product image for $productName'
       : 'Ảnh sản phẩm $productName';
-  String get stockMetricLabel => isEnglish ? 'Ready' : 'Sẵn sàng';
-  String get warrantyMetricLabel => isEnglish ? 'Warranty' : 'Bảo hành';
-  String get issueMetricLabel => isEnglish ? 'Issue' : 'Sự cố';
-  String get importedMetricLabel => isEnglish ? 'Imported' : 'Đã nhập';
+  String get stockMetricLabel => isEnglish ? 'Ready to sell' : 'Sẵn sàng';
+  String get warrantyMetricLabel =>
+      isEnglish ? 'Activated / warranty' : 'Đã kích hoạt / bảo hành';
+  String get issueMetricLabel => isEnglish ? 'Needs attention' : 'Cần xử lý';
+  String get importedMetricLabel =>
+      isEnglish ? 'Imported serials' : 'Serial đã nhập';
   String latestImportedLabel(String dateLabel) =>
       isEnglish ? 'Latest import: $dateLabel' : 'Nhập gần nhất: $dateLabel';
   String get loadInventoryErrorMessage => isEnglish

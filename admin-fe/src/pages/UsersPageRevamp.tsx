@@ -17,11 +17,13 @@ import {
   PageHeader,
   PagePanel,
   PrimaryButton,
+  SecondaryButton,
   SearchInput,
   StatCard,
   StatusBadge,
   bodyTextClass,
   cardTitleClass,
+  fieldHintClass,
   formCardClass,
   inputClass,
   labelClass,
@@ -270,7 +272,7 @@ function UsersPageRevamp() {
               onChange={(event) => setQuery(event.target.value)}
               className={toolbarSearchClass}
             />
-            <PrimaryButton
+            <SecondaryButton
               icon={<UserPlus className="h-4 w-4" />}
               onClick={() => {
                 setShowInvite((current) => {
@@ -284,7 +286,7 @@ function UsersPageRevamp() {
               type="button"
             >
               {copy.addUser}
-            </PrimaryButton>
+            </SecondaryButton>
           </>
         }
       />
@@ -301,10 +303,10 @@ function UsersPageRevamp() {
       </div>
 
       {showInvite ? (
-        <div className={`${formCardClass} mt-6`}>
+        <section className={`${formCardClass} mt-6`} aria-labelledby="users-invite-title">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className={cardTitleClass}>{copy.createTitle}</p>
+              <p className={cardTitleClass} id="users-invite-title">{copy.createTitle}</p>
               <p className={bodyTextClass}>{copy.createDescription}</p>
             </div>
             <StatusBadge tone="warning">
@@ -321,11 +323,17 @@ function UsersPageRevamp() {
               </p>
             </div>
 
-            <label className="space-y-2 md:col-span-2">
+            <label className="space-y-2 md:col-span-2" htmlFor="users-invite-email">
               <span className={labelClass}>{copy.email}</span>
               <input
                 autoComplete="email"
+                aria-describedby={[
+                  "users-invite-email-hint",
+                  formErrors.email ? "users-invite-email-error" : "",
+                ].filter(Boolean).join(" ") || undefined}
+                aria-invalid={Boolean(formErrors.email)}
                 className={inputClass}
+                id="users-invite-email"
                 onChange={(event) => {
                   clearFieldError("email");
                   setForm((current) => ({
@@ -337,16 +345,22 @@ function UsersPageRevamp() {
                 type="email"
                 value={form.email}
               />
+              <p className={fieldHintClass} id="users-invite-email-hint">
+                {copy.systemRoleDescription}
+              </p>
               {formErrors.email ? (
-                <FieldErrorMessage>{formErrors.email}</FieldErrorMessage>
+                <FieldErrorMessage id="users-invite-email-error">{formErrors.email}</FieldErrorMessage>
               ) : null}
             </label>
 
-            <label className="space-y-2">
+            <label className="space-y-2" htmlFor="users-invite-name">
               <span className={labelClass}>{copy.name}</span>
               <input
                 autoComplete="name"
+                aria-describedby={formErrors.name ? "users-invite-name-error" : undefined}
+                aria-invalid={Boolean(formErrors.name)}
                 className={inputClass}
+                id="users-invite-name"
                 onChange={(event) => {
                   clearFieldError("name");
                   setForm((current) => ({
@@ -357,14 +371,20 @@ function UsersPageRevamp() {
                 value={form.name}
               />
               {formErrors.name ? (
-                <FieldErrorMessage>{formErrors.name}</FieldErrorMessage>
+                <FieldErrorMessage id="users-invite-name-error">{formErrors.name}</FieldErrorMessage>
               ) : null}
             </label>
 
-            <label className="space-y-2">
+            <label className="space-y-2" htmlFor="users-invite-role">
               <span className={labelClass}>{copy.role}</span>
               <input
+                aria-describedby={[
+                  "users-invite-role-hint",
+                  formErrors.role ? "users-invite-role-error" : "",
+                ].filter(Boolean).join(" ") || undefined}
+                aria-invalid={Boolean(formErrors.role)}
                 className={inputClass}
+                id="users-invite-role"
                 onChange={(event) => {
                   clearFieldError("role");
                   setForm((current) => ({
@@ -376,9 +396,9 @@ function UsersPageRevamp() {
                 type="text"
                 value={form.role}
               />
-              <p className="text-sm text-[var(--muted)]">{copy.roleHint}</p>
+              <p className={fieldHintClass} id="users-invite-role-hint">{copy.roleHint}</p>
               {formErrors.role ? (
-                <FieldErrorMessage>{formErrors.role}</FieldErrorMessage>
+                <FieldErrorMessage id="users-invite-role-error">{formErrors.role}</FieldErrorMessage>
               ) : null}
             </label>
           </div>
@@ -402,7 +422,7 @@ function UsersPageRevamp() {
               {copy.cancel}
             </GhostButton>
           </div>
-        </div>
+        </section>
       ) : null}
 
       <div className="mt-6">
@@ -440,64 +460,69 @@ function UsersPageRevamp() {
                       <StatusBadge tone={userStatusTone[user.status]}>
                         {t(userStatusLabel[user.status])}
                       </StatusBadge>
-                      {user.systemRole !== "SUPER_ADMIN" && (
+                    </div>
+                    {user.systemRole !== "SUPER_ADMIN" ? (
+                      <div className="mt-4 grid gap-2 sm:grid-cols-2">
                         <GhostButton
-                          className="text-xs"
+                          className="w-full"
                           disabled={resettingPasswordFor === user.id}
-                          icon={<KeyRound className="h-3 w-3" />}
+                          icon={<KeyRound className="h-3.5 w-3.5" />}
                           onClick={() => void handleResetPassword(user.id, user.name)}
                           type="button"
                         >
                           {resettingPasswordFor === user.id ? "..." : copy.resetPassword}
                         </GhostButton>
-                      )}
-                      {user.systemRole !== "SUPER_ADMIN" && <select
-                        aria-label={`${copy.title} ${user.id}`}
-                        className={tableActionSelectClass}
-                        onChange={async (event) => {
-                          const next = event.target.value as UserStatus;
-                          if (next === user.status) return;
+                        <label className="space-y-2">
+                          <span className="sr-only">{copy.confirmTitle}</span>
+                          <select
+                            aria-label={`${copy.title} ${user.id}`}
+                            className={`w-full ${tableActionSelectClass}`}
+                            onChange={async (event) => {
+                              const next = event.target.value as UserStatus;
+                              if (next === user.status) return;
 
-                          const approved = await confirm({
-                            title: copy.confirmTitle,
-                            message: copy.confirmMessage.replace(
-                              "{status}",
-                              t(userStatusLabel[next]),
-                            ),
-                            tone: next === "pending" ? "warning" : "info",
-                            confirmLabel: t(userStatusLabel[next]),
-                          });
+                              const approved = await confirm({
+                                title: copy.confirmTitle,
+                                message: copy.confirmMessage.replace(
+                                  "{status}",
+                                  t(userStatusLabel[next]),
+                                ),
+                                tone: next === "pending" ? "warning" : "info",
+                                confirmLabel: t(userStatusLabel[next]),
+                              });
 
-                          if (!approved) {
-                            event.currentTarget.value = user.status;
-                            return;
-                          }
+                              if (!approved) {
+                                event.currentTarget.value = user.status;
+                                return;
+                              }
 
-                          try {
-                            await updateUserStatus(user.id, next);
-                          } catch (updateError) {
-                            notify(
-                              updateError instanceof Error
-                                ? updateError.message
-                                : copy.loadFallback,
-                              {
-                                title: copy.title,
-                                variant: "error",
-                              },
-                            );
-                          }
-                        }}
-                        value={user.status}
-                      >
-                        {USER_STATUS_OPTIONS.filter(
-                          (option) => !(user.status === "active" && option === "pending"),
-                        ).map((option) => (
-                          <option key={`${user.id}-${option}`} value={option}>
-                            {t(userStatusLabel[option])}
-                          </option>
-                        ))}
-                      </select>}
-                    </div>
+                              try {
+                                await updateUserStatus(user.id, next);
+                              } catch (updateError) {
+                                notify(
+                                  updateError instanceof Error
+                                    ? updateError.message
+                                    : copy.loadFallback,
+                                  {
+                                    title: copy.title,
+                                    variant: "error",
+                                  },
+                                );
+                              }
+                            }}
+                            value={user.status}
+                          >
+                            {USER_STATUS_OPTIONS.filter(
+                              (option) => !(user.status === "active" && option === "pending"),
+                            ).map((option) => (
+                              <option key={`${user.id}-${option}`} value={option}>
+                                {t(userStatusLabel[option])}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </article>

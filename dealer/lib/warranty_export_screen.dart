@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -314,7 +314,9 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
       return _ExportStateScaffold(
         title: texts.screenTitle,
         icon: Icons.sync_outlined,
-        headline: _isEnglish ? 'Preparing export data' : 'Đang chuẩn bị dữ liệu xuất kho',
+        headline: _isEnglish
+            ? 'Preparing export data'
+            : 'Đang chuẩn bị dữ liệu xuất kho',
         message: _isEnglish
             ? 'Please wait while the latest order and warranty inventory are prepared.'
             : 'Vui lòng chờ trong lúc hệ thống chuẩn bị dữ liệu đơn hàng và kho bảo hành mới nhất.',
@@ -779,6 +781,7 @@ class _WarrantyExportTexts {
       ? 'There are no serials in the cart yet.'
       : 'Chưa có serial nào trong giỏ';
 }
+
 class _ExportStateScaffold extends StatelessWidget {
   const _ExportStateScaffold({
     required this.title,
@@ -895,4 +898,3 @@ class _ExportSectionCard extends StatelessWidget {
     );
   }
 }
-

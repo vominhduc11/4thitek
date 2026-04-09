@@ -7,13 +7,12 @@ import 'app_settings_controller.dart';
 import 'bank_transfer_support.dart';
 import 'breakpoints.dart';
 import 'cart_controller.dart';
-import 'cart_screen.dart';
+import 'dealer_navigation.dart';
 import 'global_search.dart';
 import 'models.dart';
 import 'order_controller.dart';
 import 'upload_service.dart';
 import 'utils.dart';
-import 'warranty_activation_screen.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/section_card.dart';
@@ -196,9 +195,7 @@ class OrderDetailScreen extends StatelessWidget {
             ? SnackBarAction(
                 label: texts.openCartAction,
                 onPressed: () {
-                  Navigator.of(
-                    context,
-                  ).push(MaterialPageRoute(builder: (_) => const CartScreen()));
+                  context.pushDealerCart();
                 },
               )
             : null,
@@ -571,25 +568,11 @@ class OrderDetailScreen extends StatelessWidget {
       if (canProcessSerial)
         processSerialIsPrimary
             ? ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          WarrantyActivationScreen(orderId: order.id),
-                    ),
-                  );
-                },
+                onPressed: () => context.pushDealerWarrantyActivation(order.id),
                 child: Text(texts.processSerialAction),
               )
             : OutlinedButton(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          WarrantyActivationScreen(orderId: order.id),
-                    ),
-                  );
-                },
+                onPressed: () => context.pushDealerWarrantyActivation(order.id),
                 child: Text(texts.processSerialAction),
               ),
       if (canCancel)
@@ -674,9 +657,7 @@ class OrderDetailScreen extends StatelessWidget {
       );
     }
 
-    final canProcessSerial =
-        order.status == OrderStatus.completed ||
-        order.status == OrderStatus.shipping;
+    final canProcessSerial = order.status == OrderStatus.completed;
     final canCancel =
         order.status == OrderStatus.pending ||
         order.status == OrderStatus.confirmed;
@@ -754,6 +735,22 @@ class OrderDetailScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 14),
+              if (order.status == OrderStatus.shipping) ...[
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 40),
+                  child: SectionCard(
+                    title: texts.serialProcessingLockedTitle,
+                    child: Text(
+                      texts.serialProcessingLockedMessage,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: colors.onSurfaceVariant,
+                        height: 1.45,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
               FadeSlideIn(
                 delay: const Duration(milliseconds: 60),
                 child: SectionCard(
@@ -1075,6 +1072,12 @@ class _OrderDetailTexts {
       isEnglish ? 'Record payment' : 'Ghi nhận thanh toán';
   String get processSerialAction =>
       isEnglish ? 'Process serials' : 'Xử lý serial';
+  String get serialProcessingLockedTitle => isEnglish
+      ? 'Serial processing is almost ready'
+      : 'Xử lý serial sắp khả dụng';
+  String get serialProcessingLockedMessage => isEnglish
+      ? 'This order is already shipping, but serial processing only opens after the order reaches completed status.'
+      : 'Đơn hàng đang giao, nhưng chỉ có thể xử lý serial sau khi đơn chuyển sang trạng thái hoàn thành.';
   String get orderInfoTitle =>
       isEnglish ? 'Order information' : 'Thông tin đơn';
   String get orderIdLabel => isEnglish ? 'Order ID' : 'Mã đơn';
@@ -1585,10 +1588,10 @@ class _PaymentHistoryTile extends StatelessWidget {
     if (normalized.contains('chuyển khoản') ||
         normalized.contains('transfer') ||
         normalized.contains('bank')) {
-        return Icons.account_balance_outlined;
+      return Icons.account_balance_outlined;
     }
     if (normalized.contains('tiền mặt') || normalized.contains('cash')) {
-        return Icons.money_outlined;
+      return Icons.money_outlined;
     }
     return Icons.payments_outlined;
   }

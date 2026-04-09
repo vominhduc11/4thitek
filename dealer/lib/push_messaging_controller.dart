@@ -30,14 +30,14 @@ class PushMessagingController extends ChangeNotifier {
     Future<void> Function()? onNotificationSignal,
     Future<void> Function()? onOrderSignal,
     bool enabled = true,
-  })  : _authStorage = authStorage ?? AuthStorage(),
-        _client = DealerAuthClient(
-          authStorage: authStorage ?? AuthStorage(),
-          inner: client ?? http.Client(),
-        ),
-        _onNotificationSignal = onNotificationSignal,
-        _onOrderSignal = onOrderSignal,
-        _enabled = enabled;
+  }) : _authStorage = authStorage ?? AuthStorage(),
+       _client = DealerAuthClient(
+         authStorage: authStorage ?? AuthStorage(),
+         inner: client ?? http.Client(),
+       ),
+       _onNotificationSignal = onNotificationSignal,
+       _onOrderSignal = onOrderSignal,
+       _enabled = enabled;
 
   final AuthStorage _authStorage;
   final http.Client _client;
@@ -85,7 +85,8 @@ class PushMessagingController extends ChangeNotifier {
     }
     _initializing = true;
     try {
-      final initialized = await DealerFirebaseOptionsProvider.ensureInitialized();
+      final initialized =
+          await DealerFirebaseOptionsProvider.ensureInitialized();
       if (!initialized) {
         _available = false;
         return;
@@ -152,7 +153,8 @@ class PushMessagingController extends ChangeNotifier {
     if (!_enabled || !_available) {
       return;
     }
-    final token = _registeredToken ?? await FirebaseMessaging.instance.getToken();
+    final token =
+        _registeredToken ?? await FirebaseMessaging.instance.getToken();
     if (token == null || token.trim().isEmpty) {
       return;
     }
@@ -311,8 +313,8 @@ class PushMessagingScope extends InheritedNotifier<PushMessagingController> {
   }) : super(notifier: controller);
 
   static PushMessagingController of(BuildContext context) {
-    final scope =
-        context.dependOnInheritedWidgetOfExactType<PushMessagingScope>();
+    final scope = context
+        .dependOnInheritedWidgetOfExactType<PushMessagingScope>();
     assert(scope != null, 'PushMessagingScope not found in widget tree.');
     return scope!.notifier!;
   }

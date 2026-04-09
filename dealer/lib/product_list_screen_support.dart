@@ -208,9 +208,7 @@ extension _ProductListScreenSupport on _ProductListScreenState {
         action: SnackBarAction(
           label: texts.backToCartAction,
           onPressed: () {
-            Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const CartScreen()));
+            context.pushDealerCart();
           },
         ),
       ),
@@ -224,7 +222,7 @@ extension _ProductListScreenSupport on _ProductListScreenState {
     final texts = _productListTexts(context);
     final message = texts.isEnglish
         ? 'Product is out of stock or the cart limit has been reached.'
-        : 'San pham da het hang hoac da dat gioi han trong gio.';
+        : 'Sản phẩm đã hết hàng hoặc đã chạm giới hạn trong giỏ.';
     final messenger = ScaffoldMessenger.of(context);
     messenger.hideCurrentSnackBar();
     messenger.showSnackBar(

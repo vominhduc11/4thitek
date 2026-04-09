@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 
 import 'app_settings_controller.dart';
 import 'breakpoints.dart';
+import 'dealer_navigation.dart';
 import 'models.dart';
 import 'notification_controller.dart';
-import 'notifications_screen.dart';
 import 'order_controller.dart';
 import 'utils.dart';
-import 'warranty_activation_screen.dart';
 import 'warranty_controller.dart';
 import 'warranty_serial_inventory_screen.dart';
 import 'widgets/brand_identity.dart';
@@ -48,11 +47,7 @@ class WarrantyHubScreen extends StatelessWidget {
         actions: [
           NotificationIconButton(
             count: NotificationScope.of(context).unreadCount,
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-              );
-            },
+            onPressed: () => context.pushDealerNotifications(),
           ),
         ],
       ),
@@ -156,10 +151,12 @@ class WarrantyHubScreen extends StatelessWidget {
                         )
                       : Column(
                           children: [
-                            for (final entry in recentActivations.asMap().entries)
+                            for (final entry
+                                in recentActivations.asMap().entries)
                               Padding(
                                 padding: EdgeInsets.only(
-                                  bottom: entry.key == recentActivations.length - 1
+                                  bottom:
+                                      entry.key == recentActivations.length - 1
                                       ? 0
                                       : 10,
                                 ),
@@ -209,15 +206,7 @@ Widget _buildQuickProcessCard(
           child: FilledButton.icon(
             onPressed: quickOrder == null
                 ? null
-                : () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => WarrantyActivationScreen(
-                          orderId: quickOrder.id,
-                        ),
-                      ),
-                    );
-                  },
+                : () => context.pushDealerWarrantyActivation(quickOrder.id),
             icon: const Icon(Icons.bolt_outlined),
             label: Text(texts.processSerialAction),
           ),
@@ -260,7 +249,8 @@ Widget _buildSerialInventoryCard(
             _MetricChip(
               label: texts.availableLabel,
               value: '$availableSerialCount',
-              color: Color.lerp(colors.primary, colors.secondary, 0.35) ??
+              color:
+                  Color.lerp(colors.primary, colors.secondary, 0.35) ??
                   colors.primary,
             ),
             _MetricChip(
@@ -451,7 +441,9 @@ class _WarrantyHubHeroCard extends StatelessWidget {
                     Text(
                       subtitle,
                       style: textTheme.bodyMedium?.copyWith(
-                        color: colors.onPrimaryContainer.withValues(alpha: 0.86),
+                        color: colors.onPrimaryContainer.withValues(
+                          alpha: 0.86,
+                        ),
                         height: 1.45,
                       ),
                     ),
@@ -556,9 +548,7 @@ class _WarrantyHubEmptyState extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.primaryContainer.withValues(alpha: 0.24),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: colors.outlineVariant.withValues(alpha: 0.4),
-        ),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -661,6 +651,7 @@ class _WarrantyHubTexts {
         ? 'All delivered orders already have enough processed serials.'
         : 'Tất cả đơn đã giao đã được xử lý đủ serial.';
   }
+
   String get noOrderReadyLabel =>
       isEnglish ? 'No order ready' : 'Chưa có đơn sẵn sàng';
   String orderReadyLabel(String orderId) =>

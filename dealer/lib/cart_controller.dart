@@ -116,7 +116,8 @@ class CartController extends ChangeNotifier {
       _pricingSummary?.vatAmount ??
       (totalAfterDiscount * vatPercent / 100).round();
 
-  int get total => _pricingSummary?.totalAmount ?? totalAfterDiscount + vatAmount;
+  int get total =>
+      _pricingSummary?.totalAmount ?? totalAfterDiscount + vatAmount;
 
   int quantityFor(String productId) {
     return _items[productId]?.quantity ?? 0;

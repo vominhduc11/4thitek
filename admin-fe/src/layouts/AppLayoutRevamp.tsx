@@ -2,7 +2,6 @@
   BadgeAlert,
   Bell,
   BellDot,
-  Blocks,
   BookOpenText,
   Boxes,
   ChevronDown,
@@ -42,6 +41,7 @@ import logoMark from "../assets/images/logo-4t.png";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import {
   ghostButtonClass,
+  iconButtonClass,
   inputClass,
   tableMetaClass,
 } from "../components/ui-kit";
@@ -53,9 +53,10 @@ import { translateCopy } from "../lib/i18n";
 import { emitAdminRealtimeNotification } from "../lib/adminRealtime";
 import { useProducts } from "../context/ProductsContext";
 import { useToast } from "../context/ToastContext";
-import { useClickOutside } from "../hooks/useClickOutside";
+import { useBodyScrollLock } from "../hooks/useBodyScrollLock";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { useLocalStorageSet } from "../hooks/useLocalStorageSet";
+import { useOverlaySurface } from "../hooks/useOverlaySurface";
 import { useTheme } from "../hooks/useTheme";
 import { useAdminWebSocket } from "../hooks/useAdminWebSocket";
 
@@ -273,7 +274,11 @@ function AppLayoutRevamp() {
     addAll: markAllAlertIds,
   } = useLocalStorageSet(ALERT_READ_STORAGE_KEY);
 
+  const mobileNavTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const mobileSidebarRef = useRef<HTMLDivElement | null>(null);
+  const alertsTriggerRef = useRef<HTMLButtonElement | null>(null);
   const alertsRef = useRef<HTMLDivElement | null>(null);
+  const accountTriggerRef = useRef<HTMLButtonElement | null>(null);
   const accountRef = useRef<HTMLDivElement | null>(null);
   const searchRef = useRef<HTMLFormElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
@@ -281,6 +286,8 @@ function AppLayoutRevamp() {
   const deferredGlobalQuery = useDeferredValue(debouncedGlobalQuery);
   const mobileNavigationId = "admin-mobile-navigation";
   const searchListboxId = "admin-global-search-results";
+  const alertsPopoverId = "admin-alerts-popover";
+  const accountPopoverId = "admin-account-popover";
 
   const navItems = useMemo<NavItem[]>(() => {
     const items: NavItem[] = [
@@ -414,6 +421,16 @@ function AppLayoutRevamp() {
     );
     return matched?.group ?? "overview";
   }, [location.pathname, navItems]);
+
+  const currentSectionLabel = useMemo(() => {
+    const matched = navItems.find((item) =>
+      item.to === "/"
+        ? location.pathname === "/"
+        : location.pathname.startsWith(item.to),
+    );
+
+    return matched?.label ?? copy.welcome;
+  }, [copy.welcome, location.pathname, navItems]);
 
   const alerts = useMemo<AlertItem[]>(() => {
     const items: AlertItem[] = [];
@@ -696,6 +713,44 @@ function AppLayoutRevamp() {
     setActiveSearchIndex(-1);
   }, []);
 
+  const openSidebar = useCallback(() => {
+    setIsSidebarOpen(true);
+    setIsAlertsOpen(false);
+    setIsAccountOpen(false);
+    setIsSearchOpen(false);
+  }, []);
+
+  const toggleAlerts = useCallback(() => {
+    setIsAlertsOpen((current) => {
+      const next = !current;
+      if (next) {
+        setIsSidebarOpen(false);
+        setIsAccountOpen(false);
+        setIsSearchOpen(false);
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleAccount = useCallback(() => {
+    setIsAccountOpen((current) => {
+      const next = !current;
+      if (next) {
+        setIsSidebarOpen(false);
+        setIsAlertsOpen(false);
+        setIsSearchOpen(false);
+      }
+      return next;
+    });
+  }, []);
+
+  const openSearch = useCallback(() => {
+    setIsSearchOpen(true);
+    setIsSidebarOpen(false);
+    setIsAlertsOpen(false);
+    setIsAccountOpen(false);
+  }, []);
+
   useEffect(() => {
     setOpenGroups((current) => ({
       ...current,
@@ -718,9 +773,32 @@ function AppLayoutRevamp() {
     }
   }, [isSearchOpen]);
 
-  useClickOutside(alertsRef, () => setIsAlertsOpen(false), isAlertsOpen);
-  useClickOutside(accountRef, () => setIsAccountOpen(false), isAccountOpen);
-  useClickOutside(searchRef, () => setIsSearchOpen(false), isSearchOpen);
+  useBodyScrollLock(isSidebarOpen);
+  useOverlaySurface({
+    isOpen: isSidebarOpen,
+    containerRef: mobileSidebarRef,
+    triggerRef: mobileNavTriggerRef,
+    onClose: () => setIsSidebarOpen(false),
+  });
+  useOverlaySurface({
+    isOpen: isAlertsOpen,
+    containerRef: alertsRef,
+    triggerRef: alertsTriggerRef,
+    onClose: () => setIsAlertsOpen(false),
+  });
+  useOverlaySurface({
+    isOpen: isAccountOpen,
+    containerRef: accountRef,
+    triggerRef: accountTriggerRef,
+    onClose: () => setIsAccountOpen(false),
+  });
+  useOverlaySurface({
+    isOpen: isSearchOpen,
+    containerRef: searchRef,
+    triggerRef: searchInputRef,
+    initialFocusRef: searchInputRef,
+    onClose: () => setIsSearchOpen(false),
+  });
 
   const handleNavigate = (to: string) => {
     navigate(to);
@@ -797,10 +875,11 @@ function AppLayoutRevamp() {
   const renderSidebar = (mobile = false) => (
     <aside
       id={mobile ? mobileNavigationId : undefined}
+      aria-label={copy.openNavigation}
       className={
         mobile
           ? "brand-admin-shell flex h-full min-h-0 flex-col gap-4 border-r border-[var(--brand-border)] px-4 py-4 text-slate-100"
-          : "brand-admin-shell hidden min-h-0 flex-col gap-4 border-r border-[var(--brand-border)] px-4 py-4 text-slate-100 lg:flex lg:w-[308px] lg:shrink-0 xl:w-[344px]"
+          : "brand-admin-shell hidden min-h-0 flex-col gap-4 border-r border-[var(--brand-border)] px-4 py-4 text-slate-100 lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-[296px] lg:shrink-0 xl:w-[320px]"
       }
     >
       <div className="flex items-center gap-3">
@@ -817,22 +896,6 @@ function AppLayoutRevamp() {
         </div>
       </div>
 
-      <div className="rounded-[20px] border border-[var(--brand-border)] bg-[rgba(41,171,226,0.06)] px-3.5 py-3">
-        <div className="flex items-center gap-3">
-          <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[18px] bg-[rgba(41,171,226,0.14)] text-blue-200">
-            <Blocks className="h-4 w-4" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-              {copy.workspace}
-            </p>
-            <p className="mt-1 text-sm font-semibold leading-5 text-white">
-              {copy.welcome}
-            </p>
-          </div>
-        </div>
-      </div>
-
       <nav className="app-scroll flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto pr-1">
         {groupedNav.map((group) => (
           <section
@@ -840,6 +903,7 @@ function AppLayoutRevamp() {
             className="rounded-[22px] border border-[var(--brand-border)] bg-[rgba(41,171,226,0.05)] px-2 py-2"
           >
             <button
+              aria-expanded={openGroups[group.id]}
               className="flex w-full items-center justify-between gap-3 px-2.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400"
               onClick={() => toggleGroup(group.id)}
               type="button"
@@ -933,47 +997,222 @@ function AppLayoutRevamp() {
   );
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[var(--app-bg)] text-[var(--ink)] lg:overflow-hidden">
+    <div className="relative min-h-screen overflow-x-hidden bg-[var(--app-bg)] text-[var(--ink)]">
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-        <div className="absolute -top-[18vmax] left-[8vmax] h-[38vmax] w-[38vmax] rounded-full bg-[radial-gradient(circle_at_30%_30%,rgba(41,171,226,0.08),transparent_65%)] animate-drift motion-reduce:animate-none" />
-        <div className="absolute -bottom-[20vmax] right-[6vmax] h-[44vmax] w-[44vmax] rounded-full bg-[radial-gradient(circle_at_60%_40%,rgba(0,113,188,0.1),transparent_65%)] animate-drift-slow motion-reduce:animate-none" />
-        <div className="absolute inset-0 opacity-18 [background-size:120px_120px] [background-image:linear-gradient(to_right,rgba(41,171,226,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(41,171,226,0.05)_1px,transparent_1px)]" />
+        <div className="absolute -top-[18vmax] left-[8vmax] h-[34vmax] w-[34vmax] rounded-full bg-[radial-gradient(circle_at_30%_30%,rgba(41,171,226,0.06),transparent_65%)] animate-drift motion-reduce:animate-none" />
+        <div className="absolute -bottom-[20vmax] right-[6vmax] h-[38vmax] w-[38vmax] rounded-full bg-[radial-gradient(circle_at_60%_40%,rgba(0,113,188,0.08),transparent_65%)] animate-drift-slow motion-reduce:animate-none" />
       </div>
 
-      <div className="relative flex min-h-screen lg:h-screen">
+      <div className="relative flex min-h-screen">
         {renderSidebar()}
 
-        <div className="flex min-h-screen flex-1 flex-col lg:h-full lg:min-h-0">
-          <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--surface-tint)] backdrop-blur-xl">
-            <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4 lg:px-8">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">
-                    {copy.workspace}
-                  </p>
-                  <h1 className="mt-1 text-lg font-semibold tracking-[-0.02em] text-[var(--ink)] sm:text-2xl">
-                    {copy.welcome}
-                  </h1>
-                  <p className="mt-1 hidden max-w-3xl text-sm text-[var(--muted)] md:block">
-                    {copy.welcomeText}
-                  </p>
+        <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+          <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--surface-tint)]/95 backdrop-blur-xl">
+            <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-3 px-4 py-3 sm:px-6 lg:px-8">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <button
+                    ref={mobileNavTriggerRef}
+                    aria-controls={mobileNavigationId}
+                    aria-expanded={isSidebarOpen}
+                    aria-label={copy.openNavigation}
+                    className={`${iconButtonClass} lg:hidden`}
+                    onClick={openSidebar}
+                    type="button"
+                  >
+                    <Menu className="h-5 w-5" />
+                  </button>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--muted)]">
+                      {copy.groups[activeGroup]}
+                    </p>
+                    <p className="truncate text-sm font-semibold text-[var(--ink)] sm:text-base">
+                      {currentSectionLabel}
+                    </p>
+                  </div>
                 </div>
-                <button
-                  aria-controls={mobileNavigationId}
-                  aria-expanded={isSidebarOpen}
-                  aria-label={copy.openNavigation}
-                  className={`${ghostButtonClass} h-11 w-11 px-0 lg:hidden`}
-                  onClick={() => setIsSidebarOpen(true)}
-                  type="button"
-                >
-                  <Menu className="h-5 w-5" />
-                </button>
+
+                <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
+                  <button
+                    aria-label={theme === "dark" ? copy.light : copy.dark}
+                    className={ghostButtonClass}
+                    onClick={toggleTheme}
+                    type="button"
+                  >
+                    {theme === "dark" ? (
+                      <Sun className="h-4 w-4" />
+                    ) : (
+                      <Moon className="h-4 w-4" />
+                    )}
+                    <span className="hidden sm:inline">
+                      {theme === "dark" ? copy.light : copy.dark}
+                    </span>
+                  </button>
+
+                  <LanguageSwitcher />
+
+                  <div className="relative" ref={alertsRef}>
+                    <button
+                      ref={alertsTriggerRef}
+                      aria-controls={alertsPopoverId}
+                      aria-expanded={isAlertsOpen}
+                      aria-haspopup="dialog"
+                      className={ghostButtonClass}
+                      onClick={toggleAlerts}
+                      type="button"
+                    >
+                      {unreadAlerts.length > 0 ? (
+                        <BellDot className="h-4 w-4" />
+                      ) : (
+                        <Bell className="h-4 w-4" />
+                      )}
+                      <span className="hidden sm:inline">{copy.alerts}</span>
+                      {unreadAlerts.length > 0 ? (
+                        <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-[var(--destructive)] px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                          {unreadAlerts.length}
+                        </span>
+                      ) : null}
+                    </button>
+
+                    {isAlertsOpen ? (
+                      <div
+                        id={alertsPopoverId}
+                        aria-label={copy.alerts}
+                        className="absolute right-0 z-40 mt-2 w-[min(92vw,360px)] rounded-[22px] border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[0_18px_38px_rgba(15,23,42,0.14)]"
+                        role="dialog"
+                        tabIndex={-1}
+                      >
+                        <div className="flex items-center justify-between gap-3 px-2">
+                          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
+                            {copy.alerts}
+                          </p>
+                          {unreadAlerts.length > 0 ? (
+                            <button
+                              className="text-xs font-semibold text-[var(--accent)]"
+                              onClick={() => {
+                                markAllAlertIds(
+                                  alerts.map((alert) => alert.id),
+                                );
+                              }}
+                              type="button"
+                            >
+                              {copy.markAllRead}
+                            </button>
+                          ) : null}
+                        </div>
+                        {alerts.length > 0 ? (
+                          <ul className="mt-2 space-y-1">
+                            {alerts.map((alert) => {
+                              const Icon = alert.icon;
+                              const isUnread = !readAlertIds.has(alert.id);
+                              return (
+                                <li key={alert.id}>
+                                  <button
+                                    className={[
+                                      "flex w-full items-start gap-3 rounded-2xl px-3 py-3 text-left transition",
+                                      isUnread
+                                        ? "bg-[var(--surface-muted)] hover:bg-[var(--accent-soft)]/50"
+                                        : "hover:bg-[var(--surface-muted)]",
+                                    ].join(" ")}
+                                    onClick={() => {
+                                      markAlertRead(alert.id);
+                                      navigate(alert.to);
+                                    }}
+                                    type="button"
+                                  >
+                                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
+                                      <Icon className="h-4 w-4" />
+                                    </span>
+                                    <span className="min-w-0">
+                                      <span className="flex items-center gap-2">
+                                        <span className="truncate text-sm font-semibold text-[var(--ink)]">
+                                          {alert.title}
+                                        </span>
+                                        {isUnread ? (
+                                          <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--destructive)]" />
+                                        ) : null}
+                                      </span>
+                                      <span className="mt-1 block text-xs leading-5 text-[var(--muted)]">
+                                        {alert.description}
+                                      </span>
+                                    </span>
+                                  </button>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        ) : (
+                          <p className="px-2 py-4 text-sm text-[var(--muted)]">
+                            {copy.alertsEmpty}
+                          </p>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="relative" ref={accountRef}>
+                    <button
+                      ref={accountTriggerRef}
+                      aria-controls={accountPopoverId}
+                      aria-expanded={isAccountOpen}
+                      aria-haspopup="dialog"
+                      className={ghostButtonClass}
+                      onClick={toggleAccount}
+                      type="button"
+                    >
+                      <UserCircle className="h-4 w-4" />
+                      <span className="hidden sm:inline">{copy.account}</span>
+                    </button>
+
+                    {isAccountOpen ? (
+                      <div
+                        id={accountPopoverId}
+                        aria-label={copy.account}
+                        className="absolute right-0 z-40 mt-2 w-[min(92vw,18rem)] rounded-[22px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_18px_38px_rgba(15,23,42,0.14)] sm:w-72"
+                        role="dialog"
+                        tabIndex={-1}
+                      >
+                        <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
+                          {copy.account}
+                        </p>
+                        <p className="mt-2 truncate text-base font-semibold text-[var(--ink)]">
+                          {user?.username ?? "Admin"}
+                        </p>
+                        <p className="mt-1 text-sm text-[var(--muted)]">
+                          {user?.role ?? copy.noRole}
+                        </p>
+                        <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-3">
+                          <p className={tableMetaClass}>{copy.language}</p>
+                          <p className="mt-1 text-sm font-medium text-[var(--ink)]">
+                            {language === "vi" ? "Tiếng Việt" : "English"}
+                          </p>
+                        </div>
+                        <button
+                          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-[18px] border border-[var(--destructive-border)] bg-[var(--destructive-soft)] px-4 py-2 text-sm font-semibold text-[var(--destructive-text)] transition hover:bg-[var(--destructive-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--destructive)]"
+                          onClick={() => {
+                            logout();
+                            notify(copy.logout, {
+                              title: copy.account,
+                              variant: "info",
+                            });
+                            navigate("/login");
+                          }}
+                          type="button"
+                        >
+                          <LogOut className="h-4 w-4" />
+                          {copy.logout}
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
               </div>
 
               <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                 <form
                   ref={searchRef}
-                  className="relative w-full lg:max-w-lg"
+                  aria-label={copy.searchHint}
+                  className="relative w-full lg:max-w-xl"
                   onSubmit={handleGlobalSearch}
                 >
                   <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
@@ -993,18 +1232,23 @@ function AppLayoutRevamp() {
                     className={`${inputClass} w-full pl-10 pr-4`}
                     onChange={(event) => {
                       setGlobalQuery(event.target.value);
-                      setIsSearchOpen(true);
+                      openSearch();
                       setShowAllSearchResults(false);
                       setActiveSearchIndex(-1);
                     }}
-                    onFocus={() => setIsSearchOpen(true)}
+                    onFocus={openSearch}
                     onKeyDown={handleSearchKeyDown}
                     placeholder={copy.searchPlaceholder}
                     role="combobox"
                     value={globalQuery}
                   />
                   {isSearchOpen && globalQuery.trim() ? (
-                    <div className="absolute left-0 right-0 z-30 mt-2 rounded-[24px] border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[0_16px_34px_rgba(15,23,42,0.12)]">
+                    <div
+                      aria-label={copy.searchHint}
+                      className="absolute left-0 right-0 z-40 mt-2 rounded-[22px] border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[0_18px_38px_rgba(15,23,42,0.14)]"
+                      role="dialog"
+                      tabIndex={-1}
+                    >
                       <div className="flex items-start justify-between gap-3 px-2">
                         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
                           {copy.searchHint}
@@ -1080,176 +1324,11 @@ function AppLayoutRevamp() {
                     </div>
                   ) : null}
                 </form>
-
-                <div className="flex flex-wrap items-center justify-between gap-2 sm:justify-end sm:gap-3">
-                  <button
-                    aria-label={theme === "dark" ? copy.light : copy.dark}
-                    className={ghostButtonClass}
-                    onClick={toggleTheme}
-                    type="button"
-                  >
-                    {theme === "dark" ? (
-                      <Sun className="h-4 w-4" />
-                    ) : (
-                      <Moon className="h-4 w-4" />
-                    )}
-                    <span className="hidden sm:inline">
-                      {theme === "dark" ? copy.light : copy.dark}
-                    </span>
-                  </button>
-
-                  <LanguageSwitcher />
-
-                  <div className="relative" ref={alertsRef}>
-                    <button
-                      aria-expanded={isAlertsOpen}
-                      aria-haspopup="menu"
-                      className={ghostButtonClass}
-                      onClick={() => setIsAlertsOpen((current) => !current)}
-                      type="button"
-                    >
-                      {unreadAlerts.length > 0 ? (
-                        <BellDot className="h-4 w-4" />
-                      ) : (
-                        <Bell className="h-4 w-4" />
-                      )}
-                      <span className="hidden sm:inline">{copy.alerts}</span>
-                      {unreadAlerts.length > 0 ? (
-                        <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-[var(--destructive)] px-1.5 py-0.5 text-[11px] font-semibold text-white">
-                          {unreadAlerts.length}
-                        </span>
-                      ) : null}
-                    </button>
-
-                    {isAlertsOpen ? (
-                      <div
-                        className="absolute right-0 z-30 mt-2 w-[min(92vw,360px)] rounded-[24px] border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[0_16px_34px_rgba(15,23,42,0.12)]"
-                        role="menu"
-                      >
-                        <div className="flex items-center justify-between gap-3 px-2">
-                          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
-                            {copy.alerts}
-                          </p>
-                          {unreadAlerts.length > 0 ? (
-                            <button
-                              className="text-xs font-semibold text-[var(--accent)]"
-                              onClick={() => {
-                                markAllAlertIds(
-                                  alerts.map((alert) => alert.id),
-                                );
-                              }}
-                              type="button"
-                            >
-                              {copy.markAllRead}
-                            </button>
-                          ) : null}
-                        </div>
-                        {alerts.length > 0 ? (
-                          <ul className="mt-2 space-y-1">
-                            {alerts.map((alert) => {
-                              const Icon = alert.icon;
-                              const isUnread = !readAlertIds.has(alert.id);
-                              return (
-                                <li key={alert.id}>
-                                  <button
-                                    className={[
-                                      "flex w-full items-start gap-3 rounded-2xl px-3 py-3 text-left transition",
-                                      isUnread
-                                        ? "bg-[var(--surface-muted)] hover:bg-[var(--accent-soft)]/50"
-                                        : "hover:bg-[var(--surface-muted)]",
-                                    ].join(" ")}
-                                    onClick={() => {
-                                      markAlertRead(alert.id);
-                                      navigate(alert.to);
-                                    }}
-                                    type="button"
-                                  >
-                                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
-                                      <Icon className="h-4 w-4" />
-                                    </span>
-                                    <span className="min-w-0">
-                                      <span className="flex items-center gap-2">
-                                        <span className="truncate text-sm font-semibold text-[var(--ink)]">
-                                          {alert.title}
-                                        </span>
-                                        {isUnread ? (
-                                          <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--destructive)]" />
-                                        ) : null}
-                                      </span>
-                                      <span className="mt-1 block text-xs leading-5 text-[var(--muted)]">
-                                        {alert.description}
-                                      </span>
-                                    </span>
-                                  </button>
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        ) : (
-                          <p className="px-2 py-4 text-sm text-[var(--muted)]">
-                            {copy.alertsEmpty}
-                          </p>
-                        )}
-                      </div>
-                    ) : null}
-                  </div>
-
-                  <div className="relative" ref={accountRef}>
-                    <button
-                      aria-expanded={isAccountOpen}
-                      aria-haspopup="menu"
-                      className={ghostButtonClass}
-                      onClick={() => setIsAccountOpen((current) => !current)}
-                      type="button"
-                    >
-                      <UserCircle className="h-4 w-4" />
-                      <span className="hidden sm:inline">{copy.account}</span>
-                    </button>
-
-                    {isAccountOpen ? (
-                      <div
-                        className="absolute right-0 z-30 mt-2 w-[min(92vw,16rem)] rounded-[24px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_16px_34px_rgba(15,23,42,0.12)] sm:w-64"
-                        role="menu"
-                      >
-                        <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
-                          {copy.account}
-                        </p>
-                        <p className="mt-2 truncate text-base font-semibold text-[var(--ink)]">
-                          {user?.username ?? "Admin"}
-                        </p>
-                        <p className="mt-1 text-sm text-[var(--muted)]">
-                          {user?.role ?? copy.noRole}
-                        </p>
-                        <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-3">
-                          <p className={tableMetaClass}>{copy.language}</p>
-                          <p className="mt-1 text-sm font-medium text-[var(--ink)]">
-                            {language === "vi" ? "Tiếng Việt" : "English"}
-                          </p>
-                        </div>
-                        <button
-                          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--destructive-border)] bg-[var(--destructive-soft)] px-4 py-2 text-sm font-semibold text-[var(--destructive-text)] transition hover:bg-[var(--destructive-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--destructive)]"
-                          onClick={() => {
-                            logout();
-                            notify(copy.logout, {
-                              title: copy.account,
-                              variant: "info",
-                            });
-                            navigate("/login");
-                          }}
-                          type="button"
-                        >
-                          <LogOut className="h-4 w-4" />
-                          {copy.logout}
-                        </button>
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
               </div>
             </div>
           </header>
 
-          <main className="app-scroll flex-1 px-4 pb-12 pt-6 sm:px-6 md:px-8 lg:min-h-0 lg:overflow-y-auto">
+          <main className="flex-1 px-4 pb-10 pt-4 sm:px-6 md:px-8">
             <div className="mx-auto w-full max-w-screen-2xl">
               <Outlet />
             </div>
@@ -1268,9 +1347,14 @@ function AppLayoutRevamp() {
       />
 
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-[min(90vw,360px)] transform transition duration-300 ease-out lg:hidden ${
+        ref={mobileSidebarRef}
+        aria-labelledby="admin-mobile-navigation-title"
+        aria-modal="true"
+        className={`fixed inset-y-0 left-0 z-50 w-[min(92vw,360px)] transform transition duration-300 ease-out lg:hidden ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
+        role="dialog"
+        tabIndex={-1}
       >
         <div className="flex h-full flex-col">
           <button
@@ -1281,6 +1365,9 @@ function AppLayoutRevamp() {
           >
             <X className="h-4 w-4" />
           </button>
+          <h2 className="sr-only" id="admin-mobile-navigation-title">
+            {copy.workspace}
+          </h2>
           {renderSidebar(true)}
         </div>
       </div>

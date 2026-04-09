@@ -198,11 +198,11 @@ class _AppPreferencesTexts {
       : 'Quản lý ngôn ngữ sử dụng trong khi ứng dụng luôn giữ một giao diện tối cố định trên mọi thiết bị.';
 
   String get appearanceTitle =>
-      isEnglish ? 'Default interface' : 'Giao diện mặc định';
+      isEnglish ? 'Fixed interface' : 'Giao diện cố định';
 
   String get appearanceSubtitle => isEnglish
       ? '4T HITEK Dealer runs with one optimized dark interface. Theme switching is no longer available at runtime.'
-      : '4T HITEK Dealer vận hành với một giao diện tối tối ưu. Ứng dụng không còn hỗ trợ đổi theme trong runtime.';
+      : '4T HITEK Dealer vận hành với một giao diện tối cố định đã được tối ưu. Ứng dụng không hỗ trợ đổi theme trong lúc sử dụng.';
 
   String get appearanceModeLabel =>
       isEnglish ? 'System interface' : 'Giao diện hệ thống';
@@ -409,9 +409,7 @@ class _PreferenceHeroChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.surfaceContainerLow,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: colors.outlineVariant.withValues(alpha: 0.5),
-        ),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.5)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

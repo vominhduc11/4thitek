@@ -48,6 +48,7 @@ import {
   StatCard,
   StatusBadge,
   formCardClass,
+  iconButtonClass,
   inputClass,
   labelClass,
   tableCardClass,
@@ -56,6 +57,8 @@ import {
   tableRowClass,
   textareaClass,
 } from "../components/ui-kit";
+import { useBodyScrollLock } from "../hooks/useBodyScrollLock";
+import { useOverlaySurface } from "../hooks/useOverlaySurface";
 
 const SERIAL_STATUS_FILTER_OPTIONS: BackendProductSerialStatus[] = [
   "AVAILABLE",
@@ -196,10 +199,14 @@ function SerialsPageRevamp() {
   const { confirm, confirmDialog } = useConfirmDialog();
   const [qrItem, setQrItem] = useState<BackendSerialResponse | null>(null);
   const qrRef = useRef<HTMLDivElement>(null);
+  const qrModalRef = useRef<HTMLDivElement | null>(null);
+  const qrCloseButtonRef = useRef<HTMLButtonElement | null>(null);
   const [rmaModal, setRmaModal] = useState<{
     item: BackendSerialResponse;
     action: BackendRmaAction;
   } | null>(null);
+  const rmaModalRef = useRef<HTMLDivElement | null>(null);
+  const rmaReasonInputRef = useRef<HTMLTextAreaElement | null>(null);
   const [rmaReason, setRmaReason] = useState("");
   const [rmaProofUrls, setRmaProofUrls] = useState("");
   const [isRmaSubmitting, setIsRmaSubmitting] = useState(false);
@@ -224,6 +231,24 @@ function SerialsPageRevamp() {
   const [form, setForm] = useState({
     productId: "",
     serials: "",
+  });
+
+  useBodyScrollLock(Boolean(qrItem || rmaModal));
+  useOverlaySurface({
+    isOpen: Boolean(qrItem),
+    containerRef: qrModalRef,
+    triggerRef: undefined,
+    initialFocusRef: qrCloseButtonRef,
+    onClose: () => setQrItem(null),
+    restoreFocus: false,
+  });
+  useOverlaySurface({
+    isOpen: Boolean(rmaModal),
+    containerRef: rmaModalRef,
+    triggerRef: undefined,
+    initialFocusRef: rmaReasonInputRef,
+    onClose: () => setRmaModal(null),
+    restoreFocus: false,
   });
 
   const loadData = useCallback(
@@ -755,10 +780,11 @@ function SerialsPageRevamp() {
                     </div>
                     <div className="flex items-center gap-2">
                       <button
-                        type="button"
-                        title={copy.showQr}
+                        aria-label={copy.showQr}
+                        className={`${iconButtonClass} min-h-9 min-w-9 rounded-xl border-transparent bg-transparent shadow-none`}
                         onClick={() => setQrItem(item)}
-                        className="rounded-lg p-1.5 text-[var(--ink-muted)] hover:bg-[var(--surface-raised)] hover:text-[var(--ink)]"
+                        title={copy.showQr}
+                        type="button"
                       >
                         <QrCode className="h-4 w-4" />
                       </button>
@@ -970,10 +996,11 @@ function SerialsPageRevamp() {
                       <td className="rounded-r-2xl px-3 py-3">
                         <div className="flex items-center gap-1">
                           <button
-                            type="button"
-                            title={copy.showQr}
+                            aria-label={copy.showQr}
+                            className={`${iconButtonClass} min-h-9 min-w-9 rounded-xl border-transparent bg-transparent shadow-none`}
                             onClick={() => setQrItem(item)}
-                            className="rounded-lg p-1.5 text-[var(--ink-muted)] hover:bg-[var(--surface-raised)] hover:text-[var(--ink)]"
+                            title={copy.showQr}
+                            type="button"
                           >
                             <QrCode className="h-3.5 w-3.5" />
                           </button>
@@ -1044,10 +1071,11 @@ function SerialsPageRevamp() {
                           {(item.status === "AVAILABLE" ||
                             item.status === "DEFECTIVE") && (
                             <button
-                              type="button"
-                              title={copy.deleteSerial}
+                              aria-label={copy.deleteSerial}
+                              className={`${iconButtonClass} min-h-9 min-w-9 rounded-xl border-transparent bg-transparent text-slate-400 shadow-none hover:border-[var(--destructive-border)] hover:bg-[var(--destructive-soft)] hover:text-[var(--destructive-text)]`}
                               onClick={() => void handleDeleteSerial(item)}
-                              className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950 dark:hover:text-rose-400"
+                              title={copy.deleteSerial}
+                              type="button"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
@@ -1085,20 +1113,30 @@ function SerialsPageRevamp() {
           onClick={() => setQrItem(null)}
         >
           <div
-            className="relative flex w-72 flex-col items-center gap-5 rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900"
+            ref={qrModalRef}
+            aria-describedby="serial-qr-description"
+            aria-labelledby="serial-qr-title"
+            aria-modal="true"
+            className="relative mx-4 flex w-full max-w-sm flex-col items-center gap-5 rounded-[22px] bg-[var(--surface)] p-5 shadow-2xl sm:p-6"
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            tabIndex={-1}
           >
             <button
-              type="button"
               aria-label={copy.close}
+              className={`${iconButtonClass} absolute right-3 top-3 min-h-9 min-w-9 rounded-xl border-transparent bg-transparent shadow-none`}
               onClick={() => setQrItem(null)}
-              className="absolute right-3 top-3 rounded-full p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+              ref={qrCloseButtonRef}
+              type="button"
             >
               <X className="h-4 w-4" />
             </button>
 
-            <p className="text-sm font-semibold text-[var(--ink)]">
+            <p className="text-sm font-semibold text-[var(--ink)]" id="serial-qr-title">
               {copy.qrTitle}
+            </p>
+            <p className="sr-only" id="serial-qr-description">
+              {qrItem.serial}
             </p>
 
             <div
@@ -1127,11 +1165,11 @@ function SerialsPageRevamp() {
               )}
             </div>
 
-            <div className="flex w-full gap-2">
+            <div className="flex w-full flex-col-reverse gap-2 sm:flex-row">
               <button
                 type="button"
                 onClick={handlePrintQr}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+                className="flex flex-1 items-center justify-center gap-2 rounded-[18px] bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white hover:opacity-90"
               >
                 <Printer className="h-4 w-4" />
                 {copy.printQr}
@@ -1139,7 +1177,7 @@ function SerialsPageRevamp() {
               <button
                 type="button"
                 onClick={() => setQrItem(null)}
-                className="rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--ink)] hover:bg-[var(--surface-raised)]"
+                className="rounded-[18px] border border-[var(--border)] px-4 py-2.5 text-sm font-medium text-[var(--ink)] hover:bg-[var(--surface-raised)]"
               >
                 {copy.close}
               </button>
@@ -1155,46 +1193,59 @@ function SerialsPageRevamp() {
           onClick={() => setRmaModal(null)}
         >
           <div
-            className="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900"
+            ref={rmaModalRef}
+            aria-describedby="serial-rma-description"
+            aria-labelledby="serial-rma-title"
+            aria-modal="true"
+            className="relative mx-4 max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-[22px] bg-[var(--surface)] p-5 shadow-2xl sm:p-6"
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            tabIndex={-1}
           >
             <button
-              type="button"
               aria-label={copy.close}
+              className={`${iconButtonClass} absolute right-3 top-3 min-h-9 min-w-9 rounded-xl border-transparent bg-transparent shadow-none`}
               onClick={() => setRmaModal(null)}
-              className="absolute right-3 top-3 rounded-full p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+              type="button"
             >
               <X className="h-4 w-4" />
             </button>
 
-            <p className="pr-6 text-sm font-semibold text-[var(--ink)]">
+            <p className="pr-6 text-sm font-semibold text-[var(--ink)]" id="serial-rma-title">
               {rmaModalTitles[rmaModal.action]}
             </p>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-slate-500" id="serial-rma-description">
               {rmaModal.item.serial}
             </p>
 
             <div className="mt-4 flex flex-col gap-3">
-              <label className="flex flex-col gap-1">
+              <label className="flex flex-col gap-1" htmlFor="serial-rma-reason">
                 <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
                   {copy.rmaReasonLabel}
                 </span>
                 <textarea
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                  aria-describedby={rmaError ? "serial-rma-error" : undefined}
+                  aria-invalid={Boolean(rmaError)}
+                  className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                  id="serial-rma-reason"
                   rows={2}
                   placeholder={copy.rmaReasonPlaceholder}
+                  ref={rmaReasonInputRef}
                   value={rmaReason}
                   onChange={(e) => setRmaReason(e.target.value)}
                 />
               </label>
 
               {rmaModal.action === "PASS_QC" && (
-                <label className="flex flex-col gap-1">
+                <label className="flex flex-col gap-1" htmlFor="serial-rma-proof-urls">
                   <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
                     {copy.rmaProofUrlsLabel}
                   </span>
                   <textarea
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                    aria-describedby={rmaError ? "serial-rma-error" : undefined}
+                    aria-invalid={Boolean(rmaError)}
+                    className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                    id="serial-rma-proof-urls"
                     rows={3}
                     placeholder={copy.rmaProofUrlsPlaceholder}
                     value={rmaProofUrls}
@@ -1203,15 +1254,15 @@ function SerialsPageRevamp() {
                 </label>
               )}
 
-              {rmaError && <p className="text-xs text-rose-500">{rmaError}</p>}
+              {rmaError && <p className="text-xs text-rose-500" id="serial-rma-error">{rmaError}</p>}
             </div>
 
-            <div className="mt-5 flex gap-2">
+            <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row">
               <button
                 type="button"
                 disabled={isRmaSubmitting}
                 onClick={() => void handleRmaAction()}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+                className="flex flex-1 items-center justify-center gap-2 rounded-[18px] bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
               >
                 {isRmaSubmitting && (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1221,7 +1272,7 @@ function SerialsPageRevamp() {
               <button
                 type="button"
                 onClick={() => setRmaModal(null)}
-                className="rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--ink)] hover:bg-[var(--surface-raised)]"
+                className="rounded-[18px] border border-[var(--border)] px-4 py-2.5 text-sm font-medium text-[var(--ink)] hover:bg-[var(--surface-raised)]"
               >
                 {copy.cancel}
               </button>

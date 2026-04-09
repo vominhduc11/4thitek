@@ -51,10 +51,7 @@ String resolveUploadServiceMessage(String? message, {required bool isEnglish}) {
   }
 }
 
-String uploadServiceErrorMessage(
-  Object error, {
-  required bool isEnglish,
-}) {
+String uploadServiceErrorMessage(Object error, {required bool isEnglish}) {
   final message = switch (error) {
     UploadException() => error.message,
     _ => error.toString().trim(),
@@ -110,11 +107,7 @@ class UploadService {
     }
     try {
       request.files.add(
-        http.MultipartFile.fromBytes(
-          'file',
-          fileBytes,
-          filename: file.name,
-        ),
+        http.MultipartFile.fromBytes('file', fileBytes, filename: file.name),
       );
     } catch (e) {
       throw UploadException('Failed to encode file for upload: $e');
@@ -135,8 +128,7 @@ class UploadService {
           ? decoded['error']?.toString()
           : null;
       throw UploadException(
-        message ??
-            uploadServiceMessageToken(UploadMessageCode.uploadFailed),
+        message ?? uploadServiceMessageToken(UploadMessageCode.uploadFailed),
       );
     }
     if (decoded is! Map<String, dynamic>) {

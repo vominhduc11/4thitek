@@ -4,6 +4,8 @@ import {
   SearchInput,
   inputClass,
   selectClass,
+  toolbarCardClass,
+  toolbarGroupClass,
 } from '../../components/ui-kit'
 import type {
   FeaturedFilter,
@@ -75,7 +77,7 @@ function ProductsToolbar({
 
   return (
     <section className="mt-6 space-y-4">
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+      <div className={toolbarCardClass}>
         <div className="flex flex-1 flex-col gap-3 lg:flex-row lg:items-center">
           <SearchInput
             id="products-search"
@@ -83,9 +85,9 @@ function ProductsToolbar({
             placeholder={t('Tìm tên, SKU...')}
             value={searchTerm}
             onChange={(event) => onSearchTermChange(event.target.value)}
-            className="w-full lg:max-w-md"
+            className="w-full lg:max-w-lg"
           />
-          <div className="flex flex-col gap-3 sm:flex-row lg:ml-auto">
+          <div className={`${toolbarGroupClass} lg:ml-auto`}>
             <GhostButton
               className="w-full sm:w-auto"
               icon={<SlidersHorizontal className="h-4 w-4" />}
@@ -198,7 +200,7 @@ function ProductsToolbar({
       ) : null}
 
       <div className="overflow-x-auto pb-1">
-        <div className="flex min-w-max gap-2">
+        <div className="flex min-w-max flex-wrap gap-2 sm:flex-nowrap">
           {filterOptions.map((option) => {
             const isActive = filter === option.value
 

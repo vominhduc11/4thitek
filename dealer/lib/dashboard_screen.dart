@@ -7,18 +7,14 @@ import 'package:flutter/material.dart';
 
 import 'app_settings_controller.dart';
 import 'breakpoints.dart';
+import 'dealer_navigation.dart';
 import 'global_search.dart';
 import 'models.dart';
 import 'notification_controller.dart';
 import 'order_controller.dart';
-import 'order_detail_screen.dart';
-import 'notifications_screen.dart';
 import 'widgets/notification_icon_button.dart';
-import 'orders_screen.dart';
-import 'product_list_screen.dart';
 import 'utils.dart';
 import 'warranty_controller.dart';
-import 'warranty_hub_screen.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/skeleton_box.dart';
@@ -739,9 +735,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       widget.onSwitchTab!(0);
       return;
     }
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const ProductListScreen()));
+    context.pushDealerProducts();
   }
 
   void _openInventoryScreen() {
@@ -749,19 +743,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       widget.onSwitchTab!(3);
       return;
     }
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const InventoryScreen()));
+    context.pushDealerInventory();
   }
 
   void _openLowStockInventoryScreen() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const InventoryScreen(
-          initialStockFilter: InventoryStockFilter.lowStock,
-        ),
-      ),
-    );
+    context.pushDealerInventory(filter: InventoryStockFilter.lowStock);
   }
 
   void _openOrdersScreen() {
@@ -769,15 +755,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       widget.onSwitchTab!(1);
       return;
     }
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const OrdersScreen()));
+    context.pushDealerOrders();
   }
 
   void _openOrderDetail(String orderId) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => OrderDetailScreen(orderId: orderId)),
-    );
+    context.pushDealerOrderDetail(orderId);
   }
 
   Future<void> _openWarrantyHub() async {
@@ -788,9 +770,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (!mounted) {
       return;
     }
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const WarrantyHubScreen()));
+    context.pushDealerWarrantyHub();
   }
 
   @override
@@ -1183,9 +1163,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           NotificationIconButton(
             count: unreadNotificationCount,
             onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-              );
+              context.pushDealerNotifications();
             },
           ),
         ],

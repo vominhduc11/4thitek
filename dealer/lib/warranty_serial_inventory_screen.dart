@@ -5,8 +5,8 @@ import 'package:flutter/services.dart';
 
 import 'app_settings_controller.dart';
 import 'breakpoints.dart';
+import 'dealer_navigation.dart';
 import 'order_controller.dart';
-import 'order_detail_screen.dart';
 import 'utils.dart';
 import 'warranty_controller.dart';
 import 'widgets/brand_identity.dart';
@@ -620,9 +620,7 @@ class _WarrantySerialInventoryScreenState
   }
 
   void _openOrderDetail(String orderId) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => OrderDetailScreen(orderId: orderId)),
-    );
+    context.pushDealerOrderDetail(orderId);
   }
 }
 
@@ -638,8 +636,9 @@ class _WarrantySerialInventoryTexts {
   String get clearSearchTooltip => isEnglish ? 'Clear search' : 'Xóa tìm kiếm';
   String allFilterLabel(int count) =>
       isEnglish ? 'All ($count)' : 'Tất cả ($count)';
-  String readyFilterLabel(int count) =>
-      isEnglish ? 'Ready ($count)' : 'Sẵn sàng ($count)';
+  String readyFilterLabel(int count) => isEnglish
+      ? 'Ready for activation ($count)'
+      : 'Sẵn sàng kích hoạt ($count)';
   String activatedFilterLabel(int count) =>
       isEnglish ? 'Activated ($count)' : 'Đã kích hoạt ($count)';
   String get orderFilterAllLabel => isEnglish ? 'Order: All' : 'Đơn: Tất cả';
@@ -655,10 +654,11 @@ class _WarrantySerialInventoryTexts {
   String get newestOptionLabel => isEnglish ? 'Newest' : 'Mới nhất';
   String get oldestOptionLabel => isEnglish ? 'Oldest' : 'Cũ nhất';
   String get importedLabel => isEnglish ? 'Imported' : 'Đã nhập';
-  String get readyLabel => isEnglish ? 'Ready' : 'Sẵn sàng';
+  String get readyLabel =>
+      isEnglish ? 'Ready for activation' : 'Sẵn sàng kích hoạt';
   String get activatedLabel => isEnglish ? 'Activated' : 'Đã kích hoạt';
   String get summaryTitle =>
-      isEnglish ? 'Inventory summary' : 'Tóm tắt tồn serial';
+      isEnglish ? 'Serial readiness summary' : 'Tóm tắt trạng thái serial';
   String get emptyInventoryTitle =>
       isEnglish ? 'No serial inventory yet' : 'Chưa có serial trong kho';
   String get emptyInventoryMessage => isEnglish

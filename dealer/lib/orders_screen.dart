@@ -7,16 +7,14 @@ import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 
 import 'app_settings_controller.dart';
 import 'breakpoints.dart';
+import 'dealer_navigation.dart';
 import 'global_search.dart';
 import 'models.dart';
 import 'notification_controller.dart';
 import 'order_controller.dart';
-import 'order_detail_screen.dart';
 import 'order_query_service.dart';
-import 'notifications_screen.dart';
 import 'query_page.dart';
 import 'widgets/notification_icon_button.dart';
-import 'product_list_screen.dart';
 import 'utils.dart';
 import 'warranty_controller.dart';
 import 'widgets/brand_identity.dart';
@@ -164,11 +162,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   }
 
   void _openOrderDetail(BuildContext context, String orderId) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => OrderDetailScreen(orderId: orderId),
-      ),
-    );
+    context.pushDealerOrderDetail(orderId);
   }
 
   void _openCreateOrder(BuildContext context) {
@@ -176,9 +170,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
       widget.onSwitchTab!(0);
       return;
     }
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const ProductListScreen()));
+    context.pushDealerProducts();
   }
 
   Widget _buildFilterChips<T>({
@@ -1333,11 +1325,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
           const GlobalSearchIconButton(),
           NotificationIconButton(
             count: NotificationScope.of(context).unreadCount,
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-              );
-            },
+            onPressed: () => context.pushDealerNotifications(),
           ),
         ],
       ),

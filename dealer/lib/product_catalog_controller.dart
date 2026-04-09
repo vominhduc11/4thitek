@@ -22,7 +22,10 @@ const String _productCatalogMessageTokenPrefix = 'product.catalog.message.';
 String productCatalogMessageToken(ProductCatalogMessageCode code) =>
     '$_productCatalogMessageTokenPrefix${code.name}';
 
-String resolveProductCatalogMessage(String? message, {required bool isEnglish}) {
+String resolveProductCatalogMessage(
+  String? message, {
+  required bool isEnglish,
+}) {
   final normalized = message?.trim();
   if (normalized == null || normalized.isEmpty) {
     return isEnglish
@@ -60,10 +63,7 @@ String resolveProductCatalogMessage(String? message, {required bool isEnglish}) 
   }
 }
 
-String productCatalogErrorMessage(
-  Object? error, {
-  required bool isEnglish,
-}) {
+String productCatalogErrorMessage(Object? error, {required bool isEnglish}) {
   final message = switch (error) {
     ProductCatalogException() => error.message,
     String() => error,
@@ -185,9 +185,9 @@ class ProductCatalogController extends ChangeNotifier {
       return (items: const <Product>[], isLast: true);
     }
 
-    final uri = DealerApiConfig.resolveApiUri('/product/products/page').replace(
-      queryParameters: {'page': '$pageIndex', 'size': '$pageSize'},
-    );
+    final uri = DealerApiConfig.resolveApiUri(
+      '/product/products/page',
+    ).replace(queryParameters: {'page': '$pageIndex', 'size': '$pageSize'});
 
     final response = await _client.get(
       uri,

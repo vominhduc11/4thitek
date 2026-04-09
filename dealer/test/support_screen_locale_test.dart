@@ -27,9 +27,18 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    final submitButton = find.byKey(
+      const ValueKey<String>('support-submit-button'),
+    );
     await tester.scrollUntilVisible(
-      find.widgetWithText(ElevatedButton, 'Submit request'),
+      submitButton,
       300,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey<String>('support-scroll-view')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).at(0), 'Need help soon');
@@ -37,12 +46,12 @@ void main() {
       find.byType(TextField).at(1),
       'Order status has been stuck for two days and needs support.',
     );
-    await tester.ensureVisible(
-      find.widgetWithText(ElevatedButton, 'Submit request'),
-    );
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Submit request'));
+    await tester.ensureVisible(submitButton);
+    tester.widget<ElevatedButton>(submitButton).onPressed!.call();
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Submit request'));
+    await tester.tap(
+      find.byKey(const ValueKey<String>('support-confirm-submit-button')),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Unable to sync support request.'), findsOneWidget);
@@ -62,23 +71,34 @@ void main() {
           ),
         ),
       ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.scrollUntilVisible(
-        find.widgetWithText(ElevatedButton, 'Gửi yêu cầu'),
-        300,
-      );
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField).at(0), 'Cần hỗ trợ gấp');
-      await tester.enterText(
-        find.byType(TextField).at(1),
-        'Đơn hàng bị trễ quá lâu và cần được kiểm tra ngay hôm nay.',
-      );
-      await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'Gửi yêu cầu'));
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Gửi yêu cầu'));
+    );
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Gửi yêu cầu'));
+
+    final submitButton = find.byKey(
+      const ValueKey<String>('support-submit-button'),
+    );
+    await tester.scrollUntilVisible(
+      submitButton,
+      300,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey<String>('support-scroll-view')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(0), 'Cần hỗ trợ gấp');
+    await tester.enterText(
+      find.byType(TextField).at(1),
+      'Đơn hàng bị trễ quá lâu và cần được kiểm tra ngay hôm nay.',
+    );
+    await tester.ensureVisible(submitButton);
+    tester.widget<ElevatedButton>(submitButton).onPressed!.call();
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('support-confirm-submit-button')),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Không thể đồng bộ yêu cầu hỗ trợ.'), findsOneWidget);

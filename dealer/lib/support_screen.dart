@@ -430,6 +430,7 @@ class _SupportScreenState extends State<SupportScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
+                  key: const ValueKey<String>('support-submit-button'),
                   onPressed: _isSubmitting ? null : () => _handleSubmit(texts),
                   child: _isSubmitting
                       ? const SizedBox(
@@ -445,7 +446,9 @@ class _SupportScreenState extends State<SupportScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
-                    onPressed: _isSubmitting ? null : () => _handleFollowUp(texts),
+                    onPressed: _isSubmitting
+                        ? null
+                        : () => _handleFollowUp(texts),
                     child: Text(texts.followUpAction),
                   ),
                 ),
@@ -469,6 +472,7 @@ class _SupportScreenState extends State<SupportScreen> {
           child: RefreshIndicator(
             onRefresh: _handleRefresh,
             child: ListView(
+              key: const ValueKey<String>('support-scroll-view'),
               controller: _scrollController,
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
@@ -482,8 +486,6 @@ class _SupportScreenState extends State<SupportScreen> {
                             child: Column(
                               children: [
                                 quickContactSection,
-                                const SizedBox(height: 14),
-                                faqSection,
                                 if (statusSection != null) ...[
                                   const SizedBox(height: 14),
                                   statusSection,
@@ -492,6 +494,8 @@ class _SupportScreenState extends State<SupportScreen> {
                                   const SizedBox(height: 14),
                                   latestWarningSection,
                                 ],
+                                const SizedBox(height: 14),
+                                faqSection,
                               ],
                             ),
                           ),
@@ -500,9 +504,9 @@ class _SupportScreenState extends State<SupportScreen> {
                             flex: 7,
                             child: Column(
                               children: [
-                                historySection,
-                                const SizedBox(height: 14),
                                 submitSection,
+                                const SizedBox(height: 14),
+                                historySection,
                               ],
                             ),
                           ),
@@ -511,8 +515,6 @@ class _SupportScreenState extends State<SupportScreen> {
                     ]
                   : [
                       quickContactSection,
-                      const SizedBox(height: 14),
-                      faqSection,
                       if (statusSection != null) ...[
                         const SizedBox(height: 14),
                         statusSection,
@@ -522,9 +524,11 @@ class _SupportScreenState extends State<SupportScreen> {
                         latestWarningSection,
                       ],
                       const SizedBox(height: 14),
+                      submitSection,
+                      const SizedBox(height: 14),
                       historySection,
                       const SizedBox(height: 14),
-                      submitSection,
+                      faqSection,
                     ],
             ),
           ),
@@ -561,7 +565,8 @@ class _SupportScreenState extends State<SupportScreen> {
 
   String? _resolveLatestPublicAdminMessage(DealerSupportTicketRecord ticket) {
     for (final message in ticket.messages.reversed) {
-      if (!message.internalNote && message.authorRole.trim().toLowerCase() == 'admin') {
+      if (!message.internalNote &&
+          message.authorRole.trim().toLowerCase() == 'admin') {
         final normalized = message.message.trim();
         if (normalized.isNotEmpty) {
           return normalized;
@@ -635,6 +640,7 @@ class _SupportScreenState extends State<SupportScreen> {
                 child: Text(texts.cancelAction),
               ),
               FilledButton(
+                key: const ValueKey<String>('support-confirm-submit-button'),
                 onPressed: () => Navigator.of(dialogContext).pop(true),
                 child: Text(texts.submitRequestAction),
               ),
@@ -867,8 +873,9 @@ class _SupportTexts {
       : 'Thời gian phản hồi dự kiến: $sla';
   String get submitRequestAction =>
       isEnglish ? 'Submit request' : 'Gửi yêu cầu';
-  String get followUpAction =>
-      isEnglish ? 'Send follow-up to latest ticket' : 'Gửi bổ sung vào ticket gần nhất';
+  String get followUpAction => isEnglish
+      ? 'Send follow-up to latest ticket'
+      : 'Gửi bổ sung vào ticket gần nhất';
   String get cancelAction => isEnglish ? 'Cancel' : 'Hủy';
   String get cannotOpenDialerMessage => isEnglish
       ? 'Cannot open dialer. Number has been copied.'

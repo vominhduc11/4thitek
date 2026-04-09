@@ -13,19 +13,25 @@ const cx = (...classes: Array<string | false | null | undefined>) =>
   classes.filter(Boolean).join(" ");
 
 export const panelClass =
-  "brand-admin-panel rounded-[24px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_18px_42px_rgba(11,24,38,0.08)]";
+  "brand-admin-panel rounded-[22px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_16px_34px_rgba(11,24,38,0.08)] sm:p-5";
 
 export const softCardClass =
-  "rounded-[20px] border border-[var(--border)] bg-[var(--surface-ghost)] p-4 shadow-[0_12px_28px_rgba(11,24,38,0.05)]";
+  "rounded-[20px] border border-[var(--border)] bg-[var(--surface-ghost)] p-4 shadow-[0_10px_24px_rgba(11,24,38,0.05)]";
 
 export const ghostButtonClass =
-  "btn-stable inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--ink)] shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--ink)] hover:shadow-[0_12px_26px_rgba(11,24,38,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
+  "btn-stable inline-flex min-h-11 items-center justify-center gap-2 rounded-[18px] border border-[var(--border)] bg-[var(--surface-raised)] px-4 py-2 text-sm font-semibold text-[var(--ink)] shadow-sm transition hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--ink)] hover:shadow-[0_10px_22px_rgba(11,24,38,0.08)] active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
 
 export const primaryButtonClass =
-  "btn-stable inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,var(--brand-gradient-start),var(--brand-gradient-end))] px-4 py-2 text-sm font-semibold text-white shadow-[0_18px_34px_rgba(0,113,188,0.28)] transition hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
+  "btn-stable inline-flex min-h-11 items-center justify-center gap-2 rounded-[18px] bg-[linear-gradient(135deg,var(--brand-gradient-start),var(--brand-gradient-end))] px-4 py-2 text-sm font-semibold text-white shadow-[0_14px_28px_rgba(0,113,188,0.24)] transition hover:brightness-105 active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
+
+export const secondaryButtonClass =
+  "btn-stable inline-flex min-h-11 items-center justify-center gap-2 rounded-[18px] border border-[var(--brand-border)] bg-[var(--accent-soft)] px-4 py-2 text-sm font-semibold text-[var(--accent-strong)] shadow-sm transition hover:border-[var(--brand-border-strong)] hover:bg-[var(--accent-cool-soft)] hover:text-[var(--accent-strong)] active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
+
+export const iconButtonClass =
+  "btn-stable inline-flex min-h-11 min-w-11 items-center justify-center rounded-[18px] border border-[var(--border)] bg-[var(--surface-raised)] text-[var(--ink)] shadow-sm transition hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent-strong)] hover:shadow-[0_10px_22px_rgba(11,24,38,0.08)] active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
 
 export const inputClass =
-  "h-11 rounded-[18px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-sm text-[var(--ink)] shadow-sm transition placeholder:text-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1";
+  "min-h-11 rounded-[18px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-sm text-[var(--ink)] shadow-sm transition placeholder:text-[var(--muted)] hover:border-[var(--brand-border-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-70";
 export const selectClass = inputClass;
 
 export const cardTitleClass = "text-lg font-semibold tracking-[-0.01em] text-[var(--ink)]";
@@ -47,9 +53,18 @@ export const formCardClass =
 export const textareaClass =
   "min-h-[130px] w-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-sm text-[var(--ink)] placeholder:text-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1";
 export const destructiveButtonClass =
-  "btn-stable inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[var(--destructive-border)] bg-[var(--destructive-soft)] px-4 py-2 text-sm font-semibold text-[var(--destructive-text)] shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--destructive)] hover:bg-[var(--destructive-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--destructive)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
+  "btn-stable inline-flex min-h-11 items-center justify-center gap-2 rounded-[18px] border border-[var(--destructive-border)] bg-[var(--destructive-soft)] px-4 py-2 text-sm font-semibold text-[var(--destructive-text)] shadow-sm transition hover:border-[var(--destructive)] hover:bg-[var(--destructive-hover)] active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--destructive)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
 export const fieldErrorClass = "mt-2 text-sm font-medium text-[var(--error-text)]";
 export const fieldHintClass = "mt-2 text-sm text-[var(--muted)]";
+export const fieldShellClass = "space-y-2";
+export const fieldDescriptionClass = "text-sm text-[var(--muted)]";
+export const toolbarCardClass =
+  "mb-5 flex flex-col gap-3 rounded-[20px] border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between";
+export const toolbarGroupClass =
+  "flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:w-auto";
+export const sectionCardClass =
+  "rounded-[22px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_12px_28px_rgba(11,24,38,0.06)] sm:p-5";
+export const tableScrollerClass = "overflow-x-auto pb-1";
 
 type FieldErrorMessageProps = {
   children?: ReactNode;
@@ -102,6 +117,18 @@ export const PrimaryButton = ({
   </button>
 );
 
+export const SecondaryButton = ({
+  className,
+  children,
+  icon,
+  ...props
+}: ButtonProps) => (
+  <button className={cx(secondaryButtonClass, className)} {...props}>
+    {icon}
+    {children}
+  </button>
+);
+
 export const DestructiveButton = ({
   className,
   children,
@@ -110,6 +137,16 @@ export const DestructiveButton = ({
 }: ButtonProps) => (
   <button className={cx(destructiveButtonClass, className)} {...props}>
     {icon}
+    {children}
+  </button>
+);
+
+export const IconButton = ({
+  className,
+  children,
+  ...props
+}: ButtonHTMLAttributes<HTMLButtonElement>) => (
+  <button className={cx(iconButtonClass, className)} {...props}>
     {children}
   </button>
 );
@@ -142,6 +179,7 @@ export const SearchInput = ({
     <input
       id={id}
       className={cx(inputClass, "w-full pl-10 pr-4")}
+      enterKeyHint="search"
       placeholder={placeholder}
       type="search"
       value={value}
@@ -186,22 +224,25 @@ export const PageHeader = ({
   return (
     <div
       className={cx(
-        "mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between",
+        "mb-5 flex flex-col gap-4 md:flex-row md:items-start md:justify-between",
         className,
       )}
     >
       <div className="min-w-0">
-        <h1 className="text-[1.35rem] font-semibold tracking-[-0.02em]" style={{ color: "var(--ink)" }}>
+        <h1
+          className="text-[1.35rem] font-semibold tracking-[-0.02em] sm:text-[1.5rem]"
+          style={{ color: "var(--ink)" }}
+        >
           {title}
         </h1>
         {supportingText ? (
-          <p className="mt-0.5 text-sm" style={{ color: "var(--muted)" }}>
+          <p className="mt-1 max-w-3xl text-sm leading-6" style={{ color: "var(--muted)" }}>
             {supportingText}
           </p>
         ) : null}
       </div>
       {actions ? (
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:shrink-0">
+        <div className="flex w-full flex-col gap-2 md:w-auto md:min-w-[min(100%,24rem)] md:flex-row md:flex-wrap md:items-center md:justify-end md:shrink-0">
           {actions}
         </div>
       ) : null}
@@ -403,8 +444,8 @@ export const PaginationNav = ({
   }
 
   return (
-    <div className="mt-6 flex flex-col gap-3 text-sm text-[var(--muted)] md:flex-row md:items-center md:justify-between">
-      <span>
+    <div className="mt-6 flex flex-col gap-3 text-sm text-[var(--muted)] lg:flex-row lg:items-center lg:justify-between">
+      <span className="order-2 lg:order-1">
         {totalItems === 0
           ? "0 / 0"
           : totalItems != null && start != null && end != null
@@ -421,7 +462,7 @@ export const PaginationNav = ({
           pageCount={totalPages}
           previousLabel={previousLabel}
           forcePage={page}
-          containerClassName="flex flex-wrap items-center gap-2 text-sm"
+          containerClassName="order-1 flex flex-wrap items-center gap-2 text-sm lg:order-2 lg:justify-end"
           pageLinkClassName="flex min-h-11 min-w-11 items-center justify-center rounded-[18px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
           previousLinkClassName="flex min-h-11 items-center justify-center rounded-[18px] border border-[var(--border)] bg-[var(--surface-raised)] px-4 text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
           nextLinkClassName="flex min-h-11 items-center justify-center rounded-[18px] border border-[var(--border)] bg-[var(--surface-raised)] px-4 text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"

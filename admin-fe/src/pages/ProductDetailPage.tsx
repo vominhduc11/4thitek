@@ -13,7 +13,7 @@ import {
 import productPlaceholder from '../assets/product-placeholder.svg'
 import { ProductVideoPreview } from '../components/ProductVideoPreview'
 import { RichTextEditor } from '../components/RichTextEditor'
-import { FieldErrorMessage } from '../components/ui-kit'
+import { FieldErrorMessage, sectionCardClass } from '../components/ui-kit'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductsContext'
 import { useLanguage } from '../context/LanguageContext'
@@ -977,8 +977,8 @@ function ProductDetailPage() {
 
   return (
     <section className="space-y-6 pb-8">
-        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_18px_45px_rgba(15,23,42,0.08)] sm:p-6">
-          <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+        <div className={`${sectionCardClass} sm:p-6`}>
+          <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0">
             <Link
               className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400"
@@ -1068,7 +1068,7 @@ function ProductDetailPage() {
               </span>
             </div>
           </div>
-        <div className="flex flex-wrap items-center gap-2.5 xl:max-w-[28rem] xl:justify-end">
+        <div className="grid w-full gap-2.5 sm:grid-cols-2 xl:w-auto xl:max-w-[30rem]">
           {isEditing ? (
             <>
                 <button

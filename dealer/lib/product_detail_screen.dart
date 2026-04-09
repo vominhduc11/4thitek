@@ -10,8 +10,7 @@ import 'package:video_player/video_player.dart';
 import 'app_settings_controller.dart';
 import 'breakpoints.dart';
 import 'cart_controller.dart';
-import 'checkout_screen.dart';
-import 'cart_screen.dart';
+import 'dealer_navigation.dart';
 import 'file_reference.dart';
 import 'global_search.dart';
 import 'models.dart';
@@ -158,11 +157,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 ? SnackBarAction(
                     label: texts.viewCartAction,
                     onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const CartScreen(),
-                        ),
-                      );
+                      context.pushDealerCart();
                     },
                   )
                 : null,
@@ -222,9 +217,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         _showMaxStockMessage();
         return;
       }
-      Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (context) => const CheckoutScreen()));
+      context.pushDealerCheckout();
     } finally {
       if (mounted) {
         setState(() => _isBuyingNow = false);
@@ -361,15 +354,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
     if (suggestedAddQuantity <= 0) {
       return texts.cartLimitReachedMessage;
-    }
-    if (isSyncingProduct) {
-      return 'Đang đồng bộ giỏ hàng cho sản phẩm này';
-    }
-    if (remainingStock <= 0) {
-      return 'S\u1ea3n ph\u1ea9m \u0111\u00e3 h\u1ebft h\u00e0ng';
-    }
-    if (suggestedAddQuantity <= 0) {
-      return '\u0110\u00e3 \u0111\u1ea1t gi\u1edbi h\u1ea1n s\u1ed1 l\u01b0\u1ee3ng trong gi\u1ecf';
     }
     return null;
   }
@@ -582,11 +566,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           const GlobalSearchIconButton(),
           CartIconButton(
             count: cart.totalItems,
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const CartScreen()),
-              );
-            },
+            onPressed: () => context.pushDealerCart(),
           ),
           const SizedBox(width: 6),
         ],

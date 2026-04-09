@@ -3,16 +3,13 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'breakpoints.dart';
+import 'dealer_navigation.dart';
 import 'dealer_routes.dart';
-import 'dashboard_screen.dart';
 import 'global_search.dart';
 import 'l10n/app_localizations.dart';
 import 'models.dart';
 import 'notification_controller.dart';
-import 'orders_screen.dart';
-import 'product_list_screen.dart';
 import 'utils.dart';
-import 'warranty_hub_screen.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/section_card.dart';
@@ -218,8 +215,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       title: l10n.notificationsTitle(noticeCount),
       subtitle: hasUnread
           ? (isEnglish
-                ? 'Prioritize unread updates so orders, transfer confirmations, and warranty tasks do not slip.'
-                : 'Ưu tiên xử lý thông báo mới để không bỏ lỡ đơn hàng, xác nhận chuyển khoản và bảo hành.')
+                ? 'Review unread updates first so order handling, transfer confirmations, and warranty tasks do not slip.'
+                : 'Ưu tiên xử lý thông báo mới để không bỏ lỡ đơn hàng, xác nhận chuyển khoản và tác vụ bảo hành.')
           : (isEnglish
                 ? 'All notices are up to date. Pull down anytime to sync new activity.'
                 : 'Tất cả thông báo đã được cập nhật. Kéo xuống bất kỳ lúc nào để đồng bộ hoạt động mới.'),
@@ -504,20 +501,24 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       return;
     }
 
-    final destination = switch (notice.type) {
-      NoticeType.order => const OrdersScreen(),
-      NoticeType.promotion => const ProductListScreen(),
-      NoticeType.warranty => const WarrantyHubScreen(),
-      NoticeType.system => const DashboardScreen(),
-    };
-
     if (!mounted) {
       return;
     }
 
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => destination));
+    switch (notice.type) {
+      case NoticeType.order:
+        await context.pushDealerOrders();
+        break;
+      case NoticeType.promotion:
+        await context.pushDealerProducts();
+        break;
+      case NoticeType.warranty:
+        await context.pushDealerWarrantyHub();
+        break;
+      case NoticeType.system:
+        context.goToDealerHome();
+        break;
+    }
   }
 
   Future<bool> _openNoticeLink(String? rawLink) async {

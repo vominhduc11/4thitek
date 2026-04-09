@@ -43,9 +43,8 @@ class _NotificationIconButtonTexts {
 
   String get tooltip => isEnglish ? 'Notifications' : 'Thông báo';
 
-  String unreadNotificationsLabel(int count) => isEnglish
-      ? 'Notifications, $count unread'
-      : 'Thông báo, $count chưa đọc';
+  String unreadNotificationsLabel(int count) =>
+      isEnglish ? 'Notifications, $count unread' : 'Thông báo, $count chưa đọc';
 
   String get emptyNotificationsLabel => isEnglish
       ? 'Notifications, no unread notifications'

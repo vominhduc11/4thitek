@@ -9,18 +9,16 @@ import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'app_settings_controller.dart';
 import 'breakpoints.dart';
 import 'cart_controller.dart';
-import 'cart_screen.dart';
+import 'dealer_navigation.dart';
 import 'global_search.dart';
 import 'models.dart';
 import 'notification_controller.dart';
-import 'product_detail_screen.dart';
 import 'product_catalog_controller.dart';
 import 'product_query_service.dart';
 import 'query_page.dart';
 import 'utils.dart';
 import 'widgets/cart_icon_button.dart';
 import 'widgets/notification_icon_button.dart';
-import 'notifications_screen.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/product_image.dart';
@@ -156,19 +154,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
           const GlobalSearchIconButton(),
           NotificationIconButton(
             count: NotificationScope.of(context).unreadCount,
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-              );
-            },
+            onPressed: () => context.pushDealerNotifications(),
           ),
           CartIconButton(
             count: cart.totalItems,
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const CartScreen()),
-              );
-            },
+            onPressed: () => context.pushDealerCart(),
           ),
           const SizedBox(width: 6),
         ],
@@ -1523,13 +1513,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
     );
   }
 
-  void _openProductDetails(BuildContext context, Product product) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => ProductDetailScreen(product: product),
-      ),
-    );
-  }
+  void _openProductDetails(BuildContext context, Product product) =>
+      context.pushDealerProductDetail(product.id);
 
   Widget _buildQuickAddButtonContent(
     BuildContext context, {

@@ -171,10 +171,10 @@ class DealerApiConfig {
   }
 
   static String _normalizeApiVersion(String value) {
-    final trimmed = value.trim().replaceFirst(RegExp(r'^/+'), '').replaceFirst(
-      RegExp(r'/+$'),
-      '',
-    );
+    final trimmed = value
+        .trim()
+        .replaceFirst(RegExp(r'^/+'), '')
+        .replaceFirst(RegExp(r'/+$'), '');
     if (trimmed.isEmpty) {
       return '';
     }
@@ -193,9 +193,10 @@ class DealerApiConfig {
     if (sanitized.isEmpty) {
       return '';
     }
-    final match = RegExp(r'/api/(v[^/]+)$', caseSensitive: false).firstMatch(
-      sanitized,
-    );
+    final match = RegExp(
+      r'/api/(v[^/]+)$',
+      caseSensitive: false,
+    ).firstMatch(sanitized);
     if (match == null) {
       return sanitized.toLowerCase().endsWith('/api') ? 'v1' : '';
     }

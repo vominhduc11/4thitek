@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'account_settings_screen.dart';
 import 'app_settings_controller.dart';
 import 'bank_transfer_support.dart';
 import 'breakpoints.dart';
 import 'cart_controller.dart';
 import 'checkout_validation_service.dart';
+import 'dealer_navigation.dart';
 import 'dealer_profile_storage.dart';
 import 'global_search.dart';
 import 'models.dart';
 import 'order_controller.dart';
-import 'order_detail_screen.dart';
 import 'order_success_screen.dart';
 import 'product_catalog_controller.dart';
 import 'utils.dart';
@@ -101,9 +100,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _openAccountSettings() async {
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const AccountSettingsScreen()));
+    await context.pushDealerAccountSettings();
     await _loadDealerProfile(showFailureSnackBar: true);
   }
 
@@ -179,6 +176,33 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final totalAfterDiscount = cart.totalAfterDiscount;
     final vatAmount = cart.vatAmount;
     final total = cart.total;
+    final missingProfileFields = _missingProfileFields(texts);
+    final cartSyncInProgress = cart.items.any(
+      (item) => cart.isSyncingProduct(item.product.id),
+    );
+    final hasBankTransferReady =
+        _bankTransferInstructions != null &&
+        !_isLoadingBankTransferInstructions;
+    final blockerMessages = <String>[
+      if (cart.isEmpty) texts.emptyCartBlockerMessage,
+      if (_isLoadingProfile) texts.loadingProfileMessage,
+      ...?_profileLoadError == null ? null : <String>[_profileLoadError!],
+      if (missingProfileFields.isNotEmpty)
+        texts.missingProfileFieldsMessage(missingProfileFields),
+      if (cartSyncInProgress) texts.cartSyncInProgressMessage,
+      if (_isLoadingBankTransferInstructions)
+        texts.loadingBankTransferMessage
+      else if (!hasBankTransferReady)
+        texts.bankTransferUnavailableMessage,
+    ];
+    final canSubmitCheckout =
+        !cart.isEmpty &&
+        !_isSubmitting &&
+        !_isLoadingProfile &&
+        _profileLoadError == null &&
+        missingProfileFields.isEmpty &&
+        !cartSyncInProgress &&
+        hasBankTransferReady;
 
     Widget buildShippingSection() {
       return FadeSlideIn(
@@ -515,69 +539,135 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     Widget buildSubmitAction() {
       return FadeSlideIn(
         delay: const Duration(milliseconds: 180),
-        child: SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed:
-                cart.isEmpty ||
-                    _isSubmitting ||
-                    _isLoadingProfile ||
-                    _profileLoadError != null
-                ? null
-                : () async {
-                    setState(() => _isSubmitting = true);
-                    try {
-                      final validationService =
-                          _buildCheckoutValidationService();
-                      final validationResult = await validationService.validate(
-                        _buildCheckoutValidationRequest(cart: cart),
-                      );
-                      if (!context.mounted) {
-                        return;
-                      }
-                      final canProceed = await _handleValidationResult(
-                        validationResult,
-                      );
-                      if (!context.mounted || !canProceed) {
-                        return;
-                      }
-
-                      BankTransferInstructions? bankTransferInstructions;
-                      bankTransferInstructions =
-                          await _ensureBankTransferInstructions();
-                      if (!mounted) {
-                        return;
-                      }
-                      if (bankTransferInstructions == null) {
-                        return;
-                      }
-
-                      await _placeOrder(
-                        cart: cart,
-                        orderController: orderController,
-                        bankTransferInstructions: bankTransferInstructions,
-                      );
-                    } catch (error) {
-                      _showSnackBar(
-                        orderControllerErrorMessage(
-                          error,
-                          isEnglish: texts.isEnglish,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (blockerMessages.isNotEmpty) ...[
+              _CheckoutStatePanel(
+                icon: Icons.info_outline,
+                message: texts.checkoutReadinessTitle,
+                tone: _CheckoutStateTone.info,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 12),
+                    ...blockerMessages.map(
+                      (message) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.only(top: 4),
+                              child: Icon(Icons.circle, size: 7),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text(message)),
+                          ],
                         ),
-                      );
-                    } finally {
-                      if (mounted) {
-                        setState(() => _isSubmitting = false);
-                      }
-                    }
-                  },
-            child: _isSubmitting
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2.5),
-                  )
-                : Text(_primaryActionLabel),
-          ),
+                      ),
+                    ),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 8,
+                      children: [
+                        if (missingProfileFields.isNotEmpty)
+                          OutlinedButton.icon(
+                            onPressed: _isSubmitting
+                                ? null
+                                : _openAccountSettings,
+                            icon: const Icon(Icons.manage_accounts_outlined),
+                            label: Text(texts.completeProfileAction),
+                          ),
+                        if (_profileLoadError != null)
+                          OutlinedButton.icon(
+                            onPressed: _isSubmitting
+                                ? null
+                                : () => _loadDealerProfile(
+                                    showFailureSnackBar: true,
+                                  ),
+                            icon: const Icon(Icons.refresh_outlined),
+                            label: Text(texts.retryProfileAction),
+                          ),
+                        if (!hasBankTransferReady)
+                          OutlinedButton.icon(
+                            onPressed: _isSubmitting
+                                ? null
+                                : () => _loadBankTransferInstructions(
+                                    showError: true,
+                                  ),
+                            icon: const Icon(Icons.account_balance_outlined),
+                            label: Text(texts.reloadPaymentInstructionsAction),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+            ],
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: !canSubmitCheckout
+                    ? null
+                    : () async {
+                        setState(() => _isSubmitting = true);
+                        try {
+                          final validationService =
+                              _buildCheckoutValidationService();
+                          final validationResult = await validationService
+                              .validate(
+                                _buildCheckoutValidationRequest(cart: cart),
+                              );
+                          if (!context.mounted) {
+                            return;
+                          }
+                          final canProceed = await _handleValidationResult(
+                            validationResult,
+                          );
+                          if (!context.mounted || !canProceed) {
+                            return;
+                          }
+
+                          BankTransferInstructions? bankTransferInstructions;
+                          bankTransferInstructions =
+                              await _ensureBankTransferInstructions();
+                          if (!mounted) {
+                            return;
+                          }
+                          if (bankTransferInstructions == null) {
+                            return;
+                          }
+
+                          await _placeOrder(
+                            cart: cart,
+                            orderController: orderController,
+                            bankTransferInstructions: bankTransferInstructions,
+                          );
+                        } catch (error) {
+                          _showSnackBar(
+                            orderControllerErrorMessage(
+                              error,
+                              isEnglish: texts.isEnglish,
+                            ),
+                          );
+                        } finally {
+                          if (mounted) {
+                            setState(() => _isSubmitting = false);
+                          }
+                        }
+                      },
+                child: _isSubmitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2.5),
+                      )
+                    : Text(_primaryActionLabel),
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -667,6 +757,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ),
       ),
     );
+  }
+
+  List<String> _missingProfileFields(_CheckoutTexts texts) {
+    final fields = <String>[];
+    if (_profile.businessName.trim().isEmpty) {
+      fields.add(texts.businessNameFieldLabel);
+    }
+    if (_profile.contactName.trim().isEmpty) {
+      fields.add(texts.contactNameFieldLabel);
+    }
+    if (_profile.phone.trim().isEmpty) {
+      fields.add(texts.phoneFieldLabel);
+    }
+    if (_profile.shippingAddress.trim().isEmpty) {
+      fields.add(texts.shippingAddressFieldLabel);
+    }
+    return fields;
   }
 
   CheckoutValidationService _buildCheckoutValidationService() {
@@ -799,15 +906,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
 
     HapticFeedback.mediumImpact();
+    if (shouldOpenOrderDetail) {
+      context.goDealerOrderDetail(createdOrder.id);
+      return;
+    }
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (context) => shouldOpenOrderDetail
-            ? OrderDetailScreen(orderId: createdOrder.id)
-            : OrderSuccessScreen(
-                orderId: createdOrder.id,
-                itemCount: createdOrder.totalItems,
-                totalPrice: createdOrder.total,
-              ),
+        builder: (context) => OrderSuccessScreen(
+          orderId: createdOrder.id,
+          itemCount: createdOrder.totalItems,
+          totalPrice: createdOrder.total,
+        ),
       ),
     );
   }
@@ -868,6 +977,33 @@ class _CheckoutTexts {
   const _CheckoutTexts({required this.isEnglish});
 
   final bool isEnglish;
+
+  String get checkoutReadinessTitle => isEnglish
+      ? 'Review these prerequisites before placing the order.'
+      : 'Hãy hoàn tất các điều kiện sau trước khi đặt đơn.';
+  String get completeProfileAction =>
+      isEnglish ? 'Complete dealer profile' : 'Bổ sung hồ sơ đại lý';
+  String get retryProfileAction =>
+      isEnglish ? 'Reload account data' : 'Tải lại dữ liệu tài khoản';
+  String get reloadPaymentInstructionsAction => isEnglish
+      ? 'Reload transfer instructions'
+      : 'Tải lại hướng dẫn chuyển khoản';
+  String get businessNameFieldLabel =>
+      isEnglish ? 'Business name' : 'Tên doanh nghiệp';
+  String get contactNameFieldLabel =>
+      isEnglish ? 'Contact name' : 'Người liên hệ';
+  String get phoneFieldLabel => isEnglish ? 'Phone number' : 'Số điện thoại';
+  String get shippingAddressFieldLabel =>
+      isEnglish ? 'Shipping address' : 'Địa chỉ nhận hàng';
+  String get emptyCartBlockerMessage => isEnglish
+      ? 'Your cart is empty. Add products before creating an order.'
+      : 'Giỏ hàng đang trống. Hãy thêm sản phẩm trước khi tạo đơn.';
+  String missingProfileFieldsMessage(List<String> fields) {
+    final summary = fields.join(', ');
+    return isEnglish
+        ? 'Update these profile fields first: $summary.'
+        : 'Vui lòng cập nhật trước các mục hồ sơ sau: $summary.';
+  }
 
   String get profileLoadFailedMessage => isEnglish
       ? 'Unable to load account information. Please retry before placing the order.'
@@ -1258,6 +1394,7 @@ class _CheckoutStatePanel extends StatelessWidget {
     required this.message,
     required this.tone,
     this.action,
+    this.child,
     this.dense = false,
   });
 
@@ -1265,6 +1402,7 @@ class _CheckoutStatePanel extends StatelessWidget {
   final String message;
   final _CheckoutStateTone tone;
   final Widget? action;
+  final Widget? child;
   final bool dense;
 
   @override
@@ -1287,22 +1425,31 @@ class _CheckoutStatePanel extends StatelessWidget {
         borderRadius: BorderRadius.circular(dense ? 14 : 16),
         border: Border.all(color: border),
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: dense ? 18 : 20, color: iconColor),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              message,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: dense ? colors.onSurfaceVariant : colors.onSurface,
-                height: 1.35,
-                fontWeight: dense ? FontWeight.w500 : FontWeight.w600,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, size: dense ? 18 : 20, color: iconColor),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  message,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: dense ? colors.onSurfaceVariant : colors.onSurface,
+                    height: 1.35,
+                    fontWeight: dense ? FontWeight.w500 : FontWeight.w600,
+                  ),
+                ),
               ),
-            ),
+              if (action case final actionWidget?) ...[
+                const SizedBox(width: 8),
+                actionWidget,
+              ],
+            ],
           ),
-          if (action != null) ...[const SizedBox(width: 8), action!],
+          ...?child == null ? null : <Widget>[child!],
         ],
       ),
     );

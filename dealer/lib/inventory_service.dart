@@ -1,7 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
-
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'api_config.dart';
@@ -11,7 +8,12 @@ import 'models.dart';
 import 'utils.dart';
 import 'warranty_models.dart';
 
-enum InventoryMessageCode { unauthenticated, invalidSummaryPayload, invalidSerialPayload, syncFailed }
+enum InventoryMessageCode {
+  unauthenticated,
+  invalidSummaryPayload,
+  invalidSerialPayload,
+  syncFailed,
+}
 
 const String _inventoryMessageTokenPrefix = 'inventory.message.';
 
@@ -90,10 +92,7 @@ class DealerInventorySummaryRecord {
 }
 
 class DealerInventorySerialRecord {
-  const DealerInventorySerialRecord({
-    required this.id,
-    required this.record,
-  });
+  const DealerInventorySerialRecord({required this.id, required this.record});
 
   final int id;
   final ImportedSerialRecord record;
@@ -147,7 +146,9 @@ class InventoryService {
     final data = payload['data'];
     if (data is! Map<String, dynamic>) {
       throw InventoryException(
-        inventoryServiceMessageToken(InventoryMessageCode.invalidSummaryPayload),
+        inventoryServiceMessageToken(
+          InventoryMessageCode.invalidSummaryPayload,
+        ),
       );
     }
     return _mapSummary(data);
@@ -178,7 +179,9 @@ class InventoryService {
         .toList(growable: false);
   }
 
-  Future<DealerInventorySerialDetailRecord> fetchSerialDetail(int serialId) async {
+  Future<DealerInventorySerialDetailRecord> fetchSerialDetail(
+    int serialId,
+  ) async {
     final response = await _client.get(
       DealerApiConfig.resolveApiUri('/dealer/inventory/serials/$serialId'),
       headers: await _authorizedHeaders(),
@@ -336,7 +339,9 @@ class InventoryService {
     final resolved = value?.toString().trim() ?? '';
     if (resolved.isEmpty) {
       throw InventoryException(
-        inventoryServiceMessageToken(InventoryMessageCode.invalidSummaryPayload),
+        inventoryServiceMessageToken(
+          InventoryMessageCode.invalidSummaryPayload,
+        ),
       );
     }
     return resolved;

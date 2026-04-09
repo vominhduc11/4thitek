@@ -73,8 +73,7 @@ String? normalizeDealerInternalRoute(String? rawLink) {
 
   final routeUri = Uri(
     path: normalizedPath,
-    queryParameters:
-        uri.queryParameters.isEmpty ? null : uri.queryParameters,
+    queryParameters: uri.queryParameters.isEmpty ? null : uri.queryParameters,
   );
   return routeUri.toString();
 }

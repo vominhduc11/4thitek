@@ -146,7 +146,9 @@ class SupportService {
     );
     final payload = _decodeBody(response.body);
     if (response.statusCode == HttpStatus.notFound) {
-      debugPrint('SupportService: fetchLatestTicket returned 404 (no tickets found)');
+      debugPrint(
+        'SupportService: fetchLatestTicket returned 404 (no tickets found)',
+      );
       return null;
     }
     if (response.statusCode >= 400) {
@@ -198,9 +200,9 @@ class SupportService {
     int size = 10,
   }) async {
     final response = await _client.get(
-      DealerApiConfig.resolveApiUri(
-        '/dealer/support-tickets/page',
-      ).replace(queryParameters: <String, String>{'page': '$page', 'size': '$size'}),
+      DealerApiConfig.resolveApiUri('/dealer/support-tickets/page').replace(
+        queryParameters: <String, String>{'page': '$page', 'size': '$size'},
+      ),
       headers: await _authorizedHeaders(),
     );
     final payload = _decodeBody(response.body);
@@ -231,7 +233,9 @@ class SupportService {
     required String message,
   }) async {
     final response = await _client.post(
-      DealerApiConfig.resolveApiUri('/dealer/support-tickets/$ticketId/messages'),
+      DealerApiConfig.resolveApiUri(
+        '/dealer/support-tickets/$ticketId/messages',
+      ),
       headers: await _authorizedJsonHeaders(),
       body: jsonEncode(<String, dynamic>{'message': message.trim()}),
     );

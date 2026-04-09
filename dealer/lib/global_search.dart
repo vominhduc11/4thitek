@@ -3,12 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'app_settings_controller.dart';
+import 'dealer_navigation.dart';
 import 'global_search_service.dart';
 import 'order_controller.dart';
-import 'order_detail_screen.dart';
 import 'order_query_service.dart';
 import 'product_catalog_controller.dart';
-import 'product_detail_screen.dart';
 import 'product_query_service.dart';
 import 'widgets/skeleton_box.dart';
 
@@ -270,20 +269,12 @@ class _GlobalSearchDelegate extends SearchDelegate<void> {
                           }
                           if (selectedItem.type ==
                               UnifiedSearchResultType.order) {
-                            Navigator.of(launchContext).push(
-                              MaterialPageRoute(
-                                builder: (_) => OrderDetailScreen(
-                                  orderId: selectedItem.order!.id,
-                                ),
-                              ),
+                            launchContext.pushDealerOrderDetail(
+                              selectedItem.order!.id,
                             );
                           } else {
-                            Navigator.of(launchContext).push(
-                              MaterialPageRoute(
-                                builder: (_) => ProductDetailScreen(
-                                  product: selectedItem.product!,
-                                ),
-                              ),
+                            launchContext.pushDealerProductDetail(
+                              selectedItem.product!.id,
                             );
                           }
                         });
@@ -613,34 +604,36 @@ class _GlobalSearchTexts {
   final bool isEnglish;
 
   String get searchButtonTooltip =>
-      isEnglish ? 'Global search' : 'Tìm kiếm toàn cục';
+      isEnglish ? 'Search orders and products' : 'Tìm đơn hàng và sản phẩm';
   String get searchFieldLabel => isEnglish
-      ? 'Search products, order IDs, or customer names...'
-      : 'Tìm sản phẩm, mã đơn hoặc tên khách...';
+      ? 'Search products, order IDs, customer names, or phone numbers...'
+      : 'Tìm sản phẩm, mã đơn, tên khách hoặc số điện thoại...';
   String get clearQueryTooltip => isEnglish ? 'Clear keyword' : 'Xóa từ khóa';
   String get closeSearchTooltip => isEnglish ? 'Close search' : 'Đóng tìm kiếm';
   String get orderItemLabel => isEnglish ? 'Order' : 'Đơn hàng';
   String get productItemLabel => isEnglish ? 'Product' : 'Sản phẩm';
-  String get hintTitle =>
-      isEnglish ? 'Search 4T HITEK Dealer' : 'Tìm nhanh trong 4T HITEK Dealer';
+  String get hintTitle => isEnglish
+      ? 'Search orders and products'
+      : 'Tìm nhanh đơn hàng và sản phẩm';
   String get hintMessage => isEnglish
-      ? 'Enter a keyword to quickly find orders and products.'
-      : 'Nhập từ khóa để tìm nhanh đơn hàng và sản phẩm.';
+      ? 'Use one search box for catalog items and recent dealer orders.'
+      : 'Dùng một ô tìm kiếm để tra nhanh sản phẩm và đơn hàng đại lý.';
   String get emptyTitle =>
       isEnglish ? 'No matching results' : 'Không có kết quả phù hợp';
   String get emptyMessage => isEnglish
       ? 'No matching results found.'
       : 'Chưa tìm thấy kết quả phù hợp.';
   String get refineHint => isEnglish
-      ? 'Try a SKU, order ID, or customer name'
-      : 'Hãy thử mã SKU, mã đơn hoặc tên khách';
+      ? 'Try a SKU, order ID, customer name, or phone number'
+      : 'Hãy thử mã SKU, mã đơn, tên khách hoặc số điện thoại';
   String get loadingMessage => isEnglish
-      ? 'Searching across products and orders...'
-      : 'Đang tìm trên sản phẩm và đơn hàng...';
+      ? 'Searching dealer products and orders...'
+      : 'Đang tìm trong sản phẩm và đơn hàng...';
   String get searchFailedMessage => isEnglish
       ? 'Unable to complete the search right now.'
       : 'Chưa thể hoàn tất tìm kiếm lúc này.';
-  String get errorTitle =>
-      isEnglish ? 'Search is unavailable' : 'Tìm kiếm tạm thời không khả dụng';
+  String get errorTitle => isEnglish
+      ? 'Search is temporarily unavailable'
+      : 'Tìm kiếm tạm thời không khả dụng';
   String get retryLabel => isEnglish ? 'Retry' : 'Thử lại';
 }
