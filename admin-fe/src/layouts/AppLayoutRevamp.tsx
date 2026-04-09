@@ -765,7 +765,7 @@ function AppLayoutRevamp() {
       className={
         mobile
           ? "brand-admin-shell flex h-full min-h-0 flex-col gap-5 border-r border-[var(--brand-border)] px-5 py-6 text-slate-100"
-          : "brand-admin-shell hidden min-h-0 flex-col gap-5 border-r border-[var(--brand-border)] px-5 py-6 text-slate-100 lg:flex lg:w-[296px] lg:shrink-0 xl:w-[336px]"
+          : "brand-admin-shell hidden min-h-0 flex-col gap-5 border-r border-[var(--brand-border)] px-5 py-6 text-slate-100 lg:flex lg:w-[312px] lg:shrink-0 xl:w-[352px]"
       }
     >
       <div className="flex items-center gap-3">
@@ -796,10 +796,10 @@ function AppLayoutRevamp() {
         {groupedNav.map((group) => (
           <section
             key={group.id}
-            className="rounded-[22px] border border-[var(--brand-border)] bg-[rgba(41,171,226,0.05)] px-3 py-3"
+            className="rounded-[24px] border border-[var(--brand-border)] bg-[rgba(41,171,226,0.05)] px-2.5 py-2.5"
           >
             <button
-              className="flex w-full items-center justify-between gap-3 px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400"
+              className="flex w-full items-center justify-between gap-3 px-2.5 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400"
               onClick={() => toggleGroup(group.id)}
               type="button"
             >
@@ -828,9 +828,9 @@ function AppLayoutRevamp() {
                       end={item.to === "/"}
                       className={({ isActive }) =>
                         [
-                          "group grid grid-cols-[auto,minmax(0,1fr),auto] items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-medium transition",
+                          "group relative grid grid-cols-[auto,minmax(0,1fr),auto] items-start gap-3 overflow-hidden rounded-[20px] px-3 py-3 text-left text-sm font-medium transition",
                           isActive
-                            ? "bg-[linear-gradient(135deg,rgba(41,171,226,0.18),rgba(0,113,188,0.18))] text-white shadow-[inset_0_0_0_1px_rgba(41,171,226,0.34)]"
+                            ? "bg-[linear-gradient(135deg,rgba(41,171,226,0.22),rgba(0,113,188,0.18))] text-white shadow-[inset_0_0_0_1px_rgba(41,171,226,0.38),0_14px_28px_rgba(3,16,28,0.16)]"
                             : "text-slate-300 hover:bg-[rgba(41,171,226,0.1)] hover:text-white",
                         ].join(" ")
                       }
@@ -838,15 +838,22 @@ function AppLayoutRevamp() {
                     >
                       {({ isActive }) => (
                         <>
-                          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-[rgba(41,171,226,0.14)] text-blue-200">
+                          <span
+                            className={[
+                              "mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition",
+                              isActive
+                                ? "bg-[rgba(255,255,255,0.12)] text-white"
+                                : "bg-[rgba(41,171,226,0.14)] text-blue-200",
+                            ].join(" ")}
+                          >
                             <Icon className="h-4 w-4" />
                           </span>
-                          <span className="min-w-0 text-sm leading-5 text-inherit break-words">
+                          <span className="block min-w-0 pr-1 text-sm leading-[1.35rem] text-inherit break-words">
                             {item.label}
                           </span>
                           <ChevronRight
                             className={[
-                              "h-4 w-4 shrink-0 transition",
+                              "mt-1 h-4 w-4 shrink-0 transition",
                               isActive
                                 ? "translate-x-0 text-white/70"
                                 : "text-white/20 group-hover:translate-x-0.5 group-hover:text-white/50",
@@ -1216,7 +1223,7 @@ function AppLayoutRevamp() {
       />
 
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-[min(88vw,340px)] transform transition duration-300 ease-out lg:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 w-[min(90vw,360px)] transform transition duration-300 ease-out lg:hidden ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
