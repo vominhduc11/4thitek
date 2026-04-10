@@ -1,0 +1,7 @@
+S:\\project\\4thitek\\dealer\\test\\cart_controller_test.dart:349:  final normalizedTotalAfterDiscount = totalAfterDiscount ?? subtotal - discountAmount;
+S:\\project\\4thitek\\dealer\\test\\cart_controller_test.dart:351:      vatAmount ?? (normalizedTotalAfterDiscount * vatPercent / 100).round();
+S:\\project\\4thitek\\dealer\\test\\cart_controller_test.dart:353:      totalAmount ?? normalizedTotalAfterDiscount + normalizedVatAmount;
+S:\\project\\4thitek\\dealer\\test\\forgot_password_screen_locale_test.dart:104:    return resetResult ??
+S:\\project\\4thitek\\dealer\\test\\login_screen_locale_test.dart:133:    return loginResult ??
+S:\\project\\4thitek\\dealer\\test\\order_detail_locale_test.dart:138:    : order = order ?? _sampleOrder;
+S:\\project\\4thitek\\dealer\\test\\text_encoding_guard_test.dart:63:          var literal = match.group(0) ?? '';

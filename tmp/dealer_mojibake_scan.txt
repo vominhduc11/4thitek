@@ -1,0 +1,475 @@
+S:\\project\\4thitek\\dealer\\lib\\account_screen.dart:1247:          ? (background ?? colors.surfaceContainerHigh)
+S:\\project\\4thitek\\dealer\\lib\\account_screen.dart:1251:        color: borderColor ?? colors.outlineVariant.withValues(alpha: 0.55),
+S:\\project\\4thitek\\dealer\\lib\\account_settings_screen.dart:103:      profile = await (widget.loadProfile ?? loadDealerProfile)();
+S:\\project\\4thitek\\dealer\\lib\\account_settings_screen.dart:176:      _avatarUrl?.trim() ?? '',
+S:\\project\\4thitek\\dealer\\lib\\account_settings_screen.dart:231:        (_avatarUrl?.trim().isEmpty ?? true)) {
+S:\\project\\4thitek\\dealer\\lib\\account_settings_screen.dart:249:    return shouldDiscard ?? false;
+S:\\project\\4thitek\\dealer\\lib\\account_settings_screen.dart:377:      await (widget.saveProfile ?? saveDealerProfile)(
+S:\\project\\4thitek\\dealer\\lib\\account_settings_screen.dart:390:          avatarUrl: _avatarUrl?.trim().isEmpty ?? true
+S:\\project\\4thitek\\dealer\\lib\\account_settings_screen.dart:528:                  icon: (_avatarUrl?.trim().isNotEmpty ?? false)
+S:\\project\\4thitek\\dealer\\lib\\account_settings_screen.dart:531:                  label: (_avatarUrl?.trim().isNotEmpty ?? false)
+S:\\project\\4thitek\\dealer\\lib\\account_settings_screen.dart:534:                  isActive: _avatarUrl?.trim().isNotEmpty ?? false,
+S:\\project\\4thitek\\dealer\\lib\\account_settings_screen.dart:553:                        (_avatarUrl?.trim().isNotEmpty ?? false)
+S:\\project\\4thitek\\dealer\\lib\\account_settings_screen.dart:558:                    if (_avatarUrl?.trim().isNotEmpty ?? false)
+S:\\project\\4thitek\\dealer\\lib\\account_settings_screen.dart:931:              avatarValue: (_avatarUrl?.trim().isNotEmpty ?? false)
+S:\\project\\4thitek\\dealer\\lib\\api_config.dart:90:    final normalizedVersion = _normalizeApiVersion(version ?? '');
+S:\\project\\4thitek\\dealer\\lib\\api_config.dart:153:    final host = parsed?.host.trim().toLowerCase() ?? '';
+S:\\project\\4thitek\\dealer\\lib\\api_config.dart:203:    return _normalizeApiVersion(match.group(1) ?? '');
+S:\\project\\4thitek\\dealer\\lib\\app_router.dart:154:          final destination = (snapshot.data ?? false) ? '/home' : '/login';
+S:\\project\\4thitek\\dealer\\lib\\app_router.dart:252:    _loadFuture ??= _loadProduct();
+S:\\project\\4thitek\\dealer\\lib\\app_settings_controller.dart:41:  final code = (raw ?? '').trim().toLowerCase();
+S:\\project\\4thitek\\dealer\\lib\\auth_service.dart:149:  }) : _client = client ?? http.Client();
+S:\\project\\4thitek\\dealer\\lib\\auth_service.dart:186:      final accessToken = data['accessToken']?.toString() ?? '';
+S:\\project\\4thitek\\dealer\\lib\\auth_service.dart:192:          userMap['username']?.toString() ?? email.trim().toLowerCase();
+S:\\project\\4thitek\\dealer\\lib\\auth_storage.dart:41:    final rememberMe = prefs.getBool(rememberMeKey) ?? false;
+S:\\project\\4thitek\\dealer\\lib\\auth_storage.dart:42:    final email = prefs.getString(rememberEmailKey) ?? '';
+S:\\project\\4thitek\\dealer\\lib\\auth_storage.dart:48:    final rememberMe = prefs.getBool(rememberMeKey) ?? false;
+S:\\project\\4thitek\\dealer\\lib\\auth_storage.dart:49:    final loggedIn = prefs.getBool(loggedInKey) ?? false;
+S:\\project\\4thitek\\dealer\\lib\\auth_storage.dart:157:    final rememberMe = prefs.getBool(rememberMeKey) ?? false;
+S:\\project\\4thitek\\dealer\\lib\\auth_storage.dart:158:    final loggedIn = prefs.getBool(loggedInKey) ?? false;
+S:\\project\\4thitek\\dealer\\lib\\auth_storage.dart:214:        prefs.getString(authAccessTokenKey) ?? prefs.getString('auth_token');
+S:\\project\\4thitek\\dealer\\lib\\auth_storage.dart:301:    _lastSessionEventMessage = message?.trim().isEmpty ?? true
+S:\\project\\4thitek\\dealer\\lib\\bank_transfer_support.dart:72:    : _authStorage = authStorage ?? AuthStorage() {
+S:\\project\\4thitek\\dealer\\lib\\bank_transfer_support.dart:75:      inner: client ?? http.Client(),
+S:\\project\\4thitek\\dealer\\lib\\bank_transfer_support.dart:104:      provider: data['provider']?.toString() ?? 'SePay',
+S:\\project\\4thitek\\dealer\\lib\\bank_transfer_support.dart:105:      bankName: data['bankName']?.toString() ?? '',
+S:\\project\\4thitek\\dealer\\lib\\bank_transfer_support.dart:106:      accountNumber: data['accountNumber']?.toString() ?? '',
+S:\\project\\4thitek\\dealer\\lib\\bank_transfer_support.dart:107:      accountHolder: data['accountHolder']?.toString() ?? '',
+S:\\project\\4thitek\\dealer\\lib\\cart_controller.dart:19:    _authStorage = authStorage ?? AuthStorage();
+S:\\project\\4thitek\\dealer\\lib\\cart_controller.dart:22:      inner: client ?? http.Client(),
+S:\\project\\4thitek\\dealer\\lib\\cart_controller.dart:103:      _pricingSummary?.discountPercent ??
+S:\\project\\4thitek\\dealer\\lib\\cart_controller.dart:107:      _pricingSummary?.discountAmount ??
+S:\\project\\4thitek\\dealer\\lib\\cart_controller.dart:111:      _pricingSummary?.totalAfterDiscount ?? subtotal - discountAmount;
+S:\\project\\4thitek\\dealer\\lib\\cart_controller.dart:113:  int get vatPercent => _pricingSummary?.vatPercent ?? _vatPercent;
+S:\\project\\4thitek\\dealer\\lib\\cart_controller.dart:116:      _pricingSummary?.vatAmount ??
+S:\\project\\4thitek\\dealer\\lib\\cart_controller.dart:120:      _pricingSummary?.totalAmount ?? totalAfterDiscount + vatAmount;
+S:\\project\\4thitek\\dealer\\lib\\cart_controller.dart:123:    return _items[productId]?.quantity ?? 0;
+S:\\project\\4thitek\\dealer\\lib\\cart_controller.dart:127:    return (_pendingSyncCounts[productId] ?? 0) > 0;
+S:\\project\\4thitek\\dealer\\lib\\cart_controller.dart:151:    final requested = quantity ?? suggestedAddQuantity(product);
+S:\\project\\4thitek\\dealer\\lib\\cart_controller.dart:159:    final requested = quantity ?? suggestedAddQuantity(product);
+S:\\project\\4thitek\\dealer\\lib\\cart_controller.dart:629:    final imageUrl = _normalizeString(json['image']) ?? fallback?.imageUrl;
+S:\\project\\4thitek\\dealer\\lib\\cart_controller.dart:631:      json['priceSnapshot'] ?? json['retailPrice'],
+S:\\project\\4thitek\\dealer\\lib\\cart_controller.dart:632:      fallback: fallback?.price ?? 0,
+S:\\project\\4thitek\\dealer\\lib\\cart_controller.dart:637:          _normalizeString(json['productName']) ?? fallback?.name ?? 'Product',
+S:\\project\\4thitek\\dealer\\lib\\cart_controller.dart:638:      sku: _normalizeString(json['productSku']) ?? fallback?.sku ?? productId,
+S:\\project\\4thitek\\dealer\\lib\\cart_controller.dart:639:      shortDescription: fallback?.shortDescription ?? '',
+S:\\project\\4thitek\\dealer\\lib\\cart_controller.dart:641:      stock: fallback?.stock ?? quantity,
+S:\\project\\4thitek\\dealer\\lib\\cart_controller.dart:642:      warrantyMonths: fallback?.warrantyMonths ?? 12,
+S:\\project\\4thitek\\dealer\\lib\\cart_controller.dart:644:      descriptions: fallback?.descriptions ?? const <ProductDescriptionItem>[],
+S:\\project\\4thitek\\dealer\\lib\\cart_controller.dart:645:      videos: fallback?.videos ?? const <ProductVideoItem>[],
+S:\\project\\4thitek\\dealer\\lib\\cart_controller.dart:647:          fallback?.specifications ?? const <ProductSpecification>[],
+S:\\project\\4thitek\\dealer\\lib\\cart_controller.dart:685:    return int.tryParse(value?.toString() ?? '') ?? fallback;
+S:\\project\\4thitek\\dealer\\lib\\cart_controller.dart:708:    return double.tryParse(value?.toString() ?? '')?.round() ?? fallback;
+S:\\project\\4thitek\\dealer\\lib\\cart_controller.dart:712:    final normalized = value?.toString().trim() ?? '';
+S:\\project\\4thitek\\dealer\\lib\\cart_controller.dart:808:      final nextCount = (_pendingSyncCounts[productId] ?? 0) + delta;
+S:\\project\\4thitek\\dealer\\lib\\cart_screen.dart:246:      return result ?? false;
+S:\\project\\4thitek\\dealer\\lib\\cart_screen.dart:264:        padding: padding ?? const EdgeInsets.all(18),
+S:\\project\\4thitek\\dealer\\lib\\cart_screen.dart:536:                      widget.onShop ??
+S:\\project\\4thitek\\dealer\\lib\\cart_screen.dart:1561:    final color = valueColor ?? Theme.of(context).colorScheme.onSurface;
+S:\\project\\4thitek\\dealer\\lib\\change_password_screen.dart:165:        if ((value ?? '').trim().isEmpty) {
+S:\\project\\4thitek\\dealer\\lib\\change_password_screen.dart:222:        if ((value ?? '').isEmpty) {
+S:\\project\\4thitek\\dealer\\lib\\change_password_screen.dart:442:    final password = (value ?? '').trim();
+S:\\project\\4thitek\\dealer\\lib\\change_password_screen.dart:535:    : _authStorage = authStorage ?? AuthStorage() {
+S:\\project\\4thitek\\dealer\\lib\\change_password_screen.dart:538:      inner: client ?? http.Client(),
+S:\\project\\4thitek\\dealer\\lib\\checkout_screen.dart:843:        return texts.outOfStockIssue(issue.productName ?? '');
+S:\\project\\4thitek\\dealer\\lib\\checkout_screen.dart:846:          issue.productName ?? '',
+S:\\project\\4thitek\\dealer\\lib\\checkout_screen.dart:847:          issue.availableStock ?? 0,
+S:\\project\\4thitek\\dealer\\lib\\dashboard_screen.dart:51:          borderColor ??
+S:\\project\\4thitek\\dealer\\lib\\dashboard_screen.dart:161:    final background = backgroundColor ?? theme.colorScheme.surfaceContainerLow;
+S:\\project\\4thitek\\dealer\\lib\\dashboard_screen.dart:162:    final foreground = foregroundColor ?? theme.colorScheme.onSurface;
+S:\\project\\4thitek\\dealer\\lib\\dashboard_screen.dart:728:          ? (warningMessage ?? loadErrorMessage)
+S:\\project\\4thitek\\dealer\\lib\\dashboard_screen.dart:837:            ?.unreadCount ??
+S:\\project\\4thitek\\dealer\\lib\\dashboard_screen.dart:954:        message: _loadErrorMessage ?? dashboardLoadErrorMessage,
+S:\\project\\4thitek\\dealer\\lib\\dashboard_screen.dart:2728:                final count = totals[status] ?? 0;
+S:\\project\\4thitek\\dealer\\lib\\dashboard_screen.dart:2761:      map[order.status] = (map[order.status] ?? 0) + 1;
+S:\\project\\4thitek\\dealer\\lib\\dashboard_screen.dart:3231:                  label: ctaSemanticLabel ?? ctaLabel!,
+S:\\project\\4thitek\\dealer\\lib\\dashboard_screen_support.dart:61:    now: now ?? DateTime.now(),
+S:\\project\\4thitek\\dealer\\lib\\dashboard_screen_support.dart:178:          map[item.product.id] ??
+S:\\project\\4thitek\\dealer\\lib\\dashboard_screen_support.dart:336:  final current = now ?? DateTime.now();
+S:\\project\\4thitek\\dealer\\lib\\dashboard_screen_support.dart:380:  return order.completedAt ?? order.createdAt;
+S:\\project\\4thitek\\dealer\\lib\\dashboard_screen_support.dart:447:      total: (current?.total ?? 0) + order.total,
+S:\\project\\4thitek\\dealer\\lib\\dashboard_screen_support.dart:448:      orderCount: (current?.orderCount ?? 0) + 1,
+S:\\project\\4thitek\\dealer\\lib\\dashboard_screen_support.dart:491:      countByDate[d] = (countByDate[d] ?? 0) + 1;
+S:\\project\\4thitek\\dealer\\lib\\dashboard_screen_support.dart:500:      _DailyActivation(date: normalised, count: countByDate[normalised] ?? 0),
+S:\\project\\4thitek\\dealer\\lib\\dealer_auth_client.dart:13:      _inner = inner ?? http.Client();
+S:\\project\\4thitek\\dealer\\lib\\dealer_auth_client.dart:140:      final accessToken = data['accessToken']?.toString().trim() ?? '';
+S:\\project\\4thitek\\dealer\\lib\\dealer_auth_client.dart:249:        ..fields.addAll(fields ?? const <String, String>{})
+S:\\project\\4thitek\\dealer\\lib\\dealer_navigation.dart:87:    final normalized = normalizeDealerInternalRoute(route) ?? route;
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:142:      businessName: businessName ?? this.businessName,
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:143:      contactName: contactName ?? this.contactName,
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:144:      email: email ?? this.email,
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:145:      phone: phone ?? this.phone,
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:146:      addressLine: addressLine ?? this.addressLine,
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:147:      ward: ward ?? this.ward,
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:148:      district: district ?? this.district,
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:149:      city: city ?? this.city,
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:150:      country: country ?? this.country,
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:151:      salesPolicy: salesPolicy ?? this.salesPolicy,
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:152:      vatPercent: vatPercent ?? this.vatPercent,
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:153:      avatarUrl: avatarUrl ?? this.avatarUrl,
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:185:    return (await _loadLocalDealerProfile()) ?? DealerProfile.defaults;
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:250:    avatarUrl: profile.avatarUrl?.trim().isEmpty ?? true
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:264:  final avatarUrl = normalizedProfile.avatarUrl ?? '';
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:346:    contactName: prefs.getString(_profileContactNameKey) ?? '',
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:347:    email: prefs.getString(_profileEmailKey) ?? '',
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:348:    phone: prefs.getString(_profilePhoneKey) ?? '',
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:349:    addressLine: prefs.getString(_profileAddressLineKey) ?? '',
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:350:    ward: prefs.getString(_profileWardKey) ?? '',
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:351:    district: prefs.getString(_profileDistrictKey) ?? '',
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:352:    city: prefs.getString(_profileCityKey) ?? '',
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:353:    country: prefs.getString(_profileCountryKey) ?? 'Vi\u1ec7t Nam',
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:354:    salesPolicy: prefs.getString(_profilePolicyKey) ?? '',
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:355:    vatPercent: prefs.getInt(_profileVatPercentKey) ?? kVatPercent,
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:374:    if ((profile.avatarUrl ?? '').trim().isNotEmpty)
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:390:        _normalizeString(json['businessName']) ?? fallback.businessName,
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:391:    contactName: _normalizeString(json['contactName']) ?? fallback.contactName,
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:392:    email: _normalizeString(json['email']) ?? fallback.email,
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:393:    phone: _normalizeString(json['phone']) ?? fallback.phone,
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:394:    addressLine: _normalizeString(json['addressLine']) ?? fallback.addressLine,
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:395:    ward: _normalizeString(json['ward']) ?? fallback.ward,
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:396:    district: _normalizeString(json['district']) ?? fallback.district,
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:397:    city: _normalizeString(json['city']) ?? fallback.city,
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:398:    country: _normalizeString(json['country']) ?? fallback.country,
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:399:    salesPolicy: _normalizeString(json['salesPolicy']) ?? fallback.salesPolicy,
+S:\\project\\4thitek\\dealer\\lib\\dealer_profile_storage.dart:487:  final text = value?.toString().trim() ?? '';
+S:\\project\\4thitek\\dealer\\lib\\dealer_routes.dart:53:  final link = rawLink?.trim() ?? '';
+S:\\project\\4thitek\\dealer\\lib\\dealer_routes.dart:82:  final normalized = normalizeDealerInternalRoute(route) ?? route;
+S:\\project\\4thitek\\dealer\\lib\\file_reference.dart:31:  final trimmed = reference?.trim() ?? '';
+S:\\project\\4thitek\\dealer\\lib\\file_reference.dart:54:  final trimmed = resolvedUrl?.trim() ?? '';
+S:\\project\\4thitek\\dealer\\lib\\forgot_password_screen.dart:46:    _authService = widget.authService ?? RemoteAuthService();
+S:\\project\\4thitek\\dealer\\lib\\forgot_password_screen.dart:47:    final initialEmail = widget.initialEmail?.trim() ?? '';
+S:\\project\\4thitek\\dealer\\lib\\forgot_password_screen.dart:295:                  style: (theme.textTheme.labelLarge ?? const TextStyle())
+S:\\project\\4thitek\\dealer\\lib\\forgot_password_screen.dart:334:                  final email = (value ?? '').trim();
+S:\\project\\4thitek\\dealer\\lib\\forgot_password_screen.dart:659:        : (_formKey.currentState?.validate() ?? false);
+S:\\project\\4thitek\\dealer\\lib\\global_search.dart:58:    final effectiveTooltip = tooltip ?? texts.searchButtonTooltip;
+S:\\project\\4thitek\\dealer\\lib\\global_search.dart:192:        final items = snapshot.data ?? const <UnifiedSearchResult>[];
+S:\\project\\4thitek\\dealer\\lib\\home_shell.dart:44:    final seen = prefs.getBool(_onboardingSeenKey) ?? false;
+S:\\project\\4thitek\\dealer\\lib\\inventory_product_detail_screen.dart:75:    _inventoryService = widget.inventoryService ?? InventoryService();
+S:\\project\\4thitek\\dealer\\lib\\inventory_product_detail_screen.dart:168:          in _remoteSerials ?? const <DealerInventorySerialRecord>[])
+S:\\project\\4thitek\\dealer\\lib\\inventory_product_detail_screen.dart:175:            .toList(growable: false) ??
+S:\\project\\4thitek\\dealer\\lib\\inventory_screen.dart:76:    _inventoryService = widget.inventoryService ?? InventoryService();
+S:\\project\\4thitek\\dealer\\lib\\inventory_screen.dart:200:          ? (warningMessage ?? texts.loadInventoryErrorMessage)
+S:\\project\\4thitek\\dealer\\lib\\inventory_screen.dart:1159:    final resolvedColor = accentColor ?? colorScheme.onSurfaceVariant;
+S:\\project\\4thitek\\dealer\\lib\\inventory_screen.dart:1828:        ) ??
+S:\\project\\4thitek\\dealer\\lib\\inventory_screen.dart:1831:        Color.lerp(baseColor, colorScheme.surface, 0.35) ?? colorScheme.surface;
+S:\\project\\4thitek\\dealer\\lib\\inventory_screen.dart:1837:            Color.lerp(baseColor, highlightColor, _controller.value) ??
+S:\\project\\4thitek\\dealer\\lib\\inventory_screen.dart:1873:          title: message ?? texts.loadInventoryErrorMessage,
+S:\\project\\4thitek\\dealer\\lib\\inventory_screen_support.dart:99:        productMap[record.productId] ??
+S:\\project\\4thitek\\dealer\\lib\\inventory_screen_support.dart:111:        map[record.productId] ??
+S:\\project\\4thitek\\dealer\\lib\\inventory_service.dart:127:    : _authStorage = authStorage ?? AuthStorage() {
+S:\\project\\4thitek\\dealer\\lib\\inventory_service.dart:130:      inner: client ?? http.Client(),
+S:\\project\\4thitek\\dealer\\lib\\inventory_service.dart:205:    final timeline = (data['timeline'] as List<dynamic>? ?? const <dynamic>[])
+S:\\project\\4thitek\\dealer\\lib\\inventory_service.dart:209:            type: (entry['type'] ?? '').toString(),
+S:\\project\\4thitek\\dealer\\lib\\inventory_service.dart:210:            title: (entry['title'] ?? '').toString(),
+S:\\project\\4thitek\\dealer\\lib\\inventory_service.dart:211:            description: (entry['description'] ?? '').toString(),
+S:\\project\\4thitek\\dealer\\lib\\inventory_service.dart:270:    final items = (json['items'] as List<dynamic>? ?? const <dynamic>[])
+S:\\project\\4thitek\\dealer\\lib\\inventory_service.dart:275:            name: (item['productName'] ?? '').toString(),
+S:\\project\\4thitek\\dealer\\lib\\inventory_service.dart:276:            sku: (item['productSku'] ?? '').toString(),
+S:\\project\\4thitek\\dealer\\lib\\inventory_service.dart:281:            imageUrl: (item['image'] as String?)?.trim().isEmpty ?? true
+S:\\project\\4thitek\\dealer\\lib\\inventory_service.dart:292:                parseApiDateTime(item['latestImportedAt']) ?? DateTime.now(),
+S:\\project\\4thitek\\dealer\\lib\\inventory_service.dart:293:            orderCodes: ((item['orderCodes'] as List<dynamic>?) ?? const [])
+S:\\project\\4thitek\\dealer\\lib\\inventory_service.dart:315:        serial: (json['serial'] ?? '').toString(),
+S:\\project\\4thitek\\dealer\\lib\\inventory_service.dart:316:        orderId: (json['orderCode'] ?? json['orderId'] ?? '').toString(),
+S:\\project\\4thitek\\dealer\\lib\\inventory_service.dart:318:        productName: (json['productName'] ?? '').toString(),
+S:\\project\\4thitek\\dealer\\lib\\inventory_service.dart:319:        productSku: (json['productSku'] ?? '').toString(),
+S:\\project\\4thitek\\dealer\\lib\\inventory_service.dart:320:        importedAt: parseApiDateTime(json['importedAt']) ?? DateTime.now(),
+S:\\project\\4thitek\\dealer\\lib\\inventory_service.dart:322:        warehouseId: (json['warehouseId'] ?? 'main').toString(),
+S:\\project\\4thitek\\dealer\\lib\\inventory_service.dart:323:        warehouseName: (json['warehouseName'] ?? 'Kho').toString(),
+S:\\project\\4thitek\\dealer\\lib\\inventory_service.dart:335:    return int.tryParse(value?.toString() ?? '') ?? 0;
+S:\\project\\4thitek\\dealer\\lib\\inventory_service.dart:339:    final resolved = value?.toString().trim() ?? '';
+S:\\project\\4thitek\\dealer\\lib\\login_screen.dart:63:    _authService = widget.authService ?? RemoteAuthService();
+S:\\project\\4thitek\\dealer\\lib\\login_screen.dart:140:                setState(() => _rememberMe = value ?? false);
+S:\\project\\4thitek\\dealer\\lib\\login_screen.dart:499:        theme.textTheme.labelLarge ?? const TextStyle(fontSize: 14);
+S:\\project\\4thitek\\dealer\\lib\\login_screen.dart:713:                                  final password = value ?? '';
+S:\\project\\4thitek\\dealer\\lib\\login_screen_support.dart:86:    final isFormValid = _formKey.currentState?.validate() ?? false;
+S:\\project\\4thitek\\dealer\\lib\\login_screen_support.dart:116:        final failureType = result.failure?.type ?? LoginFailureType.unknown;
+S:\\project\\4thitek\\dealer\\lib\\login_screen_support.dart:158:        email: result.email ?? email,
+S:\\project\\4thitek\\dealer\\lib\\main.dart:257:            label: l10n?.viewAction ?? 'Xem',
+S:\\project\\4thitek\\dealer\\lib\\main.dart:284:          : (l10n?.sessionExpiredMessage ??
+S:\\project\\4thitek\\dealer\\lib\\main.dart:318:      notice.deepLink ?? notice.link,
+S:\\project\\4thitek\\dealer\\lib\\main.dart:367:                            AppLocalizations.of(context)?.appTitle ??
+S:\\project\\4thitek\\dealer\\lib\\models.dart:126:    return CartItem(product: product, quantity: quantity ?? this.quantity);
+S:\\project\\4thitek\\dealer\\lib\\models.dart:271:    targetQuantity: nextRule.minQuantity ?? stats.totalItems,
+S:\\project\\4thitek\\dealer\\lib\\models.dart:288:  return stats.productQuantities[target.productId] ?? 0;
+S:\\project\\4thitek\\dealer\\lib\\models.dart:386:  int get discountPercent => discountPercentOverride ?? 0;
+S:\\project\\4thitek\\dealer\\lib\\models.dart:389:      discountAmountOverride ??
+S:\\project\\4thitek\\dealer\\lib\\models.dart:394:  int get vatPercent => vatPercentOverride ?? kVatPercent;
+S:\\project\\4thitek\\dealer\\lib\\models.dart:397:      vatAmountOverride ?? (totalAfterDiscount * vatPercent / 100).round();
+S:\\project\\4thitek\\dealer\\lib\\models.dart:399:  int get total => totalAmountOverride ?? (totalAfterDiscount + vatAmount);
+S:\\project\\4thitek\\dealer\\lib\\models.dart:430:      status: status ?? this.status,
+S:\\project\\4thitek\\dealer\\lib\\models.dart:431:      paymentMethod: paymentMethod ?? this.paymentMethod,
+S:\\project\\4thitek\\dealer\\lib\\models.dart:432:      paymentStatus: paymentStatus ?? this.paymentStatus,
+S:\\project\\4thitek\\dealer\\lib\\models.dart:433:      receiverName: receiverName ?? this.receiverName,
+S:\\project\\4thitek\\dealer\\lib\\models.dart:434:      receiverAddress: receiverAddress ?? this.receiverAddress,
+S:\\project\\4thitek\\dealer\\lib\\models.dart:435:      receiverPhone: receiverPhone ?? this.receiverPhone,
+S:\\project\\4thitek\\dealer\\lib\\models.dart:436:      items: items ?? this.items,
+S:\\project\\4thitek\\dealer\\lib\\models.dart:437:      paidAmount: paidAmount ?? this.paidAmount,
+S:\\project\\4thitek\\dealer\\lib\\models.dart:438:      completedAt: completedAt ?? this.completedAt,
+S:\\project\\4thitek\\dealer\\lib\\models.dart:439:      note: note ?? this.note,
+S:\\project\\4thitek\\dealer\\lib\\models.dart:440:      subtotalOverride: subtotalOverride ?? this.subtotalOverride,
+S:\\project\\4thitek\\dealer\\lib\\models.dart:442:          discountPercentOverride ?? this.discountPercentOverride,
+S:\\project\\4thitek\\dealer\\lib\\models.dart:444:          discountAmountOverride ?? this.discountAmountOverride,
+S:\\project\\4thitek\\dealer\\lib\\models.dart:445:      vatPercentOverride: vatPercentOverride ?? this.vatPercentOverride,
+S:\\project\\4thitek\\dealer\\lib\\models.dart:446:      vatAmountOverride: vatAmountOverride ?? this.vatAmountOverride,
+S:\\project\\4thitek\\dealer\\lib\\models.dart:447:      totalAmountOverride: totalAmountOverride ?? this.totalAmountOverride,
+S:\\project\\4thitek\\dealer\\lib\\models.dart:579:    final matchedRule = productRules[item.product.id] ?? globalRule;
+S:\\project\\4thitek\\dealer\\lib\\models.dart:626:  return stats.productQuantities[rule.productId] ?? 0;
+S:\\project\\4thitek\\dealer\\lib\\models.dart:659:  final minCompare = (b.minQuantity ?? 0).compareTo(a.minQuantity ?? 0);
+S:\\project\\4thitek\\dealer\\lib\\models.dart:667:  final maxA = a.maxQuantity ?? 1 << 30;
+S:\\project\\4thitek\\dealer\\lib\\models.dart:668:  final maxB = b.maxQuantity ?? 1 << 30;
+S:\\project\\4thitek\\dealer\\lib\\notification_controller.dart:44:    _authStorage = authStorage ?? AuthStorage();
+S:\\project\\4thitek\\dealer\\lib\\notification_controller.dart:47:      inner: client ?? http.Client(),
+S:\\project\\4thitek\\dealer\\lib\\notification_controller.dart:239:            title: _normalizeString(entry['title']) ?? 'Th\xf4ng b\xe1o',
+S:\\project\\4thitek\\dealer\\lib\\notification_controller.dart:240:            message: _normalizeString(entry['body']) ?? '',
+S:\\project\\4thitek\\dealer\\lib\\notification_controller.dart:241:            createdAt: parseApiDateTime(entry['createdAt']) ?? DateTime.now(),
+S:\\project\\4thitek\\dealer\\lib\\notification_controller.dart:486:    final payload = _decodeBody(frame.body ?? '');
+S:\\project\\4thitek\\dealer\\lib\\notification_controller.dart:496:      title: _normalizeString(payload['title']) ?? 'Th\xf4ng b\xe1o',
+S:\\project\\4thitek\\dealer\\lib\\notification_controller.dart:497:      message: _normalizeString(payload['body']) ?? '',
+S:\\project\\4thitek\\dealer\\lib\\notification_controller.dart:498:      createdAt: parseApiDateTime(payload['createdAt']) ?? DateTime.now(),
+S:\\project\\4thitek\\dealer\\lib\\notification_controller.dart:531:    final noticeTarget = (notice.deepLink ?? notice.link)?.trim() ?? '';
+S:\\project\\4thitek\\dealer\\lib\\notification_controller.dart:543:    final payload = _decodeBody(frame.body ?? '');
+S:\\project\\4thitek\\dealer\\lib\\notification_controller.dart:558:        paymentStatus ?? '',
+S:\\project\\4thitek\\dealer\\lib\\notification_controller.dart:672:    switch ((raw ?? '').trim().toUpperCase()) {
+S:\\project\\4thitek\\dealer\\lib\\notification_controller.dart:692:    return int.tryParse(value?.toString() ?? '') ?? fallback;
+S:\\project\\4thitek\\dealer\\lib\\notification_controller.dart:703:    final text = value?.toString().trim() ?? '';
+S:\\project\\4thitek\\dealer\\lib\\notifications_screen.dart:525:    final link = rawLink?.trim() ?? '';
+S:\\project\\4thitek\\dealer\\lib\\notifications_screen.dart:582:    final link = (notice.deepLink ?? notice.link)?.trim() ?? '';
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:193:    _authStorage = authStorage ?? AuthStorage();
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:196:      inner: client ?? http.Client(),
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:284:    final newPaidAmount = paidAmount ?? existing.paidAmount;
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:312:    _criticalMutationCompleter ??= Completer<void>();
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:408:    final allowed = _validTransitions[current.status] ?? const {};
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:789:        _normalizeString(json['orderCode']) ?? remoteId.toString();
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:793:    final items = (json['items'] as List<dynamic>? ?? const <dynamic>[])
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:801:      createdAt: parseApiDateTime(json['createdAt']) ?? DateTime.now(),
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:806:      receiverName: _normalizeString(json['receiverName']) ?? '',
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:807:      receiverAddress: _normalizeString(json['receiverAddress']) ?? '',
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:808:      receiverPhone: _normalizeString(json['receiverPhone']) ?? '',
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:831:          _normalizeString(json['productName']) ?? fallback?.name ?? 'Product',
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:832:      sku: _normalizeString(json['productSku']) ?? fallback?.sku ?? productId,
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:833:      shortDescription: fallback?.shortDescription ?? '',
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:834:      price: _parsePrice(json['unitPrice'], fallback: fallback?.price ?? 0),
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:835:      stock: fallback?.stock ?? quantity,
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:836:      warrantyMonths: fallback?.warrantyMonths ?? 12,
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:838:      descriptions: fallback?.descriptions ?? const <ProductDescriptionItem>[],
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:839:      videos: fallback?.videos ?? const <ProductVideoItem>[],
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:841:          fallback?.specifications ?? const <ProductSpecification>[],
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:849:        _remoteOrderCodes[remoteOrderId] ?? remoteOrderId.toString();
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:851:      id: json['id']?.toString() ?? '',
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:854:      paidAt: parseApiDateTime(json['paidAt']) ?? DateTime.now(),
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:855:      channel: _normalizeString(json['channel']) ?? '',
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:862:    switch ((raw ?? '').trim().toUpperCase()) {
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:901:    switch ((raw ?? '').trim().toUpperCase()) {
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:1025:    return int.tryParse(value?.toString() ?? '') ?? fallback;
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:1035:    return double.tryParse(value?.toString() ?? '')?.round() ?? fallback;
+S:\\project\\4thitek\\dealer\\lib\\order_controller.dart:1039:    final text = value?.toString().trim() ?? '';
+S:\\project\\4thitek\\dealer\\lib\\order_detail_screen.dart:405:                            : (pickedFileName ?? texts.attachProofButton),
+S:\\project\\4thitek\\dealer\\lib\\order_detail_screen.dart:439:                          final amount = int.tryParse(digitsOnly) ?? 0;
+S:\\project\\4thitek\\dealer\\lib\\order_query_service.dart:41:      searchText: searchText ?? this.searchText,
+S:\\project\\4thitek\\dealer\\lib\\order_query_service.dart:48:      onlyOutstanding: onlyOutstanding ?? this.onlyOutstanding,
+S:\\project\\4thitek\\dealer\\lib\\order_query_service.dart:49:      sort: sort ?? this.sort,
+S:\\project\\4thitek\\dealer\\lib\\orders_screen.dart:663:          notification.scrollDelta ??
+S:\\project\\4thitek\\dealer\\lib\\orders_screen.dart:792:        _orderQueryRepository?.readSnapshot(_query) ??
+S:\\project\\4thitek\\dealer\\lib\\orders_screen.dart:1862:    final effectiveForeground = foregroundColor ?? colors.onSurfaceVariant;
+S:\\project\\4thitek\\dealer\\lib\\orders_screen.dart:1867:            backgroundColor ??
+S:\\project\\4thitek\\dealer\\lib\\orders_screen.dart:1906:    final effectiveAccent = accentColor ?? colors.primary;
+S:\\project\\4thitek\\dealer\\lib\\orders_screen.dart:1940:              color: accentColor ?? colors.onSurface,
+S:\\project\\4thitek\\dealer\\lib\\orders_screen.dart:2160:    final current = (now ?? DateTime.now()).toLocal();
+S:\\project\\4thitek\\dealer\\lib\\orders_screen_support.dart:181:          result.nextOffset ?? pageKey + result.items.length,
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:87:          client ??
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:221:    final totalPages = (data['totalPages'] as num?)?.toInt() ?? 1;
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:222:    final currentPage = (data['page'] as num?)?.toInt() ?? 0;
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:228:        findById(productId) ??
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:320:      id: json['id']?.toString() ?? '',
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:321:      name: json['name']?.toString().trim() ?? '',
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:322:      sku: json['sku']?.toString().trim() ?? '',
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:323:      shortDescription: json['shortDescription']?.toString().trim() ?? '',
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:333:      id: json['id']?.toString() ?? '',
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:334:      name: json['name']?.toString().trim() ?? '',
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:335:      sku: json['sku']?.toString().trim() ?? '',
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:336:      shortDescription: json['shortDescription']?.toString().trim() ?? '',
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:356:                value: entry.value?.toString() ?? '',
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:366:            label: item['label']?.toString().trim() ?? '',
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:367:            value: item['value']?.toString().trim() ?? '',
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:379:              item['url']?.toString().trim() ??
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:380:              item['videoUrl']?.toString().trim() ??
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:383:            title: item['title']?.toString().trim() ?? '',
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:386:                item['description']?.toString().trim() ??
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:388:            type: item['type']?.toString().trim() ?? 'tutorial',
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:395:              (item.description?.isNotEmpty ?? false),
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:405:          final gallerySource = item['gallery'] ?? item['urls'];
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:422:                _normalizeString(item['url']) ??
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:423:                _normalizeString(item['imageUrl']) ??
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:430:          final hasText = item.text?.trim().isNotEmpty ?? false;
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:431:          final hasUrl = item.url?.trim().isNotEmpty ?? false;
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:432:          final hasCaption = item.caption?.trim().isNotEmpty ?? false;
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:439:    switch ((rawType ?? '').trim().toLowerCase()) {
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:488:    final text = value?.toString().trim() ?? '';
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:499:    return int.tryParse(value?.toString() ?? '') ?? fallback;
+S:\\project\\4thitek\\dealer\\lib\\product_catalog_controller.dart:509:    return double.tryParse(value?.toString() ?? '')?.round() ?? 0;
+S:\\project\\4thitek\\dealer\\lib\\product_detail_screen.dart:78:      return catalog.findById(baseProduct.id) ?? baseProduct;
+S:\\project\\4thitek\\dealer\\lib\\product_detail_screen.dart:364:      final text = item.text?.trim() ?? '';
+S:\\project\\4thitek\\dealer\\lib\\product_detail_screen.dart:365:      final caption = item.caption?.trim() ?? '';
+S:\\project\\4thitek\\dealer\\lib\\product_detail_screen.dart:376:          (video.description?.trim().isNotEmpty ?? false);
+S:\\project\\4thitek\\dealer\\lib\\product_detail_screen.dart:1144:    final text = item.text?.trim() ?? '';
+S:\\project\\4thitek\\dealer\\lib\\product_detail_screen.dart:1145:    final caption = item.caption?.trim() ?? '';
+S:\\project\\4thitek\\dealer\\lib\\product_detail_screen.dart:1146:    final url = item.url?.trim() ?? '';
+S:\\project\\4thitek\\dealer\\lib\\product_detail_screen.dart:1171:              fontSize: FontSize(textTheme.bodyMedium?.fontSize ?? 14),
+S:\\project\\4thitek\\dealer\\lib\\product_detail_screen.dart:1177:              fontSize: FontSize(textTheme.headlineSmall?.fontSize ?? 22),
+S:\\project\\4thitek\\dealer\\lib\\product_detail_screen.dart:1182:              fontSize: FontSize(textTheme.titleLarge?.fontSize ?? 18),
+S:\\project\\4thitek\\dealer\\lib\\product_detail_screen.dart:1187:              fontSize: FontSize(textTheme.titleMedium?.fontSize ?? 16),
+S:\\project\\4thitek\\dealer\\lib\\product_detail_screen.dart:1425:                    if (video.description?.trim().isNotEmpty ?? false) ...[
+S:\\project\\4thitek\\dealer\\lib\\product_list_screen.dart:271:          notification.scrollDelta ??
+S:\\project\\4thitek\\dealer\\lib\\product_list_screen.dart:463:          !(repository.remoteDataSource?.supports(_query) ?? false);
+S:\\project\\4thitek\\dealer\\lib\\product_list_screen.dart:480:          result.nextOffset ?? pageKey + result.items.length,
+S:\\project\\4thitek\\dealer\\lib\\product_list_screen.dart:2149:  int get _visibleResultCount => _pagingController.itemList?.length ?? 0;
+S:\\project\\4thitek\\dealer\\lib\\product_list_screen_support.dart:108:    final catalog = _productCatalog ?? ProductCatalogScope.maybeOf(context);
+S:\\project\\4thitek\\dealer\\lib\\product_query_service.dart:35:      searchText: searchText ?? this.searchText,
+S:\\project\\4thitek\\dealer\\lib\\product_query_service.dart:36:      stockFilter: stockFilter ?? this.stockFilter,
+S:\\project\\4thitek\\dealer\\lib\\product_query_service.dart:37:      sortOption: sortOption ?? this.sortOption,
+S:\\project\\4thitek\\dealer\\lib\\push_messaging_controller.dart:33:  }) : _authStorage = authStorage ?? AuthStorage(),
+S:\\project\\4thitek\\dealer\\lib\\push_messaging_controller.dart:35:         authStorage: authStorage ?? AuthStorage(),
+S:\\project\\4thitek\\dealer\\lib\\push_messaging_controller.dart:36:         inner: client ?? http.Client(),
+S:\\project\\4thitek\\dealer\\lib\\push_messaging_controller.dart:157:        _registeredToken ?? await FirebaseMessaging.instance.getToken();
+S:\\project\\4thitek\\dealer\\lib\\push_messaging_controller.dart:198:    final packageInfo = _packageInfo ?? await PackageInfo.fromPlatform();
+S:\\project\\4thitek\\dealer\\lib\\push_messaging_controller.dart:248:    final type = (message.data['type'] ?? '').trim().toUpperCase();
+S:\\project\\4thitek\\dealer\\lib\\push_messaging_controller.dart:251:        (route?.startsWith(DealerRoutePath.orders) ?? false)) {
+S:\\project\\4thitek\\dealer\\lib\\push_messaging_controller.dart:258:      message.data['deepLink'] ?? message.data['link'],
+S:\\project\\4thitek\\dealer\\lib\\serial_scan_screen.dart:234:    final pasted = data?.text?.trim() ?? '';
+S:\\project\\4thitek\\dealer\\lib\\serial_scan_screen.dart:279:      for (final Barcode barcode in capture?.barcodes ?? <Barcode>[]) {
+S:\\project\\4thitek\\dealer\\lib\\support_screen.dart:64:    _supportService = widget.supportService ?? SupportService();
+S:\\project\\4thitek\\dealer\\lib\\support_screen.dart:280:                category: texts.categoryLabel(_lastCategory ?? _category),
+S:\\project\\4thitek\\dealer\\lib\\support_screen.dart:281:                priority: texts.priorityLabel(_lastPriority ?? _priority),
+S:\\project\\4thitek\\dealer\\lib\\support_screen.dart:282:                sla: texts.slaText(_lastPriority ?? _priority),
+S:\\project\\4thitek\\dealer\\lib\\support_screen.dart:584:    _showSnackBar(message ?? texts.copiedValueMessage(value));
+S:\\project\\4thitek\\dealer\\lib\\support_screen.dart:772:    switch ((raw ?? '').trim().toLowerCase()) {
+S:\\project\\4thitek\\dealer\\lib\\support_screen.dart:793:    switch ((raw ?? '').trim().toUpperCase()) {
+S:\\project\\4thitek\\dealer\\lib\\support_service.dart:127:    : _authStorage = authStorage ?? AuthStorage() {
+S:\\project\\4thitek\\dealer\\lib\\support_service.dart:130:      inner: client ?? http.Client(),
+S:\\project\\4thitek\\dealer\\lib\\support_service.dart:218:    final items = (data['items'] as List<dynamic>? ?? const <dynamic>[])
+S:\\project\\4thitek\\dealer\\lib\\support_service.dart:310:      ticketCode: json['ticketCode']?.toString() ?? '',
+S:\\project\\4thitek\\dealer\\lib\\support_service.dart:311:      category: json['category']?.toString() ?? 'OTHER',
+S:\\project\\4thitek\\dealer\\lib\\support_service.dart:312:      priority: json['priority']?.toString() ?? 'NORMAL',
+S:\\project\\4thitek\\dealer\\lib\\support_service.dart:313:      status: json['status']?.toString() ?? 'OPEN',
+S:\\project\\4thitek\\dealer\\lib\\support_service.dart:314:      subject: json['subject']?.toString() ?? '',
+S:\\project\\4thitek\\dealer\\lib\\support_service.dart:315:      message: json['message']?.toString() ?? '',
+S:\\project\\4thitek\\dealer\\lib\\support_service.dart:318:      messages: (json['messages'] as List<dynamic>? ?? const <dynamic>[])
+S:\\project\\4thitek\\dealer\\lib\\support_service.dart:323:              authorRole: message['authorRole']?.toString() ?? 'system',
+S:\\project\\4thitek\\dealer\\lib\\support_service.dart:326:              message: message['message']?.toString() ?? '',
+S:\\project\\4thitek\\dealer\\lib\\support_service.dart:328:                  parseApiDateTime(message['createdAt']) ?? DateTime.now(),
+S:\\project\\4thitek\\dealer\\lib\\support_service.dart:332:      createdAt: parseApiDateTime(json['createdAt']) ?? DateTime.now(),
+S:\\project\\4thitek\\dealer\\lib\\support_service.dart:333:      updatedAt: parseApiDateTime(json['updatedAt']) ?? DateTime.now(),
+S:\\project\\4thitek\\dealer\\lib\\support_service.dart:354:    return int.tryParse(value?.toString() ?? '') ?? 0;
+S:\\project\\4thitek\\dealer\\lib\\upload_service.dart:71:    : _authStorage = authStorage ?? AuthStorage() {
+S:\\project\\4thitek\\dealer\\lib\\upload_service.dart:74:      inner: client ?? http.Client(),
+S:\\project\\4thitek\\dealer\\lib\\upload_service.dart:131:        message ?? uploadServiceMessageToken(UploadMessageCode.uploadFailed),
+S:\\project\\4thitek\\dealer\\lib\\upload_service.dart:144:        decoded['error']?.toString() ??
+S:\\project\\4thitek\\dealer\\lib\\upload_service.dart:149:    final rawUrl = data['url']?.toString() ?? '';
+S:\\project\\4thitek\\dealer\\lib\\upload_service.dart:150:    final fileName = data['fileName']?.toString() ?? '';
+S:\\project\\4thitek\\dealer\\lib\\utils.dart:11:  final raw = value?.toString().trim() ?? '';
+S:\\project\\4thitek\\dealer\\lib\\utils.dart:33:  final current = (now ?? DateTime.now()).toLocal();
+S:\\project\\4thitek\\dealer\\lib\\validation_utils.dart:13:  if ((value ?? '').trim().isEmpty) {
+S:\\project\\4thitek\\dealer\\lib\\validation_utils.dart:26:  final email = (value ?? '').trim();
+S:\\project\\4thitek\\dealer\\lib\\validation_utils.dart:42:  final phone = (value ?? '').trim();
+S:\\project\\4thitek\\dealer\\lib\\warranty_activation_screen.dart:178:        message: _phaseError ?? texts.activationSyncFailedMessage,
+S:\\project\\4thitek\\dealer\\lib\\warranty_activation_screen.dart:463:                    _serialControllers[item.product.id] ?? const [];
+S:\\project\\4thitek\\dealer\\lib\\warranty_activation_screen.dart:859:      final existing = _serialControllers[item.product.id] ?? [];
+S:\\project\\4thitek\\dealer\\lib\\warranty_activation_screen.dart:1188:    final inputList = _serialControllers[item.product.id] ?? const [];
+S:\\project\\4thitek\\dealer\\lib\\warranty_activation_screen.dart:1261:      final serialInputs = _serialControllers[item.product.id] ?? const [];
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:155:    _authStorage = authStorage ?? AuthStorage();
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:158:      inner: client ?? http.Client(),
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:378:    return _activationCountByOrderCache![orderId] ?? 0;
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:506:      _lastSyncMessage ??= warrantySyncMessageToken(
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:550:          firstErrorMessage ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:725:    final serial = _normalizeSerial(_normalizeString(json['serial']) ?? '');
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:737:        : (cached?.productId ?? '');
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:740:        ? (_orderCodeForRemoteId?.call(remoteOrderId) ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:741:              cached?.orderId ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:743:        : (cached?.orderId ?? '');
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:751:          _normalizeString(json['productName']) ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:752:          cached?.productName ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:753:          product?.name ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:756:          _normalizeString(json['productSku']) ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:757:          cached?.productSku ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:758:          product?.sku ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:761:          _parseDateTimeValue(json['importedAt']) ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:762:          cached?.importedAt ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:765:        _normalizeString(json['status']) ?? cached?.status.name,
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:768:          _normalizeString(json['warehouseId']) ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:769:          cached?.warehouseId ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:772:          _normalizeString(json['warehouseName']) ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:773:          cached?.warehouseName ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:784:    final serial = _normalizeSerial(_normalizeString(json['serial']) ?? '');
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:799:        directOrderCode ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:801:            ? (_orderCodeForRemoteId?.call(remoteOrderId) ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:802:                  imported?.orderId ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:803:                  cached?.orderId ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:805:            : (imported?.orderId ?? cached?.orderId ?? ''));
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:808:        _normalizeString(json['productId']) ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:809:        imported?.productId ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:810:        cached?.productId ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:814:      _parseDateTimeValue(json['purchaseDate']) ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:815:          _parseDateTimeValue(json['warrantyStart']) ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:816:          cached?.purchaseDate ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:820:        _parseDateTimeValue(json['createdAt']) ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:821:        cached?.activatedAt ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:832:          _normalizeString(json['productName']) ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:833:          imported?.productName ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:834:          cached?.productName ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:835:          product?.name ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:838:          _normalizeString(json['productSku']) ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:839:          imported?.productSku ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:840:          cached?.productSku ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:841:          product?.sku ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:845:        _normalizeString(json['customerName']) ?? cached?.customerName,
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:849:        _normalizeString(json['customerEmail']) ?? cached?.customerEmail,
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:853:        _normalizeString(json['customerPhone']) ?? cached?.customerPhone,
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:857:        _normalizeString(json['customerAddress']) ?? cached?.customerAddress,
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:862:          : (cached?.warrantyMonths ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:863:                product?.warrantyMonths ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:877:          _lastSyncMessage ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:1070:    final serial = _normalizeSerial(_normalizeString(json['serial']) ?? '');
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:1075:      _parseDateTimeValue(json['purchaseDate']) ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:1076:          _parseDateTimeValue(json['activatedAt']) ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:1080:        _parseDateTimeValue(json['activatedAt']) ?? purchaseDate;
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:1086:      orderId: _normalizeString(json['orderId']) ?? '',
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:1087:      productId: _normalizeString(json['productId']) ?? '',
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:1088:      productName: _normalizeString(json['productName']) ?? 'Product',
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:1089:      productSku: _normalizeString(json['productSku']) ?? '',
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:1091:      customerName: _normalizeString(json['customerName']) ?? '',
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:1092:      customerEmail: _normalizeString(json['customerEmail']) ?? '',
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:1093:      customerPhone: _normalizeString(json['customerPhone']) ?? '',
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:1094:      customerAddress: _normalizeString(json['customerAddress']) ?? '',
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:1103:    final serial = _normalizeSerial(_normalizeString(json['serial']) ?? '');
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:1109:      orderId: _normalizeString(json['orderId']) ?? '',
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:1110:      productId: _normalizeString(json['productId']) ?? '',
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:1111:      productName: _normalizeString(json['productName']) ?? 'Product',
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:1112:      productSku: _normalizeString(json['productSku']) ?? '',
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:1113:      importedAt: _parseDateTimeValue(json['importedAt']) ?? DateTime.now(),
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:1115:      warehouseId: _normalizeString(json['warehouseId']) ?? 'main',
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:1116:      warehouseName: _normalizeString(json['warehouseName']) ?? 'Kho',
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:1205:    return int.tryParse(value?.toString() ?? '') ?? fallback;
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:1209:    final text = value?.toString().trim() ?? '';
+S:\\project\\4thitek\\dealer\\lib\\warranty_controller.dart:1252:    return _normalizeString(fallback) ?? '';
+S:\\project\\4thitek\\dealer\\lib\\warranty_export_screen.dart:259:                  .warrantyMonths ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_hub_screen.dart:253:                  Color.lerp(colors.primary, colors.secondary, 0.35) ??
+S:\\project\\4thitek\\dealer\\lib\\warranty_models.dart:14:  switch ((raw ?? '').trim().toUpperCase()) {
+S:\\project\\4thitek\\dealer\\lib\\warranty_models.dart:124:      serial: serial ?? this.serial,
+S:\\project\\4thitek\\dealer\\lib\\warranty_models.dart:125:      orderId: orderId ?? this.orderId,
+S:\\project\\4thitek\\dealer\\lib\\warranty_models.dart:126:      productId: productId ?? this.productId,
+S:\\project\\4thitek\\dealer\\lib\\warranty_models.dart:127:      productName: productName ?? this.productName,
+S:\\project\\4thitek\\dealer\\lib\\warranty_models.dart:128:      productSku: productSku ?? this.productSku,
+S:\\project\\4thitek\\dealer\\lib\\warranty_models.dart:129:      importedAt: importedAt ?? this.importedAt,
+S:\\project\\4thitek\\dealer\\lib\\warranty_models.dart:130:      status: status ?? this.status,
+S:\\project\\4thitek\\dealer\\lib\\warranty_models.dart:131:      warehouseId: warehouseId ?? this.warehouseId,
+S:\\project\\4thitek\\dealer\\lib\\warranty_models.dart:132:      warehouseName: warehouseName ?? this.warehouseName,
+S:\\project\\4thitek\\dealer\\lib\\widgets\\brand_identity.dart:48:    final resolvedWidth = width ?? (height * 3.0);
+S:\\project\\4thitek\\dealer\\lib\\widgets\\lazy_network_image.dart:107:    return widget.placeholderBuilder?.call(context) ??
+S:\\project\\4thitek\\dealer\\lib\\widgets\\skeleton_box.dart:56:              borderRadius: widget.borderRadius ?? BorderRadius.circular(10),
+S:\\project\\4thitek\\dealer\\test\\cart_controller_test.dart:349:  final normalizedTotalAfterDiscount = totalAfterDiscount ?? subtotal - discountAmount;
+S:\\project\\4thitek\\dealer\\test\\cart_controller_test.dart:351:      vatAmount ?? (normalizedTotalAfterDiscount * vatPercent / 100).round();
+S:\\project\\4thitek\\dealer\\test\\cart_controller_test.dart:353:      totalAmount ?? normalizedTotalAfterDiscount + normalizedVatAmount;
+S:\\project\\4thitek\\dealer\\test\\forgot_password_screen_locale_test.dart:104:    return resetResult ??
+S:\\project\\4thitek\\dealer\\test\\login_screen_locale_test.dart:133:    return loginResult ??
+S:\\project\\4thitek\\dealer\\test\\order_detail_locale_test.dart:138:    : order = order ?? _sampleOrder;
+S:\\project\\4thitek\\dealer\\test\\text_encoding_guard_test.dart:63:          var literal = match.group(0) ?? '';
