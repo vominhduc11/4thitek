@@ -1,0 +1,809 @@
+Enter the authorization code: [?7l]2;Gemini - 4thitek
+ ███         █████████
+░░░███      ███░░░░░███
+  ░░░███   ███     ░░░
+    ░░░███░███
+     ███░ ░███    █████
+   ███░   ░░███  ░░███
+ ███░      ░░█████████
+░░░         ░░░░░░░░░
+
+Tips for getting started:
+1. Ask questions, edit files, or run commands.
+2. Be specific for the best results.
+3. Create GEMINI.md files to customize your interactions
+with Gemini.
+4. /help for more information.
+╭─────────────────────────────────────────────────────────╮
+│                                                         │
+│ ⠋ Waiting for auth... (Press ESC or CTRL+C to cancel)   │
+│                                                         │
+╰─────────────────────────────────────────────────────────╯
+[?1004h[?2004h[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G╭─────────────────────────────────────────────────────────╮
+│                                                         │
+│ ⠙ Waiting for auth... (Press ESC or CTRL+C to cancel)   │
+│                                                         │
+╰─────────────────────────────────────────────────────────╯
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G╭─────────────────────────────────────────────────────────╮
+│                                                         │
+│ ⠹ Waiting for auth... (Press ESC or CTRL+C to cancel)   │
+│                                                         │
+╰─────────────────────────────────────────────────────────╯
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G╭─────────────────────────────────────────────────────────╮
+│                                                         │
+│ ⠸ Waiting for auth... (Press ESC or CTRL+C to cancel)   │
+│                                                         │
+╰─────────────────────────────────────────────────────────╯
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G╭─────────────────────────────────────────────────────────╮
+│                                                         │
+│ ⠼ Waiting for auth... (Press ESC or CTRL+C to cancel)   │
+│                                                         │
+╰─────────────────────────────────────────────────────────╯
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G╭─────────────────────────────────────────────────────────╮
+│                                                         │
+│ ⠴ Waiting for auth... (Press ESC or CTRL+C to cancel)   │
+│                                                         │
+╰─────────────────────────────────────────────────────────╯
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G╭─────────────────────────────────────────────────────────╮
+│                                                         │
+│ ⠦ Waiting for auth... (Press ESC or CTRL+C to cancel)   │
+│                                                         │
+╰─────────────────────────────────────────────────────────╯
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G╭─────────────────────────────────────────────────────────╮
+│                                                         │
+│ ⠧ Waiting for auth... (Press ESC or CTRL+C to cancel)   │
+│                                                         │
+╰─────────────────────────────────────────────────────────╯
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+╭─────────────────────────────────────────────────────────╮
+│ Gemini CLI update available! 0.11.3 → 0.37.0            │
+│ Installed with npm. Attempting to automatically update  │
+│ now...                                                  │
+╰─────────────────────────────────────────────────────────╯
+
+╭─────────────────────────────────────────────────────────╮
+│                                                         │
+│ ⠧ Waiting for auth... (Press ESC or CTRL+C to cancel)   │
+│                                                         │
+╰─────────────────────────────────────────────────────────╯
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+╭─────────────────────────────────────────────────────────╮
+│ Gemini CLI update available! 0.11.3 → 0.37.0            │
+│ Installed with npm. Attempting to automatically update  │
+│ now...                                                  │
+╰─────────────────────────────────────────────────────────╯
+
+╭─────────────────────────────────────────────────────────╮
+│                                                         │
+│ ⠇ Waiting for auth... (Press ESC or CTRL+C to cancel)   │
+│                                                         │
+╰─────────────────────────────────────────────────────────╯
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+╭─────────────────────────────────────────────────────────╮
+│ Gemini CLI update available! 0.11.3 → 0.37.0            │
+│ Installed with npm. Attempting to automatically update  │
+│ now...                                                  │
+╰─────────────────────────────────────────────────────────╯
+
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G✕ Automatic update failed. Please try updating manually
+
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+
+╭─────────────────────────────────────────────────────────╮
+│ > 4/0Aci98E9TBwgt1Uu3rW6Njqd15_AnERLM305_nso6MhrE8JGDOe │
+│   4OUZW36keX4PUhtj075g                                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+
+╭─────────────────────────────────────────────────────────╮
+│ > 4/0Aci98E9TBwgt1Uu3rW6Njqd15_AnERLM305_nso6MhrE8JGDOe │
+│   4OUZW36keX4PUhtj075g4/0Aci98E9TBwgt1Uu3rW6Njqd15_AnER │
+│   LM305_nso6MhrE8JGDOe4OUZW36keX4PUhtj075g              │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+  Queued (press ↑ to edit):
+    4/0Aci98E9TBwgt1Uu3rW6Njqd15_AnERLM305_nso6MhrE8JGDOe4…
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+> 4/0Aci98E9TBwgt1Uu3rW6Njqd15_AnERLM305_nso6MhrE8JGDOe4OUZW36k
+  eX4PUhtj075g4/0Aci98E9TBwgt1Uu3rW6Njqd15_AnERLM305_nso6MhrE8J
+  GDOe4OUZW36keX4PUhtj075g
+
+⠋ I'm Feeling Lucky
+(esc to cancel, 0s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠋ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 0s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠙ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 0s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠹ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 0s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠸ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 0s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠼ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 0s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠴ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 0s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠦ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 0s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠧ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 0s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠇ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 0s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠏ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 0s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠋ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 0s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠙ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 0s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠹ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 0s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠹ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 1s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠸ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 1s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠼ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 1s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠴ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 1s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠦ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 1s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠧ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 1s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠇ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 1s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠏ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 1s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠋ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 1s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠙ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 1s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠹ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 1s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠸ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 1s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠼ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 1s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠼ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 2s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠴ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 2s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠦ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 2s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠧ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 2s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠇ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 2s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠏ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 2s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠋ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 2s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠙ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 2s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠹ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 2s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠸ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 2s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠼ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 2s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠴ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 2s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠦ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 2s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠧ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 2s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠧ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 3s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠇ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 3s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠏ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 3s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠋ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 3s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠙ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 3s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠹ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 3s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠸ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 3s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠼ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 3s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠴ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 3s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠦ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 3s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠧ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 3s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠇ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 3s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠏ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 3s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠏ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 4s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠋ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 4s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠙ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 4s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠹ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 4s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠸ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 4s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠼ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 4s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠴ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 4s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠦ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 4s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠧ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 4s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠇ Customize the DNS resolution order (settings.json)...
+(esc to cancel, 4s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G⠇ Initiating the Wait
+(esc to cancel, 4s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G✦ I'm ready for your first command.
+⠇ Initiating the Wait
+(esc to cancel, 4s)
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G✦ I'm ready for your first command.
+
+
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+Press Ctrl+C again to exit.
+╭─────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                  │
+╰─────────────────────────────────────────────────────────╯
+ ~/myproject/4thitek                          no       aut
+ (codex/runtime-hardening-e2e*)               sandbox  o
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+
+
+> /quit
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│  Agent powering down. Goodbye!                                               │
+│                                                                              │
+│  Interaction Summary                                                         │
+│  Session ID:                 fcb2b615-944c-45c0-a485-9aea8261b7f0            │
+│  Tool Calls:                 0 ( ✓ 0 x 0 )                                   │
+│  Success Rate:               0.0%                                            │
+│                                                                              │
+│  Performance                                                                 │
+│  Wall Time:                  21.2s                                           │
+│  Agent Active:               4.8s                                            │
+│    » API Time:               4.8s (100.0%)                                   │
+│    » Tool Time:              0s (0.0%)                                       │
+│                                                                              │
+│                                                                              │
+│  Model Usage                  Reqs   Input Tokens  Output Tokens             │
+│  ───────────────────────────────────────────────────────────────             │
+│  gemini-2.5-flash-lite           1          3,110             88             │
+│  gemini-2.5-flash                1          7,636              9             │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+[?7h[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+
+
+> /quit
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│  Agent powering down. Goodbye!                                               │
+│                                                                              │
+│  Interaction Summary                                                         │
+│  Session ID:                 fcb2b615-944c-45c0-a485-9aea8261b7f0            │
+│  Tool Calls:                 0 ( ✓ 0 x 0 )                                   │
+│  Success Rate:               0.0%                                            │
+│                                                                              │
+│  Performance                                                                 │
+│  Wall Time:                  21.2s                                           │
+│  Agent Active:               4.8s                                            │
+│    » API Time:               4.8s (100.0%)                                   │
+│    » Tool Time:              0s (0.0%)                                       │
+│                                                                              │
+│                                                                              │
+│  Model Usage                  Reqs   Input Tokens  Output Tokens             │
+│  ───────────────────────────────────────────────────────────────             │
+│  gemini-2.5-flash-lite           1          3,110             88             │
+│  gemini-2.5-flash                1          7,636              9             │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+[?1004l[?2004l]2;
