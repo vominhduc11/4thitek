@@ -1,5 +1,3 @@
-import 'dart:ui' show lerpDouble;
-
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -419,6 +417,11 @@ class _MobileBottomNavigationBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final mediaQuery = MediaQuery.of(context);
+    final scale = mediaQuery.textScaler.scale(1);
+    final navigationTextScaler = scale.isFinite && scale > 1.1
+        ? const TextScaler.linear(1.1)
+        : mediaQuery.textScaler;
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -435,86 +438,24 @@ class _MobileBottomNavigationBar extends StatelessWidget {
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            for (var index = 0; index < tabs.length; index++)
-              _MobileBottomNavItem(
-                tab: tabs[index],
-                isSelected: index == currentIndex,
-                onTap: () => onDestinationSelected(index),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MobileBottomNavItem extends StatelessWidget {
-  const _MobileBottomNavItem({
-    required this.tab,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final _TabItem tab;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final icon = isSelected ? tab.activeIcon : tab.icon;
-
-    return Semantics(
-      button: true,
-      selected: isSelected,
-      label: tab.label,
-      child: SizedBox(
-        width: 52,
-        height: 50,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: onTap,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOutCubic,
-              padding: EdgeInsets.symmetric(
-                horizontal: isSelected ? 8 : 0,
-                vertical: 8,
-              ),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? colors.primaryContainer.withValues(alpha: 0.94)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Center(
-                child: TweenAnimationBuilder<double>(
-                  tween: Tween<double>(end: isSelected ? 1 : 0),
-                  duration: const Duration(milliseconds: 240),
-                  curve: Curves.easeOutCubic,
-                  builder: (context, value, child) {
-                    final iconSize = lerpDouble(21, 27, value)!;
-                    final iconColor = Color.lerp(
-                      colors.onSurfaceVariant,
-                      colors.onPrimaryContainer,
-                      value,
-                    )!;
-                    return Transform.translate(
-                      offset: Offset(0, -1 * value),
-                      child: Icon(icon, size: iconSize, color: iconColor),
-                    );
-                  },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: MediaQuery(
+          data: mediaQuery.copyWith(textScaler: navigationTextScaler),
+          child: NavigationBar(
+            height: 68,
+            selectedIndex: currentIndex,
+            backgroundColor: colors.surfaceContainerLow.withValues(alpha: 0.98),
+            labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+            onDestinationSelected: onDestinationSelected,
+            destinations: [
+              for (final tab in tabs)
+                NavigationDestination(
+                  icon: Icon(tab.icon),
+                  selectedIcon: Icon(tab.activeIcon),
+                  label: tab.label,
                 ),
-              ),
-            ),
+            ],
           ),
         ),
       ),

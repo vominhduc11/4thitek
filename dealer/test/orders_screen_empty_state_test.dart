@@ -29,7 +29,18 @@ void main() {
               controller: _FakeWarrantyController(),
               child: OrderScope(
                 controller: _FakeOrderController(),
-                child: const MaterialApp(home: OrdersScreen()),
+                child: MaterialApp(
+                  builder: (context, child) {
+                    final mediaQuery = MediaQuery.of(context);
+                    return MediaQuery(
+                      data: mediaQuery.copyWith(
+                        textScaler: const TextScaler.linear(1.6),
+                      ),
+                      child: child!,
+                    );
+                  },
+                  home: const OrdersScreen(),
+                ),
               ),
             ),
           ),

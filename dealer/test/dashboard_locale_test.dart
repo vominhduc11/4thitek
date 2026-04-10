@@ -49,8 +49,8 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
 
-    expect(find.text('Serial status'), findsOneWidget);
-    expect(find.text('Unavailable'), findsWidgets);
+    expect(find.text('Serial status'), findsNothing);
+    expect(find.text('Unavailable'), findsNothing);
   });
 
   testWidgets('Dashboard renders Vietnamese warranty unavailable state', (
@@ -64,10 +64,10 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
 
-    expect(find.text('Tr\u1ea1ng th\u00e1i serial'), findsOneWidget);
+    expect(find.text('Tr\u1ea1ng th\u00e1i serial'), findsNothing);
     expect(
       find.textContaining('Ch\u01b0a c\u00f3 d\u1eef li\u1ec7u'),
-      findsWidgets,
+      findsNothing,
     );
   });
 }

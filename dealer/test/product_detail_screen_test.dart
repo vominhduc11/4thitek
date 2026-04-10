@@ -24,7 +24,18 @@ void main() {
         controller: settings,
         child: CartScope(
           controller: cart,
-          child: MaterialApp(home: ProductDetailScreen(product: _product)),
+          child: MaterialApp(
+            builder: (context, child) {
+              final mediaQuery = MediaQuery.of(context);
+              return MediaQuery(
+                data: mediaQuery.copyWith(
+                  textScaler: const TextScaler.linear(1.6),
+                ),
+                child: child!,
+              );
+            },
+            home: ProductDetailScreen(product: _product),
+          ),
         ),
       ),
     );
@@ -56,7 +67,18 @@ void main() {
         controller: settings,
         child: CartScope(
           controller: cart,
-          child: MaterialApp(home: ProductDetailScreen(product: _product)),
+          child: MaterialApp(
+            builder: (context, child) {
+              final mediaQuery = MediaQuery.of(context);
+              return MediaQuery(
+                data: mediaQuery.copyWith(
+                  textScaler: const TextScaler.linear(1.6),
+                ),
+                child: child!,
+              );
+            },
+            home: ProductDetailScreen(product: _product),
+          ),
         ),
       ),
     );

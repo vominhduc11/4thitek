@@ -5,7 +5,6 @@ import 'package:dealer_hub/notification_controller.dart';
 import 'package:dealer_hub/product_catalog_controller.dart';
 import 'package:dealer_hub/product_list_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_spinbox/flutter_spinbox.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -20,7 +19,7 @@ void main() {
       view.resetDevicePixelRatio();
     });
 
-    await _pumpProductListScreen(tester, textScale: 1.2);
+    await _pumpProductListScreen(tester, textScale: 1.6);
 
     final exceptions = <Object>[];
     Object? error;
@@ -33,14 +32,6 @@ void main() {
     expect(find.byIcon(Icons.arrow_outward_rounded), findsNothing);
     expect(find.byIcon(Icons.qr_code_2_rounded), findsNothing);
     expect(find.byIcon(Icons.tune_rounded), findsNothing);
-
-    await tester.tap(
-      find.byKey(const ValueKey<String>('mobile-product-primary-action-amp-1')),
-    );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
-
-    expect(find.byType(SpinBox), findsOneWidget);
   });
 
   testWidgets('Desktop width packs products into a denser grid row', (

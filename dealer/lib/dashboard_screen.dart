@@ -404,8 +404,8 @@ class _DashboardTexts {
   String get secondaryInsightsTitle =>
       isEnglish ? 'Supporting insights' : 'Chỉ báo hỗ trợ';
   String get secondaryInsightsSubtitle => isEnglish
-      ? 'Use these panels for stock, activation, and serial-state follow-up after reviewing the primary metrics.'
-      : 'Dùng nhóm này để rà tồn kho, kích hoạt và trạng thái serial sau khi đã xem các chỉ số ưu tiên.';
+      ? 'Use these panels for stock and activation follow-up after reviewing the primary metrics.'
+      : 'Dùng nhóm này để rà tồn kho và kích hoạt sau khi đã xem các chỉ số ưu tiên.';
   String get recentOrdersTitle =>
       isEnglish ? 'Recent orders' : 'Đơn hàng gần đây';
   String get recentOrdersSubtitle => isEnglish
@@ -822,6 +822,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final activationSeries = snapshot.activationSeries;
     final warrantyActivationSeries = snapshot.warrantyActivationSeries;
     final warrantyRanges = snapshot.warrantyRanges;
+    final showWarrantyStatusCard = _shouldShowWarrantyStatusCard(
+      warrantyActivationSeries,
+    );
     final periodContextLabel = snapshot.periodContextLabel;
     final periodRevenue = snapshot.periodRevenue;
     final periodOrderCount = snapshot.periodOrderCount;
@@ -885,16 +888,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
       ),
-      FadeSlideIn(
-        delay: const Duration(milliseconds: 135),
-        child: RepaintBoundary(
-          child: _WarrantyStatusDonutCard(
-            activations: warrantyActivationSeries,
-            ranges: warrantyRanges,
-            initialRange: warrantyRanges.last,
+      if (showWarrantyStatusCard)
+        FadeSlideIn(
+          delay: const Duration(milliseconds: 135),
+          child: RepaintBoundary(
+            child: _WarrantyStatusDonutCard(
+              activations: warrantyActivationSeries,
+              ranges: warrantyRanges,
+              initialRange: warrantyRanges.last,
+            ),
           ),
         ),
-      ),
     ];
 
     final screenSize = MediaQuery.sizeOf(context);
@@ -1155,27 +1159,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: BrandAppBarTitle(texts.appBarTitle, logoSize: 30, logoGap: 4),
-        actions: [
-          const GlobalSearchIconButton(),
-          NotificationIconButton(
-            count: unreadNotificationCount,
-            onPressed: () {
-              context.pushDealerNotifications();
-            },
-          ),
-        ],
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            maxWidth: _maxDashboardContentWidth,
-          ),
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            child: KeyedSubtree(key: ValueKey(_loadState), child: content),
+    final mediaQuery = MediaQuery.of(context);
+    final textScale = mediaQuery.textScaler.scale(1);
+    final dashboardTextScaler = textScale.isFinite && textScale > 1.4
+        ? const TextScaler.linear(1.4)
+        : mediaQuery.textScaler;
+
+    return MediaQuery(
+      data: mediaQuery.copyWith(textScaler: dashboardTextScaler),
+      child: Scaffold(
+        appBar: AppBar(
+          title: BrandAppBarTitle(texts.appBarTitle, logoSize: 30, logoGap: 4),
+          actions: [
+            const GlobalSearchIconButton(),
+            NotificationIconButton(
+              count: unreadNotificationCount,
+              onPressed: () {
+                context.pushDealerNotifications();
+              },
+            ),
+          ],
+        ),
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: _maxDashboardContentWidth,
+            ),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: KeyedSubtree(key: ValueKey(_loadState), child: content),
+            ),
           ),
         ),
       ),

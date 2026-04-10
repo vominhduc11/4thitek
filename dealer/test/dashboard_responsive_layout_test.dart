@@ -35,6 +35,15 @@ void main() {
         AppSettingsScope(
           controller: settingsController,
           child: MaterialApp(
+            builder: (context, child) {
+              final mediaQuery = MediaQuery.of(context);
+              return MediaQuery(
+                data: mediaQuery.copyWith(
+                  textScaler: const TextScaler.linear(1.6),
+                ),
+                child: child!,
+              );
+            },
             home: WarrantyScope(
               controller: warrantyController,
               child: OrderScope(
@@ -66,7 +75,8 @@ void main() {
       expect(find.byType(RefreshIndicator), findsOneWidget);
       expect(
         find.byWidgetPredicate(
-          (widget) => widget is ListView && widget.scrollDirection == Axis.vertical,
+          (widget) =>
+              widget is ListView && widget.scrollDirection == Axis.vertical,
         ),
         findsOneWidget,
       );

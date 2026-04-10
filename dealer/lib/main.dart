@@ -354,11 +354,12 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
                         title: BusinessProfile.dealerAppName,
                         builder: (context, child) {
                           final mq = MediaQuery.of(context);
-                          final scale = mq.textScaler.scale(1).clamp(0.85, 1.3);
+                          final scale = mq.textScaler.scale(1);
+                          final appTextScaler = scale.isFinite && scale > 1.6
+                              ? const TextScaler.linear(1.6)
+                              : mq.textScaler;
                           return MediaQuery(
-                            data: mq.copyWith(
-                              textScaler: TextScaler.linear(scale),
-                            ),
+                            data: mq.copyWith(textScaler: appTextScaler),
                             child: child!,
                           );
                         },

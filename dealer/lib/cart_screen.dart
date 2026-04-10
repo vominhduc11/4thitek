@@ -493,133 +493,144 @@ class _CartScreenState extends State<CartScreen> {
       );
     }
 
-    return Scaffold(
-      backgroundColor: colors.surface,
-      appBar: AppBar(
-        automaticallyImplyLeading: canPop,
-        leading: canPop
-            ? BackButton(onPressed: () => navigator.maybePop())
-            : null,
-        leadingWidth: canPop ? 56 : null,
-        titleSpacing: canPop ? 0 : null,
-        toolbarHeight: 64,
-        backgroundColor: colors.surfaceContainerLow,
-        foregroundColor: colors.onSurface,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0.6,
-        shadowColor: colors.shadow.withValues(alpha: 0.14),
-        scrolledUnderElevation: 0,
-        shape: Border(
-          bottom: BorderSide(
-            color: colors.outlineVariant.withValues(alpha: 0.7),
+    final mediaQuery = MediaQuery.of(context);
+    final screenTextScale = mediaQuery.textScaler.scale(1);
+    final safeTextScaler = screenTextScale.isFinite && screenTextScale > 1.1
+        ? const TextScaler.linear(1.1)
+        : mediaQuery.textScaler;
+
+    return MediaQuery(
+      data: mediaQuery.copyWith(textScaler: safeTextScaler),
+      child: Scaffold(
+        backgroundColor: colors.surface,
+        appBar: AppBar(
+          automaticallyImplyLeading: canPop,
+          leading: canPop
+              ? BackButton(onPressed: () => navigator.maybePop())
+              : null,
+          leadingWidth: canPop ? 56 : null,
+          titleSpacing: canPop ? 0 : null,
+          toolbarHeight: 64,
+          backgroundColor: colors.surfaceContainerLow,
+          foregroundColor: colors.onSurface,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0.6,
+          shadowColor: colors.shadow.withValues(alpha: 0.14),
+          scrolledUnderElevation: 0,
+          shape: Border(
+            bottom: BorderSide(
+              color: colors.outlineVariant.withValues(alpha: 0.7),
+            ),
           ),
+          title: BrandAppBarTitle(texts.screenTitle, logoSize: 26, logoGap: 8),
+          actions: const [GlobalSearchIconButton()],
         ),
-        title: BrandAppBarTitle(texts.screenTitle, logoSize: 26, logoGap: 8),
-        actions: const [GlobalSearchIconButton()],
-      ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          Widget bodyContent;
-          if (items.isEmpty) {
-            bodyContent = FadeSlideIn(
-              child: _EmptyCart(
-                texts: texts,
-                onShop:
-                    widget.onShop ??
-                    () {
-                      Navigator.of(context).popUntil((route) => route.isFirst);
-                    },
-              ),
-            );
-          } else if (useSideSummary) {
-            bodyContent = Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(flex: 7, child: buildCartList(desktop: true)),
-                const SizedBox(width: 18),
-                SizedBox(
-                  width: isDesktopWide ? 360 : 320,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 20, 20, 24),
-                    child: SingleChildScrollView(
-                      child: FadeSlideIn(
-                        delay: const Duration(milliseconds: 80),
-                        child: buildSummaryPanel(
-                          showCheckoutAction: true,
-                          showSwipeHint: false,
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            Widget bodyContent;
+            if (items.isEmpty) {
+              bodyContent = FadeSlideIn(
+                child: _EmptyCart(
+                  texts: texts,
+                  onShop:
+                      widget.onShop ??
+                      () {
+                        Navigator.of(
+                          context,
+                        ).popUntil((route) => route.isFirst);
+                      },
+                ),
+              );
+            } else if (useSideSummary) {
+              bodyContent = Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 7, child: buildCartList(desktop: true)),
+                  const SizedBox(width: 18),
+                  SizedBox(
+                    width: isDesktopWide ? 360 : 320,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(0, 20, 20, 24),
+                      child: SingleChildScrollView(
+                        child: FadeSlideIn(
+                          delay: const Duration(milliseconds: 80),
+                          child: buildSummaryPanel(
+                            showCheckoutAction: true,
+                            showSwipeHint: false,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            );
-          } else {
-            bodyContent = Column(
+                ],
+              );
+            } else {
+              bodyContent = Column(
+                children: [
+                  Expanded(child: buildCartList(desktop: false)),
+                  SafeArea(
+                    top: false,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+                      child: FadeSlideIn(
+                        delay: const Duration(milliseconds: 60),
+                        child: _CartCheckoutBar(
+                          totalLabel: texts.totalPaymentLabel,
+                          totalValue: formatVnd(total),
+                          itemCountLabel: texts.itemCountLabel(cart.totalItems),
+                          buttonLabel: compactCheckoutButtonLabel,
+                          statusMessage: isCartSyncing
+                              ? texts.syncingBeforeCheckoutHint
+                              : hasAnyOrderableItems
+                              ? texts.readyCheckoutHint
+                              : texts.checkoutUnavailableHint,
+                          canCheckout: hasAnyOrderableItems && !isCartSyncing,
+                          isSyncing: isCartSyncing,
+                          onPressed: goCheckout,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            return Stack(
               children: [
-                Expanded(child: buildCartList(desktop: false)),
-                SafeArea(
-                  top: false,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
-                    child: FadeSlideIn(
-                      delay: const Duration(milliseconds: 60),
-                      child: _CartCheckoutBar(
-                        totalLabel: texts.totalPaymentLabel,
-                        totalValue: formatVnd(total),
-                        itemCountLabel: texts.itemCountLabel(cart.totalItems),
-                        buttonLabel: compactCheckoutButtonLabel,
-                        statusMessage: isCartSyncing
-                            ? texts.syncingBeforeCheckoutHint
-                            : hasAnyOrderableItems
-                            ? texts.readyCheckoutHint
-                            : texts.checkoutUnavailableHint,
-                        canCheckout: hasAnyOrderableItems && !isCartSyncing,
-                        isSyncing: isCartSyncing,
-                        onPressed: goCheckout,
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          colors.primaryContainer.withValues(alpha: 0.10),
+                          colors.surface,
+                          colors.surface,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: contentMaxWidth),
+                    child: SizedBox(
+                      height: constraints.maxHeight,
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 220),
+                        switchInCurve: Curves.easeOut,
+                        switchOutCurve: Curves.easeIn,
+                        child: bodyContent,
                       ),
                     ),
                   ),
                 ),
               ],
             );
-          }
-
-          return Stack(
-            children: [
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        colors.primaryContainer.withValues(alpha: 0.10),
-                        colors.surface,
-                        colors.surface,
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              Align(
-                alignment: Alignment.topCenter,
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: contentMaxWidth),
-                  child: SizedBox(
-                    height: constraints.maxHeight,
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 220),
-                      switchInCurve: Curves.easeOut,
-                      switchOutCurve: Curves.easeIn,
-                      child: bodyContent,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
+          },
+        ),
       ),
     );
   }
@@ -915,7 +926,8 @@ class _CartCheckoutBar extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final stacked = constraints.maxWidth < 380;
+        final textScale = MediaQuery.textScalerOf(context).scale(1);
+        final stacked = constraints.maxWidth < 420 || textScale > 1.15;
         final statusColor = canCheckout ? colors.primary : colors.error;
         final summaryBlock = Column(
           crossAxisAlignment: CrossAxisAlignment.start,

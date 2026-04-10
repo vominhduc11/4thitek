@@ -147,93 +147,106 @@ class _ProductListScreenState extends State<ProductListScreen> {
       floatingFilterBarReveal,
     );
 
-    return Scaffold(
-      appBar: AppBar(
-        title: BrandAppBarTitle(texts.screenTitle),
-        actions: [
-          const GlobalSearchIconButton(),
-          NotificationIconButton(
-            count: NotificationScope.of(context).unreadCount,
-            onPressed: () => context.pushDealerNotifications(),
-          ),
-          CartIconButton(
-            count: cart.totalItems,
-            onPressed: () => context.pushDealerCart(),
-          ),
-          const SizedBox(width: 6),
-        ],
-      ),
-      body: Stack(
-        children: [
-          NotificationListener<ScrollNotification>(
-            onNotification: (notification) => _handleScrollNotification(
-              notification,
-              useFloatingFilterBar: useFloatingFilterBar,
+    final mediaQuery = MediaQuery.of(context);
+    final screenTextScale = mediaQuery.textScaler.scale(1);
+    final safeTextScaler = screenTextScale.isFinite && screenTextScale > 1.4
+        ? const TextScaler.linear(1.4)
+        : mediaQuery.textScaler;
+
+    return MediaQuery(
+      data: mediaQuery.copyWith(textScaler: safeTextScaler),
+      child: Scaffold(
+        appBar: AppBar(
+          title: BrandAppBarTitle(texts.screenTitle),
+          actions: [
+            const GlobalSearchIconButton(),
+            NotificationIconButton(
+              count: NotificationScope.of(context).unreadCount,
+              onPressed: () => context.pushDealerNotifications(),
             ),
-            child: RefreshIndicator(
-              onRefresh: _refreshCatalog,
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  if (layout.isDesktop)
-                    SliverPersistentHeader(
-                      pinned: true,
-                      delegate: _PinnedHeaderDelegate(
-                        minExtent: stickyBarHeight,
-                        maxExtent: stickyBarHeight,
-                        child: _buildFilterBarSliverSurface(
-                          context,
-                          layout: layout,
-                          cart: cart,
-                          horizontalPadding: horizontalPadding,
+            CartIconButton(
+              count: cart.totalItems,
+              onPressed: () => context.pushDealerCart(),
+            ),
+            const SizedBox(width: 6),
+          ],
+        ),
+        body: Stack(
+          children: [
+            NotificationListener<ScrollNotification>(
+              onNotification: (notification) => _handleScrollNotification(
+                notification,
+                useFloatingFilterBar: useFloatingFilterBar,
+              ),
+              child: RefreshIndicator(
+                onRefresh: _refreshCatalog,
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    if (layout.isDesktop)
+                      SliverPersistentHeader(
+                        pinned: true,
+                        delegate: _PinnedHeaderDelegate(
+                          minExtent: stickyBarHeight,
+                          maxExtent: stickyBarHeight,
+                          child: _buildFilterBarSliverSurface(
+                            context,
+                            layout: layout,
+                            cart: cart,
+                            horizontalPadding: horizontalPadding,
+                          ),
+                        ),
+                      )
+                    else
+                      SliverToBoxAdapter(
+                        child: SizedBox(height: floatingSpacerHeight),
+                      ),
+                    SliverPadding(
+                      padding: EdgeInsets.fromLTRB(
+                        horizontalPadding,
+                        0,
+                        horizontalPadding,
+                        layout.resolveResultsBottomPadding(
+                          bottomSafeArea: bottomSafeArea,
                         ),
                       ),
-                    )
-                  else
-                    SliverToBoxAdapter(
-                      child: SizedBox(height: floatingSpacerHeight),
-                    ),
-                  SliverPadding(
-                    padding: EdgeInsets.fromLTRB(
-                      horizontalPadding,
-                      0,
-                      horizontalPadding,
-                      layout.resolveResultsBottomPadding(
-                        bottomSafeArea: bottomSafeArea,
+                      sliver: _buildResultsSliver(
+                        context,
+                        cart,
+                        layout: layout,
                       ),
                     ),
-                    sliver: _buildResultsSliver(context, cart, layout: layout),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-          if (useFloatingFilterBar)
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: IgnorePointer(
-                ignoring: floatingFilterBarReveal <= 0.04,
-                child: ClipRect(
-                  clipBehavior: Clip.hardEdge,
-                  child: Transform.translate(
-                    offset: Offset(
-                      0,
-                      -(stickyBarHeight + 12) *
-                          (1 - floatingFilterBarVisualProgress),
-                    ),
-                    child: _buildFilterBarSliverSurface(
-                      context,
-                      layout: layout,
-                      cart: cart,
-                      horizontalPadding: horizontalPadding,
+            if (useFloatingFilterBar)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: IgnorePointer(
+                  ignoring: floatingFilterBarReveal <= 0.04,
+                  child: ClipRect(
+                    clipBehavior: Clip.hardEdge,
+                    child: Transform.translate(
+                      offset: Offset(
+                        0,
+                        -(stickyBarHeight + 12) *
+                            (1 - floatingFilterBarVisualProgress),
+                      ),
+                      child: _buildFilterBarSliverSurface(
+                        context,
+                        layout: layout,
+                        cart: cart,
+                        horizontalPadding: horizontalPadding,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -1,4 +1,4 @@
-﻿part of 'dashboard_screen.dart';
+part of 'dashboard_screen.dart';
 
 class _DashboardSnapshot {
   const _DashboardSnapshot({
@@ -519,6 +519,12 @@ List<_WarrantyStatusStat> _buildWarrantyStatuses(List<_DailyActivation> _) {
   // The dealer app does not currently have a real backend status breakdown
   // for this dashboard card, so we intentionally do not synthesize one.
   return const <_WarrantyStatusStat>[];
+}
+
+bool _shouldShowWarrantyStatusCard(List<_DailyActivation> activations) {
+  // Keep the unfinished serial-status card off the landing screen until the
+  // backend exposes a production-ready breakdown for this metric.
+  return _buildWarrantyStatuses(activations).isNotEmpty;
 }
 
 Future<_DashboardTimeFilterSelection?> _showDashboardTimeFilterSheet({
