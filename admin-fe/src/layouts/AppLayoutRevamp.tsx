@@ -879,7 +879,7 @@ function AppLayoutRevamp() {
       className={
         mobile
           ? "brand-admin-shell flex h-full min-h-0 flex-col gap-4 border-r border-[var(--brand-border)] px-4 py-4 text-slate-100"
-          : "brand-admin-shell hidden min-h-0 flex-col gap-4 border-r border-[var(--brand-border)] px-4 py-4 text-slate-100 lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-[296px] lg:shrink-0 xl:w-[320px]"
+          : "brand-admin-shell hidden min-h-0 flex-col gap-4 border-r border-[var(--brand-border)] px-4 py-4 text-slate-100 lg:fixed lg:inset-y-0 lg:left-0 lg:z-20 lg:flex lg:h-[100dvh] lg:w-[296px] lg:overflow-hidden xl:w-[320px]"
       }
     >
       <div className="flex items-center gap-3">
@@ -1006,7 +1006,7 @@ function AppLayoutRevamp() {
       <div className="relative flex min-h-screen">
         {renderSidebar()}
 
-        <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+        <div className="flex min-h-screen min-w-0 flex-1 flex-col lg:pl-[296px] xl:pl-[320px]">
           <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--surface-tint)]/95 backdrop-blur-xl">
             <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-3 px-4 py-3 sm:px-6 lg:px-8">
               <div className="flex flex-wrap items-center justify-between gap-3">
