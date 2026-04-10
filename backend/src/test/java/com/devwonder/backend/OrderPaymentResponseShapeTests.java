@@ -227,11 +227,11 @@ class OrderPaymentResponseShapeTests {
     }
 
     @Test
-    void adminRecentPaymentsEndpointKeepsResponseShapeAndFlagsBurstActivity() throws Exception {
+    void adminRecentPaymentsEndpointKeepsResponseShapeWithoutReviewFlags() throws Exception {
         String adminToken = login("orders.shape.admin@example.com", "ChangedPass#456");
         saveBankTransferOrderWithPayment("ORD-BANK-SHAPE-1", "TX-BANK-SHAPE-1", Instant.parse("2026-03-10T01:00:00Z"));
         saveBankTransferOrderWithPayment("ORD-BANK-SHAPE-2", "TX-BANK-SHAPE-2", Instant.parse("2026-03-10T01:20:00Z"));
-        Order flaggedOrder = saveBankTransferOrderWithPayment(
+        Order recordedOrder = saveBankTransferOrderWithPayment(
                 "ORD-BANK-SHAPE-3",
                 "TX-BANK-SHAPE-3",
                 Instant.parse("2026-03-10T01:40:00Z")
@@ -245,7 +245,7 @@ class OrderPaymentResponseShapeTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.items").isArray())
                 .andExpect(jsonPath("$.data.items[0].id").isNumber())
-                .andExpect(jsonPath("$.data.items[0].orderId").value(flaggedOrder.getId()))
+                .andExpect(jsonPath("$.data.items[0].orderId").value(recordedOrder.getId()))
                 .andExpect(jsonPath("$.data.items[0].orderCode").value("ORD-BANK-SHAPE-3"))
                 .andExpect(jsonPath("$.data.items[0].dealerId").value(dealer.getId()))
                 .andExpect(jsonPath("$.data.items[0].dealerName").isString())
@@ -258,7 +258,7 @@ class OrderPaymentResponseShapeTests {
                 .andExpect(jsonPath("$.data.items[0].proofFileName").value("proof-bank-shape.png"))
                 .andExpect(jsonPath("$.data.items[0].paidAt").exists())
                 .andExpect(jsonPath("$.data.items[0].createdAt").exists())
-                .andExpect(jsonPath("$.data.items[0].reviewSuggested").value(true));
+                .andExpect(jsonPath("$.data.items[0].reviewSuggested").doesNotExist());
     }
 
     @Test

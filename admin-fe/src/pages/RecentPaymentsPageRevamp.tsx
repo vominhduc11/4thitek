@@ -6,7 +6,6 @@ import { useLanguage } from "../context/LanguageContext";
 import { useToast } from "../context/ToastContext";
 import {
   fetchAdminRecentPayments,
-  markAdminRecentPaymentReviewed,
   type BackendRecentPaymentResponse,
 } from "../lib/adminApi";
 import { formatCurrency, formatDateTime } from "../lib/formatters";
@@ -30,9 +29,9 @@ const PAGE_SIZE = 20;
 
 const copyByLanguage = {
   vi: {
-    title: "Đối soát chuyển khoản",
+    title: "Thanh toán chuyển khoản",
     description:
-      "Theo dõi giao dịch chuyển khoản gần đây, lọc theo đại lý và nhanh chóng đánh dấu các khoản đã được rà soát.",
+      "Theo dõi các khoản chuyển khoản đã được ghi nhận, lọc theo đại lý, thời gian và chứng từ.",
     dealer: "Đại lý",
     allDealers: "Tất cả đại lý",
     from: "Từ thời điểm",
@@ -50,11 +49,10 @@ const copyByLanguage = {
     loadTitle: "Không tải được dữ liệu",
     loadFallback: "Không tải được danh sách giao dịch chuyển khoản.",
     statTotal: "Tổng giao dịch",
-    statFlagged: "Cần rà soát",
     queueTitle: "Danh sách giao dịch",
-    queueHint: "Chọn một giao dịch để xem chi tiết và cập nhật trạng thái rà soát.",
+    queueHint: "Chọn một giao dịch để xem chi tiết thanh toán và thông tin liên quan.",
     detailTitle: "Chi tiết giao dịch",
-    detailHint: "Kiểm tra đơn hàng, chứng từ và đánh dấu đã xem xét nếu case đã rõ ràng.",
+    detailHint: "Kiểm tra đơn hàng, chứng từ và thời điểm ghi nhận giao dịch.",
     order: "Đơn hàng",
     amount: "Số tiền",
     channel: "Kênh",
@@ -63,21 +61,15 @@ const copyByLanguage = {
     transactionCode: "Mã giao dịch",
     paidAt: "Thanh toán lúc",
     createdAt: "Tạo lúc",
-    reviewFlag: "Cần rà soát",
     noSelection: "Chọn một giao dịch để xem chi tiết",
-    flaggedYes: "Có",
-    flaggedNo: "Không",
-    markReviewed: "Đánh dấu đã xem xét",
-    markReviewedSuccess: "Đã đánh dấu xem xét.",
-    markReviewedFailed: "Không thể đánh dấu xem xét.",
     missing: "Chưa có",
     previousLabel: "Trước",
     nextLabel: "Tiếp",
   },
   en: {
-    title: "Recent bank transfers",
+    title: "Recorded bank transfers",
     description:
-      "Track the latest transfer payments, filter by dealer, and quickly mark reviewed items once the case is clear.",
+      "Browse recorded bank-transfer payments, then filter by dealer, time window, and proof availability.",
     dealer: "Dealer",
     allDealers: "All dealers",
     from: "From",
@@ -95,11 +87,10 @@ const copyByLanguage = {
     loadTitle: "Unable to load data",
     loadFallback: "Could not load recent transfer payments.",
     statTotal: "Total payments",
-    statFlagged: "Needs review",
     queueTitle: "Payment queue",
-    queueHint: "Select a payment to inspect details and update its review state.",
+    queueHint: "Select a payment to inspect the recorded transfer details.",
     detailTitle: "Payment details",
-    detailHint: "Review the order, proof, and mark the case as reviewed once confirmed.",
+    detailHint: "Review the order, proof, and recorded timestamps for this transfer.",
     order: "Order",
     amount: "Amount",
     channel: "Channel",
@@ -108,13 +99,7 @@ const copyByLanguage = {
     transactionCode: "Transaction code",
     paidAt: "Paid at",
     createdAt: "Created at",
-    reviewFlag: "Needs review",
     noSelection: "Select a payment to view details",
-    flaggedYes: "Yes",
-    flaggedNo: "No",
-    markReviewed: "Mark reviewed",
-    markReviewedSuccess: "Marked as reviewed.",
-    markReviewedFailed: "Could not mark as reviewed.",
     missing: "Not provided",
     previousLabel: "Previous",
     nextLabel: "Next",
@@ -149,7 +134,6 @@ function RecentPaymentsPageRevamp() {
   const [maxAmount, setMaxAmount] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [reviewingId, setReviewingId] = useState<number | null>(null);
   const requestIdRef = useRef(0);
 
   const loadPage = useCallback(
@@ -214,31 +198,6 @@ function RecentPaymentsPageRevamp() {
     [items, selectedId],
   );
 
-  const flaggedCount = useMemo(
-    () => items.filter((item) => item.reviewSuggested === true).length,
-    [items],
-  );
-
-  const handleMarkReviewed = async (paymentId: number) => {
-    if (!accessToken) {
-      return;
-    }
-
-    setReviewingId(paymentId);
-    try {
-      const updated = await markAdminRecentPaymentReviewed(accessToken, paymentId);
-      setItems((previous) => previous.map((item) => (item.id === paymentId ? { ...item, ...updated } : item)));
-      notify(copy.markReviewedSuccess, { title: copy.title, variant: "success" });
-    } catch (markError) {
-      notify(markError instanceof Error ? markError.message : copy.markReviewedFailed, {
-        title: copy.title,
-        variant: "error",
-      });
-    } finally {
-      setReviewingId(null);
-    }
-  };
-
   if (isLoading && items.length === 0) {
     return (
       <PagePanel>
@@ -270,7 +229,6 @@ function RecentPaymentsPageRevamp() {
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <StatCard icon={BadgeAlert} label={copy.statTotal} value={String(totalItems)} tone="info" hint={`${items.length} / ${totalItems}`} />
-        <StatCard icon={BadgeAlert} label={copy.statFlagged} value={String(flaggedCount)} tone="warning" hint={copy.reviewFlag} />
       </div>
 
       <div className={`${softCardClass} mt-6 p-4`}>
@@ -330,7 +288,7 @@ function RecentPaymentsPageRevamp() {
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">{copy.queueTitle}</p>
                   <p className={bodyTextClass}>{copy.queueHint}</p>
                 </div>
-                <StatusBadge tone="warning">{flaggedCount} {copy.reviewFlag}</StatusBadge>
+                <StatusBadge tone="info">{totalItems}</StatusBadge>
               </div>
               <div className="mt-4 divide-y divide-[var(--border)]">
                 {items.map((item) => {
@@ -357,8 +315,8 @@ function RecentPaymentsPageRevamp() {
                         </div>
                         <div className="shrink-0 text-right">
                           <p className="text-sm font-semibold text-[var(--ink)]">{item.amount != null ? formatCurrency(Number(item.amount)) : copy.missing}</p>
-                          <StatusBadge tone={item.reviewSuggested ? "warning" : "neutral"} className="mt-2">
-                            {item.reviewSuggested ? copy.flaggedYes : copy.flaggedNo}
+                          <StatusBadge tone={item.proofFileName?.trim() ? "success" : "neutral"} className="mt-2">
+                            {item.proofFileName?.trim() ? copy.withProof : copy.withoutProof}
                           </StatusBadge>
                         </div>
                       </div>
@@ -390,8 +348,8 @@ function RecentPaymentsPageRevamp() {
                       <h2 className="mt-1 text-lg font-semibold text-[var(--ink)]">{selectedItem.dealerName ?? copy.missing}</h2>
                       <p className="mt-1 text-sm text-[var(--muted)]">{copy.detailHint}</p>
                     </div>
-                    <StatusBadge tone={selectedItem.reviewSuggested ? "warning" : "success"}>
-                      {selectedItem.reviewSuggested ? copy.reviewFlag : copy.flaggedNo}
+                    <StatusBadge tone={selectedItem.proofFileName?.trim() ? "success" : "neutral"}>
+                      {selectedItem.proofFileName?.trim() ? copy.withProof : copy.withoutProof}
                     </StatusBadge>
                   </div>
 
@@ -413,18 +371,6 @@ function RecentPaymentsPageRevamp() {
                     ))}
                   </dl>
 
-                  {selectedItem.reviewSuggested ? (
-                    <div className="mt-5 border-t border-[var(--border)] pt-5">
-                      <PrimaryButton
-                        className="w-full"
-                        disabled={reviewingId === selectedItem.id}
-                        onClick={() => void handleMarkReviewed(selectedItem.id)}
-                        type="button"
-                      >
-                        {reviewingId === selectedItem.id ? "..." : copy.markReviewed}
-                      </PrimaryButton>
-                    </div>
-                  ) : null}
                 </>
               ) : (
                 <EmptyState title={copy.noSelection} message={copy.description} />

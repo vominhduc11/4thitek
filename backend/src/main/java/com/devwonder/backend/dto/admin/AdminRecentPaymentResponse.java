@@ -19,7 +19,6 @@ public record AdminRecentPaymentResponse(
         String note,
         String proofFileName,
         Instant paidAt,
-        Instant createdAt,
-        Boolean reviewSuggested
+        Instant createdAt
 ) {
 }

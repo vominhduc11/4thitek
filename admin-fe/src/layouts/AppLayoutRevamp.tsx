@@ -139,7 +139,7 @@ const copyKeys = {
     serials: "Serial",
     notifications: "Thông báo",
     support: "Hỗ trợ",
-    recentPayments: "Đối soát chuyển khoản",
+    recentPayments: "Thanh toán chuyển khoản",
     unmatchedPayments: "Thanh toán không khớp",
     financialSettlements: "Quyết toán tài chính",
     reports: "Báo cáo",

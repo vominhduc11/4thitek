@@ -535,13 +535,6 @@ public class AdminController {
                 adminFinancialService.resolveFinancialSettlement(id, request, extractUsername(authentication))));
     }
 
-    @PatchMapping("/payments/recent/{id}/review")
-    public ResponseEntity<ApiResponse<AdminRecentPaymentResponse>> markPaymentReviewed(
-            @PathVariable("id") Long id
-    ) {
-        return ResponseEntity.ok(ApiResponse.success(adminFinancialService.markPaymentReviewed(id)));
-    }
-
     @GetMapping("/payments/recent")
     public ResponseEntity<ApiResponse<PagedResponse<AdminRecentPaymentResponse>>> recentPayments(
             @RequestParam(name = "dealerId", required = false) Long dealerId,

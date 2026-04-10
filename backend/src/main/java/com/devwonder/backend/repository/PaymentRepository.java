@@ -39,19 +39,4 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
             @Param("fromInclusive") Instant fromInclusive,
             @Param("toExclusive") Instant toExclusive
     );
-
-    @Query("""
-            select count(p)
-            from Payment p
-            join p.order o
-            join o.dealer d
-            where d.id = :dealerId
-              and coalesce(p.paidAt, p.createdAt) >= :fromInclusive
-              and coalesce(p.paidAt, p.createdAt) <= :toInclusive
-            """)
-    long countPaymentsForDealerWithinWindow(
-            @Param("dealerId") Long dealerId,
-            @Param("fromInclusive") Instant fromInclusive,
-            @Param("toInclusive") Instant toInclusive
-    );
 }

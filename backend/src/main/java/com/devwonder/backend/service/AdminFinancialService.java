@@ -270,14 +270,6 @@ public class AdminFinancialService {
                 .toList();
     }
 
-    @Transactional
-    public AdminRecentPaymentResponse markPaymentReviewed(Long paymentId) {
-        Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Payment not found: " + paymentId));
-        payment.setReviewed(true);
-        return toRecentPaymentResponse(paymentRepository.save(payment));
-    }
-
     private AdminOrderPaymentResponse toOrderPaymentResponse(Payment payment) {
         Order order = payment.getOrder();
         return new AdminOrderPaymentResponse(
@@ -315,32 +307,8 @@ public class AdminFinancialService {
                 payment.getNote(),
                 payment.getProofFileName(),
                 payment.getPaidAt(),
-                payment.getCreatedAt(),
-                isReviewSuggested(payment)
+                payment.getCreatedAt()
         );
-    }
-
-    private boolean isReviewSuggested(Payment payment) {
-        Order order = payment.getOrder();
-        Dealer dealer = order == null ? null : order.getDealer();
-        if (dealer == null || dealer.getId() == null) {
-            return false;
-        }
-        Instant eventAt = resolvePaymentInstant(payment);
-        Instant oneHourEarlier = eventAt.minusSeconds(3600);
-        long dealerPaymentsLastHour = paymentRepository.countPaymentsForDealerWithinWindow(
-                dealer.getId(),
-                oneHourEarlier,
-                eventAt
-        );
-        return dealerPaymentsLastHour >= 3;
-    }
-
-    private Instant resolvePaymentInstant(Payment payment) {
-        if (payment.getPaidAt() != null) {
-            return payment.getPaidAt();
-        }
-        return payment.getCreatedAt() != null ? payment.getCreatedAt() : Instant.now();
     }
 
     private String firstNonBlank(String... values) {

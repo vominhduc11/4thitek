@@ -57,14 +57,12 @@ public class PaymentReconciliationJob {
                 fromInclusive,
                 toExclusive
         );
-        long flaggedCount = payments.stream().filter(item -> Boolean.TRUE.equals(item.reviewSuggested())).count();
         String subject = "[4T HITEK] Daily bank transfer reconciliation report - " + windowStart.toLocalDate();
-        String body = buildBody(windowStart, windowEnd, payments, flaggedCount);
+        String body = buildBody(windowStart, windowEnd, payments);
         log.info(
-                "Payment reconciliation job sending report: recipients={}, paymentCount={}, reviewSuggestedCount={}",
+                "Payment reconciliation job sending report: recipients={}, paymentCount={}",
                 recipients.size(),
-                payments.size(),
-                flaggedCount
+                payments.size()
         );
         for (String recipient : recipients) {
             asyncMailService.sendText(recipient, subject, body);
@@ -90,8 +88,7 @@ public class PaymentReconciliationJob {
     private String buildBody(
             ZonedDateTime windowStart,
             ZonedDateTime windowEnd,
-            List<AdminRecentPaymentResponse> payments,
-            long flaggedCount
+            List<AdminRecentPaymentResponse> payments
     ) {
         StringBuilder body = new StringBuilder();
         body.append("Bank transfer payment reconciliation report").append('\n')
@@ -102,9 +99,6 @@ public class PaymentReconciliationJob {
                 .append('\n')
                 .append("Total payments: ")
                 .append(payments.size())
-                .append('\n')
-                .append("Review suggested: ")
-                .append(flaggedCount)
                 .append("\n\n");
 
         if (payments.isEmpty()) {
@@ -125,8 +119,6 @@ public class PaymentReconciliationJob {
                     .append(payment.paidAt() != null ? payment.paidAt() : payment.createdAt())
                     .append(" | Proof: ")
                     .append(payment.proofFileName() != null && !payment.proofFileName().isBlank() ? "yes" : "no")
-                    .append(" | ReviewSuggested: ")
-                    .append(Boolean.TRUE.equals(payment.reviewSuggested()) ? "yes" : "no")
                     .append('\n');
         }
         return body.toString();

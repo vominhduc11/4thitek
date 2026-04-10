@@ -555,7 +555,6 @@ export type BackendRecentPaymentResponse = {
   proofFileName?: string | null
   paidAt?: string | null
   createdAt?: string | null
-  reviewSuggested?: boolean | null
 }
 
 // Neutral fallback codes let calling layers map API failures through their own i18n.
@@ -1328,13 +1327,6 @@ export const testAdminEmailSettings = (token: string) =>
     path: '/admin/settings/test-email',
     token,
     method: 'POST',
-  })
-
-export const markAdminRecentPaymentReviewed = (token: string, paymentId: number) =>
-  authorizedJsonRequest<BackendRecentPaymentResponse>({
-    path: `/admin/payments/recent/${paymentId}/review`,
-    token,
-    method: 'PATCH',
   })
 
 export const fetchAdminAuditLogs = (
