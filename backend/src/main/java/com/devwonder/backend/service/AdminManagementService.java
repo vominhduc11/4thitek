@@ -24,6 +24,7 @@ import com.devwonder.backend.dto.dealer.DealerProductSerialResponse;
 import com.devwonder.backend.dto.dealer.UpdateDealerOrderStatusRequest;
 import com.devwonder.backend.dto.realtime.DealerOrderStatusEvent;
 import com.devwonder.backend.config.CacheNames;
+import com.devwonder.backend.config.OrderProperties;
 import com.devwonder.backend.entity.Admin;
 import com.devwonder.backend.entity.Blog;
 import com.devwonder.backend.entity.BulkDiscount;
@@ -132,6 +133,7 @@ public class AdminManagementService {
     private final DealerOrderNotificationSupport dealerOrderNotificationSupport;
     private final PasswordResetService passwordResetService;
     private final EmailVerificationService emailVerificationService;
+    private final OrderProperties orderProperties;
 
     @Transactional(readOnly = true)
     public List<AdminProductResponse> getProducts() {
@@ -198,8 +200,14 @@ public class AdminManagementService {
     public List<AdminOrderResponse> getOrders() {
         List<BulkDiscount> activeDiscountRules = activeDiscountRules();
         int vatPercent = currentVatPercent();
+        long confirmedShippingAlertHours = orderProperties.getConfirmedShippingAlertHours();
         return orderRepository.findVisibleByCreatedAtDesc(Pageable.unpaged()).stream()
-                .map(order -> AdminResponseMapper.toOrderResponse(order, activeDiscountRules, vatPercent))
+                .map(order -> AdminResponseMapper.toOrderResponse(
+                        order,
+                        activeDiscountRules,
+                        vatPercent,
+                        confirmedShippingAlertHours
+                ))
                 .toList();
     }
 
@@ -217,6 +225,7 @@ public class AdminManagementService {
     public Page<AdminOrderResponse> getOrders(Pageable pageable, OrderStatus status, String query) {
         List<BulkDiscount> activeDiscountRules = activeDiscountRules();
         int vatPercent = currentVatPercent();
+        long confirmedShippingAlertHours = orderProperties.getConfirmedShippingAlertHours();
         Pageable effectivePageable = pageable == null || pageable.isUnpaged()
                 ? PageRequest.of(0, 100)
                 : pageable;
@@ -225,7 +234,12 @@ public class AdminManagementService {
                         normalizeContainsQuery(query),
                         effectivePageable
                 )
-                .map(order -> AdminResponseMapper.toOrderResponse(order, activeDiscountRules, vatPercent));
+                .map(order -> AdminResponseMapper.toOrderResponse(
+                        order,
+                        activeDiscountRules,
+                        vatPercent,
+                        confirmedShippingAlertHours
+                ));
     }
 
     @Transactional(readOnly = true)
@@ -250,7 +264,7 @@ public class AdminManagementService {
             throw new BadRequestException("Cannot confirm an unpaid order");
         }
         order.setStatus(request.status());
-        applyCompletedAt(order, request.status(), previousStatus);
+        applyLifecycleTimestamps(order, request.status(), previousStatus);
         if (previousStatus != OrderStatus.CANCELLED && request.status() == OrderStatus.CANCELLED) {
             productSerialOrderSupport.releaseNonWarrantySerials(order);
             orderInventorySupport.restoreStock(order);
@@ -296,7 +310,12 @@ public class AdminManagementService {
         }
         adminOrderNotificationSupport.notifyStatusChange(saved, previousStatus);
         publishOrderStatusRealtime(saved, previousStatus);
-        return AdminResponseMapper.toOrderResponse(saved, activeDiscountRules, vatPercent);
+        return AdminResponseMapper.toOrderResponse(
+                saved,
+                activeDiscountRules,
+                vatPercent,
+                orderProperties.getConfirmedShippingAlertHours()
+        );
     }
 
     @Transactional
@@ -703,6 +722,8 @@ public class AdminManagementService {
                 ).stream()
                 .map(this::toDashboardTopProductStat)
                 .toList();
+        Instant shippingOverdueCutoff = Instant.now()
+                .minusSeconds(orderProperties.getConfirmedShippingAlertHours() * 3600L);
 
         return AdminDashboardSupport.buildDashboard(new AdminDashboardSupport.DashboardSnapshot(
                 Math.toIntExact(orderRepository.countVisibleOrders()),
@@ -730,6 +751,7 @@ public class AdminManagementService {
                 Math.toIntExact(unmatchedPaymentRepository.countByStatus(UnmatchedPaymentStatus.PENDING)),
                 Math.toIntExact(financialSettlementRepository.countByStatus(FinancialSettlementStatus.PENDING)),
                 Math.toIntExact(orderRepository.countByStaleReviewRequired()),
+                Math.toIntExact(orderRepository.countVisibleConfirmedOrdersOlderThan(shippingOverdueCutoff)),
                 currentVatPercent()
         ));
     }
@@ -798,9 +820,14 @@ public class AdminManagementService {
         return builder.toString();
     }
 
-    private void applyCompletedAt(Order order, OrderStatus nextStatus, OrderStatus previousStatus) {
+    private void applyLifecycleTimestamps(Order order, OrderStatus nextStatus, OrderStatus previousStatus) {
         if (order == null || nextStatus == null) {
             return;
+        }
+        if (nextStatus == OrderStatus.CONFIRMED
+                && previousStatus != OrderStatus.CONFIRMED
+                && order.getConfirmedAt() == null) {
+            order.setConfirmedAt(Instant.now());
         }
         if (nextStatus == OrderStatus.COMPLETED && previousStatus != OrderStatus.COMPLETED) {
             order.setCompletedAt(Instant.now());

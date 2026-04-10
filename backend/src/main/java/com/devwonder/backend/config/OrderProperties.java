@@ -19,6 +19,9 @@ public class OrderProperties {
     /** Hours before timeout to send dealer warning notification (default 6h). */
     private long staleWarningBeforeHours = 6;
 
+    /** Hours a CONFIRMED order may remain before it is flagged for shipping follow-up (default 48h). */
+    private long confirmedShippingAlertHours = 48;
+
     public long getIdempotencyTtlMinutes() {
         return idempotencyTtlMinutes;
     }
@@ -49,5 +52,13 @@ public class OrderProperties {
 
     public void setStaleWarningBeforeHours(long staleWarningBeforeHours) {
         this.staleWarningBeforeHours = staleWarningBeforeHours;
+    }
+
+    public long getConfirmedShippingAlertHours() {
+        return confirmedShippingAlertHours;
+    }
+
+    public void setConfirmedShippingAlertHours(long confirmedShippingAlertHours) {
+        this.confirmedShippingAlertHours = confirmedShippingAlertHours;
     }
 }

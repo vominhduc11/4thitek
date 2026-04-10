@@ -230,7 +230,16 @@ function OrderDetailPage() {
         <div className="mt-4 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-800/40 dark:bg-rose-900/20 dark:text-rose-200">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" />
           <span>
-            {t('Đơn này đã hết hạn xử lý nhưng có thanh toán ghi nhận — cần xem xét thủ công trước khi hủy.')}
+            {t('Đơn này đã hết hạn xử lý nhưng có thanh toán ghi nhận nên cần xem xét thủ công trước khi hủy.')}
+          </span>
+        </div>
+      )}
+
+      {order.shippingOverdue && (
+        <div className="mt-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800/40 dark:bg-amber-900/20 dark:text-amber-100">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          <span>
+            {t('Đơn này đã được xác nhận quá lâu nhưng chưa chuyển sang giao hàng. Cần kiểm tra fulfillment và logistics.')}
           </span>
         </div>
       )}

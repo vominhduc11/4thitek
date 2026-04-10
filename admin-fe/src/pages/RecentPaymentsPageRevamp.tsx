@@ -31,17 +31,13 @@ const copyByLanguage = {
   vi: {
     title: "Thanh toán chuyển khoản",
     description:
-      "Theo dõi các khoản chuyển khoản đã được ghi nhận, lọc theo đại lý, thời gian và chứng từ.",
+      "Theo dõi các khoản chuyển khoản đã được ghi nhận, lọc theo đại lý và thời gian.",
     dealer: "Đại lý",
     allDealers: "Tất cả đại lý",
     from: "Từ thời điểm",
     to: "Đến thời điểm",
     minAmount: "Số tiền từ",
     maxAmount: "Số tiền đến",
-    proof: "Chứng từ",
-    allProof: "Tất cả",
-    withProof: "Có chứng từ",
-    withoutProof: "Thiếu chứng từ",
     apply: "Áp dụng",
     reload: "Tải lại",
     emptyTitle: "Không có giao dịch phù hợp",
@@ -52,11 +48,10 @@ const copyByLanguage = {
     queueTitle: "Danh sách giao dịch",
     queueHint: "Chọn một giao dịch để xem chi tiết thanh toán và thông tin liên quan.",
     detailTitle: "Chi tiết giao dịch",
-    detailHint: "Kiểm tra đơn hàng, chứng từ và thời điểm ghi nhận giao dịch.",
+    detailHint: "Kiểm tra đơn hàng, mã giao dịch và thời điểm ghi nhận giao dịch.",
     order: "Đơn hàng",
     amount: "Số tiền",
     channel: "Kênh",
-    proofFile: "Chứng từ",
     note: "Ghi chú",
     transactionCode: "Mã giao dịch",
     paidAt: "Thanh toán lúc",
@@ -69,17 +64,13 @@ const copyByLanguage = {
   en: {
     title: "Recorded bank transfers",
     description:
-      "Browse recorded bank-transfer payments, then filter by dealer, time window, and proof availability.",
+      "Browse recorded bank-transfer payments, then filter by dealer and time window.",
     dealer: "Dealer",
     allDealers: "All dealers",
     from: "From",
     to: "To",
     minAmount: "Min amount",
     maxAmount: "Max amount",
-    proof: "Proof",
-    allProof: "All",
-    withProof: "With proof",
-    withoutProof: "Missing proof",
     apply: "Apply",
     reload: "Reload",
     emptyTitle: "No matching payments",
@@ -90,11 +81,10 @@ const copyByLanguage = {
     queueTitle: "Payment queue",
     queueHint: "Select a payment to inspect the recorded transfer details.",
     detailTitle: "Payment details",
-    detailHint: "Review the order, proof, and recorded timestamps for this transfer.",
+    detailHint: "Review the order, transaction code, and recorded timestamps for this transfer.",
     order: "Order",
     amount: "Amount",
     channel: "Channel",
-    proofFile: "Proof file",
     note: "Note",
     transactionCode: "Transaction code",
     paidAt: "Paid at",
@@ -127,7 +117,6 @@ function RecentPaymentsPageRevamp() {
   const [totalItems, setTotalItems] = useState(0);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [dealerId, setDealerId] = useState("ALL");
-  const [proofFilter, setProofFilter] = useState<"ALL" | "WITH_PROOF" | "WITHOUT_PROOF">("ALL");
   const [fromValue, setFromValue] = useState("");
   const [toValue, setToValue] = useState("");
   const [minAmount, setMinAmount] = useState("");
@@ -155,12 +144,6 @@ function RecentPaymentsPageRevamp() {
           to: toIsoDateTime(toValue),
           minAmount: minAmount.trim() ? Number(minAmount) : undefined,
           maxAmount: maxAmount.trim() ? Number(maxAmount) : undefined,
-          hasProof:
-            proofFilter === "WITH_PROOF"
-              ? true
-              : proofFilter === "WITHOUT_PROOF"
-                ? false
-                : undefined,
         });
 
         if (requestIdRef.current !== requestId) {
@@ -186,7 +169,7 @@ function RecentPaymentsPageRevamp() {
         }
       }
     },
-    [accessToken, copy.loadFallback, copy.title, dealerId, fromValue, maxAmount, minAmount, notify, proofFilter, toValue],
+    [accessToken, copy.loadFallback, copy.title, dealerId, fromValue, maxAmount, minAmount, notify, toValue],
   );
 
   useEffect(() => {
@@ -242,14 +225,6 @@ function RecentPaymentsPageRevamp() {
                   {dealer.name}
                 </option>
               ))}
-            </select>
-          </label>
-          <label className="space-y-1">
-            <span className="text-sm font-medium text-[var(--muted)]">{copy.proof}</span>
-            <select className={inputClass} value={proofFilter} onChange={(event) => setProofFilter(event.target.value as "ALL" | "WITH_PROOF" | "WITHOUT_PROOF")}>
-              <option value="ALL">{copy.allProof}</option>
-              <option value="WITH_PROOF">{copy.withProof}</option>
-              <option value="WITHOUT_PROOF">{copy.withoutProof}</option>
             </select>
           </label>
           <label className="space-y-1">
@@ -315,9 +290,6 @@ function RecentPaymentsPageRevamp() {
                         </div>
                         <div className="shrink-0 text-right">
                           <p className="text-sm font-semibold text-[var(--ink)]">{item.amount != null ? formatCurrency(Number(item.amount)) : copy.missing}</p>
-                          <StatusBadge tone={item.proofFileName?.trim() ? "success" : "neutral"} className="mt-2">
-                            {item.proofFileName?.trim() ? copy.withProof : copy.withoutProof}
-                          </StatusBadge>
                         </div>
                       </div>
                     </button>
@@ -348,9 +320,7 @@ function RecentPaymentsPageRevamp() {
                       <h2 className="mt-1 text-lg font-semibold text-[var(--ink)]">{selectedItem.dealerName ?? copy.missing}</h2>
                       <p className="mt-1 text-sm text-[var(--muted)]">{copy.detailHint}</p>
                     </div>
-                    <StatusBadge tone={selectedItem.proofFileName?.trim() ? "success" : "neutral"}>
-                      {selectedItem.proofFileName?.trim() ? copy.withProof : copy.withoutProof}
-                    </StatusBadge>
+                    <StatusBadge tone="info">{selectedItem.orderCode ?? copy.missing}</StatusBadge>
                   </div>
 
                   <dl className="mt-5 space-y-3 text-sm">
@@ -358,7 +328,6 @@ function RecentPaymentsPageRevamp() {
                       { label: copy.order, value: selectedItem.orderCode ?? copy.missing },
                       { label: copy.amount, value: selectedItem.amount != null ? formatCurrency(Number(selectedItem.amount)) : copy.missing },
                       { label: copy.channel, value: selectedItem.channel ?? copy.missing },
-                      { label: copy.proofFile, value: selectedItem.proofFileName?.trim() || copy.missing },
                       { label: copy.transactionCode, value: selectedItem.transactionCode?.trim() || copy.missing },
                       { label: copy.note, value: selectedItem.note?.trim() || copy.missing },
                       { label: copy.paidAt, value: selectedItem.paidAt ? formatDateTime(selectedItem.paidAt) : copy.missing },

@@ -13,7 +13,8 @@ public record AdminDashboardResponse(
         Trend trend,
         int unmatchedPendingCount,
         int settlementPendingCount,
-        int staleOrdersCount
+        int staleOrdersCount,
+        int shippingOverdueCount
 ) {
     public record Metric(
             String label,

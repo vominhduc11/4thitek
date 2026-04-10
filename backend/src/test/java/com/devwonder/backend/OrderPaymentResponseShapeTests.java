@@ -156,7 +156,7 @@ class OrderPaymentResponseShapeTests {
                 .andExpect(jsonPath("$.data[0].method").value("BANK_TRANSFER"))
                 .andExpect(jsonPath("$.data[0].status").value("PAID"))
                 .andExpect(jsonPath("$.data[0].channel").value("MANUAL_UPLOAD"))
-                .andExpect(jsonPath("$.data[0].transactionCode").value("TX-SHAPE-001"))
+                .andExpect(jsonPath("$.data[0].transactionCode").value("TX-ORD-SHAPE-001"))
                 .andExpect(jsonPath("$.data[0].note").value("Shape test payment note"))
                 .andExpect(jsonPath("$.data[0].proofFileName").value("proof-shape.png"))
                 .andExpect(jsonPath("$.data[0].paidAt").exists())
@@ -193,7 +193,29 @@ class OrderPaymentResponseShapeTests {
                 .andExpect(jsonPath("$.data[0].orderItems[0].quantity").value(1))
                 .andExpect(jsonPath("$.data[0].orderItems[0].unitPrice").isNumber())
                 .andExpect(jsonPath("$.data[0].staleReviewRequired").value(false))
+                .andExpect(jsonPath("$.data[0].shippingOverdue").value(false))
                 .andExpect(jsonPath("$.data[0].allowedTransitions").isArray());
+    }
+
+    @Test
+    void adminOrdersEndpointFlagsConfirmedOrdersThatAreOverdueToShip() throws Exception {
+        String adminToken = login("orders.shape.admin@example.com", "ChangedPass#456");
+        Order confirmedOrder = saveOrderWithStatus(
+                dealer,
+                product,
+                "ORD-SHAPE-CONFIRMED",
+                OrderStatus.CONFIRMED,
+                PaymentStatus.PAID,
+                BigDecimal.valueOf(110_000)
+        );
+        confirmedOrder.setConfirmedAt(Instant.now().minusSeconds(60L * 60 * 72));
+        orderRepository.saveAndFlush(confirmedOrder);
+
+        mockMvc.perform(get("/api/v1/admin/orders")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].orderCode").value("ORD-SHAPE-CONFIRMED"))
+                .andExpect(jsonPath("$.data[0].shippingOverdue").value(true));
     }
 
     @Test
@@ -378,6 +400,9 @@ class OrderPaymentResponseShapeTests {
         seededOrder.setReceiverPhone("0900000000");
         seededOrder.setShippingFee(0);
         seededOrder.setNote("Shape test order note");
+        if (orderStatus == OrderStatus.CONFIRMED) {
+            seededOrder.setConfirmedAt(Instant.parse("2026-03-09T05:00:00Z"));
+        }
         if (orderStatus == OrderStatus.COMPLETED) {
             seededOrder.setCompletedAt(Instant.parse("2026-03-11T05:00:00Z"));
         }
@@ -401,7 +426,7 @@ class OrderPaymentResponseShapeTests {
             payment.setMethod(PaymentMethod.BANK_TRANSFER);
             payment.setStatus(PaymentStatus.PAID);
             payment.setChannel("MANUAL_UPLOAD");
-            payment.setTransactionCode("TX-SHAPE-001");
+            payment.setTransactionCode("TX-" + orderCode);
             payment.setNote("Shape test payment note");
             payment.setProofFileName("proof-shape.png");
             payment.setPaidAt(Instant.parse("2026-03-10T00:10:00Z"));

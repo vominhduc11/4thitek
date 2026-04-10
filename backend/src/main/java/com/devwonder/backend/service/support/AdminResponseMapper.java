@@ -59,7 +59,17 @@ public final class AdminResponseMapper {
     public static AdminOrderResponse toOrderResponse(Order order, List<BulkDiscount> rules) {
         return toOrderResponse(order, rules, OrderPricingSupport.DEFAULT_VAT_PERCENT_FALLBACK);
     }
+
     public static AdminOrderResponse toOrderResponse(Order order, List<BulkDiscount> rules, int vatPercent) {
+        return toOrderResponse(order, rules, vatPercent, 48);
+    }
+
+    public static AdminOrderResponse toOrderResponse(
+            Order order,
+            List<BulkDiscount> rules,
+            int vatPercent,
+            long confirmedShippingAlertHours
+    ) {
         Dealer dealer = order.getDealer();
         List<AdminOrderItemResponse> orderItems = order.getOrderItems() == null
                 ? List.of()
@@ -85,6 +95,7 @@ public final class AdminResponseMapper {
                 order.getNote(),
                 orderItems,
                 order.getStaleReviewRequired(),
+                OrderAlertSupport.isShippingOverdue(order, confirmedShippingAlertHours),
                 resolveAllowedAdminTransitions(order)
         );
     }

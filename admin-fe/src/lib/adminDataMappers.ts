@@ -230,6 +230,7 @@ export const mapOrder = (order: BackendOrderResponse): Order => {
       unitPrice: parseFiniteNumber(item.unitPrice),
     })),
     staleReviewRequired: Boolean(order.staleReviewRequired) || false,
+    shippingOverdue: Boolean(order.shippingOverdue) || false,
     allowedTransitions: mapAllowedOrderTransitions(
       mapBackendOrderStatus(order.status),
       order.allowedTransitions,

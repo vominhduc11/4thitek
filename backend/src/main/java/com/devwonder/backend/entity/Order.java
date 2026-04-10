@@ -88,6 +88,9 @@ public class Order {
     @Column(name = "completed_at")
     private Instant completedAt;
 
+    @Column(name = "confirmed_at")
+    private Instant confirmedAt;
+
     @UpdateTimestamp
     @Column(name = "updated_at")
     private Instant updatedAt;

@@ -60,9 +60,9 @@ vi.mock("../lib/adminApi", async () => {
   };
 });
 
-const renderPage = () =>
+const renderPage = (initialEntry = "/orders") =>
   render(
-    <MemoryRouter initialEntries={["/orders"]}>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <OrdersPageRevamp />
     </MemoryRouter>,
   );
@@ -83,6 +83,7 @@ const orderPayload = {
   createdAt: "2026-04-10T00:00:00Z",
   orderItems: [],
   staleReviewRequired: false,
+  shippingOverdue: false,
   allowedTransitions: ["CONFIRMED", "CANCELLED"],
 } as const;
 
@@ -144,6 +145,19 @@ describe("OrdersPageRevamp", () => {
           status: undefined,
         },
       );
+    });
+  });
+
+  it("hydrates status filter from the URL query string", async () => {
+    renderPage("/orders?status=confirmed");
+
+    await waitFor(() => {
+      expect(fetchAdminOrdersPagedMock).toHaveBeenCalledWith("admin-token", {
+        page: 0,
+        size: 25,
+        query: undefined,
+        status: "CONFIRMED",
+      });
     });
   });
 });

@@ -32,6 +32,7 @@ export type Order = {
   createdAt: string
   orderItems: OrderItem[]
   staleReviewRequired?: boolean
+  shippingOverdue?: boolean
   allowedTransitions?: OrderStatus[]
 }
 

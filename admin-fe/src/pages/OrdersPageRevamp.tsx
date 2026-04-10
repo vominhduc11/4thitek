@@ -1,6 +1,6 @@
 ﻿import { AlertTriangle, LoaderCircle, Package, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   EmptyState,
   ErrorState,
@@ -38,6 +38,19 @@ const PAGE_SIZE = 25;
 
 const canDeleteOrder = (status: OrderStatus) => status === "cancelled";
 
+const parseStatusFilter = (value: string | null): "all" | OrderStatus => {
+  switch (value) {
+    case "pending":
+    case "confirmed":
+    case "shipping":
+    case "completed":
+    case "cancelled":
+      return value;
+    default:
+      return "all";
+  }
+};
+
 const copyByLanguage = {
   vi: {
     title: "Đơn hàng",
@@ -59,6 +72,7 @@ const copyByLanguage = {
     actions: "Thao tác",
     detail: "Xem chi tiết",
     reviewRequired: "Cần xem xét",
+    shippingOverdue: "Chậm giao",
     changeStatusTitle: "Xác nhận đổi trạng thái",
     changeStatusMessage: 'Bạn có chắc muốn chuyển đơn này sang trạng thái "{status}" không?',
     deleteTitle: "Xóa đơn hàng",
@@ -91,6 +105,7 @@ const copyByLanguage = {
     actions: "Actions",
     detail: "View details",
     reviewRequired: "Needs review",
+    shippingOverdue: "Overdue to ship",
     changeStatusTitle: "Confirm status update",
     changeStatusMessage: 'Do you want to move this order to "{status}"?',
     deleteTitle: "Delete order",
@@ -118,6 +133,7 @@ function OrdersPageRevamp() {
   ];
   const { notify } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { accessToken } = useAuth();
   const { deleteOrder, updateOrderStatus } = useAdminData();
   const { confirm, confirmDialog } = useConfirmDialog();
@@ -131,7 +147,9 @@ function OrdersPageRevamp() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | OrderStatus>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | OrderStatus>(
+    parseStatusFilter(searchParams.get("status")),
+  );
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const toolbarSearchClass = "w-full sm:max-w-sm lg:w-72 xl:w-80";
   const requestIdRef = useRef(0);
@@ -143,6 +161,11 @@ function OrdersPageRevamp() {
     }, 300);
     return () => window.clearTimeout(timer);
   }, [query]);
+
+  useEffect(() => {
+    const nextFilter = parseStatusFilter(searchParams.get("status"));
+    setStatusFilter((current) => (current === nextFilter ? current : nextFilter));
+  }, [searchParams]);
 
   const loadSummary = useCallback(async () => {
     if (!accessToken) {
@@ -352,6 +375,9 @@ function OrdersPageRevamp() {
                             {order.staleReviewRequired ? (
                               <AlertTriangle className="ml-1 inline h-3 w-3 text-rose-500" aria-label={copy.reviewRequired} />
                             ) : null}
+                            {order.shippingOverdue ? (
+                              <AlertTriangle className="ml-1 inline h-3 w-3 text-amber-500" aria-label={copy.shippingOverdue} />
+                            ) : null}
                           </p>
                           <p className={tableMetaClass}>#{order.id} · {order.dealer}</p>
                         </div>
@@ -422,6 +448,9 @@ function OrdersPageRevamp() {
                             </Link>
                             {order.staleReviewRequired ? (
                               <AlertTriangle className="h-3 w-3 shrink-0 text-rose-500" aria-label={copy.reviewRequired} />
+                            ) : null}
+                            {order.shippingOverdue ? (
+                              <AlertTriangle className="h-3 w-3 shrink-0 text-amber-500" aria-label={copy.shippingOverdue} />
                             ) : null}
                           </div>
                           <div className={tableMetaClass}>#{order.id}</div>

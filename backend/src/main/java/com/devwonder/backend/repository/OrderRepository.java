@@ -228,6 +228,15 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             """)
     long countByStaleReviewRequired();
 
+    @Query("""
+            select count(o)
+            from Order o
+            where (o.isDeleted = false or o.isDeleted is null)
+              and o.status = com.devwonder.backend.entity.enums.OrderStatus.CONFIRMED
+              and coalesce(o.confirmedAt, o.updatedAt, o.createdAt) < :cutoff
+            """)
+    long countVisibleConfirmedOrdersOlderThan(@Param("cutoff") Instant cutoff);
+
     /**
      * Finds PENDING orders belonging to SUSPENDED dealers whose suspension timestamp
      * is before the given grace period cutoff (i.e., suspended more than 24h ago).

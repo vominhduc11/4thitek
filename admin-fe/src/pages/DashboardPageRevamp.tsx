@@ -70,6 +70,8 @@ const copyKeys = {
   settlementPendingHint: "mục chờ xử lý",
   staleOrders: "Đơn hàng cần xem xét",
   staleOrdersHint: "đơn có thanh toán không xác nhận được",
+  shippingOverdue: "Đơn xác nhận chậm giao",
+  shippingOverdueHint: "đơn CONFIRMED cần đẩy sang shipping",
 } as const;
 
 const getThemeTokens = () => {
@@ -555,6 +557,31 @@ function DashboardPageRevamp() {
                     </div>
                     <StatusBadge tone="danger">
                       {String(dashboard.staleOrdersCount)}
+                    </StatusBadge>
+                  </div>
+                </div>
+              </Link>
+            )}
+            {(dashboard.shippingOverdueCount ?? 0) > 0 && (
+              <Link
+                to="/orders?status=confirmed"
+                className="block rounded-2xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              >
+                <div className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 shrink-0 text-amber-700" />
+                      <div>
+                        <p className="text-sm font-semibold text-amber-900">
+                          {copy.shippingOverdue}
+                        </p>
+                        <p className="text-xs text-amber-800">
+                          {dashboard.shippingOverdueCount} {copy.shippingOverdueHint}
+                        </p>
+                      </div>
+                    </div>
+                    <StatusBadge tone="warning">
+                      {String(dashboard.shippingOverdueCount)}
                     </StatusBadge>
                   </div>
                 </div>

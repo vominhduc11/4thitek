@@ -116,6 +116,7 @@ public final class AdminDashboardSupport {
                 0,
                 0,
                 0,
+                0,
                 vatPercent
         ));
     }
@@ -185,7 +186,8 @@ public final class AdminDashboardSupport {
                 buildTrend(revenueOrders, activeRules, effectiveVatPercent),
                 safeSnapshot.unmatchedPendingCount(),
                 safeSnapshot.settlementPendingCount(),
-                safeSnapshot.staleOrdersCount()
+                safeSnapshot.staleOrdersCount(),
+                safeSnapshot.shippingOverdueCount()
         );
     }
 
@@ -414,6 +416,7 @@ public final class AdminDashboardSupport {
             int unmatchedPendingCount,
             int settlementPendingCount,
             int staleOrdersCount,
+            int shippingOverdueCount,
             int vatPercent
     ) {
         public static DashboardSnapshot empty() {
@@ -440,6 +443,7 @@ public final class AdminDashboardSupport {
                     List.of(),
                     List.of(),
                     List.of(),
+                    0,
                     0,
                     0,
                     0,

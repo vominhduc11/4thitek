@@ -142,6 +142,7 @@ export type BackendOrderResponse = {
   updatedAt?: string | null
   orderItems?: BackendOrderItemResponse[] | null
   staleReviewRequired?: boolean | null
+  shippingOverdue?: boolean | null
   allowedTransitions?: BackendOrderStatus[] | null
 }
 
@@ -295,6 +296,7 @@ export type BackendDashboardResponse = {
   unmatchedPendingCount?: number
   settlementPendingCount?: number
   staleOrdersCount?: number
+  shippingOverdueCount?: number
 }
 
 export type BackendSupportTicketResponse = {

@@ -25,6 +25,7 @@ public record AdminOrderResponse(
         String note,
         List<AdminOrderItemResponse> orderItems,
         Boolean staleReviewRequired,
+        Boolean shippingOverdue,
         List<OrderStatus> allowedTransitions
 ) {
 }
