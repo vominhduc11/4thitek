@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -592,6 +594,13 @@ class OrderDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return _OrderDetailRefreshBoundary(
+      orderId: orderId,
+      child: Builder(builder: _buildScreen),
+    );
+  }
+
+  Widget _buildScreen(BuildContext context) {
     final texts = _orderDetailTexts(context);
     final colors = Theme.of(context).colorScheme;
     final order = OrderScope.of(context).findById(orderId);
@@ -962,6 +971,49 @@ class OrderDetailScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+class _OrderDetailRefreshBoundary extends StatefulWidget {
+  const _OrderDetailRefreshBoundary({
+    required this.orderId,
+    required this.child,
+  });
+
+  final String orderId;
+  final Widget child;
+
+  @override
+  State<_OrderDetailRefreshBoundary> createState() =>
+      _OrderDetailRefreshBoundaryState();
+}
+
+class _OrderDetailRefreshBoundaryState
+    extends State<_OrderDetailRefreshBoundary> {
+  @override
+  void initState() {
+    super.initState();
+    _scheduleRefresh();
+  }
+
+  @override
+  void didUpdateWidget(covariant _OrderDetailRefreshBoundary oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.orderId != widget.orderId) {
+      _scheduleRefresh();
+    }
+  }
+
+  void _scheduleRefresh() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      unawaited(OrderScope.of(context).refreshSingleOrder(widget.orderId));
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class _OrderDetailTexts {

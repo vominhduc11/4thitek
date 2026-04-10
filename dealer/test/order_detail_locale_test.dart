@@ -58,6 +58,20 @@ void main() {
     expect(find.text('Confirm received'), findsNothing);
     expect(find.text('Confirm delivery received'), findsNothing);
   });
+
+  testWidgets('Order detail refreshes the current order on first open', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final controller = _FakeOrderController(actionMessage: null);
+
+    await tester.pumpWidget(
+      await _buildApp(const Locale('en'), orderController: controller),
+    );
+    await tester.pump();
+
+    expect(controller.refreshedOrderIds, <String>['DH-001']);
+  });
 }
 
 const Product _sampleProduct = Product(
@@ -99,6 +113,13 @@ Future<Widget> _buildApp(
         useMaterial3: true,
         splashFactory: NoSplash.splashFactory,
       ),
+      builder: (context, child) {
+        final mediaQuery = MediaQuery.of(context);
+        return MediaQuery(
+          data: mediaQuery.copyWith(disableAnimations: true),
+          child: child!,
+        );
+      },
       home: CartScope(
         controller: _FakeCartController(),
         child: OrderScope(
@@ -118,6 +139,7 @@ class _FakeOrderController extends OrderController {
 
   final String? actionMessage;
   final Order order;
+  final List<String> refreshedOrderIds = <String>[];
 
   @override
   String? get lastActionMessage => actionMessage;
@@ -125,6 +147,11 @@ class _FakeOrderController extends OrderController {
   @override
   Order? findById(String id) {
     return id == order.id ? order : null;
+  }
+
+  @override
+  Future<void> refreshSingleOrder(String orderId) async {
+    refreshedOrderIds.add(orderId);
   }
 
   @override

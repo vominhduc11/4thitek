@@ -241,10 +241,16 @@ class OrderController extends ChangeNotifier {
   }
 
   Future<void> refreshSingleOrder(String orderId) async {
-    final remoteOrderId = _remoteOrderIds[orderId];
+    var remoteOrderId = _remoteOrderIds[orderId];
     if (remoteOrderId == null) {
-      await refresh();
-      return;
+      final loadedRemote = await _loadRemoteOrdersAndPayments();
+      if (!loadedRemote) {
+        return;
+      }
+      remoteOrderId = _remoteOrderIds[orderId];
+      if (remoteOrderId == null) {
+        return;
+      }
     }
     try {
       await _reloadRemoteOrder(remoteOrderId);
@@ -621,12 +627,8 @@ class OrderController extends ChangeNotifier {
         remoteOrders.add(_mapRemoteOrder(entry));
       }
 
-      final paymentsByOrder = await Future.wait(
-        _remoteOrderIds.values.map(_fetchRemotePaymentsForOrder),
-      );
-
       _replaceOrders(remoteOrders);
-      _replacePaymentHistory(paymentsByOrder.expand((items) => items));
+      _prunePaymentHistoryToKnownOrders();
       _lastRemoteSyncAt = DateTime.now();
       notifyListeners();
       return true;
@@ -727,7 +729,7 @@ class OrderController extends ChangeNotifier {
     _replaceOrder(_mapRemoteOrder(data));
   }
 
-  Future<List<OrderPaymentRecord>> _fetchRemotePaymentsForOrder(
+  Future<List<OrderPaymentRecord>?> _fetchRemotePaymentsForOrder(
     int remoteOrderId,
   ) async {
     try {
@@ -737,29 +739,34 @@ class OrderController extends ChangeNotifier {
       );
       final payload = _decodeBody(response.body);
       if (response.statusCode >= 400) {
-        return const <OrderPaymentRecord>[];
+        return null;
       }
       final data = payload['data'];
       if (data is! List) {
-        return const <OrderPaymentRecord>[];
+        return null;
       }
       return data
           .whereType<Map<String, dynamic>>()
           .map(_mapRemotePayment)
           .toList(growable: false);
     } catch (_) {
-      return const <OrderPaymentRecord>[];
+      return null;
     }
   }
 
-  Future<void> _reloadRemotePaymentsForOrder(int remoteOrderId) async {
+  Future<bool> _reloadRemotePaymentsForOrder(int remoteOrderId) async {
     final orderCode = _remoteOrderCodes[remoteOrderId];
     if (orderCode == null) {
-      return;
+      return false;
+    }
+    final payments = await _fetchRemotePaymentsForOrder(remoteOrderId);
+    if (payments == null) {
+      return false;
     }
     _paymentHistory.removeWhere((payment) => payment.orderId == orderCode);
-    _paymentHistory.addAll(await _fetchRemotePaymentsForOrder(remoteOrderId));
+    _paymentHistory.addAll(payments);
     _markPaymentsDirty();
+    return true;
   }
 
   void _replaceOrder(Order nextOrder) {
@@ -1047,6 +1054,14 @@ class OrderController extends ChangeNotifier {
     _paymentHistory
       ..clear()
       ..addAll(payments);
+    _markPaymentsDirty();
+  }
+
+  void _prunePaymentHistoryToKnownOrders() {
+    final knownOrderIds = _remoteOrderIds.keys.toSet();
+    _paymentHistory.removeWhere(
+      (payment) => !knownOrderIds.contains(payment.orderId),
+    );
     _markPaymentsDirty();
   }
 
