@@ -21,6 +21,7 @@ import { useToast } from '../context/ToastContext'
 import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import type { Product } from '../types/product'
 import { resolveBackendAssetUrl } from '../lib/backendApi'
+import { formatDateOnly } from '../lib/formatters'
 import { deleteStoredFileReference, storeFileReference } from '../lib/upload'
 
 const getImageUrl = (image: string) => {
@@ -100,14 +101,10 @@ const buildDraft = (product: Product): ProductDraft => ({
 })
 
 const formatDisplayDate = (value?: string) => {
-  const date = value ? new Date(value) : new Date()
+  const normalizedValue = value ? new Date(value) : new Date()
   const fallback = new Date()
-  return (Number.isNaN(date.getTime()) ? fallback : date).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    timeZone: 'Asia/Ho_Chi_Minh',
-  })
+  const safeDate = Number.isNaN(normalizedValue.getTime()) ? fallback : normalizedValue
+  return formatDateOnly(safeDate.toISOString())
 }
 
 const currencyFormatter = new Intl.NumberFormat('vi-VN', {
@@ -216,6 +213,7 @@ function ProductDetailPage() {
     deleteProduct,
   } = useProducts()
   const product = products.find((item) => item.sku === sku)
+  const toastTitle = t('Sản phẩm')
   const [isEditing, setIsEditing] = useState(false)
   const [draft, setDraft] = useState<ProductDraft | null>(
     product ? buildDraft(product) : null,
@@ -303,7 +301,7 @@ function ProductDetailPage() {
 
     if (failedUrls.length > 0) {
       currentNotify(translate('Không thể dọn một số ảnh tạm trên máy chủ. Vui lòng thử lại.'), {
-        title: 'Products',
+        title: translate('Sản phẩm'),
         variant: 'error',
       })
     }
@@ -410,7 +408,7 @@ function ProductDetailPage() {
             currentNotify(
               translate('Không thể dọn một số ảnh tạm trên máy chủ. Vui lòng thử lại.'),
               {
-                title: 'Products',
+                title: translate('Sản phẩm'),
                 variant: 'error',
               },
             )
@@ -495,7 +493,7 @@ function ProductDetailPage() {
 
     if (Object.keys(draftErrors).length > 0) {
       notify(t('Vui lòng kiểm tra lại các trường bắt buộc'), {
-        title: 'Products',
+        title: toastTitle,
         variant: 'error',
       })
       return
@@ -578,7 +576,7 @@ function ProductDetailPage() {
       setIsEditing(false)
     } catch (error) {
       notify(error instanceof Error ? error.message : t('Không thể lưu sản phẩm'), {
-        title: 'Products',
+        title: toastTitle,
         variant: 'error',
       })
     }
@@ -600,7 +598,7 @@ function ProductDetailPage() {
         navigate('/products')
       } catch (error) {
         notify(error instanceof Error ? error.message : t('Không thể xóa sản phẩm'), {
-          title: 'Products',
+          title: toastTitle,
           variant: 'error',
         })
       }
@@ -614,7 +612,7 @@ function ProductDetailPage() {
         setActionMessage(t('Đã khôi phục sản phẩm về bản nháp.'))
       } catch (error) {
         notify(error instanceof Error ? error.message : t('Không thể khôi phục sản phẩm'), {
-          title: 'Products',
+          title: toastTitle,
           variant: 'error',
         })
       }
@@ -636,7 +634,7 @@ function ProductDetailPage() {
       setActionMessage('')
     } catch (error) {
       notify(error instanceof Error ? error.message : t('Không thể ẩn sản phẩm'), {
-        title: 'Products',
+        title: toastTitle,
         variant: 'error',
       })
     }
@@ -843,8 +841,8 @@ function ProductDetailPage() {
   const handleMainImageFile = async (file: File | null) => {
     if (!file) return
     if (file.size > MAX_IMAGE_BYTES) {
-      notify(t('Anh toi da 10MB'), {
-        title: 'Products',
+      notify(t('Ảnh tối đa 10MB'), {
+        title: toastTitle,
         variant: 'error',
       })
       return
@@ -857,7 +855,7 @@ function ProductDetailPage() {
     } catch {
       setMainImagePreviewUrl('')
       notify(t('Không thể tải ảnh sản phẩm'), {
-        title: 'Products',
+        title: toastTitle,
         variant: 'error',
       })
     }
@@ -1019,7 +1017,7 @@ function ProductDetailPage() {
                   } catch (error) {
                     notify(
                       error instanceof Error ? error.message : t('Không thể cập nhật'),
-                      { title: 'Products', variant: 'error' },
+                      { title: toastTitle, variant: 'error' },
                     )
                   }
                 }}
@@ -1043,11 +1041,11 @@ function ProductDetailPage() {
                   } catch (error) {
                     notify(
                       error instanceof Error ? error.message : t('Không thể cập nhật'),
-                      { title: 'Products', variant: 'error' },
+                      { title: toastTitle, variant: 'error' },
                     )
                   }
                 }}
-                title={`${product.showOnHomepage ? t('Bỏ khỏi mới ra mắt') : t('Đánh dấu mới ra mắt')} — ${t('Cập nhật ngay không cần lưu')}`}
+                title={`${product.showOnHomepage ? t('Bỏ khỏi trang chủ') : t('Hiển thị ở trang chủ')} — ${t('Cập nhật ngay không cần lưu')}`}
                 className={
                   'inline-flex items-center gap-1 rounded-full px-3 py-1 font-semibold transition ' +
                   (product.showOnHomepage
@@ -1056,7 +1054,7 @@ function ProductDetailPage() {
                 }
               >
                 <CheckCircle className="h-3.5 w-3.5" />
-                {t('Mới ra mắt')}
+                {t('Trang chủ')}
               </button>
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-2.5 text-xs text-slate-500">
@@ -1127,7 +1125,7 @@ function ProductDetailPage() {
                         ? error.message
                         : t('Không thể cập nhật trạng thái xuất bản'),
                       {
-                        title: 'Products',
+                        title: toastTitle,
                         variant: 'error',
                       },
                     )

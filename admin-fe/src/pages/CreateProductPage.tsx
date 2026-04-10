@@ -416,7 +416,7 @@ function CreateProductPage() {
         notify(
           t("Không thể dọn một số ảnh tạm trên máy chủ. Vui lòng thử lại."),
           {
-            title: "Products",
+            title: t("Sản phẩm"),
             variant: "error",
           },
         );
@@ -1233,8 +1233,8 @@ function CreateProductPage() {
 
           <div className={sectionCardClass}>
             <PageHeader
-              title={t("Táº¡o sáº£n pháº©m")}
-              subtitle={t("Thiáº¿t láº­p thĂ´ng tin cÆ¡ báº£n, mĂ´ táº£, thĂ´ng sá»‘ vĂ  video trÆ°á»›c khi xuáº¥t báº£n sáº£n pháº©m má»›i.")}
+              title={t("Tạo sản phẩm")}
+              subtitle={t("Thiết lập thông tin cơ bản, mô tả, thông số và video trước khi xuất bản sản phẩm mới.")}
               actions={
                 <GhostButton
                   disabled={isFormLocked}
@@ -1242,35 +1242,35 @@ function CreateProductPage() {
                   onClick={() => void requestNavigateAway()}
                   type="button"
                 >
-                  {t("Vá» sáº£n pháº©m")}
+                  {t("Về sản phẩm")}
                 </GhostButton>
               }
             />
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
-                  {t("Tab hiá»‡n táº¡i")}
+                  {t("Tab hiện tại")}
                 </p>
                 <p className="mt-1 text-sm font-semibold text-[var(--ink)]">
-                  {t(productTabs.find((tab) => tab.id === activeTab)?.label ?? "ThĂ´ng tin")}
+                  {t(productTabs.find((tab) => tab.id === activeTab)?.label ?? "Thông tin")}
                 </p>
               </div>
               <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
-                  {t("Tráº¡ng thĂ¡i biá»ƒu máº«u")}
+                  {t("Trạng thái biểu mẫu")}
                 </p>
                 <div className="mt-1">
                   <StatusBadge tone={isCreateFormDirty ? "warning" : "neutral"}>
-                    {isCreateFormDirty ? t("ChÆ°a lÆ°u") : t("ÄĂ£ sáºµn sĂ ng")}
+                    {isCreateFormDirty ? t("Chưa lưu") : t("Đã sẵn sàng")}
                   </StatusBadge>
                 </div>
               </div>
               <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
-                  {t("Táº£i tĂ i nguyĂªn")}
+                  {t("Tải tài nguyên")}
                 </p>
                 <p className="mt-1 text-sm font-semibold text-[var(--ink)]">
-                  {isUploading ? t("Äang táº£i {count} tá»‡p", { count: uploadingCount }) : t("KhĂ´ng cĂ³ tá»‡p Ä‘ang táº£i")}
+                  {isUploading ? t("Đang tải {count} tệp", { count: uploadingCount }) : t("Không có tệp đang tải")}
                 </p>
               </div>
             </div>
@@ -1593,7 +1593,7 @@ function CreateProductPage() {
                           })
                         }
                       />
-                      {t("Mới ra mắt")}
+                      {t("Hiển thị ở trang chủ")}
                     </label>
                   </div>
                 </div>
@@ -2702,7 +2702,7 @@ function CreateProductPage() {
           {/* Actions */}
           <div className="sticky bottom-3 z-10 mt-6 flex flex-col gap-3 rounded-[22px] border border-[var(--brand-border)] bg-[var(--surface)]/95 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.12)] backdrop-blur sm:bottom-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-[var(--muted)]">
-              {t("Kiá»ƒm tra tab hiá»‡n táº¡i vĂ  cĂ¡c trÆ°á»ng báº¯t buá»™c trÆ°á»›c khi táº¡o sáº£n pháº©m má»›i.")}
+              {t("Kiểm tra tab hiện tại và các trường bắt buộc trước khi tạo sản phẩm mới.")}
             </p>
             <button
               type="button"
