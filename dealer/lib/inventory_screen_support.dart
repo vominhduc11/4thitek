@@ -82,87 +82,6 @@ class InventoryProductItem {
   }
 }
 
-List<InventoryProductItem> _buildInventoryItems({
-  required OrderController orderController,
-  required WarrantyController warrantyController,
-}) {
-  final productMap = <String, Product>{};
-  for (final order in orderController.orders) {
-    for (final item in order.items) {
-      productMap[item.product.id] = item.product;
-    }
-  }
-
-  final map = <String, _InventoryAccumulator>{};
-  for (final record in warrantyController.importedSerials) {
-    final product =
-        productMap[record.productId] ??
-        Product(
-          id: record.productId,
-          name: record.productName,
-          sku: record.productSku,
-          shortDescription: '',
-          price: 0,
-          stock: 0,
-          warrantyMonths: 0,
-        );
-
-    final current =
-        map[record.productId] ??
-        _InventoryAccumulator(
-          product: product,
-          importedQuantity: 0,
-          latestImportedAt: record.importedAt,
-          orderIds: <String>{},
-          serials: <String>{},
-        );
-
-    if (record.importedAt.isAfter(current.latestImportedAt)) {
-      current.latestImportedAt = record.importedAt;
-    }
-    current.orderIds.add(record.orderId);
-
-    final normalized = warrantyController.normalizeSerial(record.serial);
-    final isNewSerial = current.serials.add(normalized);
-    if (!isNewSerial) {
-      map[record.productId] = current;
-      continue;
-    }
-
-    current.importedQuantity += 1;
-    switch (record.status) {
-      case ImportedSerialStatus.available:
-      case ImportedSerialStatus.assigned:
-        current.readyQuantity += 1;
-      case ImportedSerialStatus.warranty:
-        current.warrantyQuantity += 1;
-      case ImportedSerialStatus.reserved:
-      case ImportedSerialStatus.defective:
-      case ImportedSerialStatus.returned:
-      case ImportedSerialStatus.inspecting:
-      case ImportedSerialStatus.scrapped:
-      case ImportedSerialStatus.unknown:
-        current.issueQuantity += 1;
-    }
-    map[record.productId] = current;
-  }
-
-  return map.values
-      .map(
-        (entry) => InventoryProductItem(
-          product: entry.product,
-          importedQuantity: entry.importedQuantity,
-          readyQuantity: entry.readyQuantity,
-          warrantyQuantity: entry.warrantyQuantity,
-          issueQuantity: entry.issueQuantity,
-          latestImportedAt: entry.latestImportedAt,
-          orderIds: entry.orderIds,
-          serialSearchIndex: entry.serials.join(' '),
-        ),
-      )
-      .toList(growable: false);
-}
-
 List<InventoryProductItem> _filterAndSortItems({
   required List<InventoryProductItem> items,
   required String query,
@@ -227,23 +146,4 @@ InventorySummary _buildSummary(List<InventoryProductItem> items) {
     totalQuantity: totalQuantity,
     lowStockProducts: lowStockProducts,
   );
-}
-
-class _InventoryAccumulator {
-  _InventoryAccumulator({
-    required this.product,
-    required this.importedQuantity,
-    required this.latestImportedAt,
-    required this.orderIds,
-    required this.serials,
-  });
-
-  final Product product;
-  int importedQuantity;
-  DateTime latestImportedAt;
-  final Set<String> orderIds;
-  final Set<String> serials;
-  int readyQuantity = 0;
-  int warrantyQuantity = 0;
-  int issueQuantity = 0;
 }

@@ -9,7 +9,6 @@ import 'global_search.dart';
 import 'inventory_product_detail_screen.dart';
 import 'inventory_service.dart';
 import 'models.dart';
-import 'order_controller.dart';
 import 'serial_scan_screen.dart';
 import 'utils.dart';
 import 'warranty_export_screen.dart';
@@ -54,11 +53,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
   final ScrollController _scrollController = ScrollController();
   Timer? _searchDebounce;
   late final InventoryService _inventoryService;
-  OrderController? _observedOrderController;
-  WarrantyController? _observedWarrantyController;
   List<InventoryProductItem> _cachedInventoryItems =
       const <InventoryProductItem>[];
-  bool _inventoryCacheDirty = true;
   InventoryLoadState _loadState = InventoryLoadState.loading;
   bool _hasScheduledInitialReload = false;
   String? _syncWarningMessage;
@@ -79,22 +75,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final nextOrderController = OrderScope.of(context);
-    if (!identical(_observedOrderController, nextOrderController)) {
-      _observedOrderController?.removeListener(_markInventoryCacheDirty);
-      _observedOrderController = nextOrderController;
-      _observedOrderController?.addListener(_markInventoryCacheDirty);
-      _inventoryCacheDirty = true;
-    }
-
-    final nextWarrantyController = WarrantyScope.of(context);
-    if (!identical(_observedWarrantyController, nextWarrantyController)) {
-      _observedWarrantyController?.removeListener(_markInventoryCacheDirty);
-      _observedWarrantyController = nextWarrantyController;
-      _observedWarrantyController?.addListener(_markInventoryCacheDirty);
-      _inventoryCacheDirty = true;
-    }
-
     if (!_hasScheduledInitialReload) {
       _hasScheduledInitialReload = true;
       unawaited(_reload());
@@ -104,19 +84,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
   @override
   void dispose() {
     _searchDebounce?.cancel();
-    _observedOrderController?.removeListener(_markInventoryCacheDirty);
-    _observedWarrantyController?.removeListener(_markInventoryCacheDirty);
     _inventoryService.close();
     _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
-  }
-
-  void _markInventoryCacheDirty() {
-    if (!mounted) return;
-    setState(() {
-      _inventoryCacheDirty = true;
-    });
   }
 
   Future<void> _reload() async {
@@ -138,71 +109,30 @@ class _InventoryScreenState extends State<InventoryScreen> {
           .map(_mapRemoteInventoryItem)
           .toList(growable: false);
       setState(() {
-        _inventoryCacheDirty = false;
         _syncWarningMessage = null;
         _loadErrorMessage = null;
         _loadState = InventoryLoadState.ready;
       });
       return;
     } on InventoryException catch (error) {
-      _syncWarningMessage = resolveInventoryServiceMessage(
+      final warningMessage = resolveInventoryServiceMessage(
         error.message,
         isEnglish: texts.isEnglish,
       );
-    }
-
-    final orderController = OrderScope.of(context);
-    final warrantyController = WarrantyScope.of(context);
-    await Future.wait<void>([
-      orderController.refresh(),
-      warrantyController.load(forceRefresh: true),
-    ]);
-    if (!mounted) {
+      setState(() {
+        _syncWarningMessage = warningMessage;
+        _loadErrorMessage = warningMessage;
+        _loadState = InventoryLoadState.error;
+      });
+      return;
+    } catch (_) {
+      setState(() {
+        _syncWarningMessage = null;
+        _loadErrorMessage = texts.loadInventoryErrorMessage;
+        _loadState = InventoryLoadState.error;
+      });
       return;
     }
-
-    final warnings = <String>{};
-    if (_syncWarningMessage != null) {
-      warnings.add(_syncWarningMessage!);
-    }
-    if (orderController.lastActionMessage != null) {
-      warnings.add(
-        orderControllerErrorMessage(
-          orderController.lastActionMessage,
-          isEnglish: texts.isEnglish,
-        ),
-      );
-    }
-    if (warrantyController.lastSyncMessage != null) {
-      warnings.add(
-        warrantySyncErrorMessage(
-          warrantyController.lastSyncMessage,
-          isEnglish: texts.isEnglish,
-        ),
-      );
-    }
-    final warningMessage = warnings.isEmpty ? null : warnings.join('\n');
-
-    _inventoryCacheDirty = true;
-    final nextInventoryItems = _buildInventoryItems(
-      orderController: orderController,
-      warrantyController: warrantyController,
-    );
-    final hasFreshData =
-        orderController.lastActionMessage == null &&
-        warrantyController.lastSyncMessage == null;
-    final shouldShowError = nextInventoryItems.isEmpty && !hasFreshData;
-
-    setState(() {
-      _inventoryCacheDirty = true;
-      _syncWarningMessage = warningMessage;
-      _loadErrorMessage = shouldShowError
-          ? (warningMessage ?? texts.loadInventoryErrorMessage)
-          : null;
-      _loadState = shouldShowError
-          ? InventoryLoadState.error
-          : InventoryLoadState.ready;
-    });
   }
 
   void _jumpToTop() {
@@ -272,34 +202,13 @@ class _InventoryScreenState extends State<InventoryScreen> {
     _applySearchQuery('');
   }
 
-  List<InventoryProductItem> _resolveInventoryItems({
-    required OrderController orderController,
-    required WarrantyController warrantyController,
-  }) {
-    if (!_inventoryCacheDirty &&
-        identical(orderController, _observedOrderController) &&
-        identical(warrantyController, _observedWarrantyController)) {
-      return _cachedInventoryItems;
-    }
-    _cachedInventoryItems = _buildInventoryItems(
-      orderController: orderController,
-      warrantyController: warrantyController,
-    );
-    _inventoryCacheDirty = false;
-    return _cachedInventoryItems;
-  }
-
   @override
   Widget build(BuildContext context) {
     final texts = _inventoryTexts(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final orderController = OrderScope.of(context);
     final warrantyController = WarrantyScope.of(context);
-    final inventoryItems = _resolveInventoryItems(
-      orderController: orderController,
-      warrantyController: warrantyController,
-    );
+    final inventoryItems = _cachedInventoryItems;
 
     final filteredItems = _filterAndSortItems(
       items: inventoryItems,

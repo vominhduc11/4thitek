@@ -23,6 +23,7 @@ void main() {
       tester,
       orderController: _FakeOrderController(const <Order>[]),
       warrantyController: _FakeWarrantyController(),
+      inventoryService: _FakeInventoryService.empty(),
     );
 
     await tester.tap(
@@ -44,8 +45,10 @@ void main() {
       tester,
       orderController: _FakeOrderController(_buildOrders(products)),
       warrantyController: _FakeWarrantyController(
-        importedSerials: _buildImportedSerials(products),
         lastRemoteSyncAt: DateTime(2026, 4, 5, 9, 30),
+      ),
+      inventoryService: _FakeInventoryService(
+        items: _buildSummaryRecords(products),
       ),
     );
 
@@ -81,8 +84,10 @@ void main() {
       tester,
       orderController: _FakeOrderController(_buildOrders(products)),
       warrantyController: _FakeWarrantyController(
-        importedSerials: _buildImportedSerials(products),
         lastRemoteSyncAt: DateTime(2026, 4, 5, 9, 30),
+      ),
+      inventoryService: _FakeInventoryService(
+        items: _buildSummaryRecords(products),
       ),
     );
 
@@ -101,14 +106,61 @@ void main() {
     expect((firstOffset.dy - secondOffset.dy).abs(), lessThan(1));
     expect(firstOffset.dx, lessThan(secondOffset.dx));
   });
+
+  testWidgets(
+    'Inventory does not render stale local serial cache when summary API fails',
+    (tester) async {
+      _setSurfaceSize(tester, const Size(390, 844));
+      final cachedProducts = List<Product>.generate(2, _buildProduct);
+
+      await _pumpInventoryScreen(
+        tester,
+        orderController: _FakeOrderController(_buildOrders(cachedProducts)),
+        warrantyController: _FakeWarrantyController(
+          importedSerials: _buildImportedSerials(cachedProducts),
+        ),
+        inventoryService: _FakeInventoryService.failure(
+          const InventoryException('inventory.message.syncFailed'),
+        ),
+      );
+
+      expect(find.text('Inventory Item 1'), findsNothing);
+      expect(find.text('Inventory Item 2'), findsNothing);
+      expect(find.byIcon(Icons.sync_problem_outlined), findsOneWidget);
+      expect(find.textContaining('Không thể đồng bộ tồn kho'), findsWidgets);
+    },
+  );
+
+  testWidgets('Inventory shows empty state when summary API returns no items', (
+    tester,
+  ) async {
+    _setSurfaceSize(tester, const Size(390, 844));
+    final cachedProducts = List<Product>.generate(2, _buildProduct);
+
+    await _pumpInventoryScreen(
+      tester,
+      orderController: _FakeOrderController(_buildOrders(cachedProducts)),
+      warrantyController: _FakeWarrantyController(
+        importedSerials: _buildImportedSerials(cachedProducts),
+      ),
+      inventoryService: _FakeInventoryService.empty(),
+    );
+
+    expect(find.text('Inventory Item 1'), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('inventory-import-action')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Kho chưa có sản phẩm'), findsOneWidget);
+  });
 }
 
 Future<void> _pumpInventoryScreen(
   WidgetTester tester, {
   required OrderController orderController,
   required WarrantyController warrantyController,
+  required InventoryService inventoryService,
 }) async {
-  final importedSerials = warrantyController.importedSerials;
   await tester.pumpWidget(
     AppSettingsScope(
       controller: AppSettingsController(),
@@ -124,11 +176,8 @@ Future<void> _pumpInventoryScreen(
                 routes: <RouteBase>[
                   GoRoute(
                     path: DealerRoutePath.inventory,
-                    builder: (context, state) => InventoryScreen(
-                      inventoryService: _FakeInventoryService(
-                        items: _buildSummaryRecords(importedSerials),
-                      ),
-                    ),
+                    builder: (context, state) =>
+                        InventoryScreen(inventoryService: inventoryService),
                   ),
                   GoRoute(
                     path: DealerRoutePath.warranty,
@@ -148,51 +197,22 @@ Future<void> _pumpInventoryScreen(
 }
 
 List<DealerInventoryProductRecord> _buildSummaryRecords(
-  List<ImportedSerialRecord> serials,
-) {
-  final buckets = <String, List<ImportedSerialRecord>>{};
-  for (final serial in serials) {
-    buckets
-        .putIfAbsent(serial.productId, () => <ImportedSerialRecord>[])
-        .add(serial);
-  }
-
-  return buckets.entries
-      .map((entry) {
-        final productSerials = entry.value;
-        final first = productSerials.first;
-        final readyCount = productSerials
-            .where((item) => item.status == ImportedSerialStatus.available)
-            .length;
-        final warrantyCount = productSerials
-            .where((item) => item.status == ImportedSerialStatus.warranty)
-            .length;
-        final issueCount = productSerials
-            .where((item) => item.status == ImportedSerialStatus.defective)
-            .length;
-
-        return DealerInventoryProductRecord(
-          product: Product(
-            id: first.productId,
-            name: first.productName,
-            sku: first.productSku,
-            shortDescription: 'Inventory ${first.productSku}',
-            price: 1000000,
-            stock: 200,
-            warrantyMonths: 12,
-          ),
-          totalSerials: productSerials.length,
-          readySerials: readyCount,
-          warrantySerials: warrantyCount,
-          issueSerials: issueCount,
-          latestImportedAt: productSerials
-              .map((item) => item.importedAt)
-              .reduce((left, right) => left.isAfter(right) ? left : right),
-          orderCodes: productSerials.map((item) => item.orderId).toList(),
-        );
-      })
-      .toList(growable: false);
-}
+  List<Product> products,
+) => List<DealerInventoryProductRecord>.generate(products.length, (index) {
+  final product = products[index];
+  final readySerials = index % 6 == 4 || index % 6 == 5 ? 0 : 1;
+  final warrantySerials = index % 6 == 4 ? 1 : 0;
+  final issueSerials = index % 6 == 5 ? 1 : 0;
+  return DealerInventoryProductRecord(
+    product: product,
+    totalSerials: readySerials + warrantySerials + issueSerials,
+    readySerials: readySerials,
+    warrantySerials: warrantySerials,
+    issueSerials: issueSerials,
+    latestImportedAt: DateTime(2026, 4, 5).subtract(Duration(days: index)),
+    orderCodes: <String>['DH-${index + 1}'],
+  );
+});
 
 void _setSurfaceSize(WidgetTester tester, Size size) {
   final view = tester.view;
@@ -295,12 +315,25 @@ class _FakeWarrantyController extends WarrantyController {
 }
 
 class _FakeInventoryService extends InventoryService {
-  _FakeInventoryService({required this.items}) : super();
+  _FakeInventoryService({required this.items, this.error}) : super();
+
+  _FakeInventoryService.empty()
+    : items = const <DealerInventoryProductRecord>[],
+      error = null,
+      super();
+
+  _FakeInventoryService.failure(this.error)
+    : items = const <DealerInventoryProductRecord>[],
+      super();
 
   final List<DealerInventoryProductRecord> items;
+  final InventoryException? error;
 
   @override
   Future<DealerInventorySummaryRecord> fetchSummary() async {
+    if (error != null) {
+      throw error!;
+    }
     var readySerials = 0;
     var warrantySerials = 0;
     var issueSerials = 0;
