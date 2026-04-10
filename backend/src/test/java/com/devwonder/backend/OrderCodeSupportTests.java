@@ -28,4 +28,16 @@ class OrderCodeSupportTests {
                 "still legacy SCS-99-3030"
         )).isEqualTo("SCS-42-2026");
     }
+
+    @Test
+    void extractFirstRestoresCanonicalCodeWhenWebhookStripsSeparators() {
+        assertThat(OrderCodeSupport.extractFirst(
+                "compact SCS421743206400123654321",
+                "fallback SCS-42-2026"
+        )).isEqualTo("SCS-42-1743206400123-654321");
+
+        assertThat(OrderCodeSupport.extractFirst(
+                "space separated SCS 42 1743206400123 654321"
+        )).isEqualTo("SCS-42-1743206400123-654321");
+    }
 }

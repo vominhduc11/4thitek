@@ -158,6 +158,39 @@ class SepayServiceTests {
     }
 
     @Test
+    void compactOrderCodeWithoutHyphensStillMatchesOrder() {
+        Product product = createProduct("SEPAY-TEST-6");
+        String canonicalOrderCode = "SCS-2-1775789878946-476816";
+        Order order = orderRepository.save(createBankTransferOrder(canonicalOrderCode, product, null));
+        SepayWebhookRequest request = new SepayWebhookRequest(
+                "TX-COMPACT-ORDER-CODE",
+                "SePay",
+                "2026-04-10 15:57:00",
+                "123456789",
+                "in",
+                outstandingAmount(order),
+                null,
+                null,
+                "NHAN TU 2114012003 TRACE 500899 ND SCS21775789878946476816",
+                null,
+                "NHAN TU 2114012003 TRACE 500899 ND SCS21775789878946476816",
+                null,
+                null
+        );
+
+        SepayService.WebhookResult result = sepayService.processWebhook(request, "test-token");
+        Order refreshedOrder = orderRepository.findFirstByOrderCodeIgnoreCase(canonicalOrderCode).orElseThrow();
+        var payments = paymentRepository.findByOrderIdOrderByPaidAtDescIdDesc(refreshedOrder.getId());
+
+        assertThat(result.status()).isEqualTo("processed");
+        assertThat(result.orderCode()).isEqualTo(canonicalOrderCode);
+        assertThat(payments).hasSize(1);
+        assertThat(payments.get(0).getAmount()).isEqualByComparingTo(outstandingAmount(order));
+        assertThat(unmatchedPaymentRepository.count()).isZero();
+        assertThat(refreshedOrder.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
+    }
+
+    @Test
     void unmatchedPaymentIsPersistedWhenNotificationFails() {
         // amount_mismatch path: unmatched payment must be saved even when admin notification throws
         Product product = createProduct("SEPAY-UNMATCHED-1");

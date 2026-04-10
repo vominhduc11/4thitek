@@ -9,6 +9,8 @@ public final class OrderCodeSupport {
 
     private static final Pattern CANONICAL_PATTERN =
             Pattern.compile("\\bSCS-\\d+-\\d{13}-\\d{6}\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern COMPACT_CANONICAL_PATTERN =
+            Pattern.compile("\\bSCS[-\\s]?(\\d+)[-\\s]?(\\d{13})[-\\s]?(\\d{6})\\b", Pattern.CASE_INSENSITIVE);
     private static final Pattern LEGACY_PATTERN =
             Pattern.compile("\\bSCS-\\d+-\\d+\\b", Pattern.CASE_INSENSITIVE);
 
@@ -33,6 +35,10 @@ public final class OrderCodeSupport {
         if (canonical != null) {
             return canonical;
         }
+        String compactCanonical = extractCompactCanonical(candidates);
+        if (compactCanonical != null) {
+            return compactCanonical;
+        }
         return extractWithPattern(LEGACY_PATTERN, candidates);
     }
 
@@ -55,6 +61,28 @@ public final class OrderCodeSupport {
             Matcher matcher = pattern.matcher(normalized);
             if (matcher.find()) {
                 return matcher.group().toUpperCase(Locale.ROOT);
+            }
+        }
+        return null;
+    }
+
+    private static String extractCompactCanonical(String... candidates) {
+        if (candidates == null) {
+            return null;
+        }
+        for (String candidate : candidates) {
+            String normalized = normalize(candidate);
+            if (normalized == null) {
+                continue;
+            }
+            Matcher matcher = COMPACT_CANONICAL_PATTERN.matcher(normalized);
+            if (matcher.find()) {
+                return "SCS-"
+                        + matcher.group(1)
+                        + "-"
+                        + matcher.group(2)
+                        + "-"
+                        + matcher.group(3);
             }
         }
         return null;
