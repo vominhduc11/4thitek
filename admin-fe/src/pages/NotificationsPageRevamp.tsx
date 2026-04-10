@@ -1,5 +1,6 @@
 import { Megaphone, RefreshCw, Send } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   createAdminNotificationDispatch,
   fetchAllAdminNotifications,
@@ -128,7 +129,32 @@ const copyKeys = {
   accountIdsRequired: "Vui lòng nhập ít nhất một ID tài khoản hợp lệ.",
   contentError: "Tiêu đề hoặc nội dung vượt quá giới hạn cho phép.",
   reload: "Tải lại",
+  openLink: "Mở liên kết",
 } as const;
+
+const renderNavigationLink = (
+  value: string | null | undefined,
+  label: string,
+  className: string,
+) => {
+  if (!value) {
+    return null;
+  }
+
+  if (/^https?:\/\//i.test(value)) {
+    return (
+      <a className={className} href={value} rel="noreferrer" target="_blank">
+        {label}: {value}
+      </a>
+    );
+  }
+
+  return (
+    <Link className={className} to={value}>
+      {label}: {value}
+    </Link>
+  );
+};
 
 function NotificationsPageRevamp() {
   const { t } = useLanguage();
@@ -600,15 +626,25 @@ function NotificationsPageRevamp() {
                     </StatusBadge>
                   </div>
                   <p className="mt-3 text-sm text-[var(--ink)]">{item.body}</p>
-                  {item.link ? (
-                    <p className={`mt-2 break-all text-xs ${tableMetaClass}`}>
-                      {copy.link}: {item.link}
-                    </p>
-                  ) : null}
-                  {item.deepLink ? (
-                    <p className={`mt-1 break-all text-xs ${tableMetaClass}`}>
-                      {copy.deepLink}: {item.deepLink}
-                    </p>
+                  {renderNavigationLink(
+                    item.link,
+                    copy.link,
+                    `mt-2 block break-all text-xs ${tableMetaClass} underline-offset-2 hover:underline`,
+                  )}
+                  {renderNavigationLink(
+                    item.deepLink,
+                    copy.deepLink,
+                    `mt-1 block break-all text-xs ${tableMetaClass} underline-offset-2 hover:underline`,
+                  )}
+                  {item.deepLink || item.link ? (
+                    <div className="mt-3">
+                      <Link
+                        className="inline-flex items-center rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-semibold text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                        to={item.deepLink ?? item.link ?? "/notifications"}
+                      >
+                        {copy.openLink}
+                      </Link>
+                    </div>
                   ) : null}
                   <div className="mt-4 flex items-center justify-between gap-3">
                     <StatusBadge tone={item.isRead ? "neutral" : "warning"}>
@@ -647,15 +683,25 @@ function NotificationsPageRevamp() {
                         <p className={`${tableMetaClass} line-clamp-2`}>
                           {item.body}
                         </p>
-                        {item.link ? (
-                          <p className={`${tableMetaClass} mt-1 break-all`}>
-                            {copy.link}: {item.link}
-                          </p>
-                        ) : null}
-                        {item.deepLink ? (
-                          <p className={`${tableMetaClass} mt-1 break-all`}>
-                            {copy.deepLink}: {item.deepLink}
-                          </p>
+                        {renderNavigationLink(
+                          item.link,
+                          copy.link,
+                          `${tableMetaClass} mt-1 block break-all underline-offset-2 hover:underline`,
+                        )}
+                        {renderNavigationLink(
+                          item.deepLink,
+                          copy.deepLink,
+                          `${tableMetaClass} mt-1 block break-all underline-offset-2 hover:underline`,
+                        )}
+                        {item.deepLink || item.link ? (
+                          <div className="mt-2">
+                            <Link
+                              className="inline-flex items-center rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-semibold text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                              to={item.deepLink ?? item.link ?? "/notifications"}
+                            >
+                              {copy.openLink}
+                            </Link>
+                          </div>
                         ) : null}
                       </td>
                       <td className="px-3 py-3">

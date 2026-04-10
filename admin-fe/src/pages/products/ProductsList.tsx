@@ -12,6 +12,8 @@ type ProductsListProps = {
   onArchiveToggle: (product: Product) => void
   onDelete: (sku: string) => void
   onPublishToggle: (product: Product) => void
+  highlightedProductId?: string | null
+  inventoryAlertTone?: 'low' | 'urgent' | null
 }
 
 const publishToneClass = (product: Product) => {
@@ -30,6 +32,8 @@ function ProductsList({
   onArchiveToggle,
   onDelete,
   onPublishToggle,
+  highlightedProductId = null,
+  inventoryAlertTone = null,
 }: ProductsListProps) {
   if (products.length === 0) {
     return (
@@ -52,7 +56,13 @@ function ProductsList({
       {products.map((product) => (
         <article
           key={product.sku}
-          className="grid gap-4 rounded-3xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 text-sm text-[var(--ink)] shadow-sm transition hover:border-[var(--accent-soft)] hover:shadow-[0_12px_24px_rgba(15,23,42,0.08)] md:grid-cols-[2fr_1fr_0.9fr] md:items-center"
+          className={`grid gap-4 rounded-3xl border px-4 py-4 text-sm text-[var(--ink)] shadow-sm transition md:grid-cols-[2fr_1fr_0.9fr] md:items-center ${
+            product.id === highlightedProductId
+              ? inventoryAlertTone === 'urgent'
+                ? 'border-rose-300 bg-rose-50/70 shadow-[0_12px_24px_rgba(244,63,94,0.14)]'
+                : 'border-amber-300 bg-amber-50/70 shadow-[0_12px_24px_rgba(245,158,11,0.14)]'
+              : 'border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent-soft)] hover:shadow-[0_12px_24px_rgba(15,23,42,0.08)]'
+          }`}
         >
           <div className="flex items-center gap-3">
             <img
@@ -65,6 +75,17 @@ function ProductsList({
               <div className="flex flex-wrap items-center gap-2">
                 <p className="text-sm font-semibold text-[var(--ink)]">{product.name}</p>
                 <div className="flex items-center gap-1">
+                  {product.id === highlightedProductId ? (
+                    <span
+                      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                        inventoryAlertTone === 'urgent'
+                          ? 'bg-rose-500/15 text-rose-700'
+                          : 'bg-amber-500/15 text-amber-700'
+                      }`}
+                    >
+                      {inventoryAlertTone === 'urgent' ? t('Cảnh báo khẩn') : t('Cần bổ sung')}
+                    </span>
+                  ) : null}
                   {product.isFeatured ? (
                     <span
                       aria-label={t('Nổi bật')}

@@ -18,6 +18,7 @@ public interface NotifyRepository extends JpaRepository<Notify, Long> {
     List<Notify> findByAccountIdOrderByCreatedAtDesc(Long accountId);
     Page<Notify> findByAccountId(Long accountId, Pageable pageable);
     Optional<Notify> findByIdAndAccountId(Long id, Long accountId);
+    boolean existsByAccountIdAndDeepLinkAndCreatedAtAfter(Long accountId, String deepLink, Instant createdAtAfter);
 
     @EntityGraph(attributePaths = {"account"})
     Page<Notify> findAllByOrderByCreatedAtDesc(Pageable pageable);

@@ -97,11 +97,21 @@ const settingsPageEnTranslations: TranslationMap = {
   "Thời lượng phiên phải là số nguyên trong khoảng từ 5 đến 480 phút.":
     "Session timeout must be an integer between 5 and 480 minutes.",
   "Cảnh báo đơn hàng": "Order alerts",
-  "Thông báo khi có đơn mới hoặc đơn cần xử lý thêm.":
-    "Notify the team about new orders or orders that need attention.",
+  "Bật thông báo nội bộ và email cho các cập nhật vòng đời đơn hàng như tạo đơn, đổi trạng thái và ghi nhận thanh toán.":
+    "Enable in-app and email notifications for order lifecycle updates such as order creation, status changes, and payment recording.",
   "Cảnh báo tồn kho": "Inventory alerts",
-  "Thông báo khi SKU giảm xuống ngưỡng tồn kho thấp.":
-    "Notify when a SKU drops into the low-stock threshold.",
+  "Tồn kho khẩn cấp": "Urgent low stock",
+  "Gửi cảnh báo nội bộ cho admin khi SKU rơi qua ngưỡng tồn thấp (10) hoặc khẩn cấp (5).":
+    "Send internal admin alerts when a SKU crosses the low-stock (10) or urgent (5) threshold.",
+  "Đang xem cảnh báo tồn kho khẩn cấp": "Viewing urgent inventory alert",
+  "Đang xem cảnh báo tồn kho thấp": "Viewing low-stock alert",
+  "Ưu tiên rà soát SKU {sku} để lên kế hoạch bổ sung hàng.":
+    "Prioritize reviewing SKU {sku} to plan replenishment.",
+  "Danh sách đang được lọc theo các SKU cần bổ sung hàng.":
+    "The list is filtered to SKUs that need replenishment.",
+  "Tắt ngữ cảnh cảnh báo": "Clear alert context",
+  "Cảnh báo khẩn": "Urgent alert",
+  "Mở liên kết": "Open link",
   Bật: "Enabled",
   "Webhook token": "Webhook token",
   "Chỉ lưu token webhook đang được SePay cấp cho môi trường vận hành hiện tại.":
@@ -711,6 +721,16 @@ const translations: Record<Language, TranslationMap> = {
       "The notification list could not be loaded.",
     "Danh sách ticket chưa thể tải.": "The ticket list could not be loaded.",
     "Deep link": "Deep link",
+    "Tồn kho khẩn cấp": "Urgent low stock",
+    "Đang xem cảnh báo tồn kho khẩn cấp": "Viewing urgent inventory alert",
+    "Đang xem cảnh báo tồn kho thấp": "Viewing low-stock alert",
+    "Ưu tiên rà soát SKU {sku} để lên kế hoạch bổ sung hàng.":
+      "Prioritize reviewing SKU {sku} to plan replenishment.",
+    "Danh sách đang được lọc theo các SKU cần bổ sung hàng.":
+      "The list is filtered to SKUs that need replenishment.",
+    "Tắt ngữ cảnh cảnh báo": "Clear alert context",
+    "Cảnh báo khẩn": "Urgent alert",
+    "Mở liên kết": "Open link",
     "Dòng thời gian": "Timeline",
     "Dùng phím mũi tên để duyệt, Enter để mở.":
       "Use arrow keys to browse and Enter to open.",
@@ -1048,10 +1068,10 @@ const translations: Record<Language, TranslationMap> = {
       "Configure the sender identity used by system emails.",
     "Thiết lập xác thực và thời lượng phiên đăng nhập cho tài khoản quản trị.":
       "Set sign-in verification and session duration for admin accounts.",
-    "Thông báo khi có đơn mới hoặc đơn cần xử lý thêm.":
-      "Notify the team about new orders or orders that need attention.",
-    "Thông báo khi SKU giảm xuống ngưỡng tồn kho thấp.":
-      "Notify when a SKU drops into the low-stock threshold.",
+    "Bật thông báo nội bộ và email cho các cập nhật vòng đời đơn hàng như tạo đơn, đổi trạng thái và ghi nhận thanh toán.":
+      "Enable in-app and email notifications for order lifecycle updates such as order creation, status changes, and payment recording.",
+    "Gửi cảnh báo nội bộ cho admin khi SKU rơi qua ngưỡng tồn thấp (10) hoặc khẩn cấp (5).":
+      "Send internal admin alerts when a SKU crosses the low-stock (10) or urgent (5) threshold.",
     "Thời điểm nhận": "Received at",
     "Thời điểm xử lý": "Resolved at",
     "Thời lượng phiên phải là số nguyên trong khoảng từ 5 đến 480 phút.":

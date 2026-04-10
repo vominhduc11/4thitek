@@ -69,6 +69,7 @@ function ProductsToolbar({
   const filterOptions: Array<{ value: ProductFilter; label: string }> = [
     { value: 'all', label: 'Tất cả' },
     { value: 'active', label: 'Đang bán' },
+    { value: 'urgentStock', label: 'Tồn kho khẩn cấp' },
     { value: 'lowStock', label: 'Tồn kho thấp' },
     { value: 'outOfStock', label: 'Hết hàng' },
     { value: 'draft', label: 'Bản nháp' },

@@ -1,6 +1,6 @@
 import { AlertTriangle, FileDown, Package, Plus, ShoppingBag } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ErrorState,
   GhostButton,
@@ -28,10 +28,14 @@ import {
   type ProductsSortField,
 } from './products/productsPageShared'
 
+const INVENTORY_ALERT_LOW_STOCK_FILTER: ProductFilter = 'lowStock'
+const INVENTORY_ALERT_URGENT_STOCK_FILTER: ProductFilter = 'urgentStock'
+
 function ProductsPage() {
   const { t } = useLanguage()
   const pageTitle = t('Sản phẩm')
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { notify } = useToast()
   const { confirm, confirmDialog } = useConfirmDialog()
   const {
@@ -54,9 +58,20 @@ function ProductsPage() {
   const [currentPage, setCurrentPage] = useState(0)
   const [actionMessage, setActionMessage] = useState('')
 
+  const inventoryAlertTone = useMemo(() => {
+    const tone = searchParams.get('inventoryAlert')
+    return tone === 'urgent' || tone === 'low' ? tone : null
+  }, [searchParams])
+
+  const highlightedProductId = useMemo(() => {
+    const rawValue = searchParams.get('productId')
+    return rawValue && rawValue.trim() ? rawValue.trim() : null
+  }, [searchParams])
+
   const {
     activeProducts,
     lowStockProducts,
+    urgentLowStockProducts,
     draftProducts,
     filterCounts,
     visibleProducts,
@@ -74,11 +89,40 @@ function ProductsPage() {
     [filter, filterFeatured, filterHomepage, products, searchTerm, sortDir, sortField],
   )
 
-  const pageCount = Math.ceil(visibleProducts.length / ITEMS_PER_PAGE)
+  const highlightedProduct = useMemo(
+    () => products.find((product) => product.id === highlightedProductId) ?? null,
+    [highlightedProductId, products],
+  )
+
+  const prioritizedVisibleProducts = useMemo(() => {
+    if (!highlightedProductId) {
+      return visibleProducts
+    }
+    return [...visibleProducts].sort((left, right) => {
+      if (left.id === highlightedProductId) return -1
+      if (right.id === highlightedProductId) return 1
+      return 0
+    })
+  }, [highlightedProductId, visibleProducts])
+
+  const pageCount = Math.ceil(prioritizedVisibleProducts.length / ITEMS_PER_PAGE)
   const pagedProducts = useMemo(() => {
     const start = currentPage * ITEMS_PER_PAGE
-    return visibleProducts.slice(start, start + ITEMS_PER_PAGE)
-  }, [currentPage, visibleProducts])
+    return prioritizedVisibleProducts.slice(start, start + ITEMS_PER_PAGE)
+  }, [currentPage, prioritizedVisibleProducts])
+
+  useEffect(() => {
+    if (!inventoryAlertTone) {
+      return
+    }
+    setFilter(
+      inventoryAlertTone === 'urgent'
+        ? INVENTORY_ALERT_URGENT_STOCK_FILTER
+        : INVENTORY_ALERT_LOW_STOCK_FILTER,
+    )
+    setSortField('availableStock')
+    setSortDir('asc')
+  }, [inventoryAlertTone])
 
   useEffect(() => {
     setCurrentPage(0)
@@ -118,7 +162,18 @@ function ProductsPage() {
     setFilterHomepage('all')
     setSortField('updatedAt')
     setSortDir('desc')
+    const nextParams = new URLSearchParams(searchParams)
+    nextParams.delete('inventoryAlert')
+    nextParams.delete('productId')
+    setSearchParams(nextParams, { replace: true })
   }
+
+  const clearInventoryAlertContext = useCallback(() => {
+    const nextParams = new URLSearchParams(searchParams)
+    nextParams.delete('inventoryAlert')
+    nextParams.delete('productId')
+    setSearchParams(nextParams, { replace: true })
+  }, [searchParams, setSearchParams])
 
   const handleExportCsv = () => {
     const header = [
@@ -315,6 +370,34 @@ function ProductsPage() {
         </div>
       ) : null}
 
+      {inventoryAlertTone ? (
+        <div
+          className={`mt-4 flex flex-col gap-3 rounded-3xl border px-4 py-4 text-sm sm:flex-row sm:items-center sm:justify-between ${
+            inventoryAlertTone === 'urgent'
+              ? 'border-rose-200 bg-rose-50 text-rose-800'
+              : 'border-amber-200 bg-amber-50 text-amber-800'
+          }`}
+        >
+          <div className="space-y-1">
+            <p className="font-semibold">
+              {inventoryAlertTone === 'urgent'
+                ? t('Đang xem cảnh báo tồn kho khẩn cấp')
+                : t('Đang xem cảnh báo tồn kho thấp')}
+            </p>
+            <p>
+              {highlightedProduct
+                ? t('Ưu tiên rà soát SKU {sku} để lên kế hoạch bổ sung hàng.', {
+                    sku: highlightedProduct.sku,
+                  })
+                : t('Danh sách đang được lọc theo các SKU cần bổ sung hàng.')}
+            </p>
+          </div>
+          <GhostButton className="w-full sm:w-auto" onClick={clearInventoryAlertContext} type="button">
+            {t('Tắt ngữ cảnh cảnh báo')}
+          </GhostButton>
+        </div>
+      ) : null}
+
       <ProductsToolbar
         t={t}
         searchTerm={searchTerm}
@@ -346,7 +429,7 @@ function ProductsPage() {
           icon={AlertTriangle}
           label={t('Tồn kho thấp')}
           value={lowStockProducts.length}
-          hint={t('Cần bổ sung')}
+          hint={t('{count} khẩn cấp', { count: urgentLowStockProducts.length })}
           tone="warning"
         />
         <StatCard
@@ -362,6 +445,8 @@ function ProductsPage() {
         <ProductsList
           products={pagedProducts}
           t={t}
+          highlightedProductId={highlightedProductId}
+          inventoryAlertTone={inventoryAlertTone}
           onArchiveToggle={handleArchiveToggle}
           onDelete={handleDelete}
           onPublishToggle={handlePublishToggle}

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { MemoryRouter } from "react-router-dom";
 import NotificationsPageRevamp from "./NotificationsPageRevamp";
 
 const {
@@ -50,7 +51,12 @@ vi.mock("../lib/adminApi", async () => {
   };
 });
 
-const renderPage = () => render(<NotificationsPageRevamp />);
+const renderPage = () =>
+  render(
+    <MemoryRouter>
+      <NotificationsPageRevamp />
+    </MemoryRouter>,
+  );
 
 const notificationPayload = {
   id: 101,

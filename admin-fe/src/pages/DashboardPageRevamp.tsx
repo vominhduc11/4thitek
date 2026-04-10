@@ -337,7 +337,7 @@ function DashboardPageRevamp() {
           />
         </Link>
         <Link
-          to="/serials"
+          to="/products?inventoryAlert=low"
           className="block rounded-3xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
           <StatCard

@@ -27,6 +27,7 @@ import com.devwonder.backend.entity.enums.StaffUserStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.repository.AdminRepository;
 import com.devwonder.backend.repository.DealerRepository;
+import com.devwonder.backend.repository.NotifyRepository;
 import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.PaymentRepository;
 import com.devwonder.backend.repository.ProductRepository;
@@ -34,8 +35,10 @@ import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.RoleRepository;
 import com.devwonder.backend.service.AdminSettingsService;
 import com.devwonder.backend.service.DealerPortalService;
+import com.devwonder.backend.service.InventoryAlertSweepJob;
 import com.devwonder.backend.service.MailService;
 import com.devwonder.backend.service.SepayService;
+import com.devwonder.backend.service.support.ProductStockSyncSupport;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.mail.Session;
@@ -136,6 +139,15 @@ class AdminSettingsContractTests {
     @Autowired
     private PaymentRepository paymentRepository;
 
+    @Autowired
+    private NotifyRepository notifyRepository;
+
+    @Autowired
+    private ProductStockSyncSupport productStockSyncSupport;
+
+    @Autowired
+    private InventoryAlertSweepJob inventoryAlertSweepJob;
+
     @MockBean
     private JavaMailSender javaMailSender;
 
@@ -146,6 +158,7 @@ class AdminSettingsContractTests {
         admin.setRequirePasswordChange(false);
         adminRepository.save(admin);
 
+        notifyRepository.deleteAll();
         paymentRepository.deleteAll();
         orderRepository.deleteAll();
         productSerialRepository.deleteAll();
@@ -401,6 +414,98 @@ class AdminSettingsContractTests {
                 .andExpect(jsonPath("$.data['emailSettings.fromName']").value("emailSettings.fromName is required when enabled"));
     }
 
+    @Test
+    void inventoryAlertsCreateAdminNotificationWhenStockCrossesLowThreshold() {
+        Product product = productRepository.save(createProduct("SKU-SETTINGS-LOW-001"));
+        seedAvailableSerials(product, 11);
+
+        productStockSyncSupport.syncProductStock(productRepository.findById(product.getId()).orElseThrow());
+        notifyRepository.deleteAll();
+
+        List<ProductSerial> serials = productSerialRepository.findAll().stream()
+                .filter(serial -> serial.getProduct() != null && product.getId().equals(serial.getProduct().getId()))
+                .limit(2)
+                .toList();
+        productSerialRepository.deleteAll(serials);
+        productSerialRepository.flush();
+
+        productStockSyncSupport.syncProductStock(productRepository.findById(product.getId()).orElseThrow());
+
+        assertThat(notifyRepository.findAll())
+                .hasSize(1)
+                .allSatisfy(notify -> {
+                    assertThat(notify.getTitle()).isEqualTo("SKU đã rơi vào ngưỡng tồn kho thấp");
+                    assertThat(notify.getContent()).contains("SKU-SETTINGS-LOW-001").contains("9");
+                });
+    }
+
+    @Test
+    void disablingInventoryAlertsSuppressesLowStockNotifications() {
+        adminSettingsService.updateSettings(new UpdateAdminSettingsRequest(
+                null,
+                null,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null
+        ));
+
+        Product product = productRepository.save(createProduct("SKU-SETTINGS-LOW-002"));
+        seedAvailableSerials(product, 11);
+        productStockSyncSupport.syncProductStock(productRepository.findById(product.getId()).orElseThrow());
+        notifyRepository.deleteAll();
+
+        List<ProductSerial> serials = productSerialRepository.findAll().stream()
+                .filter(serial -> serial.getProduct() != null && product.getId().equals(serial.getProduct().getId()))
+                .limit(2)
+                .toList();
+        productSerialRepository.deleteAll(serials);
+        productSerialRepository.flush();
+
+        productStockSyncSupport.syncProductStock(productRepository.findById(product.getId()).orElseThrow());
+
+        assertThat(notifyRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void inventoryAlertSweepBackfillsAlreadyLowStockProducts() {
+        Product product = productRepository.save(createProduct("SKU-SETTINGS-LOW-003"));
+        product.setStock(4);
+        productRepository.save(product);
+        seedAvailableSerials(product, 4);
+        notifyRepository.deleteAll();
+
+        inventoryAlertSweepJob.scanExistingLowStockProducts();
+
+        assertThat(notifyRepository.findAll())
+                .hasSize(1)
+                .allSatisfy(notify -> {
+                    assertThat(notify.getContent()).contains("SKU-SETTINGS-LOW-003").contains("4");
+                    assertThat(notify.getDeepLink()).contains("inventoryAlert=urgent").contains("productId=" + product.getId());
+                });
+    }
+
+    @Test
+    void inventoryAlertSweepDoesNotRepeatNotificationsInsideCooldownWindow() {
+        Product product = productRepository.save(createProduct("SKU-SETTINGS-LOW-004"));
+        product.setStock(8);
+        productRepository.save(product);
+        seedAvailableSerials(product, 8);
+        notifyRepository.deleteAll();
+
+        inventoryAlertSweepJob.scanExistingLowStockProducts();
+        inventoryAlertSweepJob.scanExistingLowStockProducts();
+
+        assertThat(notifyRepository.findAll())
+                .hasSize(1)
+                .allSatisfy(notify -> {
+                    assertThat(notify.getContent()).contains("SKU-SETTINGS-LOW-004").contains("8");
+                    assertThat(notify.getDeepLink()).contains("inventoryAlert=low").contains("productId=" + product.getId());
+                });
+    }
+
     private String login(String username, String password) throws Exception {
         MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(APPLICATION_JSON)
@@ -444,6 +549,13 @@ class AdminSettingsContractTests {
         serial.setSerial(serialValue);
         serial.setStatus(ProductSerialStatus.AVAILABLE);
         return serial;
+    }
+
+    private void seedAvailableSerials(Product product, int count) {
+        for (int index = 1; index <= count; index++) {
+            productSerialRepository.save(createAvailableSerial(product, product.getSku() + "-SERIAL-" + index));
+        }
+        productSerialRepository.flush();
     }
 
     private void createGenericAdmin(String username, String password) {

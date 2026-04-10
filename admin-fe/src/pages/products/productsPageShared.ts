@@ -1,7 +1,7 @@
 import { resolveBackendAssetUrl } from '../../lib/backendApi'
 import type { Product } from '../../types/product'
 
-export type ProductFilter = 'all' | 'active' | 'lowStock' | 'outOfStock' | 'draft' | 'deleted'
+export type ProductFilter = 'all' | 'active' | 'lowStock' | 'urgentStock' | 'outOfStock' | 'draft' | 'deleted'
 export type FeaturedFilter = 'all' | 'featured' | 'nonFeatured'
 export type HomepageFilter = 'all' | 'homepage' | 'nonHomepage'
 export type ProductsSortField = 'name' | 'retailPrice' | 'availableStock' | 'updatedAt'
@@ -54,11 +54,14 @@ export const buildProductsView = ({
   sortDir,
 }: BuildProductsViewArgs) => {
   const normalizedSearch = searchTerm.trim().toLowerCase()
+  const isUrgentLowStock = (product: Product) =>
+    !product.isDeleted && product.status === 'Active' && product.availableStock > 0 && product.availableStock < 5
 
   const activeProducts = products.filter((product) => !product.isDeleted && product.status === 'Active')
   const lowStockProducts = products.filter(
     (product) => !product.isDeleted && product.availableStock > 0 && product.availableStock <= 10,
   )
+  const urgentLowStockProducts = products.filter(isUrgentLowStock)
   const draftProducts = products.filter((product) => !product.isDeleted && product.status === 'Draft')
 
   const filteredProducts = products.filter((product) => {
@@ -98,6 +101,9 @@ export const buildProductsView = ({
       if (product.status === 'Active' && product.availableStock > 0 && product.availableStock <= 10) {
         acc.lowStock += 1
       }
+      if (isUrgentLowStock(product)) {
+        acc.urgentStock += 1
+      }
 
       return acc
     },
@@ -105,6 +111,7 @@ export const buildProductsView = ({
       all: 0,
       active: 0,
       lowStock: 0,
+      urgentStock: 0,
       outOfStock: 0,
       draft: 0,
       deleted: 0,
@@ -117,6 +124,8 @@ export const buildProductsView = ({
         return !product.isDeleted && product.status === 'Active'
       case 'lowStock':
         return !product.isDeleted && product.status === 'Active' && product.availableStock > 0 && product.availableStock <= 10
+      case 'urgentStock':
+        return isUrgentLowStock(product)
       case 'outOfStock':
         return !product.isDeleted && product.status === 'Active' && product.availableStock === 0
       case 'draft':
@@ -147,6 +156,7 @@ export const buildProductsView = ({
   return {
     activeProducts,
     lowStockProducts,
+    urgentLowStockProducts,
     draftProducts,
     filterCounts,
     visibleProducts,

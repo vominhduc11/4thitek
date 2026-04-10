@@ -20,6 +20,7 @@ public class ProductStockSyncSupport {
 
     private final ProductRepository productRepository;
     private final ProductSerialRepository productSerialRepository;
+    private final InventoryAlertSupport inventoryAlertSupport;
 
     public int countAvailableStock(Long productId) {
         if (productId == null) {
@@ -42,8 +43,11 @@ public class ProductStockSyncSupport {
         if (product == null || product.getId() == null) {
             return;
         }
-        product.setStock(countAvailableStock(product.getId()));
-        productRepository.save(product);
+        int previousStock = safeStock(product);
+        int nextStock = countAvailableStock(product.getId());
+        product.setStock(nextStock);
+        Product saved = productRepository.save(product);
+        inventoryAlertSupport.notifyIfThresholdCrossed(saved, previousStock, nextStock);
     }
 
     @CacheEvict(cacheNames = {
@@ -67,11 +71,17 @@ public class ProductStockSyncSupport {
             return;
         }
         List<Product> toSave = new ArrayList<>(productsById.size());
+        Map<Long, Integer> previousStocks = new LinkedHashMap<>();
         for (Product product : productsById.values()) {
+            previousStocks.put(product.getId(), safeStock(product));
             product.setStock(countAvailableStock(product.getId()));
             toSave.add(product);
         }
-        productRepository.saveAll(toSave);
+        List<Product> savedProducts = productRepository.saveAll(toSave);
+        for (Product savedProduct : savedProducts) {
+            int previousStock = previousStocks.getOrDefault(savedProduct.getId(), 0);
+            inventoryAlertSupport.notifyIfThresholdCrossed(savedProduct, previousStock, safeStock(savedProduct));
+        }
     }
 
     @CacheEvict(cacheNames = {
@@ -89,5 +99,9 @@ public class ProductStockSyncSupport {
             return;
         }
         syncProductStocks(products);
+    }
+
+    private int safeStock(Product product) {
+        return product == null || product.getStock() == null ? 0 : Math.max(0, product.getStock());
     }
 }

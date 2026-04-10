@@ -41,6 +41,15 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     long countActiveProductsBelowStock(@Param("threshold") int threshold);
 
     @Query("""
+            select p
+            from Product p
+            where (p.isDeleted = false or p.isDeleted is null)
+              and coalesce(p.stock, 0) < :threshold
+            order by coalesce(p.stock, 0) asc, p.updatedAt asc nulls last, p.id asc
+            """)
+    List<Product> findAllActiveBelowStock(@Param("threshold") int threshold);
+
+    @Query("""
             select count(p)
             from Product p
             where (p.isDeleted = false or p.isDeleted is null)

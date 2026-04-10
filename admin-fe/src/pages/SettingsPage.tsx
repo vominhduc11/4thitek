@@ -101,9 +101,11 @@ const copyKeys = {
   sessionTimeoutError:
     "Thời lượng phiên phải là số nguyên trong khoảng từ 5 đến 480 phút.",
   orderAlerts: "Cảnh báo đơn hàng",
-  orderAlertsHelp: "Thông báo khi có đơn mới hoặc đơn cần xử lý thêm.",
+  orderAlertsHelp:
+    "Bật thông báo nội bộ và email cho các cập nhật vòng đời đơn hàng như tạo đơn, đổi trạng thái và ghi nhận thanh toán.",
   inventoryAlerts: "Cảnh báo tồn kho",
-  inventoryAlertsHelp: "Thông báo khi SKU giảm xuống ngưỡng tồn kho thấp.",
+  inventoryAlertsHelp:
+    "Gửi cảnh báo nội bộ cho admin khi SKU rơi qua ngưỡng tồn thấp (10) hoặc khẩn cấp (5).",
   enabled: "Bật",
   webhookToken: "Webhook token",
   webhookTokenHint:
