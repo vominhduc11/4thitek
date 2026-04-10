@@ -175,6 +175,15 @@ extension _LoginScreenSupport on _LoginScreenState {
         return;
       }
       await NotificationScope.of(context).load(forceRefresh: true);
+      if (!mounted) {
+        return;
+      }
+      final pushMessagingController = PushMessagingScope.maybeOf(context);
+      await pushMessagingController?.initialize();
+      if (!mounted) {
+        return;
+      }
+      await pushMessagingController?.refreshRegistration();
       _clearCredentialFieldErrors();
       if (!mounted) {
         return;

@@ -37,7 +37,9 @@ class PushMessagingController extends ChangeNotifier {
        ),
        _onNotificationSignal = onNotificationSignal,
        _onOrderSignal = onOrderSignal,
-       _enabled = enabled;
+       _enabled = enabled {
+    _authStorage.sessionEvents.addListener(_handleSessionEvent);
+  }
 
   final AuthStorage _authStorage;
   final http.Client _client;
@@ -77,6 +79,7 @@ class PushMessagingController extends ChangeNotifier {
     if (!_enabled) {
       _available = false;
       _initialized = true;
+      _lastSyncError = 'push.messaging.disabled';
       notifyListeners();
       return;
     }
@@ -89,6 +92,7 @@ class PushMessagingController extends ChangeNotifier {
           await DealerFirebaseOptionsProvider.ensureInitialized();
       if (!initialized) {
         _available = false;
+        _lastSyncError = 'push.messaging.unavailable';
         return;
       }
       FirebaseMessaging.onBackgroundMessage(
@@ -119,14 +123,15 @@ class PushMessagingController extends ChangeNotifier {
         await _handleOpenedMessage(initialMessage);
       }
 
-      _authStorage.sessionEvents.addListener(_handleSessionEvent);
       _available = true;
       _initialized = true;
       _packageInfo = await PackageInfo.fromPlatform();
+      _lastSyncError = null;
       await refreshRegistration();
     } catch (e) {
       debugPrint('Push messaging init failed: $e');
       _available = false;
+      _lastSyncError = e.toString();
     } finally {
       _initializing = false;
       notifyListeners();
@@ -134,12 +139,20 @@ class PushMessagingController extends ChangeNotifier {
   }
 
   Future<void> refreshRegistration() async {
-    if (!_enabled || !_available) {
+    if (!_enabled) {
+      return;
+    }
+    if (!_initialized && !_initializing) {
+      await initialize();
+    }
+    if (!_available) {
       return;
     }
     try {
       final token = await FirebaseMessaging.instance.getToken();
       if (token == null || token.trim().isEmpty) {
+        _lastSyncError = 'push.token.unavailable';
+        notifyListeners();
         return;
       }
       await _registerToken(token.trim());
@@ -267,7 +280,7 @@ class PushMessagingController extends ChangeNotifier {
     _handledSessionEventVersion = currentVersion;
     switch (_authStorage.lastSessionEvent) {
       case AuthSessionEventType.signedIn:
-        unawaited(refreshRegistration());
+        unawaited(_refreshRegistrationForSignedInSession());
         break;
       case AuthSessionEventType.loggedOut:
       case AuthSessionEventType.expired:
@@ -277,6 +290,13 @@ class PushMessagingController extends ChangeNotifier {
       case AuthSessionEventType.none:
         break;
     }
+  }
+
+  Future<void> _refreshRegistrationForSignedInSession() async {
+    if (!_initialized) {
+      await initialize();
+    }
+    await refreshRegistration();
   }
 
   String _platformValue() {

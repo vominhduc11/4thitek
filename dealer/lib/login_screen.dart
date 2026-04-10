@@ -13,6 +13,7 @@ import 'cart_controller.dart';
 import 'forgot_password_screen.dart';
 import 'notification_controller.dart';
 import 'order_controller.dart';
+import 'push_messaging_controller.dart';
 import 'validation_utils.dart';
 import 'warranty_controller.dart';
 import 'widgets/brand_identity.dart';
