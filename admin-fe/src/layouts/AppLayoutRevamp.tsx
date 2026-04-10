@@ -176,6 +176,28 @@ const interpolate = (template: string, vars: Record<string, string | number>) =>
     template,
   );
 
+const buildAlertStateId = (
+  prefix: string,
+  ids: Array<string | number | null | undefined>,
+) => {
+  const normalized = ids
+    .filter((id): id is string | number => id !== null && id !== undefined)
+    .map(String)
+    .sort();
+
+  if (normalized.length === 0) {
+    return prefix;
+  }
+
+  const joined = normalized.join("|");
+  let hash = 0;
+  for (let index = 0; index < joined.length; index += 1) {
+    hash = (hash * 31 + joined.charCodeAt(index)) >>> 0;
+  }
+
+  return `${prefix}:${normalized.length}:${hash.toString(36)}`;
+};
+
 
 const NAV_GROUP_STORAGE_KEY = "admin_nav_groups";
 
@@ -409,7 +431,7 @@ function AppLayoutRevamp() {
           label: copy.groups[groupId],
           items: navItems.filter((item) => item.group === groupId),
         }),
-      ),
+      ).filter((group) => group.items.length > 0),
     [copy.groups, navItems],
   );
 
@@ -434,72 +456,74 @@ function AppLayoutRevamp() {
 
   const alerts = useMemo<AlertItem[]>(() => {
     const items: AlertItem[] = [];
-    const pendingOrders = orders.filter(
-      (item) => item.status === "pending",
-    ).length;
-    const lowStockProducts = products.filter(
-      (item) =>
-        !item.isDeleted && item.availableStock > 0 && item.availableStock <= 10,
-    ).length;
-    const scheduledPosts = posts.filter(
-      (item) => item.status === "scheduled",
-    ).length;
-    const dealerAttention = dealers.filter(
-      (item) => item.status === "suspended",
-    ).length;
-    const pendingUsers = users.filter(
-      (item) => item.status === "pending",
-    ).length;
+    const pendingOrderIds = orders
+      .filter((item) => item.status === "pending")
+      .map((item) => item.id);
+    const lowStockProductIds = products
+      .filter(
+        (item) =>
+          !item.isDeleted && item.availableStock > 0 && item.availableStock <= 10,
+      )
+      .map((item) => item.sku);
+    const scheduledPostIds = posts
+      .filter((item) => item.status === "scheduled")
+      .map((item) => item.id);
+    const dealerAttentionIds = dealers
+      .filter((item) => item.status === "suspended")
+      .map((item) => item.id);
+    const pendingUserIds = users
+      .filter((item) => item.status === "pending")
+      .map((item) => item.id);
 
-    if (pendingOrders > 0) {
+    if (pendingOrderIds.length > 0) {
       items.push({
-        id: "pending-orders",
+        id: buildAlertStateId("pending-orders", pendingOrderIds),
         title: interpolate(copy.alertTemplates.pendingOrders, {
-          count: pendingOrders,
+          count: pendingOrderIds.length,
         }),
         description: copy.alertDescriptions.pendingOrders,
         to: "/orders",
         icon: ShoppingCart,
       });
     }
-    if (lowStockProducts > 0) {
+    if (lowStockProductIds.length > 0) {
       items.push({
-        id: "low-stock",
+        id: buildAlertStateId("low-stock", lowStockProductIds),
         title: interpolate(copy.alertTemplates.lowStock, {
-          count: lowStockProducts,
+          count: lowStockProductIds.length,
         }),
         description: copy.alertDescriptions.lowStock,
         to: "/products",
         icon: Boxes,
       });
     }
-    if (scheduledPosts > 0) {
+    if (scheduledPostIds.length > 0) {
       items.push({
-        id: "scheduled-posts",
+        id: buildAlertStateId("scheduled-posts", scheduledPostIds),
         title: interpolate(copy.alertTemplates.scheduledPosts, {
-          count: scheduledPosts,
+          count: scheduledPostIds.length,
         }),
         description: copy.alertDescriptions.scheduledPosts,
         to: "/blogs",
         icon: BookOpenText,
       });
     }
-    if (dealerAttention > 0) {
+    if (dealerAttentionIds.length > 0) {
       items.push({
-        id: "dealer-attention",
+        id: buildAlertStateId("dealer-attention", dealerAttentionIds),
         title: interpolate(copy.alertTemplates.dealerAttention, {
-          count: dealerAttention,
+          count: dealerAttentionIds.length,
         }),
         description: copy.alertDescriptions.dealerAttention,
         to: "/dealers",
         icon: BadgeAlert,
       });
     }
-    if (hasRole("SUPER_ADMIN") && pendingUsers > 0) {
+    if (hasRole("SUPER_ADMIN") && pendingUserIds.length > 0) {
       items.push({
-        id: "pending-users",
+        id: buildAlertStateId("pending-users", pendingUserIds),
         title: interpolate(copy.alertTemplates.pendingUsers, {
-          count: pendingUsers,
+          count: pendingUserIds.length,
         }),
         description: copy.alertDescriptions.pendingUsers,
         to: "/users",
@@ -878,8 +902,8 @@ function AppLayoutRevamp() {
       aria-label={copy.openNavigation}
       className={
         mobile
-          ? "brand-admin-shell flex h-full min-h-0 flex-col gap-4 border-r border-[var(--brand-border)] px-4 py-4 text-slate-100"
-          : "brand-admin-shell hidden min-h-0 flex-col gap-4 border-r border-[var(--brand-border)] px-4 py-4 text-slate-100 lg:fixed lg:inset-y-0 lg:left-0 lg:z-20 lg:flex lg:h-[100dvh] lg:w-[296px] lg:overflow-hidden xl:w-[320px]"
+          ? "brand-admin-shell flex h-full min-h-0 flex-col gap-4 border-r border-[var(--brand-border)] px-4 py-4 text-white"
+          : "brand-admin-shell hidden min-h-0 flex-col gap-4 border-r border-[var(--brand-border)] px-4 py-4 text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-[296px] lg:shrink-0 xl:w-[320px]"
       }
     >
       <div className="flex items-center gap-3">
@@ -892,7 +916,7 @@ function AppLayoutRevamp() {
           <div className="flex items-center gap-2 text-sm font-semibold tracking-[0.01em] text-white">
             {ADMIN_APP_NAME}
           </div>
-          <p className="text-xs text-slate-400">{copy.workspace}</p>
+          <p className="text-xs text-white/60">{copy.workspace}</p>
         </div>
       </div>
 
@@ -904,13 +928,13 @@ function AppLayoutRevamp() {
           >
             <button
               aria-expanded={openGroups[group.id]}
-              className="flex w-full items-center justify-between gap-3 px-2.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400"
+              className="flex w-full items-center justify-between gap-3 px-2.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-[0.22em] text-white/60"
               onClick={() => toggleGroup(group.id)}
               type="button"
             >
               <span>{group.label}</span>
               <span className="inline-flex items-center gap-2">
-                <span className="rounded-full bg-[rgba(41,171,226,0.1)] px-2 py-0.5 text-[10px] text-slate-300">
+                <span className="rounded-full bg-[rgba(41,171,226,0.1)] px-2 py-0.5 text-[10px] text-white/75">
                   {group.items.length}
                 </span>
                 {openGroups[group.id] ? (
@@ -933,10 +957,10 @@ function AppLayoutRevamp() {
                       end={item.to === "/"}
                       className={({ isActive }) =>
                         [
-                          "group relative grid grid-cols-[auto,minmax(0,1fr),auto] items-center gap-3 overflow-hidden rounded-[18px] px-3 py-2.5 text-left text-sm font-medium transition",
+                          "group relative flex min-h-[4.25rem] items-center gap-3 overflow-hidden rounded-[18px] px-3 py-2.5 text-left text-sm font-medium transition",
                           isActive
                             ? "bg-[linear-gradient(135deg,rgba(41,171,226,0.22),rgba(0,113,188,0.18))] text-white shadow-[inset_0_0_0_1px_rgba(41,171,226,0.38),0_14px_28px_rgba(3,16,28,0.16)]"
-                            : "text-slate-300 hover:bg-[rgba(41,171,226,0.1)] hover:text-white",
+                            : "text-white/84 hover:bg-[rgba(41,171,226,0.1)] hover:text-white",
                         ].join(" ")
                       }
                       title={item.label}
@@ -953,15 +977,15 @@ function AppLayoutRevamp() {
                           >
                             <Icon className="h-4 w-4" />
                           </span>
-                          <span className="block min-w-0 pr-1 text-sm leading-5 text-inherit break-words">
+                          <span className="line-clamp-2 block min-w-0 flex-1 pr-1 text-sm leading-5 text-inherit break-words">
                             {item.label}
                           </span>
                           <ChevronRight
                             className={[
-                              "h-4 w-4 shrink-0 transition",
+                              "h-4 w-4 shrink-0 self-center transition",
                               isActive
                                 ? "translate-x-0 text-white/70"
-                                : "text-white/20 group-hover:translate-x-0.5 group-hover:text-white/50",
+                                : "text-white/45 group-hover:translate-x-0.5 group-hover:text-white/75",
                             ].join(" ")}
                           />
                         </>
@@ -975,7 +999,7 @@ function AppLayoutRevamp() {
         ))}
       </nav>
 
-      <div className="text-xs text-slate-400">
+      <div className="text-xs text-white/60">
         <div className="rounded-[18px] border border-[var(--brand-border)] bg-[rgba(41,171,226,0.05)] px-3 py-3">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
@@ -1006,7 +1030,7 @@ function AppLayoutRevamp() {
       <div className="relative flex min-h-screen">
         {renderSidebar()}
 
-        <div className="flex min-h-screen min-w-0 flex-1 flex-col lg:pl-[296px] xl:pl-[320px]">
+        <div className="flex min-h-screen min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--surface-tint)]/95 backdrop-blur-xl">
             <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-3 px-4 py-3 sm:px-6 lg:px-8">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1376,4 +1400,3 @@ function AppLayoutRevamp() {
 }
 
 export default AppLayoutRevamp;
-
