@@ -37,12 +37,14 @@ import com.devwonder.backend.dto.admin.AdminFinancialSettlementResponse;
 import com.devwonder.backend.dto.admin.AdminOrderAdjustmentRequest;
 import com.devwonder.backend.dto.admin.AdminOrderAdjustmentResponse;
 import com.devwonder.backend.dto.admin.AdminOrderPaymentResponse;
+import com.devwonder.backend.dto.admin.AdminPublicContentSectionResponse;
 import com.devwonder.backend.dto.admin.AdminRecentPaymentResponse;
 import com.devwonder.backend.dto.admin.AdminRmaRequest;
 import com.devwonder.backend.dto.admin.AdminUnmatchedPaymentResponse;
 import com.devwonder.backend.dto.admin.AdminUpdateFinancialSettlementRequest;
 import com.devwonder.backend.dto.admin.AdminAuditLogResponse;
 import com.devwonder.backend.dto.admin.AdminUpdateUnmatchedPaymentRequest;
+import com.devwonder.backend.dto.admin.UpdateAdminPublicContentSectionRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminStaffUserStatusRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminWarrantyStatusRequest;
 import com.devwonder.backend.dto.customer.ChangePasswordRequest;
@@ -62,6 +64,7 @@ import com.devwonder.backend.service.AdminRmaService;
 import com.devwonder.backend.service.AuditLogService;
 import com.devwonder.backend.service.AdminSettingsService;
 import com.devwonder.backend.service.MailService;
+import com.devwonder.backend.service.PublicContentService;
 import com.devwonder.backend.util.PaginationUtils;
 import jakarta.validation.Valid;
 import java.nio.charset.StandardCharsets;
@@ -102,6 +105,7 @@ public class AdminController {
     private final AdminRmaService adminRmaService;
     private final AuditLogService auditLogService;
     private final MailService mailService;
+    private final PublicContentService publicContentService;
 
     @GetMapping("/products")
     public ResponseEntity<ApiResponse<List<AdminProductResponse>>> products() {
@@ -202,6 +206,27 @@ public class AdminController {
     public ResponseEntity<ApiResponse<Map<String, String>>> deleteOrder(@PathVariable("id") Long id) {
         adminManagementService.deleteOrder(id);
         return ResponseEntity.ok(ApiResponse.success(Map.of("status", "deleted")));
+    }
+
+    @GetMapping("/content")
+    public ResponseEntity<ApiResponse<List<AdminPublicContentSectionResponse>>> getPublicContentSections() {
+        return ResponseEntity.ok(ApiResponse.success(publicContentService.getAdminSections()));
+    }
+
+    @GetMapping("/content/{section}")
+    public ResponseEntity<ApiResponse<AdminPublicContentSectionResponse>> getPublicContentSection(
+            @PathVariable("section") String section,
+            @RequestParam(name = "lang", defaultValue = "vi") String lang
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(publicContentService.getAdminSection(section, lang)));
+    }
+
+    @PutMapping("/content/{section}")
+    public ResponseEntity<ApiResponse<AdminPublicContentSectionResponse>> updatePublicContentSection(
+            @PathVariable("section") String section,
+            @Valid @RequestBody UpdateAdminPublicContentSectionRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(publicContentService.upsertSection(section, request)));
     }
 
     @GetMapping("/dealers")

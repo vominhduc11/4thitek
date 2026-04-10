@@ -7,6 +7,7 @@ import com.devwonder.backend.dto.dealer.CreateDealerOrderItemRequest;
 import com.devwonder.backend.dto.dealer.CreateDealerOrderRequest;
 import com.devwonder.backend.dto.dealer.RecordPaymentRequest;
 import com.devwonder.backend.entity.Dealer;
+import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.entity.enums.PaymentStatus;
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.ProductSerial;
@@ -151,6 +152,7 @@ class DealerBankTransferPaymentSepayEnabledTests {
         dealer.setEmail(username);
         dealer.setPassword("encoded-password");
         dealer.setBusinessName("Dealer " + username);
+        dealer.setCustomerStatus(CustomerStatus.ACTIVE);
         return dealer;
     }
 

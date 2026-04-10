@@ -3,13 +3,6 @@ import type { Product, ProductSpecification, ProductVideo, SimpleProduct } from 
 import { parseImageUrl, parseJsonArray, resolveMediaUrl } from '@/utils/media';
 import { slugify } from './slug';
 
-const EMPTY_PRODUCT_CATEGORY = {
-    id: '',
-    name: '',
-    description: '',
-    slug: ''
-};
-
 const EMPTY_PRODUCT_WARRANTY = {
     period: '',
     coverage: [],
@@ -136,7 +129,6 @@ export function mapProductSummaryToProductCard(product: {
         subtitle: product.shortDescription,
         description: product.shortDescription,
         longDescription: product.shortDescription,
-        category: { ...EMPTY_PRODUCT_CATEGORY },
         images: image
             ? [
                   {
@@ -331,7 +323,6 @@ export function mapProductDetailToViewModel(
             subtitle: description,
             description,
             longDescription: description,
-            category: { ...EMPTY_PRODUCT_CATEGORY },
             images: image
                 ? [
                       {

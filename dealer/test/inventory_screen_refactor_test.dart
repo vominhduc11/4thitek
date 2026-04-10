@@ -315,24 +315,26 @@ class _FakeWarrantyController extends WarrantyController {
 }
 
 class _FakeInventoryService extends InventoryService {
-  _FakeInventoryService({required this.items, this.error}) : super();
+  _FakeInventoryService({required this.items})
+    : failure = null,
+      super();
 
   _FakeInventoryService.empty()
     : items = const <DealerInventoryProductRecord>[],
-      error = null,
+      failure = null,
       super();
 
-  _FakeInventoryService.failure(this.error)
+  _FakeInventoryService.failure(this.failure)
     : items = const <DealerInventoryProductRecord>[],
       super();
 
   final List<DealerInventoryProductRecord> items;
-  final InventoryException? error;
+  final InventoryException? failure;
 
   @override
   Future<DealerInventorySummaryRecord> fetchSummary() async {
-    if (error != null) {
-      throw error!;
+    if (failure != null) {
+      throw failure!;
     }
     var readySerials = 0;
     var warrantySerials = 0;

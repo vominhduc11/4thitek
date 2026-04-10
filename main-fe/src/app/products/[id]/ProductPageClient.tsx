@@ -24,7 +24,6 @@ interface ProductPageClientProps {
         videos: Array<Record<string, unknown>>;
         specifications: unknown;
         price?: number;
-        category?: string;
         tags?: string[];
     };
     initialRelatedProducts: Array<{

@@ -90,8 +90,8 @@ class PublicApiResponseShapeTests {
                 .andExpect(jsonPath("$.data[0].stock").isNumber())
                 .andExpect(jsonPath("$.data[0].warrantyMonths").isNumber())
                 // shortDescription and image are nullable — assert key presence, not value
-                .andExpect(jsonPath("$.data[0].shortDescription").exists())
-                .andExpect(jsonPath("$.data[0].image").exists());
+                .andExpect(jsonPath("$.data[0].shortDescription").hasJsonPath())
+                .andExpect(jsonPath("$.data[0].image").hasJsonPath());
     }
 
     /**
@@ -113,12 +113,12 @@ class PublicApiResponseShapeTests {
                 .andExpect(jsonPath("$.data.stock").isNumber())
                 .andExpect(jsonPath("$.data.warrantyMonths").isNumber())
                 // Nullable detail fields — must exist as JSON keys
-                .andExpect(jsonPath("$.data.shortDescription").exists())
-                .andExpect(jsonPath("$.data.image").exists())
-                .andExpect(jsonPath("$.data.description").exists())
-                .andExpect(jsonPath("$.data.specifications").exists())
-                .andExpect(jsonPath("$.data.videos").exists())
-                .andExpect(jsonPath("$.data.descriptions").exists());
+                .andExpect(jsonPath("$.data.shortDescription").hasJsonPath())
+                .andExpect(jsonPath("$.data.image").hasJsonPath())
+                .andExpect(jsonPath("$.data.description").hasJsonPath())
+                .andExpect(jsonPath("$.data.specifications").hasJsonPath())
+                .andExpect(jsonPath("$.data.videos").hasJsonPath())
+                .andExpect(jsonPath("$.data.descriptions").hasJsonPath());
     }
 
     // ── Blogs ─────────────────────────────────────────────────────────────────
@@ -150,8 +150,8 @@ class PublicApiResponseShapeTests {
                 .andExpect(jsonPath("$.data[0].category").isString())
                 .andExpect(jsonPath("$.data[0].createdAt").exists())
                 // description and image are nullable — must be serialised as JSON keys
-                .andExpect(jsonPath("$.data[0].description").exists())
-                .andExpect(jsonPath("$.data[0].image").exists());
+                .andExpect(jsonPath("$.data[0].description").hasJsonPath())
+                .andExpect(jsonPath("$.data[0].image").hasJsonPath());
     }
 
     // ── Dealers ───────────────────────────────────────────────────────────────
@@ -179,13 +179,13 @@ class PublicApiResponseShapeTests {
                 .andExpect(jsonPath("$.data.size").isNumber())
                 // Dealer item fields
                 .andExpect(jsonPath("$.data.items[0].id").isNumber())
-                .andExpect(jsonPath("$.data.items[0].businessName").exists())
+                .andExpect(jsonPath("$.data.items[0].businessName").hasJsonPath())
                 .andExpect(jsonPath("$.data.items[0].email").isString())
-                .andExpect(jsonPath("$.data.items[0].contactName").exists())
-                .andExpect(jsonPath("$.data.items[0].address").exists())
-                .andExpect(jsonPath("$.data.items[0].city").exists())
-                .andExpect(jsonPath("$.data.items[0].district").exists())
-                .andExpect(jsonPath("$.data.items[0].phone").exists());
+                .andExpect(jsonPath("$.data.items[0].contactName").hasJsonPath())
+                .andExpect(jsonPath("$.data.items[0].address").hasJsonPath())
+                .andExpect(jsonPath("$.data.items[0].city").hasJsonPath())
+                .andExpect(jsonPath("$.data.items[0].district").hasJsonPath())
+                .andExpect(jsonPath("$.data.items[0].phone").hasJsonPath());
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

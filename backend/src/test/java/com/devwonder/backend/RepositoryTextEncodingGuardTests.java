@@ -59,11 +59,11 @@ class RepositoryTextEncodingGuardTests {
     static {
         REQUIRED_VIETNAMESE_PHRASES.put(
                 Path.of("src/main/resources/site-content.json"),
-                List.of("79/30/52 Âu Cơ", "Thành phố Hồ Chí Minh", "Liên minh Châu Âu")
+                List.of("79/30/52", "TP.", "info@4thitek.vn")
         );
         REQUIRED_VIETNAMESE_PHRASES.put(
-                Path.of("../main-fe/src/context/languageData.ts"),
-                List.of("79/30/52 Âu Cơ", "Âm Thanh Chuyên Nghiệp", "Liên minh Châu Âu")
+                Path.of("../main-fe/src/lib/site.ts"),
+                List.of("SITE_NAME", "REGISTERED_ADDRESS", "CONTACT_EMAIL")
         );
     }
 

@@ -1,4 +1,4 @@
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMP WITH TIME ZONE;
 
 UPDATE orders
 SET confirmed_at = COALESCE(updated_at, created_at)

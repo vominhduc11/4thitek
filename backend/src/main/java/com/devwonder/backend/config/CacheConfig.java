@@ -50,6 +50,7 @@ public class CacheConfig {
                         CacheNames.PUBLIC_FEATURED_PRODUCTS,
                         CacheNames.PUBLIC_PRODUCTS,
                         CacheNames.PUBLIC_PRODUCT_BY_ID,
+                        CacheNames.PUBLIC_PRODUCT_RELATED,
                         CacheNames.PUBLIC_DEALERS,
                         CacheNames.PUBLIC_WARRANTY_LOOKUP,
                         CacheNames.PUBLIC_HOMEPAGE_BLOGS,

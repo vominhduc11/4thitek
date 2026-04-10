@@ -67,6 +67,7 @@ public class SecurityConfig {
                                 "/api/v1/content/**",
                                 "/api/v1/blog/**",
                                 "/api/v1/product/**",
+                                "/api/v1/search",
                                 "/api/v1/warranty/check/**",
                                 "/api/v1/webhooks/sepay",
                                 "/api/v1/health",

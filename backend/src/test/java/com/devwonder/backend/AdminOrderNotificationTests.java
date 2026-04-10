@@ -10,6 +10,7 @@ import com.devwonder.backend.dto.dealer.UpdateDealerOrderStatusRequest;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Notify;
 import com.devwonder.backend.entity.Order;
+import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.entity.enums.NotifyType;
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.PaymentMethod;
@@ -78,6 +79,9 @@ class AdminOrderNotificationTests {
     void updateOrderStatusCreatesOrderNotificationForDealer() {
         Dealer dealer = dealerRepository.save(createDealer("dealer-order@example.com"));
         Order order = orderRepository.save(createOrder(dealer, OrderStatus.PENDING, "SCS-1-ORDER"));
+        order.setPaymentStatus(PaymentStatus.PAID);
+        order.setPaidAmount(BigDecimal.valueOf(100_000));
+        order = orderRepository.save(order);
 
         adminManagementService.updateOrderStatus(
                 order.getId(),
@@ -135,6 +139,7 @@ class AdminOrderNotificationTests {
         dealer.setEmail(username);
         dealer.setPassword("encoded-password");
         dealer.setBusinessName("Dealer " + username);
+        dealer.setCustomerStatus(CustomerStatus.ACTIVE);
         return dealer;
     }
 

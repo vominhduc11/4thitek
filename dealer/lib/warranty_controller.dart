@@ -192,10 +192,11 @@ class WarrantyController extends ChangeNotifier {
 
   Future<void> load({bool forceRefresh = false}) async {
     _lastSyncMessage = null;
-    final loadedLocal = await _loadLocalState();
+    await _clearLegacyPersistedState();
+    _lastLocalStateLoadedAt = null;
     final loadedRemote = await _loadRemoteState();
-    _usingLocalFallback = loadedLocal && !loadedRemote;
-    if (!loadedRemote && !loadedLocal && forceRefresh) {
+    _usingLocalFallback = false;
+    if (!loadedRemote && forceRefresh) {
       _resetToEmptyState();
     }
     _sanitizeState();
@@ -210,10 +211,7 @@ class WarrantyController extends ChangeNotifier {
     _lastLocalStateLoadedAt = null;
     _lastRemoteSyncAt = null;
     _usingLocalFallback = false;
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_activationsStorageKey);
-    await prefs.remove(_serialsStorageKey);
+    await _clearLegacyPersistedState();
     notifyListeners();
   }
 
@@ -543,7 +541,6 @@ class WarrantyController extends ChangeNotifier {
     final hasFailures = successful.length != newActivations.length;
     if (hasFailures && successful.isNotEmpty) {
       _upsertActivations(successful);
-      await _persist();
     }
     if (hasFailures) {
       final failureMessage =
@@ -557,7 +554,6 @@ class WarrantyController extends ChangeNotifier {
     }
 
     _upsertActivations(successful);
-    await _persist();
     await _loadRemoteState();
     _sanitizeState();
     notifyListeners();
@@ -568,40 +564,10 @@ class WarrantyController extends ChangeNotifier {
     return _normalizeSerial(serial);
   }
 
-  Future<bool> _loadLocalState() async {
+  Future<void> _clearLegacyPersistedState() async {
     final prefs = await SharedPreferences.getInstance();
-    final hasStoredState =
-        prefs.containsKey(_activationsStorageKey) ||
-        prefs.containsKey(_serialsStorageKey);
-    if (!hasStoredState) {
-      return false;
-    }
-
-    try {
-      final activationData = _decodeStoredList(
-        prefs.getString(_activationsStorageKey),
-      );
-      final serialData = _decodeStoredList(prefs.getString(_serialsStorageKey));
-
-      _replaceActivations(
-        activationData
-            .whereType<Map<String, dynamic>>()
-            .map(_activationFromJson)
-            .whereType<WarrantyActivationRecord>(),
-      );
-      _replaceImportedSerials(
-        serialData
-            .whereType<Map<String, dynamic>>()
-            .map(_serialFromJson)
-            .whereType<ImportedSerialRecord>(),
-      );
-      _lastLocalStateLoadedAt = DateTime.now();
-      _sanitizeState();
-      return true;
-    } catch (_) {
-      _resetToEmptyState();
-      return false;
-    }
+    await prefs.remove(_activationsStorageKey);
+    await prefs.remove(_serialsStorageKey);
   }
 
   Future<bool> _loadRemoteState() async {
@@ -703,7 +669,6 @@ class WarrantyController extends ChangeNotifier {
       _syncMapContents(_remoteSerialIds, nextRemoteSerialIds);
       _syncMapContents(_remoteWarrantyIds, nextRemoteWarrantyIds);
       _sanitizeState();
-      await _persist();
       _lastSyncMessage = null;
       _lastRemoteSyncAt = DateTime.now();
       _usingLocalFallback = false;
@@ -1043,80 +1008,6 @@ class WarrantyController extends ChangeNotifier {
     target.addAll(next);
   }
 
-  Future<void> _persist() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _activationsStorageKey,
-      jsonEncode(_activations.map(_activationToJson).toList(growable: false)),
-    );
-    await prefs.setString(
-      _serialsStorageKey,
-      jsonEncode(_importedSerials.map(_serialToJson).toList(growable: false)),
-    );
-  }
-
-  List<dynamic> _decodeStoredList(String? raw) {
-    if (raw == null || raw.trim().isEmpty) {
-      return const <dynamic>[];
-    }
-    final decoded = jsonDecode(raw);
-    if (decoded is List) {
-      return decoded;
-    }
-    return const <dynamic>[];
-  }
-
-  WarrantyActivationRecord? _activationFromJson(Map<String, dynamic> json) {
-    final serial = _normalizeSerial(_normalizeString(json['serial']) ?? '');
-    if (serial.isEmpty) {
-      return null;
-    }
-    final purchaseDate = _normalizeLocalDate(
-      _parseDateTimeValue(json['purchaseDate']) ??
-          _parseDateTimeValue(json['activatedAt']) ??
-          DateTime.now(),
-    );
-    final activatedAt =
-        _parseDateTimeValue(json['activatedAt']) ?? purchaseDate;
-    final rawWarrantyEnd = _parseDateTimeValue(json['warrantyEnd']);
-    final warrantyEnd = rawWarrantyEnd == null
-        ? null
-        : _normalizeLocalDate(rawWarrantyEnd);
-    return WarrantyActivationRecord(
-      orderId: _normalizeString(json['orderId']) ?? '',
-      productId: _normalizeString(json['productId']) ?? '',
-      productName: _normalizeString(json['productName']) ?? 'Product',
-      productSku: _normalizeString(json['productSku']) ?? '',
-      serial: serial,
-      customerName: _normalizeString(json['customerName']) ?? '',
-      customerEmail: _normalizeString(json['customerEmail']) ?? '',
-      customerPhone: _normalizeString(json['customerPhone']) ?? '',
-      customerAddress: _normalizeString(json['customerAddress']) ?? '',
-      warrantyMonths: _parseInt(json['warrantyMonths'], fallback: 12),
-      activatedAt: activatedAt,
-      purchaseDate: purchaseDate,
-      warrantyEnd: warrantyEnd,
-    );
-  }
-
-  ImportedSerialRecord? _serialFromJson(Map<String, dynamic> json) {
-    final serial = _normalizeSerial(_normalizeString(json['serial']) ?? '');
-    if (serial.isEmpty) {
-      return null;
-    }
-    return ImportedSerialRecord(
-      serial: serial,
-      orderId: _normalizeString(json['orderId']) ?? '',
-      productId: _normalizeString(json['productId']) ?? '',
-      productName: _normalizeString(json['productName']) ?? 'Product',
-      productSku: _normalizeString(json['productSku']) ?? '',
-      importedAt: _parseDateTimeValue(json['importedAt']) ?? DateTime.now(),
-      status: parseImportedSerialStatus(_normalizeString(json['status'])),
-      warehouseId: _normalizeString(json['warehouseId']) ?? 'main',
-      warehouseName: _normalizeString(json['warehouseName']) ?? 'Kho',
-    );
-  }
-
   Future<String?> _readAccessToken() async {
     if (!DealerApiConfig.isConfigured) {
       return null;
@@ -1274,40 +1165,3 @@ String _normalizeSerial(String serial) {
   return serial.trim().toUpperCase();
 }
 
-Map<String, dynamic> _activationToJson(WarrantyActivationRecord record) {
-  final purchaseDate = DateTime(
-    record.purchaseDate.year,
-    record.purchaseDate.month,
-    record.purchaseDate.day,
-  );
-  return <String, dynamic>{
-    'orderId': record.orderId,
-    'productId': record.productId,
-    'productName': record.productName,
-    'productSku': record.productSku,
-    'serial': record.serial,
-    'customerName': record.customerName,
-    'customerEmail': record.customerEmail,
-    'customerPhone': record.customerPhone,
-    'customerAddress': record.customerAddress,
-    'warrantyMonths': record.warrantyMonths,
-    'activatedAt': record.activatedAt.toIso8601String(),
-    'purchaseDate':
-        '${purchaseDate.year}-${purchaseDate.month.toString().padLeft(2, '0')}-${purchaseDate.day.toString().padLeft(2, '0')}',
-    'warrantyEnd': record.warrantyEnd?.toIso8601String(),
-  };
-}
-
-Map<String, dynamic> _serialToJson(ImportedSerialRecord record) {
-  return <String, dynamic>{
-    'serial': record.serial,
-    'orderId': record.orderId,
-    'productId': record.productId,
-    'productName': record.productName,
-    'productSku': record.productSku,
-    'importedAt': record.importedAt.toIso8601String(),
-    'status': record.status.name.toUpperCase(),
-    'warehouseId': record.warehouseId,
-    'warehouseName': record.warehouseName,
-  };
-}

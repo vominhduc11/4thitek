@@ -24,6 +24,7 @@ import com.devwonder.backend.entity.enums.WarrantyStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.repository.AuditLogRepository;
 import com.devwonder.backend.repository.DealerRepository;
+import com.devwonder.backend.repository.NotifyRepository;
 import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
@@ -72,9 +73,13 @@ class AdminSerialInvariantTests {
     @Autowired
     private AuditLogRepository auditLogRepository;
 
+    @Autowired
+    private NotifyRepository notifyRepository;
+
     @BeforeEach
     void setUp() {
         auditLogRepository.deleteAll();
+        notifyRepository.deleteAll();
         warrantyRegistrationRepository.deleteAll();
         productSerialRepository.deleteAll();
         orderRepository.deleteAll();
@@ -483,6 +488,7 @@ class AdminSerialInvariantTests {
         dealer.setEmail(email);
         dealer.setPassword("encoded-password");
         dealer.setBusinessName("Dealer " + email);
+        dealer.setCustomerStatus(com.devwonder.backend.entity.enums.CustomerStatus.ACTIVE);
         return dealer;
     }
 

@@ -1,16 +1,4 @@
 import { useEffect, useRef } from 'react'
-import Quill from 'quill'
-import 'quill/dist/quill.snow.css'
-
-// Register divider (horizontal rule) blot once
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const BlockEmbed = Quill.import('blots/block/embed') as any
-class DividerBlot extends BlockEmbed {
-  static blotName = 'divider'
-  static tagName = 'hr'
-}
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-Quill.register(DividerBlot as any)
 
 type RichTextEditorProps = {
   value: string
@@ -22,18 +10,6 @@ type RichTextEditorProps = {
   ariaLabel?: string
 }
 
-type QuillToolbarModule = {
-  container?: HTMLElement
-  addHandler?: (format: string, handler: () => void) => void
-}
-
-const insertDivider = (instance: Quill) => {
-  const range = instance.getSelection(true)
-  const index = range?.index ?? instance.getLength()
-  instance.insertEmbed(index, 'divider', true, 'user')
-  instance.setSelection(index + 1, 0, 'silent')
-}
-
 export const RichTextEditor = ({
   value,
   onChange,
@@ -43,112 +19,35 @@ export const RichTextEditor = ({
   readOnly,
   ariaLabel,
 }: RichTextEditorProps) => {
-  const containerRef = useRef<HTMLDivElement | null>(null)
-  const quillRef = useRef<Quill | null>(null)
-  const toolbarRef = useRef<HTMLElement | null>(null)
-  const onChangeRef = useRef(onChange)
-  const valueRef = useRef(value)
-  const modulesRef = useRef(modules)
-  const formatsRef = useRef(formats)
-  const placeholderRef = useRef(placeholder)
-  const readOnlyRef = useRef(readOnly)
-  const ariaLabelRef = useRef(ariaLabel)
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
 
   useEffect(() => {
-    onChangeRef.current = onChange
-  }, [onChange])
+    const textarea = textareaRef.current
+    if (!textarea) {
+      return
+    }
 
-  useEffect(() => {
-    valueRef.current = value
+    textarea.style.height = '0px'
+    textarea.style.height = `${Math.max(textarea.scrollHeight, 220)}px`
   }, [value])
 
-  useEffect(() => {
-    readOnlyRef.current = readOnly
-  }, [readOnly])
+  void modules
+  void formats
 
-  useEffect(() => {
-    ariaLabelRef.current = ariaLabel
-  }, [ariaLabel])
-
-  useEffect(() => {
-    if (!containerRef.current || quillRef.current) return
-
-    const container = containerRef.current
-    const instance = new Quill(container, {
-      theme: 'snow',
-      modules: modulesRef.current,
-      formats: formatsRef.current,
-      placeholder: placeholderRef.current,
-      readOnly: readOnlyRef.current,
-    })
-
-    quillRef.current = instance
-    const toolbarModule = instance.getModule('toolbar') as QuillToolbarModule | null
-    toolbarRef.current = toolbarModule?.container ?? null
-    toolbarModule?.addHandler?.('divider', () => {
-      insertDivider(instance)
-    })
-
-    const handleChange = () => {
-      const html = instance.root.innerHTML
-      if (html !== valueRef.current) {
-        onChangeRef.current(html)
-      }
-    }
-
-    instance.root.setAttribute(
-      'aria-label',
-      ariaLabelRef.current ?? placeholderRef.current ?? 'Rich text editor',
-    )
-    instance.root.setAttribute('aria-multiline', 'true')
-    instance.on('text-change', handleChange)
-
-    if (valueRef.current) {
-      instance.clipboard.dangerouslyPasteHTML(valueRef.current, 'silent')
-    } else {
-      instance.setText('', 'silent')
-    }
-
-    return () => {
-      const toolbarContainer = toolbarRef.current
-      instance.off('text-change', handleChange)
-      quillRef.current = null
-      if (toolbarContainer?.parentNode) {
-        toolbarContainer.parentNode.removeChild(toolbarContainer)
-      }
-      toolbarRef.current = null
-      container.innerHTML = ''
-    }
-  }, [])
-
-  useEffect(() => {
-    const instance = quillRef.current
-    if (!instance) return
-
-    instance.enable(!readOnly)
-  }, [readOnly])
-
-  useEffect(() => {
-    const root = quillRef.current?.root
-    if (!root) return
-
-    root.setAttribute('aria-label', ariaLabel ?? placeholder ?? 'Rich text editor')
-    root.setAttribute('aria-multiline', 'true')
-  }, [ariaLabel, placeholder])
-
-  useEffect(() => {
-    const instance = quillRef.current
-    if (!instance) return
-
-    const currentHtml = instance.root.innerHTML
-    if (value !== currentHtml) {
-      const selection = instance.getSelection()
-      instance.clipboard.dangerouslyPasteHTML(value || '', 'silent')
-      if (selection) {
-        instance.setSelection(selection)
-      }
-    }
-  }, [value])
-
-  return <div ref={containerRef} />
+  return (
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <div className="border-b border-slate-100 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-500">
+        HTML content editor
+      </div>
+      <textarea
+        ref={textareaRef}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        readOnly={readOnly}
+        aria-label={ariaLabel ?? placeholder ?? 'Rich text editor'}
+        className="min-h-[220px] w-full resize-y border-0 bg-white px-4 py-3 font-mono text-sm leading-6 text-slate-900 outline-none"
+      />
+    </div>
+  )
 }

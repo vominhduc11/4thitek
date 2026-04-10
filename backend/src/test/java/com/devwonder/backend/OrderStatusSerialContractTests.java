@@ -7,6 +7,7 @@ import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.ProductSerial;
+import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.PaymentMethod;
 import com.devwonder.backend.entity.enums.PaymentStatus;
@@ -67,6 +68,9 @@ class OrderStatusSerialContractTests {
         Dealer dealer = dealerRepository.save(createDealer("confirmed-serial@example.com"));
         Product product = productRepository.save(createProduct("SKU-CONFIRM-SERIAL"));
         Order order = orderRepository.save(createOrder(dealer, OrderStatus.PENDING, "SCS-CONFIRM-SERIAL"));
+        order.setPaymentStatus(PaymentStatus.PAID);
+        order.setPaidAmount(BigDecimal.valueOf(100_000));
+        order = orderRepository.save(order);
         ProductSerial serial = productSerialRepository.save(createReservedSerial(order, product, "SERIAL-CONFIRM-001"));
 
         adminManagementService.updateOrderStatus(
@@ -105,6 +109,7 @@ class OrderStatusSerialContractTests {
         dealer.setEmail(username);
         dealer.setPassword("encoded-password");
         dealer.setBusinessName("Dealer " + username);
+        dealer.setCustomerStatus(CustomerStatus.ACTIVE);
         return dealer;
     }
 

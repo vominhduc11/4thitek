@@ -16,6 +16,7 @@ import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
+import com.devwonder.backend.repository.NotifyRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
 import com.devwonder.backend.config.CacheNames;
 import com.devwonder.backend.entity.Blog;
@@ -58,6 +59,9 @@ class PublicApiServiceTests {
     private OrderRepository orderRepository;
 
     @Autowired
+    private NotifyRepository notifyRepository;
+
+    @Autowired
     private ProductStockSyncSupport productStockSyncSupport;
 
     @Autowired
@@ -65,6 +69,7 @@ class PublicApiServiceTests {
 
     @BeforeEach
     void setUp() {
+        notifyRepository.deleteAll();
         warrantyRegistrationRepository.deleteAll();
         productSerialRepository.deleteAll();
         orderRepository.deleteAll();

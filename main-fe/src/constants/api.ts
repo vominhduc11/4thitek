@@ -135,6 +135,7 @@ export const API_ENDPOINTS = {
     PRODUCT: {
         BASE: '/product',
         PRODUCTS: '/product/products',
+        PRODUCTS_HOMEPAGE: '/product/products/homepage',
         PRODUCTS_NEW: '/product/products/new',
         PRODUCTS_FEATURED: '/product/products/featured',
         PRODUCTS_SEARCH: '/product/products/search',

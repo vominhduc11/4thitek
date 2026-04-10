@@ -22,7 +22,7 @@ interface SearchResult {
     subtitle?: string;
     image?: string;
     href: string;
-    category?: string;
+    metaLabel?: string;
 }
 
 const sectionVariants = {
@@ -85,7 +85,7 @@ function SearchContent() {
                             subtitle: product.shortDescription,
                             image: parseImageUrl(product.image),
                             href: buildProductPath(productId, product.name),
-                            category: t('search.type.product')
+                            metaLabel: t('search.type.product')
                         });
                     }
                 );
@@ -110,7 +110,7 @@ function SearchContent() {
                             subtitle: blog.description,
                             image: parseImageUrl(blog.image),
                             href: buildBlogPath(blogId, blog.title),
-                            category: blog.category || t('search.type.blog')
+                            metaLabel: blog.category || t('search.type.blog')
                         });
                     }
                 );
@@ -439,7 +439,7 @@ function SearchContent() {
                                                         <div className="mt-4 flex items-center justify-between gap-3">
                                                             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">
                                                                 <span className="h-1.5 w-1.5 rounded-full bg-[var(--brand-blue)]" />
-                                                                {result.category}
+                                                                {result.metaLabel}
                                                             </div>
                                                             <span className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--brand-blue)]">
                                                                 Open

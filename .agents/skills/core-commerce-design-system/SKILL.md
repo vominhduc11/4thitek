@@ -1,7 +1,7 @@
 # TKHITEK Core Commerce Design Skill
 
 ## Nguồn chuẩn
-- Brand guideline chính: `D:\TKHITEK_BRANDGUIDELINE.pdf`
+- Brand guideline chính: `E:\Project\4thitek\TKHITEK_BRANDGUIDELINE.pdf`
 - Business/contract phải ưu tiên theo repo source of truth hiện hành, không được tự ý đổi route, slug, SEO, API contract, hay business state.
 
 ## Rule bắt buộc
@@ -54,4 +54,4 @@
 - Ưu tiên refactor có trọng tâm, không broad rewrite nếu không cần thiết.
 - Tái sử dụng token, component, và pattern sẵn có trước khi tạo mới.
 - Bảo toàn accessibility và progressive enhancement.
-- Bất cứ thay đổi nào liên quan tới brand/UI phải được đối chiếu với `D:\TKHITEK_BRANDGUIDELINE.pdf` trước khi chốt.
+- Bất cứ thay đổi nào liên quan tới brand/UI phải được đối chiếu với `E:\Project\4thitek\TKHITEK_BRANDGUIDELINE.pdf` trước khi chốt.

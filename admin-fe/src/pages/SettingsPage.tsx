@@ -10,6 +10,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 import {
   ErrorState,
   FieldErrorMessage,
@@ -483,6 +484,9 @@ function SettingsPage() {
             >
               {isSettingsSaving ? copy.saving : copy.save}
             </PrimaryButton>
+            <Link className={ghostButtonClass} to="/settings/content">
+              {t("Public content")}
+            </Link>
             {isDirty ? (
               <GhostButton onClick={() => setDraft(settings)} type="button">
                 {copy.reset}

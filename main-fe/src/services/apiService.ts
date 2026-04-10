@@ -203,7 +203,7 @@ class ApiService {
     }
 
     async fetchNewProducts(): Promise<ApiResponse<ProductListResponse['data']>> {
-        const response = await this.request<ProductSummaryPayload[]>(API_ENDPOINTS.PRODUCT.PRODUCTS_NEW, {
+        const response = await this.request<ProductSummaryPayload[]>(API_ENDPOINTS.PRODUCT.PRODUCTS_HOMEPAGE, {
             revalidate: 3600
         });
         return {
@@ -242,7 +242,6 @@ class ApiService {
                 price: response.data.price || 0,
                 specifications: response.data.specifications || '[]',
                 videos: response.data.videos || '[]',
-                category: '4thitek',
                 descriptions:
                     response.data.descriptions ||
                     JSON.stringify([

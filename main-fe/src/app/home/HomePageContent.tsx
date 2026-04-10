@@ -25,7 +25,7 @@ function WaveDivider({ fromColor, toColor }: { fromColor: string; toColor: strin
 export default async function HomePageContent() {
     const [featuredProductsResponse, homepageProductsResponse, blogsResponse] = await Promise.all([
         publicApiServer.fetchFeaturedProducts(),
-        publicApiServer.fetchNewProducts(),
+        publicApiServer.fetchHomepageProducts(),
         publicApiServer.fetchLatestBlogs()
     ]);
 

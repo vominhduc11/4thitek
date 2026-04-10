@@ -52,15 +52,6 @@ export interface ProductAvailability {
     estimatedDelivery?: string;
 }
 
-// ProductSeries interface removed - using individual products instead
-
-export interface ProductCategory {
-    id: string;
-    name: string;
-    description: string;
-    slug: string;
-}
-
 export interface Product {
     id: string;
     name: string;
@@ -68,7 +59,6 @@ export interface Product {
     subtitle: string;
     description: string;
     longDescription?: string;
-    category: ProductCategory;
 
     // Media
     images: ProductImage[];
@@ -115,7 +105,6 @@ export interface SimpleProduct {
     description: string;
     image: string;
     price?: number;
-    category?: string;
     specifications?: unknown[];
     inStock?: boolean;
     featured?: boolean;
@@ -127,7 +116,6 @@ export interface SimpleProduct {
 }
 
 export interface ProductFilter {
-    category?: string[];
     availability?: string[];
     features?: string[];
     tags?: string[];
@@ -154,7 +142,6 @@ export interface ProductListResponse {
     limit: number;
     totalPages: number;
     filters: {
-        availableCategories: ProductCategory[];
         availableFeatures: string[];
         availableTargetAudience: string[];
     };

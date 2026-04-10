@@ -7,6 +7,7 @@ import com.devwonder.backend.dto.admin.AdminUpdateUnmatchedPaymentRequest;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.UnmatchedPayment;
+import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.PaymentMethod;
 import com.devwonder.backend.entity.enums.PaymentStatus;
@@ -24,6 +25,7 @@ import com.devwonder.backend.repository.PaymentRepository;
 import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.UnmatchedPaymentRepository;
+import com.devwonder.backend.repository.WarrantyRegistrationRepository;
 import com.devwonder.backend.service.AdminFinancialService;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -75,6 +77,9 @@ class UnmatchedPaymentResolveTests {
     private ProductRepository productRepository;
 
     @Autowired
+    private WarrantyRegistrationRepository warrantyRegistrationRepository;
+
+    @Autowired
     private AdminRepository adminRepository;
 
     @BeforeEach
@@ -83,6 +88,7 @@ class UnmatchedPaymentResolveTests {
         dealerSupportTicketRepository.deleteAll();
         orderAdjustmentRepository.deleteAll();
         paymentRepository.deleteAll();
+        warrantyRegistrationRepository.deleteAll();
         productSerialRepository.deleteAll();
         unmatchedPaymentRepository.deleteAll();
         orderRepository.deleteAll();
@@ -302,6 +308,7 @@ class UnmatchedPaymentResolveTests {
         dealer.setEmail(username);
         dealer.setPassword("encoded-password");
         dealer.setBusinessName("Test Dealer " + username);
+        dealer.setCustomerStatus(CustomerStatus.ACTIVE);
         return dealer;
     }
 

@@ -25,6 +25,7 @@ const NotificationsPage = lazy(() => import('./pages/NotificationsPageRevamp'))
 const ReportsPage = lazy(() => import('./pages/ReportsPageRevamp'))
 const UsersPage = lazy(() => import('./pages/UsersPageRevamp'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
+const PublicContentPage = lazy(() => import('./pages/PublicContentPage'))
 const LoginPage = lazy(() => import('./pages/LoginPage'))
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'))
 const ChangePasswordPage = lazy(() => import('./pages/ChangePasswordPage'))
@@ -111,6 +112,7 @@ function App() {
             <Route path="/users" element={renderLazyElement(UsersPage)} />
             <Route path="/audit-logs" element={renderLazyElement(AuditLogsPage)} />
             <Route path="/settings" element={renderLazyElement(SettingsPage)} />
+            <Route path="/settings/content" element={renderLazyElement(PublicContentPage)} />
           </Route>
         </Route>
       </Route>

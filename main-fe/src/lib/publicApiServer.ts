@@ -43,10 +43,11 @@ async function fetchEnvelope<T>(
 }
 
 export const publicApiServer = {
-    fetchNewProducts: (options?: PublicApiRequestOptions) =>
+    fetchHomepageProducts: (options?: PublicApiRequestOptions) =>
         fetchEnvelope<
             Array<{ id: number | string; name: string; sku?: string; shortDescription: string; image: string; price?: number }>
-        >(API_ENDPOINTS.PRODUCT.PRODUCTS_NEW, 60, options),
+        >(API_ENDPOINTS.PRODUCT.PRODUCTS_HOMEPAGE, 60, options),
+    fetchNewProducts: (options?: PublicApiRequestOptions) => publicApiServer.fetchHomepageProducts(options),
     fetchFeaturedProducts: (options?: PublicApiRequestOptions) =>
         fetchEnvelope<
             Array<{ id: number | string; name: string; sku?: string; shortDescription: string; image: string; price?: number }>

@@ -25,13 +25,13 @@ const SEARCH_HISTORY_STORAGE_KEY = '4thitek_recent_searches';
 const LEGACY_SEARCH_HISTORY_STORAGE_KEY = 'tunecore_recent_searches';
 
 interface SearchResult {
-    type: 'product' | 'blog' | 'category';
+    type: 'product' | 'blog';
     id: string;
     title: string;
     subtitle?: string;
     image?: string;
     href: string;
-    category?: string;
+    metaLabel?: string;
 }
 
 const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalProps) {
@@ -105,7 +105,7 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
                     subtitle: product.shortDescription,
                     image: parseImageUrl(product.image),
                     href: buildProductPath(productId, product.name),
-                    category: t('search.type.product')
+                    metaLabel: t('search.type.product')
                 });
             });
 
@@ -122,7 +122,7 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
                     subtitle: blog.description,
                     image: parseImageUrl(blog.image),
                     href: buildBlogPath(blogId, blog.title),
-                    category: blog.category || t('search.type.blog')
+                    metaLabel: blog.category || t('search.type.blog')
                 });
             });
 
@@ -359,9 +359,9 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
                                                             >
                                                                 {result.type === 'product' ? t('search.type.product') : t('search.type.blog')}
                                                             </span>
-                                                            {result.category && (
+                                                            {result.metaLabel && (
                                                                 <span className="text-xs text-[var(--text-secondary)]">
-                                                                    {result.category}
+                                                                    {result.metaLabel}
                                                                 </span>
                                                             )}
                                                         </div>

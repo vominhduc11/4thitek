@@ -7,6 +7,7 @@ import com.devwonder.backend.dto.dealer.UpsertDealerCartItemRequest;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.ProductSerial;
+import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.entity.enums.ProductSerialStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.repository.DealerCartItemRepository;
@@ -136,6 +137,7 @@ class DealerCartValidationContractTests {
         dealer.setEmail(username);
         dealer.setPassword("encoded-password");
         dealer.setBusinessName("Dealer " + username);
+        dealer.setCustomerStatus(CustomerStatus.ACTIVE);
         return dealer;
     }
 

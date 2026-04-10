@@ -30,9 +30,15 @@ public class PublicController {
         return ResponseEntity.ok(ApiResponse.success(Map.of("status", "ok")));
     }
 
+    @GetMapping("/product/products/homepage")
+    public ResponseEntity<ApiResponse<List<PublicProductSummaryResponse>>> homepageProducts() {
+        return ResponseEntity.ok(ApiResponse.success(publicApiService.getHomepageProducts()));
+    }
+
+    @Deprecated(forRemoval = false)
     @GetMapping("/product/products/new")
     public ResponseEntity<ApiResponse<List<PublicProductSummaryResponse>>> newProducts() {
-        return ResponseEntity.ok(ApiResponse.success(publicApiService.getHomepageProducts()));
+        return homepageProducts();
     }
 
     @GetMapping("/product/products/featured")

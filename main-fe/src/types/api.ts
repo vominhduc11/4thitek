@@ -150,7 +150,6 @@ export interface ProductDetailResponse extends BaseApiResponse {
             title: string;
             url: string;
         }> | string;
-        category: string;
         features?: string[];
         tags?: string[];
         descriptions?: string;
