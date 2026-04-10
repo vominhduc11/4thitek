@@ -40,13 +40,13 @@ void main() {
     );
   });
 
-  test('ProductCatalogController stores tokenized invalid product payload error', () async {
+  test('ProductCatalogController stores tokenized invalid paginated payload error', () async {
     final controller = ProductCatalogController(
       client: _FakeClient((request) async {
         return _jsonResponse(
           statusCode: 200,
           body: <String, dynamic>{
-            'data': <String, dynamic>{'unexpected': true},
+            'data': <dynamic>['unexpected'],
           },
         );
       }),
@@ -57,7 +57,7 @@ void main() {
     expect(
       controller.errorMessage,
       productCatalogMessageToken(
-        ProductCatalogMessageCode.invalidProductPayload,
+        ProductCatalogMessageCode.invalidPaginatedPayload,
       ),
     );
   });
@@ -65,20 +65,24 @@ void main() {
   test('ProductCatalogController fetchDetail throws tokenized invalid detail payload error', () async {
     final controller = ProductCatalogController(
       client: _FakeClient((request) async {
-        if (request.url.path.endsWith('/api/v1/product/products')) {
+        if (request.url.path.endsWith('/api/v1/product/products/page')) {
           return _jsonResponse(
             statusCode: 200,
             body: <String, dynamic>{
-              'data': <Map<String, dynamic>>[
-                <String, dynamic>{
-                  'id': '1',
-                  'name': 'Product A',
-                  'sku': 'SKU-1',
-                  'price': 1000,
-                  'stock': 10,
-                  'warrantyMonths': 12,
-                },
-              ],
+              'data': <String, dynamic>{
+                'items': <Map<String, dynamic>>[
+                  <String, dynamic>{
+                    'id': '1',
+                    'name': 'Product A',
+                    'sku': 'SKU-1',
+                    'price': 1000,
+                    'stock': 10,
+                    'warrantyMonths': 12,
+                  },
+                ],
+                'page': 0,
+                'totalPages': 1,
+              },
             },
           );
         }
@@ -105,6 +109,60 @@ void main() {
         ),
       ),
     );
+  });
+
+  test('ProductCatalogController keeps fresh summary stock when detail payload is stale', () async {
+    final controller = ProductCatalogController(
+      client: _FakeClient((request) async {
+        if (request.url.path.endsWith('/api/v1/product/products/page')) {
+          return _jsonResponse(
+            statusCode: 200,
+            body: <String, dynamic>{
+              'data': <String, dynamic>{
+                'items': <Map<String, dynamic>>[
+                  <String, dynamic>{
+                    'id': '1',
+                    'name': 'Product A',
+                    'sku': 'SKU-1',
+                    'price': 1000,
+                    'stock': 0,
+                    'warrantyMonths': 12,
+                  },
+                ],
+                'page': 0,
+                'totalPages': 1,
+              },
+            },
+          );
+        }
+        return _jsonResponse(
+          statusCode: 200,
+          body: <String, dynamic>{
+            'data': <String, dynamic>{
+              'id': '1',
+              'name': 'Product A',
+              'sku': 'SKU-1',
+              'shortDescription': 'Detail copy',
+              'price': 1000,
+              'stock': 2,
+              'warrantyMonths': 12,
+              'descriptions': <Map<String, dynamic>>[
+                <String, dynamic>{
+                  'type': 'description',
+                  'text': 'Detailed body',
+                },
+              ],
+            },
+          },
+        );
+      }),
+    );
+
+    await controller.load();
+    final product = await controller.fetchDetail('1');
+
+    expect(product.stock, 0);
+    expect(product.description, 'Detailed body');
   });
 }
 

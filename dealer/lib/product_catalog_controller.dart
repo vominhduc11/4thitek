@@ -90,6 +90,8 @@ class ProductCatalogController extends ChangeNotifier {
               : http.Client()),
       _products = const <Product>[];
 
+  static const int _catalogLoadPageSize = 100;
+
   final http.Client _client;
   List<Product> _products;
   final Map<String, Product> _productsById = <String, Product>{};
@@ -136,27 +138,7 @@ class ProductCatalogController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await _client.get(
-        DealerApiConfig.resolveApiUri('/product/products'),
-        headers: const <String, String>{'Accept': 'application/json'},
-      );
-      final payload = _decodePayload(response.body);
-      if (response.statusCode >= 400) {
-        throw ProductCatalogException(_extractErrorMessage(payload));
-      }
-      final data = payload['data'];
-      if (data is! List) {
-        throw ProductCatalogException(
-          productCatalogMessageToken(
-            ProductCatalogMessageCode.invalidProductPayload,
-          ),
-        );
-      }
-      final remoteProducts = data
-          .whereType<Map<String, dynamic>>()
-          .map(_mapSummaryProduct)
-          .toList(growable: false);
-
+      final remoteProducts = await _fetchAllProducts();
       _replaceProducts(remoteProducts);
       _isUsingFallback = false;
       _errorMessage = null;
@@ -256,8 +238,12 @@ class ProductCatalogController extends ChangeNotifier {
         );
       }
       final detailedProduct = _mapDetailProduct(data);
-      _upsertProduct(detailedProduct);
-      return detailedProduct;
+      final resolvedProduct = _mergeDetailWithFreshSummaryStock(
+        detailedProduct: detailedProduct,
+        summaryProduct: fallbackProduct,
+      );
+      _upsertProduct(resolvedProduct);
+      return resolvedProduct;
     } catch (_) {
       if (fallbackProduct.descriptions.isNotEmpty ||
           fallbackProduct.videos.isNotEmpty ||
@@ -266,6 +252,20 @@ class ProductCatalogController extends ChangeNotifier {
       }
       rethrow;
     }
+  }
+
+  Future<List<Product>> _fetchAllProducts() async {
+    final products = <Product>[];
+    var page = 0;
+    while (true) {
+      final result = await fetchPage(page, _catalogLoadPageSize);
+      products.addAll(result.items);
+      if (result.isLast) {
+        break;
+      }
+      page++;
+    }
+    return List<Product>.unmodifiable(products);
   }
 
   void _upsertProduct(Product product) {
@@ -341,6 +341,25 @@ class ProductCatalogController extends ChangeNotifier {
       descriptions: _parseDescriptions(json['descriptions']),
       videos: _parseVideos(json['videos']),
       specifications: _parseSpecifications(json['specifications']),
+    );
+  }
+
+  Product _mergeDetailWithFreshSummaryStock({
+    required Product detailedProduct,
+    required Product summaryProduct,
+  }) {
+    return Product(
+      id: detailedProduct.id,
+      name: detailedProduct.name,
+      sku: detailedProduct.sku,
+      shortDescription: detailedProduct.shortDescription,
+      price: detailedProduct.price,
+      stock: summaryProduct.stock,
+      warrantyMonths: detailedProduct.warrantyMonths,
+      imageUrl: detailedProduct.imageUrl,
+      descriptions: detailedProduct.descriptions,
+      videos: detailedProduct.videos,
+      specifications: detailedProduct.specifications,
     );
   }
 
