@@ -997,7 +997,7 @@ function AppLayoutRevamp() {
   );
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[var(--app-bg)] text-[var(--ink)]">
+    <div className="relative min-h-screen bg-[var(--app-bg)] text-[var(--ink)]">
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         <div className="absolute -top-[18vmax] left-[8vmax] h-[34vmax] w-[34vmax] rounded-full bg-[radial-gradient(circle_at_30%_30%,rgba(41,171,226,0.06),transparent_65%)] animate-drift motion-reduce:animate-none" />
         <div className="absolute -bottom-[20vmax] right-[6vmax] h-[38vmax] w-[38vmax] rounded-full bg-[radial-gradient(circle_at_60%_40%,rgba(0,113,188,0.08),transparent_65%)] animate-drift-slow motion-reduce:animate-none" />
