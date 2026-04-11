@@ -485,6 +485,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
         status: payload.status,
         content: payload.content,
         showOnHomepage: payload.showOnHomepage,
+        scheduledAt: payload.scheduledAt,
       }),
     )
     const nextPost = mapBlog(updated)

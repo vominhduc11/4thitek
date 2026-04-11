@@ -1806,6 +1806,7 @@ export const extraTranslations = {
                 viewAll: 'View all articles',
                 relatedPosts: 'Related Posts',
                 noRelated: 'No related articles at this time.',
+                contentFallback: 'This article is being updated.',
                 viewAllProducts: 'View all products'
             },
             loadingTitle: 'Loading blog',
@@ -2447,6 +2448,7 @@ export const extraTranslations = {
                 viewAll: 'Xem tất cả bài viết',
                 relatedPosts: 'Bài viết liên quan',
                 noRelated: 'Chưa có bài viết liên quan.',
+                contentFallback: 'Nội dung bài viết đang được cập nhật.',
                 viewAllProducts: 'Xem tất cả sản phẩm'
             },
             loadingTitle: 'Đang tải blog',

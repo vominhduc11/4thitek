@@ -4,7 +4,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import BlogDetailHero from '@/app/blogs/[id]/components/BlogDetailHero';
 import AvoidSidebar from '@/components/ui/AvoidSidebar';
-import type { ApiBlogBlock, BlogPost } from '@/types/blog';
+import { getBlogVideoEmbedUrl } from '@/lib/blogContent';
+import type { BlogPost } from '@/types/blog';
 import { useHydration } from '@/hooks/useHydration';
 import { useLanguage } from '@/context/LanguageContext';
 import { buildBlogPath } from '@/lib/slug';
@@ -18,7 +19,7 @@ interface BlogDetailPageClientProps {
 export default function BlogDetailPageClient({ post, relatedPosts }: BlogDetailPageClientProps) {
     const { t, locale } = useLanguage();
     const isHydrated = useHydration();
-    const blocks: ApiBlogBlock[] = post.introductionBlocks || [];
+    const blocks = post.introductionBlocks || [];
 
     return (
         <div className="brand-section min-h-screen text-white">
@@ -57,19 +58,23 @@ export default function BlogDetailPageClient({ post, relatedPosts }: BlogDetailP
                         <div className="grid grid-cols-1 gap-8 lg:grid-cols-10">
                             <article className="brand-card lg:col-span-7 rounded-[32px] p-6 prose prose-invert max-w-none sm:p-8">
                                 <p className="text-lg text-[var(--text-secondary)]">{post.excerpt}</p>
+                                {blocks.length === 0 ? (
+                                    <p className="text-[var(--text-muted)]">
+                                        {t('blog.detail.contentFallback')}
+                                    </p>
+                                ) : null}
                                 {blocks.map((block, index) => {
-                                    if (block.type === 'title') {
+                                    if (block.type === 'paragraph') {
                                         return (
-                                            <h2
-                                                key={`title-${index}`}
-                                                className="font-serif text-[var(--text-primary)]"
-                                            >
-                                                {block.text}
-                                            </h2>
+                                            <div
+                                                key={`paragraph-${index}`}
+                                                className="text-[var(--text-primary)] [&_a]:text-[var(--brand-blue)] [&_a]:underline [&_a]:underline-offset-2 [&_blockquote]:border-l-4 [&_blockquote]:border-[var(--brand-blue)] [&_blockquote]:pl-4 [&_h1]:font-serif [&_h1]:text-3xl [&_h1]:font-semibold [&_h2]:font-serif [&_h2]:text-2xl [&_h2]:font-semibold [&_h3]:font-serif [&_h3]:text-xl [&_h3]:font-semibold [&_ol]:ml-5 [&_ol]:list-decimal [&_p]:leading-8 [&_p]:text-[var(--text-primary)] [&_ul]:ml-5 [&_ul]:list-disc"
+                                                dangerouslySetInnerHTML={{ __html: block.text }}
+                                            />
                                         );
                                     }
 
-                                    if (block.type === 'image' && block.imageUrl) {
+                                    if (block.type === 'image' && block.url) {
                                         return (
                                             <div
                                                 key={`image-${index}`}
@@ -77,7 +82,7 @@ export default function BlogDetailPageClient({ post, relatedPosts }: BlogDetailP
                                             >
                                                 <div className="relative h-80 w-full">
                                                     <Image
-                                                        src={block.imageUrl}
+                                                        src={block.url}
                                                         alt={block.caption || post.title}
                                                         fill
                                                         className="object-contain"
@@ -92,20 +97,26 @@ export default function BlogDetailPageClient({ post, relatedPosts }: BlogDetailP
                                         );
                                     }
 
-                                    if (block.type === 'video' && block.videoUrl) {
+                                    if (block.type === 'gallery' && block.items.length > 0) {
                                         return (
                                             <div
-                                                key={`video-${index}`}
-                                                className="overflow-hidden rounded-[24px] border border-[var(--brand-border)] bg-[rgba(7,17,27,0.72)] p-3"
+                                                key={`gallery-${index}`}
+                                                className="overflow-hidden rounded-[24px] border border-[var(--brand-border)] bg-[rgba(7,17,27,0.72)] p-4"
                                             >
-                                                <div className="aspect-video w-full overflow-hidden rounded-xl">
-                                                    <iframe
-                                                        src={block.videoUrl}
-                                                        title={block.caption || post.title}
-                                                        className="h-full w-full"
-                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                        allowFullScreen
-                                                    />
+                                                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                                                    {block.items.map((item, itemIndex) => (
+                                                        <div
+                                                            key={`gallery-${index}-${itemIndex}`}
+                                                            className="relative aspect-[4/3] overflow-hidden rounded-[20px] border border-[var(--brand-border)] bg-[rgba(6,17,27,0.72)]"
+                                                        >
+                                                            <Image
+                                                                src={item.url}
+                                                                alt={t('blog.detail.mediaImageAltIndexed').replace('{index}', String(itemIndex + 1))}
+                                                                fill
+                                                                className="object-cover"
+                                                            />
+                                                        </div>
+                                                    ))}
                                                 </div>
                                                 {block.caption ? (
                                                     <p className="mt-3 text-sm text-[var(--text-muted)]">
@@ -116,7 +127,41 @@ export default function BlogDetailPageClient({ post, relatedPosts }: BlogDetailP
                                         );
                                     }
 
-                                    return <p key={`paragraph-${index}`}>{block.text}</p>;
+                                    if (block.type === 'video' && block.url) {
+                                        const embedUrl = getBlogVideoEmbedUrl(block.url);
+                                        return (
+                                            <div
+                                                key={`video-${index}`}
+                                                className="overflow-hidden rounded-[24px] border border-[var(--brand-border)] bg-[rgba(7,17,27,0.72)] p-3"
+                                            >
+                                                <div className="aspect-video w-full overflow-hidden rounded-xl">
+                                                    {embedUrl ? (
+                                                        <iframe
+                                                            src={embedUrl}
+                                                            title={block.caption || t('blog.detail.mediaVideoTitle')}
+                                                            className="h-full w-full"
+                                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                            allowFullScreen
+                                                        />
+                                                    ) : (
+                                                        <video
+                                                            src={block.url}
+                                                            controls
+                                                            preload="metadata"
+                                                            className="h-full w-full bg-black object-cover"
+                                                        />
+                                                    )}
+                                                </div>
+                                                {block.caption ? (
+                                                    <p className="mt-3 text-sm text-[var(--text-muted)]">
+                                                        {block.caption}
+                                                    </p>
+                                                ) : null}
+                                            </div>
+                                        );
+                                    }
+
+                                    return null;
                                 })}
                             </article>
 

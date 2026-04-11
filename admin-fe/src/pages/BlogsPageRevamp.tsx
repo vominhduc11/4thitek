@@ -1,6 +1,7 @@
 import { Clock3, FileText, ImagePlus, Plus, Tag, Trash2 } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { BlogBlockEditor } from "../components/blog-editor/BlogBlockEditor";
 import {
   DestructiveButton,
   EmptyState,
@@ -30,6 +31,9 @@ import {
 import { useAdminData, type BlogStatus } from "../context/AdminDataContext";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
+import {
+  serializeBlogIntroduction,
+} from "../lib/blogContent";
 import { translateCopy } from "../lib/i18n";
 import { useToast } from "../context/ToastContext";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
@@ -37,6 +41,7 @@ import { blogStatusTone } from "../lib/adminLabels";
 import { resolveBackendAssetUrl } from "../lib/backendApi";
 import { formatDateTime } from "../lib/formatters";
 import { deleteStoredFileReference, storeFileReference } from "../lib/upload";
+import type { BlogContentBlock } from "../types/blogContent";
 
 const BLOG_STATUS_ORDER: BlogStatus[] = ["published", "scheduled", "draft"];
 
@@ -110,7 +115,7 @@ type CreateFormState = {
   title: string;
   category: string;
   excerpt: string;
-  content: string;
+  contentBlocks: BlogContentBlock[];
   status: BlogStatus;
   showOnHomepage: boolean;
   imageUrl: string;
@@ -121,7 +126,7 @@ const createInitialForm = (): CreateFormState => ({
   title: "",
   category: "",
   excerpt: "",
-  content: "",
+  contentBlocks: [],
   status: "draft",
   showOnHomepage: false,
   imageUrl: "",
@@ -225,13 +230,56 @@ function BlogsPageRevamp() {
     [accessToken],
   );
 
-  const closeComposer = () => {
-    void cleanupComposerUploadedAssets(
-      Array.from(composerUploadedAssetUrlsRef.current),
-    );
+  useEffect(() => {
+    const trackedUploads = composerUploadedAssetUrlsRef.current;
+    return () => {
+      if (trackedUploads.size > 0) {
+        void cleanupComposerUploadedAssets(Array.from(trackedUploads));
+      }
+    };
+  }, [cleanupComposerUploadedAssets]);
+
+  const uploadComposerAsset = useCallback(
+    async (file: File) => {
+      const stored = await storeFileReference({
+        file,
+        category: "blogs",
+        accessToken,
+      });
+      composerUploadedAssetUrlsRef.current.add(stored.url);
+      return stored;
+    },
+    [accessToken],
+  );
+
+  const deleteComposerAsset = useCallback(
+    async (url: string) => {
+      const normalizedUrl = url.trim();
+      if (!normalizedUrl || !composerUploadedAssetUrlsRef.current.has(normalizedUrl)) {
+        return;
+      }
+      try {
+        await deleteStoredFileReference({ url: normalizedUrl, accessToken });
+      } finally {
+        composerUploadedAssetUrlsRef.current.delete(normalizedUrl);
+      }
+    },
+    [accessToken],
+  );
+
+  const resetComposer = (options?: { cleanupUploads?: boolean }) => {
+    if (options?.cleanupUploads !== false) {
+      void cleanupComposerUploadedAssets(
+        Array.from(composerUploadedAssetUrlsRef.current),
+      );
+    }
     setShowCreate(false);
     setCreateError("");
     setForm(createInitialForm());
+  };
+
+  const closeComposer = () => {
+    resetComposer();
   };
 
   const handleImageChange = async (file: File | null) => {
@@ -241,12 +289,7 @@ function BlogsPageRevamp() {
     setCreateError("");
     setIsUploadingImage(true);
     try {
-      const stored = await storeFileReference({
-        file,
-        category: "blogs",
-        accessToken,
-      });
-      composerUploadedAssetUrlsRef.current.add(stored.url);
+      const stored = await uploadComposerAsset(file);
       setForm((previous) => ({
         ...previous,
         imageUrl: stored.url,
@@ -268,11 +311,12 @@ function BlogsPageRevamp() {
     }
 
     try {
+      const serializedContent = serializeBlogIntroduction(form.contentBlocks);
       const created = await addPost({
         title: form.title.trim(),
         category: form.category.trim(),
         excerpt: form.excerpt.trim(),
-        content: form.content.trim() || undefined,
+        content: serializedContent,
         status: form.status,
         showOnHomepage: form.showOnHomepage,
         imageUrl: form.imageUrl || undefined,
@@ -282,7 +326,7 @@ function BlogsPageRevamp() {
         variant: "success",
       });
       composerUploadedAssetUrlsRef.current.clear();
-      closeComposer();
+      resetComposer({ cleanupUploads: false });
     } catch (error) {
       setCreateError(
         error instanceof Error ? error.message : copy.createFailed,
@@ -445,18 +489,23 @@ function BlogsPageRevamp() {
             </label>
             <label className="space-y-2 lg:col-span-2">
               <span className={labelClass}>{copy.contentField}</span>
-              <textarea
-                className={`${textareaClass} w-full`}
-                onChange={(event) =>
-                  setForm((previous) => ({
-                    ...previous,
-                    content: event.target.value,
-                  }))
-                }
-                placeholder={copy.contentPlaceholder}
-                rows={8}
-                value={form.content}
-              />
+              <div className="space-y-3 rounded-[24px] border border-[var(--border)] bg-[var(--surface-muted)] p-4">
+                <p className="text-sm text-[var(--muted)]">
+                  Xây dựng nội dung bài viết theo từng block để chèn mô tả, hình ảnh, thư viện ảnh và video ngay trong bài.
+                </p>
+                <BlogBlockEditor
+                  blocks={form.contentBlocks}
+                  onChange={(contentBlocks) =>
+                    setForm((previous) => ({
+                      ...previous,
+                      contentBlocks,
+                    }))
+                  }
+                  onUploadImage={uploadComposerAsset}
+                  onDeleteImage={deleteComposerAsset}
+                  emptyMessage="Chưa có nội dung bài viết. Hãy thêm block đầu tiên."
+                />
+              </div>
             </label>
             <label className="space-y-2 lg:col-span-2">
               <span className={labelClass}>{copy.coverField}</span>

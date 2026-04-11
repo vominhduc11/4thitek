@@ -30,6 +30,7 @@ import type {
   UserStatus,
 } from '../context/adminDataTypes'
 import { initialSettings } from '../context/adminDataTypes'
+import { parseBlogIntroduction, serializeBlogIntroduction } from './blogContent'
 
 export const mapBackendOrderStatus = (status?: BackendOrderStatus | null): OrderStatus => {
   switch (status) {
@@ -368,15 +369,9 @@ export const toBlogUpsertRequest = (payload: {
   image: payload.imageUrl ? JSON.stringify({ imageUrl: payload.imageUrl }) : undefined,
   introduction:
     payload.content?.trim()
-      ? JSON.stringify(
-          payload.content
-            .split(/\n{2,}/)
-            .map((block) => block.trim())
-            .filter(Boolean)
-            .map((text) => ({ type: 'paragraph', text })),
-        )
+      ? serializeBlogIntroduction(parseBlogIntroduction(payload.content))
       : payload.excerpt?.trim()
-        ? JSON.stringify([{ type: 'paragraph', text: payload.excerpt.trim() }])
+        ? serializeBlogIntroduction([{ type: 'paragraph', text: payload.excerpt.trim() }])
         : undefined,
   status: payload.status ? toBackendBlogStatus(payload.status) : undefined,
   scheduledAt: payload.scheduledAt || undefined,

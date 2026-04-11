@@ -1,6 +1,8 @@
 import { ArrowLeft, Eye, EyeOff, FileText, Pencil, Save, Trash2, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { BlogBlockEditor } from "../components/blog-editor/BlogBlockEditor";
+import { BlogBlockPreview } from "../components/blog-editor/BlogBlockPreview";
 import {
   DestructiveButton,
   EmptyState,
@@ -19,13 +21,20 @@ import {
   textareaClass,
 } from "../components/ui-kit";
 import { useAdminData, type BlogStatus } from "../context/AdminDataContext";
+import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { translateCopy } from "../lib/i18n";
 import { useToast } from "../context/ToastContext";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { blogStatusTone } from "../lib/adminLabels";
 import { resolveBackendAssetUrl } from "../lib/backendApi";
+import {
+  parseBlogIntroduction,
+  serializeBlogIntroduction,
+} from "../lib/blogContent";
 import { formatDateTime } from "../lib/formatters";
+import { deleteStoredFileReference, storeFileReference } from "../lib/upload";
+import type { BlogContentBlock } from "../types/blogContent";
 
 const BLOG_STATUS_ORDER: BlogStatus[] = ["published", "scheduled", "draft"];
 
@@ -70,25 +79,11 @@ const copyKeys = {
   no: "Không",
 } as const;
 
-type IntroductionBlock = { type: string; text?: string };
-
-const parseContent = (raw?: string): string[] => {
-  if (!raw) return [];
-  try {
-    const blocks = JSON.parse(raw) as IntroductionBlock[];
-    if (Array.isArray(blocks)) {
-      return blocks.map((block) => block.text ?? "").filter(Boolean);
-    }
-  } catch {
-    if (raw.trim()) return [raw.trim()];
-  }
-  return [];
-};
-
 function BlogDetailPageRevamp() {
   const { id = "" } = useParams();
   const postId = decodeURIComponent(id);
   const navigate = useNavigate();
+  const { accessToken } = useAuth();
   const { t } = useLanguage();
   const { notify } = useToast();
   const { confirm, confirmDialog } = useConfirmDialog();
@@ -105,8 +100,8 @@ function BlogDetailPageRevamp() {
   const statusLabels = translateCopy(statusLabelsKeys, t);
   const post = posts.find((item) => item.id === postId);
 
-  const contentParagraphs = useMemo(
-    () => parseContent(post?.content),
+  const contentBlocks = useMemo(
+    () => parseBlogIntroduction(post?.content),
     [post?.content],
   );
 
@@ -115,11 +110,79 @@ function BlogDetailPageRevamp() {
   const [editTitle, setEditTitle] = useState("");
   const [editCategory, setEditCategory] = useState("");
   const [editExcerpt, setEditExcerpt] = useState("");
-  const [editContent, setEditContent] = useState("");
+  const [editBlocks, setEditBlocks] = useState<BlogContentBlock[]>([]);
   const [editImageUrl, setEditImageUrl] = useState("");
   const [editShowOnHomepage, setEditShowOnHomepage] = useState(false);
   const [editScheduledAt, setEditScheduledAt] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const editUploadedAssetUrlsRef = useRef<Set<string>>(new Set());
+
+  const cleanupEditUploadedAssets = useCallback(
+    async (urls: Array<string | null | undefined>) => {
+      const trackedUrls = Array.from(
+        new Set(
+          urls
+            .map((url) => String(url ?? "").trim())
+            .filter((url) => url && editUploadedAssetUrlsRef.current.has(url)),
+        ),
+      );
+
+      if (trackedUrls.length === 0) {
+        return;
+      }
+
+      const results = await Promise.allSettled(
+        trackedUrls.map(async (url) => {
+          await deleteStoredFileReference({ url, accessToken });
+          return url;
+        }),
+      );
+
+      results.forEach((result, index) => {
+        if (result.status === "fulfilled") {
+          editUploadedAssetUrlsRef.current.delete(trackedUrls[index]);
+        }
+      });
+    },
+    [accessToken],
+  );
+
+  const uploadEditAsset = useCallback(
+    async (file: File) => {
+      const stored = await storeFileReference({
+        file,
+        category: "blogs",
+        accessToken,
+      });
+      editUploadedAssetUrlsRef.current.add(stored.url);
+      return stored;
+    },
+    [accessToken],
+  );
+
+  const deleteEditAsset = useCallback(
+    async (url: string) => {
+      const normalizedUrl = url.trim();
+      if (!normalizedUrl || !editUploadedAssetUrlsRef.current.has(normalizedUrl)) {
+        return;
+      }
+      try {
+        await deleteStoredFileReference({ url: normalizedUrl, accessToken });
+      } finally {
+        editUploadedAssetUrlsRef.current.delete(normalizedUrl);
+      }
+    },
+    [accessToken],
+  );
+
+  useEffect(() => {
+    const trackedUploads = editUploadedAssetUrlsRef.current;
+    return () => {
+      if (trackedUploads.size > 0) {
+        void cleanupEditUploadedAssets(Array.from(trackedUploads));
+      }
+    };
+  }, [cleanupEditUploadedAssets]);
 
   if (postsState.status === "loading" || postsState.status === "idle") {
     return (
@@ -157,7 +220,7 @@ function BlogDetailPageRevamp() {
     setEditTitle(post.title);
     setEditCategory(post.category);
     setEditExcerpt(post.excerpt);
-    setEditContent(contentParagraphs.join("\n\n"));
+    setEditBlocks(contentBlocks);
     setEditImageUrl(post.imageUrl ?? "");
     setEditShowOnHomepage(Boolean(post.showOnHomepage));
     setEditScheduledAt(post.scheduledAt ? post.scheduledAt.slice(0, 16) : "");
@@ -165,14 +228,21 @@ function BlogDetailPageRevamp() {
     setIsEditing(true);
   };
 
+  const handleCancelEdit = async () => {
+    await cleanupEditUploadedAssets(Array.from(editUploadedAssetUrlsRef.current));
+    setEditBlocks(contentBlocks);
+    setIsEditing(false);
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      const serializedContent = serializeBlogIntroduction(editBlocks);
       await updatePost(post.id, {
         title: editTitle,
         category: editCategory,
         excerpt: editExcerpt,
-        content: editContent,
+        content: serializedContent,
         status: post.status,
         imageUrl: editImageUrl || undefined,
         showOnHomepage: editShowOnHomepage,
@@ -180,6 +250,7 @@ function BlogDetailPageRevamp() {
           ? new Date(editScheduledAt).toISOString()
           : undefined,
       });
+      editUploadedAssetUrlsRef.current.clear();
       setIsEditing(false);
     } catch (error) {
       notify(error instanceof Error ? error.message : copy.saveFailed, {
@@ -264,12 +335,15 @@ function BlogDetailPageRevamp() {
               </label>
               <label className="block space-y-1">
                 <span className={labelClass}>{copy.contentLabel}</span>
-                <textarea
-                  className={`${textareaClass} w-full`}
-                  rows={8}
-                  value={editContent}
-                  onChange={(event) => setEditContent(event.target.value)}
-                />
+                <div className="rounded-[24px] border border-[var(--border)] bg-[var(--surface-muted)] p-4">
+                  <BlogBlockEditor
+                    blocks={editBlocks}
+                    onChange={setEditBlocks}
+                    onUploadImage={uploadEditAsset}
+                    onDeleteImage={deleteEditAsset}
+                    emptyMessage="Chưa có nội dung blog. Hãy thêm block đầu tiên."
+                  />
+                </div>
               </label>
               <label className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
                 <span className="text-sm font-semibold text-[var(--ink)]">
@@ -307,7 +381,7 @@ function BlogDetailPageRevamp() {
                 <GhostButton
                   disabled={isSaving}
                   icon={<X className="h-4 w-4" />}
-                  onClick={() => setIsEditing(false)}
+                  onClick={() => void handleCancelEdit()}
                   type="button"
                 >
                   {copy.cancel}
@@ -346,19 +420,11 @@ function BlogDetailPageRevamp() {
                   {post.excerpt}
                 </p>
               ) : null}
-              {contentParagraphs.length > 0 ? (
-                <div className="mt-6 space-y-5">
-                  {contentParagraphs.map((paragraph, index) => (
-                    <p key={index} className="text-sm leading-8 text-[var(--ink)]">
-                      {paragraph}
-                    </p>
-                  ))}
-                </div>
-              ) : (
-                <p className="mt-6 text-sm text-[var(--muted)] italic">
-                  {copy.contentFallback}
-                </p>
-              )}
+              <BlogBlockPreview
+                blocks={contentBlocks}
+                className="mt-6"
+                emptyMessage={copy.contentFallback}
+              />
             </div>
           ) : (
             <>
@@ -393,22 +459,10 @@ function BlogDetailPageRevamp() {
               </div>
               <div className="mt-6 space-y-3">
                 <p className={labelClass}>{copy.contentLabel}</p>
-                {contentParagraphs.length > 0 ? (
-                  <div className="space-y-4">
-                    {contentParagraphs.map((paragraph, index) => (
-                      <p
-                        key={index}
-                        className="text-sm leading-7 text-[var(--ink)]"
-                      >
-                        {paragraph}
-                      </p>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm leading-7 text-[var(--ink)]">
-                    {copy.contentFallback}
-                  </p>
-                )}
+                <BlogBlockPreview
+                  blocks={contentBlocks}
+                  emptyMessage={copy.contentFallback}
+                />
               </div>
             </>
           )}

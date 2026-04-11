@@ -609,3 +609,126 @@
     }
   }
 }
+
+.wysiwyg-editor .ProseMirror {
+  min-height: 220px;
+  background: var(--surface);
+  caret-color: var(--accent-strong);
+  font-family: "Segoe UI", "Inter", sans-serif;
+}
+
+.wysiwyg-editor .ProseMirror > * + * {
+  margin-top: 0.85rem;
+}
+
+.wysiwyg-editor .ProseMirror h1,
+.wysiwyg-editor .ProseMirror h2,
+.wysiwyg-editor .ProseMirror h3 {
+  color: var(--ink);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.wysiwyg-editor .ProseMirror h1 {
+  font-size: 1.5rem;
+}
+
+.wysiwyg-editor .ProseMirror h2 {
+  font-size: 1.3rem;
+}
+
+.wysiwyg-editor .ProseMirror h3 {
+  font-size: 1.15rem;
+}
+
+.wysiwyg-editor .ProseMirror p {
+  color: var(--ink);
+}
+
+.wysiwyg-editor .ProseMirror ul,
+.wysiwyg-editor .ProseMirror ol {
+  margin-left: 1.25rem;
+  padding-left: 0.5rem;
+}
+
+.wysiwyg-editor .ProseMirror ul {
+  list-style: disc;
+}
+
+.wysiwyg-editor .ProseMirror ol {
+  list-style: decimal;
+}
+
+.wysiwyg-editor .ProseMirror a {
+  color: var(--accent-strong);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.wysiwyg-editor .ProseMirror hr {
+  margin: 1rem 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.wysiwyg-editor .ProseMirror:focus {
+  outline: none;
+}
+
+.wysiwyg-editor .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--muted);
+}
+
+.blog-block-richtext > * + * {
+  margin-top: 0.9rem;
+}
+
+.blog-block-richtext h1,
+.blog-block-richtext h2,
+.blog-block-richtext h3 {
+  color: var(--ink);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.blog-block-richtext h1 {
+  font-size: 1.6rem;
+}
+
+.blog-block-richtext h2 {
+  font-size: 1.35rem;
+}
+
+.blog-block-richtext h3 {
+  font-size: 1.15rem;
+}
+
+.blog-block-richtext ul,
+.blog-block-richtext ol {
+  margin-left: 1.35rem;
+  padding-left: 0.5rem;
+}
+
+.blog-block-richtext ul {
+  list-style: disc;
+}
+
+.blog-block-richtext ol {
+  list-style: decimal;
+}
+
+.blog-block-richtext a {
+  color: var(--accent-strong);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.blog-block-richtext hr {
+  margin: 1rem 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}

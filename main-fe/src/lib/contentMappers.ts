@@ -1,5 +1,6 @@
 import type { BlogPost } from '@/types/blog';
 import type { Product, ProductSpecification, ProductVideo, SimpleProduct } from '@/types/product';
+import { parseBlogIntroductionBlocks } from './blogContent';
 import { parseImageUrl, parseJsonArray, resolveMediaUrl } from '@/utils/media';
 import { slugify } from './slug';
 
@@ -196,7 +197,7 @@ export function mapBlogSummaryToPost(blog: {
             slug: slugify(categoryName),
             description: categoryName || 'Chua phan loai'
         },
-        introductionBlocks: parseJsonArray(blog.introduction || '[]', []).map((entry) => normalizeMediaPayload(entry)),
+        introductionBlocks: parseBlogIntroductionBlocks(blog.introduction),
         tags: [],
         isPublished: true,
         seo: {

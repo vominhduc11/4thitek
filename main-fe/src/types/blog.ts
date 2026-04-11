@@ -39,6 +39,39 @@ export interface BlogContentBlock {
     link?: string;
 }
 
+export interface BlogGalleryItem {
+    url: string;
+}
+
+export interface BlogParagraphRenderableBlock {
+    type: 'paragraph';
+    text: string;
+}
+
+export interface BlogImageRenderableBlock {
+    type: 'image';
+    url: string;
+    caption?: string;
+}
+
+export interface BlogGalleryRenderableBlock {
+    type: 'gallery';
+    items: BlogGalleryItem[];
+    caption?: string;
+}
+
+export interface BlogVideoRenderableBlock {
+    type: 'video';
+    url: string;
+    caption?: string;
+}
+
+export type BlogRenderableBlock =
+    | BlogParagraphRenderableBlock
+    | BlogImageRenderableBlock
+    | BlogGalleryRenderableBlock
+    | BlogVideoRenderableBlock;
+
 export interface BlogPost {
     id: string;
     title: string;
@@ -63,15 +96,19 @@ export interface BlogPost {
         metaDescription?: string;
         keywords?: string[];
     };
-    introductionBlocks?: ApiBlogBlock[];
+    introductionBlocks?: BlogRenderableBlock[];
 }
 
 // Interface for API blog content blocks
 export interface ApiBlogBlock {
-    type: 'title' | 'description' | 'image' | 'images' | 'video';
+    type: 'title' | 'description' | 'paragraph' | 'image' | 'images' | 'gallery' | 'video';
     text?: string;
+    content?: string;
+    url?: string;
+    link?: string;
     imageUrl?: string;
-    images?: Array<{ url: string; public_id: string }>;
+    images?: Array<{ url: string; public_id?: string }>;
+    items?: Array<{ url: string; public_id?: string }>;
     videoUrl?: string;
     caption?: string; // Caption for image, images, and video types
 }
