@@ -46,6 +46,9 @@ public class SupportTicketMessage {
     @Column(name = "message", nullable = false, columnDefinition = "text")
     private String message;
 
+    @Column(name = "attachments", columnDefinition = "text")
+    private String attachments;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;

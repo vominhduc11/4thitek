@@ -4,6 +4,7 @@ import com.devwonder.backend.entity.enums.DealerSupportCategory;
 import com.devwonder.backend.entity.enums.DealerSupportPriority;
 import com.devwonder.backend.entity.enums.DealerSupportTicketStatus;
 import com.devwonder.backend.dto.support.SupportTicketMessageResponse;
+import com.devwonder.backend.dto.support.SupportTicketContextPayload;
 import java.time.Instant;
 import java.util.List;
 
@@ -17,6 +18,7 @@ public record AdminSupportTicketResponse(
         DealerSupportTicketStatus status,
         String subject,
         String message,
+        SupportTicketContextPayload contextData,
         Long assigneeId,
         String assigneeName,
         List<SupportTicketMessageResponse> messages,

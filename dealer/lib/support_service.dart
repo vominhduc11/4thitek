@@ -63,6 +63,7 @@ class DealerSupportTicketRecord {
     required this.status,
     required this.subject,
     required this.message,
+    this.contextData,
     this.assigneeId,
     this.assigneeName,
     this.messages = const <SupportTicketMessageRecord>[],
@@ -79,6 +80,7 @@ class DealerSupportTicketRecord {
   final String status;
   final String subject;
   final String message;
+  final SupportTicketContextRecord? contextData;
   final int? assigneeId;
   final String? assigneeName;
   final List<SupportTicketMessageRecord> messages;
@@ -95,6 +97,7 @@ class SupportTicketMessageRecord {
     required this.authorName,
     required this.internalNote,
     required this.message,
+    this.attachments = const <SupportTicketAttachmentRecord>[],
     required this.createdAt,
   });
 
@@ -103,7 +106,70 @@ class SupportTicketMessageRecord {
   final String? authorName;
   final bool internalNote;
   final String message;
+  final List<SupportTicketAttachmentRecord> attachments;
   final DateTime createdAt;
+}
+
+class SupportTicketContextRecord {
+  const SupportTicketContextRecord({
+    this.orderCode,
+    this.transactionCode,
+    this.paidAmount,
+    this.paymentReference,
+    this.serial,
+    this.returnReason,
+  });
+
+  final String? orderCode;
+  final String? transactionCode;
+  final num? paidAmount;
+  final String? paymentReference;
+  final String? serial;
+  final String? returnReason;
+
+  bool get isEmpty =>
+      _isBlank(orderCode) &&
+      _isBlank(transactionCode) &&
+      paidAmount == null &&
+      _isBlank(paymentReference) &&
+      _isBlank(serial) &&
+      _isBlank(returnReason);
+
+  Map<String, dynamic>? toJson() {
+    final payload = <String, dynamic>{};
+    if (!_isBlank(orderCode)) {
+      payload['orderCode'] = orderCode!.trim();
+    }
+    if (!_isBlank(transactionCode)) {
+      payload['transactionCode'] = transactionCode!.trim();
+    }
+    if (paidAmount != null) {
+      payload['paidAmount'] = paidAmount;
+    }
+    if (!_isBlank(paymentReference)) {
+      payload['paymentReference'] = paymentReference!.trim();
+    }
+    if (!_isBlank(serial)) {
+      payload['serial'] = serial!.trim();
+    }
+    if (!_isBlank(returnReason)) {
+      payload['returnReason'] = returnReason!.trim();
+    }
+    return payload.isEmpty ? null : payload;
+  }
+}
+
+class SupportTicketAttachmentRecord {
+  const SupportTicketAttachmentRecord({required this.url, this.fileName});
+
+  final String url;
+  final String? fileName;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'url': url.trim(),
+    if (fileName != null && fileName!.trim().isNotEmpty)
+      'fileName': fileName!.trim(),
+  };
 }
 
 class DealerSupportTicketPage {
@@ -171,16 +237,31 @@ class SupportService {
     required String priority,
     required String subject,
     required String message,
+    SupportTicketContextRecord? contextData,
+    List<SupportTicketAttachmentRecord> attachments =
+        const <SupportTicketAttachmentRecord>[],
   }) async {
+    final body = <String, dynamic>{
+      'category': category,
+      'priority': priority,
+      'subject': subject.trim(),
+      'message': message.trim(),
+    };
+    final encodedContext = contextData?.toJson();
+    if (encodedContext != null) {
+      body['contextData'] = encodedContext;
+    }
+    final encodedAttachments = attachments
+        .where((attachment) => attachment.url.trim().isNotEmpty)
+        .map((attachment) => attachment.toJson())
+        .toList(growable: false);
+    if (encodedAttachments.isNotEmpty) {
+      body['attachments'] = encodedAttachments;
+    }
     final response = await _client.post(
       DealerApiConfig.resolveApiUri('/dealer/support-tickets'),
       headers: await _authorizedJsonHeaders(),
-      body: jsonEncode(<String, dynamic>{
-        'category': category,
-        'priority': priority,
-        'subject': subject.trim(),
-        'message': message.trim(),
-      }),
+      body: jsonEncode(body),
     );
     final payload = _decodeBody(response.body);
     if (response.statusCode >= 400) {
@@ -231,13 +312,23 @@ class SupportService {
   Future<DealerSupportTicketRecord> submitTicketMessage({
     required int ticketId,
     required String message,
+    List<SupportTicketAttachmentRecord> attachments =
+        const <SupportTicketAttachmentRecord>[],
   }) async {
+    final body = <String, dynamic>{'message': message.trim()};
+    final encodedAttachments = attachments
+        .where((attachment) => attachment.url.trim().isNotEmpty)
+        .map((attachment) => attachment.toJson())
+        .toList(growable: false);
+    if (encodedAttachments.isNotEmpty) {
+      body['attachments'] = encodedAttachments;
+    }
     final response = await _client.post(
       DealerApiConfig.resolveApiUri(
         '/dealer/support-tickets/$ticketId/messages',
       ),
       headers: await _authorizedJsonHeaders(),
-      body: jsonEncode(<String, dynamic>{'message': message.trim()}),
+      body: jsonEncode(body),
     );
     final payload = _decodeBody(response.body);
     if (response.statusCode >= 400) {
@@ -313,6 +404,7 @@ class SupportService {
       status: json['status']?.toString() ?? 'OPEN',
       subject: json['subject']?.toString() ?? '',
       message: json['message']?.toString() ?? '',
+      contextData: _mapContextData(json['contextData']),
       assigneeId: _parseOptionalInt(json['assigneeId']),
       assigneeName: _parseOptionalString(json['assigneeName']),
       messages: (json['messages'] as List<dynamic>? ?? const <dynamic>[])
@@ -324,6 +416,7 @@ class SupportService {
               authorName: _parseOptionalString(message['authorName']),
               internalNote: message['internalNote'] == true,
               message: message['message']?.toString() ?? '',
+              attachments: _mapAttachments(message['attachments']),
               createdAt:
                   parseApiDateTime(message['createdAt']) ?? DateTime.now(),
             ),
@@ -362,6 +455,45 @@ class SupportService {
     return parsed == 0 && value.toString().trim() != '0' ? null : parsed;
   }
 }
+
+SupportTicketContextRecord? _mapContextData(Object? raw) {
+  if (raw is! Map<String, dynamic>) {
+    return null;
+  }
+  final context = SupportTicketContextRecord(
+    orderCode: _parseOptionalStringStatic(raw['orderCode']),
+    transactionCode: _parseOptionalStringStatic(raw['transactionCode']),
+    paidAmount: raw['paidAmount'] as num?,
+    paymentReference: _parseOptionalStringStatic(raw['paymentReference']),
+    serial: _parseOptionalStringStatic(raw['serial']),
+    returnReason: _parseOptionalStringStatic(raw['returnReason']),
+  );
+  return context.isEmpty ? null : context;
+}
+
+List<SupportTicketAttachmentRecord> _mapAttachments(Object? raw) {
+  final entries = raw is List<dynamic> ? raw : const <dynamic>[];
+  return entries
+      .whereType<Map<String, dynamic>>()
+      .map(
+        (attachment) => SupportTicketAttachmentRecord(
+          url: attachment['url']?.toString().trim() ?? '',
+          fileName: _parseOptionalStringStatic(attachment['fileName']),
+        ),
+      )
+      .where((attachment) => attachment.url.isNotEmpty)
+      .toList(growable: false);
+}
+
+String? _parseOptionalStringStatic(Object? value) {
+  final normalized = value?.toString().trim();
+  if (normalized == null || normalized.isEmpty) {
+    return null;
+  }
+  return normalized;
+}
+
+bool _isBlank(String? value) => value == null || value.trim().isEmpty;
 
 class SupportException implements Exception {
   const SupportException(this.message);

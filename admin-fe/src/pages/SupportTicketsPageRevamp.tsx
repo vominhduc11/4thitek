@@ -6,6 +6,8 @@ import {
   fetchAdminSupportTickets,
   fetchAdminUsers,
   updateAdminSupportTicket,
+  type BackendSupportCategory,
+  type BackendSupportPriority,
   type BackendSupportTicketResponse,
   type BackendSupportTicketStatus,
   type BackendStaffUserResponse,
@@ -15,6 +17,7 @@ import { useLanguage } from "../context/LanguageContext";
 import { translateCopy } from "../lib/i18n";
 import { useToast } from "../context/ToastContext";
 import { formatDateTime } from "../lib/formatters";
+import { subscribeAdminSupportRefresh } from "../lib/adminRealtime";
 import {
   EmptyState,
   ErrorState,
@@ -36,34 +39,55 @@ import {
 } from "../components/ui-kit";
 
 const STATUS_OPTIONS: BackendSupportTicketStatus[] = [
-  "OPEN",
-  "IN_PROGRESS",
-  "RESOLVED",
-  "CLOSED",
+  "open",
+  "in_progress",
+  "resolved",
+  "closed",
 ];
 
 const STATUS_TRANSITIONS: Record<
   BackendSupportTicketStatus,
   BackendSupportTicketStatus[]
 > = {
-  OPEN: ["OPEN", "IN_PROGRESS", "CLOSED"],
-  IN_PROGRESS: ["IN_PROGRESS", "OPEN", "RESOLVED", "CLOSED"],
-  RESOLVED: ["RESOLVED", "IN_PROGRESS", "CLOSED"],
-  CLOSED: ["CLOSED"],
+  open: ["open", "in_progress", "closed"],
+  in_progress: ["in_progress", "open", "resolved", "closed"],
+  resolved: ["resolved", "in_progress", "closed"],
+  closed: ["closed"],
 };
 
 const statusTone = {
-  OPEN: "warning",
-  IN_PROGRESS: "info",
-  RESOLVED: "success",
-  CLOSED: "neutral",
+  open: "warning",
+  in_progress: "info",
+  resolved: "success",
+  closed: "neutral",
 } as const;
 
 const priorityTone = {
-  NORMAL: "neutral",
-  HIGH: "warning",
-  URGENT: "danger",
+  normal: "neutral",
+  high: "warning",
+  urgent: "danger",
 } as const;
+
+type TicketDraftState = {
+  replyDraft: string;
+  statusDraft: BackendSupportTicketStatus;
+  assigneeDraft: number | "";
+  internalNote: boolean;
+};
+
+type ThreadItem = {
+  key: string;
+  authorRole: "dealer" | "admin" | "system";
+  authorName?: string | null;
+  internalNote: boolean;
+  message: string;
+  createdAt?: string | null;
+  attachments: Array<{
+    url: string;
+    fileName?: string | null;
+  }>;
+  syntheticRoot?: boolean;
+};
 
 const copyKeys = {
   title: "Hỗ trợ",
@@ -88,12 +112,65 @@ const copyKeys = {
   closed: "Đóng",
   next: "Tiếp",
   previous: "Trước",
-  emptyTitle: "Không có ticket phù hợp",
-  emptyMessage: "Thử thay đổi bộ lọc hoặc tải lại dữ liệu.",
+  emptyTitle: "Chưa có ticket hỗ trợ",
+  emptyMessage: "Ticket từ đại lý sẽ xuất hiện ở đây khi có yêu cầu mới.",
+  emptyDetailTitle: "Chọn một ticket để xem chi tiết",
+  emptyDetailMessage:
+    "Khi ticket từ đại lý xuất hiện, bạn sẽ xem được toàn bộ cuộc hội thoại tại đây.",
   loadTitle: "Không tải được ticket",
   loadFallback: "Danh sách ticket chưa thể tải.",
   reload: "Tải lại",
 } as const;
+
+function createDraft(ticket: BackendSupportTicketResponse): TicketDraftState {
+  return {
+    replyDraft: "",
+    statusDraft: ticket.status ?? "open",
+    assigneeDraft: ticket.assigneeId ?? "",
+    internalNote: false,
+  };
+}
+
+function buildThreadItems(ticket: BackendSupportTicketResponse): ThreadItem[] {
+  const messages = Array.isArray(ticket.messages) ? ticket.messages : [];
+  const rootMessage = (ticket.message || "").trim();
+  const hasRootInMessages = messages.some(
+    (message) =>
+      message.authorRole === "dealer" &&
+      !message.internalNote &&
+      message.message.trim() === rootMessage,
+  );
+
+  const thread: ThreadItem[] = [];
+  if (rootMessage && !hasRootInMessages) {
+    thread.push({
+      key: `root-${ticket.id}`,
+      authorRole: "dealer",
+      authorName: ticket.dealerName,
+      internalNote: false,
+      message: rootMessage,
+      createdAt: ticket.createdAt,
+      attachments: [],
+      syntheticRoot: true,
+    });
+  }
+
+  for (const message of messages) {
+    thread.push({
+      key: `message-${message.id}`,
+      authorRole: message.authorRole,
+      authorName: message.authorName,
+      internalNote: message.internalNote === true,
+      message: message.message,
+      createdAt: message.createdAt,
+      attachments: Array.isArray(message.attachments)
+        ? message.attachments.filter((attachment) => !!attachment?.url)
+        : [],
+    });
+  }
+
+  return thread;
+}
 
 function SupportTicketsPageRevamp() {
   const { t } = useLanguage();
@@ -109,20 +186,34 @@ function SupportTicketsPageRevamp() {
   const [totalItems, setTotalItems] = useState(0);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<
-    "ALL" | BackendSupportTicketStatus
-  >("ALL");
+    "all" | BackendSupportTicketStatus
+  >("all");
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [replyDraft, setReplyDraft] = useState("");
-  const [statusDraft, setStatusDraft] =
-    useState<BackendSupportTicketStatus>("OPEN");
-  const [assigneeDraft, setAssigneeDraft] = useState<number | "">("");
-  const [internalNote, setInternalNote] = useState(false);
+  const [draftsByTicketId, setDraftsByTicketId] = useState<
+    Record<number, TicketDraftState>
+  >({});
   const [staffUsers, setStaffUsers] = useState<BackendStaffUserResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFilterLoading, setIsFilterLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const hasActiveFilters = query.trim().length > 0 || statusFilter !== "ALL";
+  const hasActiveFilters = query.trim().length > 0 || statusFilter !== "all";
+
+  const mergeTickets = useCallback(
+    (nextTickets: BackendSupportTicketResponse[]) => {
+      setDraftsByTicketId((current) => {
+        const nextDrafts = { ...current };
+        for (const ticket of nextTickets) {
+          if (!nextDrafts[ticket.id]) {
+            nextDrafts[ticket.id] = createDraft(ticket);
+          }
+        }
+        return nextDrafts;
+      });
+      return nextTickets;
+    },
+    [],
+  );
 
   const loadTickets = useCallback(
     async (nextPage: number) => {
@@ -134,7 +225,7 @@ function SupportTicketsPageRevamp() {
           page: nextPage,
           size: 25,
         });
-        setTickets(response.items);
+        setTickets(mergeTickets(response.items));
         setPage(response.page);
         setTotalPages(response.totalPages);
         setTotalItems(response.totalElements);
@@ -155,7 +246,7 @@ function SupportTicketsPageRevamp() {
         setIsLoading(false);
       }
     },
-    [accessToken, copy.loadFallback],
+    [accessToken, copy.loadFallback, mergeTickets],
   );
 
   useEffect(() => {
@@ -177,7 +268,7 @@ function SupportTicketsPageRevamp() {
     setError(null);
     try {
       const response = await fetchAllAdminSupportTickets(accessToken, 100);
-      setAllTickets(response);
+      setAllTickets(mergeTickets(response));
       if (response.length > 0) {
         setSelectedId(
           (current) =>
@@ -193,7 +284,7 @@ function SupportTicketsPageRevamp() {
     } finally {
       setIsFilterLoading(false);
     }
-  }, [accessToken, copy.loadFallback]);
+  }, [accessToken, copy.loadFallback, mergeTickets]);
 
   useEffect(() => {
     if (!hasActiveFilters) {
@@ -206,25 +297,36 @@ function SupportTicketsPageRevamp() {
     void loadAllTickets();
   }, [hasActiveFilters, loadAllTickets]);
 
+  useEffect(() => {
+    return subscribeAdminSupportRefresh(() => {
+      void loadTickets(page);
+      if (hasActiveFilters) {
+        void loadAllTickets();
+      }
+    });
+  }, [hasActiveFilters, loadAllTickets, loadTickets, page]);
+
   const sourceTickets = hasActiveFilters ? allTickets : tickets;
 
   const filteredTickets = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return sourceTickets.filter((ticket) => {
       const matchesStatus =
-        statusFilter === "ALL" ? true : ticket.status === statusFilter;
+        statusFilter === "all" ? true : ticket.status === statusFilter;
       const haystack = [
         ticket.ticketCode,
         ticket.dealerName,
         ticket.subject,
         ticket.message,
+        ticket.contextData?.orderCode,
+        ticket.contextData?.transactionCode,
+        ticket.contextData?.serial,
       ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
       return (
-        matchesStatus &&
-        (!normalizedQuery || haystack.includes(normalizedQuery))
+        matchesStatus && (!normalizedQuery || haystack.includes(normalizedQuery))
       );
     });
   }, [query, sourceTickets, statusFilter]);
@@ -243,33 +345,39 @@ function SupportTicketsPageRevamp() {
   const selectedTicket =
     filteredTickets.find((ticket) => ticket.id === selectedId) ?? null;
 
-  useEffect(() => {
-    if (!selectedTicket) return;
-    setReplyDraft("");
-    setStatusDraft(selectedTicket.status ?? "OPEN");
-    setAssigneeDraft(selectedTicket.assigneeId ?? "");
-    setInternalNote(false);
-  }, [selectedTicket]);
+  const selectedDraft = selectedTicket
+    ? draftsByTicketId[selectedTicket.id] ?? createDraft(selectedTicket)
+    : null;
 
-  const allowedStatusOptions = useMemo(
-    () =>
-      STATUS_TRANSITIONS[selectedTicket?.status ?? "OPEN"] ?? STATUS_OPTIONS,
+  const updateSelectedDraft = useCallback(
+    (patch: Partial<TicketDraftState>) => {
+      if (!selectedTicket) {
+        return;
+      }
+      setDraftsByTicketId((current) => ({
+        ...current,
+        [selectedTicket.id]: {
+          ...(current[selectedTicket.id] ?? createDraft(selectedTicket)),
+          ...patch,
+        },
+      }));
+    },
     [selectedTicket],
   );
 
-  useEffect(() => {
-    if (!allowedStatusOptions.includes(statusDraft)) {
-      setStatusDraft(selectedTicket?.status ?? "OPEN");
-    }
-  }, [allowedStatusOptions, selectedTicket, statusDraft]);
+  const allowedStatusOptions = useMemo(
+    () =>
+      STATUS_TRANSITIONS[selectedTicket?.status ?? "open"] ?? STATUS_OPTIONS,
+    [selectedTicket],
+  );
 
   const stats = useMemo(
     () => ({
-      open: sourceTickets.filter((ticket) => ticket.status === "OPEN").length,
+      open: sourceTickets.filter((ticket) => ticket.status === "open").length,
       progress: sourceTickets.filter(
-        (ticket) => ticket.status === "IN_PROGRESS",
+        (ticket) => ticket.status === "in_progress",
       ).length,
-      resolved: sourceTickets.filter((ticket) => ticket.status === "RESOLVED")
+      resolved: sourceTickets.filter((ticket) => ticket.status === "resolved")
         .length,
     }),
     [sourceTickets],
@@ -282,24 +390,40 @@ function SupportTicketsPageRevamp() {
     }
   }, [hasActiveFilters, loadAllTickets, loadTickets, page]);
 
-  const handleSave = async () => {
-    if (!accessToken || !selectedTicket) return;
-    setIsSaving(true);
-    try {
-      const updated = await updateAdminSupportTicket(
-        accessToken,
-        selectedTicket.id,
-        {
-          status: statusDraft,
-          assigneeId: assigneeDraft === "" ? null : assigneeDraft,
-        },
-      );
+  const replaceTicket = useCallback(
+    (updated: BackendSupportTicketResponse) => {
       setTickets((current) =>
         current.map((ticket) => (ticket.id === updated.id ? updated : ticket)),
       );
       setAllTickets((current) =>
         current.map((ticket) => (ticket.id === updated.id ? updated : ticket)),
       );
+      setDraftsByTicketId((current) => ({
+        ...current,
+        [updated.id]: {
+          ...(current[updated.id] ?? createDraft(updated)),
+          statusDraft: updated.status ?? "open",
+          assigneeDraft: updated.assigneeId ?? "",
+        },
+      }));
+    },
+    [],
+  );
+
+  const handleSave = async () => {
+    if (!accessToken || !selectedTicket || !selectedDraft) return;
+    setIsSaving(true);
+    try {
+      const updated = await updateAdminSupportTicket(accessToken, selectedTicket.id, {
+        status: selectedDraft.statusDraft,
+        assigneeId:
+          selectedDraft.assigneeDraft === "" ? null : selectedDraft.assigneeDraft,
+      });
+      replaceTicket(updated);
+      notify(t("Đã lưu cập nhật ticket."), {
+        title: copy.title,
+        variant: "success",
+      });
     } catch (saveError) {
       notify(
         saveError instanceof Error ? saveError.message : copy.loadFallback,
@@ -314,25 +438,39 @@ function SupportTicketsPageRevamp() {
   };
 
   const handleSendMessage = async () => {
-    if (!accessToken || !selectedTicket || !replyDraft.trim()) return;
+    if (!accessToken || !selectedTicket || !selectedDraft?.replyDraft.trim()) {
+      return;
+    }
     setIsSaving(true);
     try {
       const updated = await createAdminSupportTicketMessage(
         accessToken,
         selectedTicket.id,
         {
-          message: replyDraft.trim(),
-          internalNote,
+          message: selectedDraft.replyDraft.trim(),
+          internalNote: selectedDraft.internalNote,
         },
       );
-      setTickets((current) =>
-        current.map((ticket) => (ticket.id === updated.id ? updated : ticket)),
+      replaceTicket(updated);
+      setDraftsByTicketId((current) => ({
+        ...current,
+        [selectedTicket.id]: {
+          ...(current[selectedTicket.id] ?? createDraft(updated)),
+          replyDraft: "",
+          internalNote: false,
+          statusDraft: updated.status ?? "open",
+          assigneeDraft: updated.assigneeId ?? "",
+        },
+      }));
+      notify(
+        selectedDraft.internalNote
+          ? t("Đã lưu ghi chú nội bộ.")
+          : t("Đã gửi phản hồi tới đại lý."),
+        {
+          title: copy.title,
+          variant: "success",
+        },
       );
-      setAllTickets((current) =>
-        current.map((ticket) => (ticket.id === updated.id ? updated : ticket)),
-      );
-      setReplyDraft("");
-      setInternalNote(false);
     } catch (saveError) {
       notify(
         saveError instanceof Error ? saveError.message : copy.loadFallback,
@@ -345,6 +483,64 @@ function SupportTicketsPageRevamp() {
       setIsSaving(false);
     }
   };
+
+  const statusLabel = useCallback(
+    (status: BackendSupportTicketStatus | null | undefined) => {
+      switch (status) {
+        case "in_progress":
+          return t("Đang xử lý");
+        case "resolved":
+          return t("Đã xử lý");
+        case "closed":
+          return t("Đã đóng");
+        case "open":
+        default:
+          return t("Đang mở");
+      }
+    },
+    [t],
+  );
+
+  const priorityLabel = useCallback(
+    (priority: BackendSupportPriority | null | undefined) => {
+      switch (priority) {
+        case "high":
+          return t("Cao");
+        case "urgent":
+          return t("Khẩn cấp");
+        case "normal":
+        default:
+          return t("Bình thường");
+      }
+    },
+    [t],
+  );
+
+  const categoryLabel = useCallback(
+    (category: BackendSupportCategory | null | undefined) => {
+      switch (category) {
+        case "order":
+          return t("Đơn hàng");
+        case "warranty":
+          return t("Bảo hành / Serial");
+        case "product":
+          return t("Sản phẩm");
+        case "payment":
+          return t("Thanh toán");
+        case "returnOrder":
+          return t("Đổi trả");
+        case "other":
+        default:
+          return t("Khác");
+      }
+    },
+    [t],
+  );
+
+  const threadItems = useMemo(
+    () => (selectedTicket ? buildThreadItems(selectedTicket) : []),
+    [selectedTicket],
+  );
 
   if (isLoading || isFilterLoading) {
     return (
@@ -365,6 +561,8 @@ function SupportTicketsPageRevamp() {
       </PagePanel>
     );
   }
+
+  const showEmptyWorkspace = filteredTickets.length === 0;
 
   return (
     <PagePanel>
@@ -388,14 +586,14 @@ function SupportTicketsPageRevamp() {
             value={statusFilter}
             onChange={(event) =>
               setStatusFilter(
-                event.target.value as "ALL" | BackendSupportTicketStatus,
+                event.target.value as "all" | BackendSupportTicketStatus,
               )
             }
           >
-            <option value="ALL">{copy.all}</option>
+            <option value="all">{copy.all}</option>
             {STATUS_OPTIONS.map((status) => (
               <option key={status} value={status}>
-                {status}
+                {statusLabel(status)}
               </option>
             ))}
           </select>
@@ -431,16 +629,18 @@ function SupportTicketsPageRevamp() {
         />
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.9fr)] xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.95fr)]">
-        <div className="min-w-0 space-y-3">
-          {filteredTickets.length === 0 ? (
-            <EmptyState
-              icon={LifeBuoy}
-              title={copy.emptyTitle}
-              message={copy.emptyMessage}
-            />
-          ) : (
-            filteredTickets.map((ticket) => {
+      {showEmptyWorkspace ? (
+        <div className="mt-6">
+          <EmptyState
+            icon={LifeBuoy}
+            title={copy.emptyTitle}
+            message={copy.emptyMessage}
+          />
+        </div>
+      ) : (
+        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.95fr)]">
+          <div className="min-w-0 space-y-3">
+            {filteredTickets.map((ticket) => {
               const active = ticket.id === selectedTicket?.id;
               return (
                 <button
@@ -458,11 +658,11 @@ function SupportTicketsPageRevamp() {
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold text-[var(--ink)]">
-                        {ticket.ticketCode ?? `#${ticket.id}`} ·{" "}
+                        {ticket.ticketCode ?? `#${ticket.id}`} •{" "}
                         {ticket.subject ?? "-"}
                       </p>
                       <p className={tableMetaClass}>
-                        {ticket.dealerName ?? "-"} ·{" "}
+                        {ticket.dealerName ?? "-"} •{" "}
                         {formatDateTime(
                           ticket.createdAt ?? new Date().toISOString(),
                         )}
@@ -470,14 +670,12 @@ function SupportTicketsPageRevamp() {
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <StatusBadge
-                        tone={
-                          priorityTone[ticket.priority ?? "NORMAL"] ?? "neutral"
-                        }
+                        tone={priorityTone[ticket.priority ?? "normal"] ?? "neutral"}
                       >
-                        {ticket.priority ?? "NORMAL"}
+                        {priorityLabel(ticket.priority)}
                       </StatusBadge>
-                      <StatusBadge tone={statusTone[ticket.status ?? "OPEN"]}>
-                        {ticket.status ?? "OPEN"}
+                      <StatusBadge tone={statusTone[ticket.status ?? "open"]}>
+                        {statusLabel(ticket.status)}
                       </StatusBadge>
                     </div>
                   </div>
@@ -486,201 +684,266 @@ function SupportTicketsPageRevamp() {
                   </p>
                 </button>
               );
-            })
-          )}
-          {!hasActiveFilters ? (
-            <PaginationNav
-              page={page}
-              totalPages={totalPages}
-              totalItems={totalItems}
-              pageSize={25}
-              onPageChange={setPage}
-              previousLabel={copy.previous}
-              nextLabel={copy.next}
-            />
-          ) : null}
-        </div>
+            })}
+            {!hasActiveFilters ? (
+              <PaginationNav
+                page={page}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                pageSize={25}
+                onPageChange={setPage}
+                previousLabel={copy.previous}
+                nextLabel={copy.next}
+              />
+            ) : null}
+          </div>
 
-        <div className={`${softCardClass} min-w-0`}>
-          {selectedTicket ? (
-            <div className="space-y-4">
-              <div>
-                <p className={tableMetaClass}>{copy.selected}</p>
-                <h4 className="mt-2 text-lg font-semibold text-[var(--ink)]">
-                  {selectedTicket.ticketCode ?? `#${selectedTicket.id}`}
-                </h4>
-                <p className="mt-1 text-sm text-[var(--muted)]">
-                  {selectedTicket.dealerName ?? "-"} ·{" "}
-                  {selectedTicket.category ?? "OTHER"} ·{" "}
-                  {formatDateTime(selectedTicket.createdAt ?? new Date().toISOString())}
-                </p>
-              </div>
+          <div className={`${softCardClass} min-w-0`}>
+            {selectedTicket && selectedDraft ? (
+              <div className="space-y-4">
+                <div>
+                  <p className={tableMetaClass}>{copy.selected}</p>
+                  <h4 className="mt-2 text-lg font-semibold text-[var(--ink)]">
+                    {selectedTicket.ticketCode ?? `#${selectedTicket.id}`}
+                  </h4>
+                  <p className="mt-1 text-sm text-[var(--muted)]">
+                    {selectedTicket.dealerName ?? "-"} •{" "}
+                    {categoryLabel(selectedTicket.category)} •{" "}
+                    {formatDateTime(
+                      selectedTicket.createdAt ?? new Date().toISOString(),
+                    )}
+                  </p>
+                </div>
 
-              {/* Conversation thread */}
-              <div className="space-y-3">
-                {(selectedTicket.messages ?? []).length > 0 ? (
-                  (selectedTicket.messages ?? []).map((message) => (
+                {selectedTicket.contextData ? (
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+                    <p className={`${tableMetaClass} mb-2`}>
+                      {t("Ngữ cảnh ticket")}
+                    </p>
+                    <div className="grid gap-2 text-sm text-[var(--ink)] sm:grid-cols-2">
+                      {selectedTicket.contextData.orderCode ? (
+                        <p>
+                          <span className="font-medium">{t("Mã đơn hàng")}:</span>{" "}
+                          {selectedTicket.contextData.orderCode}
+                        </p>
+                      ) : null}
+                      {selectedTicket.contextData.transactionCode ? (
+                        <p>
+                          <span className="font-medium">{t("Mã giao dịch")}:</span>{" "}
+                          {selectedTicket.contextData.transactionCode}
+                        </p>
+                      ) : null}
+                      {selectedTicket.contextData.paidAmount != null ? (
+                        <p>
+                          <span className="font-medium">{t("Số tiền đã chuyển")}:</span>{" "}
+                          {selectedTicket.contextData.paidAmount}
+                        </p>
+                      ) : null}
+                      {selectedTicket.contextData.paymentReference ? (
+                        <p>
+                          <span className="font-medium">{t("Nội dung chuyển khoản")}:</span>{" "}
+                          {selectedTicket.contextData.paymentReference}
+                        </p>
+                      ) : null}
+                      {selectedTicket.contextData.serial ? (
+                        <p>
+                          <span className="font-medium">{t("Serial")}:</span>{" "}
+                          {selectedTicket.contextData.serial}
+                        </p>
+                      ) : null}
+                      {selectedTicket.contextData.returnReason ? (
+                        <p className="sm:col-span-2">
+                          <span className="font-medium">{t("Lý do trả hàng")}:</span>{" "}
+                          {selectedTicket.contextData.returnReason}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="space-y-3">
+                  {threadItems.map((message) => (
                     <div
-                      key={message.id}
+                      key={message.key}
                       className={[
                         "rounded-2xl border px-4 py-3",
                         message.internalNote
                           ? "border-[var(--border)] bg-[var(--surface-muted)]"
                           : message.authorRole === "admin"
                             ? "border-[var(--accent)] bg-[var(--accent-soft)]"
-                            : "border-[var(--border)] bg-[var(--surface)]",
+                            : message.syntheticRoot
+                              ? "border-[var(--accent)]/40 bg-[var(--surface)]"
+                              : "border-[var(--border)] bg-[var(--surface)]",
                       ].join(" ")}
                     >
                       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
                         {message.authorRole === "dealer"
-                          ? selectedTicket.dealerName ?? "Đại lý"
+                          ? message.authorName ?? selectedTicket.dealerName ?? t("Đại lý")
                           : message.authorRole === "admin"
                             ? message.authorName ?? "Admin"
-                            : message.authorName ?? "Hệ thống"}
-                        {message.internalNote ? " · Ghi chú nội bộ" : ""}
+                            : message.authorName ?? t("Hệ thống")}
+                        {message.syntheticRoot ? ` • ${t("Yêu cầu gốc")}` : ""}
+                        {message.internalNote ? ` • ${t("Ghi chú nội bộ")}` : ""}
                       </p>
-                      <p className="text-sm text-[var(--ink)]">{message.message}</p>
-                      {message.createdAt && (
+                      <p className="whitespace-pre-wrap text-sm text-[var(--ink)]">
+                        {message.message}
+                      </p>
+                      {message.attachments.length > 0 ? (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {message.attachments.map((attachment, index) => (
+                            <a
+                              key={`${message.key}-attachment-${index}`}
+                              href={attachment.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-xs text-[var(--ink)] hover:border-[var(--accent)]"
+                            >
+                              {attachment.fileName || t("Tệp đính kèm")}
+                            </a>
+                          ))}
+                        </div>
+                      ) : null}
+                      {message.createdAt ? (
                         <p className="mt-2 text-xs text-[var(--muted)]">
                           {formatDateTime(message.createdAt)}
                         </p>
-                      )}
+                      ) : null}
                     </div>
-                  ))
-                ) : (
-                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-                      {selectedTicket.dealerName ?? t("Đại lý")}
-                    </p>
-                    <p className="text-sm text-[var(--ink)]">
-                      {selectedTicket.message ?? "-"}
-                    </p>
-                  </div>
-                )}
-              </div>
+                  ))}
+                </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="text-sm text-[var(--ink)]">
-                  <span className={tableMetaClass}>{copy.status}</span>
-                  <select
-                    className={`mt-2 w-full ${tableActionSelectClass}`}
-                    value={statusDraft}
-                    onChange={(event) =>
-                      setStatusDraft(
-                        event.target.value as BackendSupportTicketStatus,
-                      )
-                    }
-                  >
-                    {allowedStatusOptions.map((status) => (
-                      <option key={status} value={status}>
-                        {status}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="text-sm text-[var(--ink)]">
-                  <span className={tableMetaClass}>{copy.assignee}</span>
-                  <select
-                    className={`mt-2 w-full ${tableActionSelectClass}`}
-                    value={assigneeDraft}
-                    onChange={(event) =>
-                      setAssigneeDraft(
-                        event.target.value
-                          ? Number(event.target.value)
-                          : "",
-                      )
-                    }
-                  >
-                    <option value="">Chưa gán</option>
-                    {staffUsers.map((user) => (
-                      <option key={user.id} value={user.id}>
-                        {user.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <div className="text-sm text-[var(--ink)] sm:col-span-2">
-                  <span className={tableMetaClass}>{copy.timeline}</span>
-                  <div className="mt-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-xs text-[var(--muted)]">
-                    <p>
-                      {copy.created}:{" "}
-                      {formatDateTime(
-                        selectedTicket.createdAt ?? new Date().toISOString(),
-                      )}
-                    </p>
-                    <p>
-                      {copy.updated}:{" "}
-                      {formatDateTime(
-                        selectedTicket.updatedAt ??
-                          selectedTicket.createdAt ??
-                          new Date().toISOString(),
-                      )}
-                    </p>
-                    <p>
-                      {copy.resolved}:{" "}
-                      {selectedTicket.resolvedAt
-                        ? formatDateTime(selectedTicket.resolvedAt)
-                        : "-"}
-                    </p>
-                    <p>
-                      {copy.closed}:{" "}
-                      {selectedTicket.closedAt
-                        ? formatDateTime(selectedTicket.closedAt)
-                        : "-"}
-                    </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="text-sm text-[var(--ink)]">
+                    <span className={tableMetaClass}>{copy.status}</span>
+                    <select
+                      className={`mt-2 w-full ${tableActionSelectClass}`}
+                      value={selectedDraft.statusDraft}
+                      onChange={(event) =>
+                        updateSelectedDraft({
+                          statusDraft: event.target
+                            .value as BackendSupportTicketStatus,
+                        })
+                      }
+                    >
+                      {allowedStatusOptions.map((status) => (
+                        <option key={status} value={status}>
+                          {statusLabel(status)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="text-sm text-[var(--ink)]">
+                    <span className={tableMetaClass}>{copy.assignee}</span>
+                    <select
+                      className={`mt-2 w-full ${tableActionSelectClass}`}
+                      value={selectedDraft.assigneeDraft}
+                      onChange={(event) =>
+                        updateSelectedDraft({
+                          assigneeDraft: event.target.value
+                            ? Number(event.target.value)
+                            : "",
+                        })
+                      }
+                    >
+                      <option value="">{t("Chưa gán")}</option>
+                      {staffUsers.map((user) => (
+                        <option key={user.id} value={user.id}>
+                          {user.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="text-sm text-[var(--ink)] sm:col-span-2">
+                    <span className={tableMetaClass}>{copy.timeline}</span>
+                    <div className="mt-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-xs text-[var(--muted)]">
+                      <p>
+                        {copy.created}:{" "}
+                        {formatDateTime(
+                          selectedTicket.createdAt ?? new Date().toISOString(),
+                        )}
+                      </p>
+                      <p>
+                        {copy.updated}:{" "}
+                        {formatDateTime(
+                          selectedTicket.updatedAt ??
+                            selectedTicket.createdAt ??
+                            new Date().toISOString(),
+                        )}
+                      </p>
+                      <p>
+                        {copy.resolved}:{" "}
+                        {selectedTicket.resolvedAt
+                          ? formatDateTime(selectedTicket.resolvedAt)
+                          : "-"}
+                      </p>
+                      <p>
+                        {copy.closed}:{" "}
+                        {selectedTicket.closedAt
+                          ? formatDateTime(selectedTicket.closedAt)
+                          : "-"}
+                      </p>
+                    </div>
                   </div>
                 </div>
+
+                <label className="block text-sm text-[var(--ink)]">
+                  <span className={tableMetaClass}>{copy.reply}</span>
+                  <textarea
+                    className={`${textareaClass} mt-2 min-h-[120px]`}
+                    value={selectedDraft.replyDraft}
+                    onChange={(event) =>
+                      updateSelectedDraft({ replyDraft: event.target.value })
+                    }
+                    placeholder={
+                      selectedDraft.internalNote
+                        ? t("Nhập ghi chú nội bộ chỉ dành cho admin...")
+                        : t("Nhập phản hồi sẽ được gửi tới đại lý...")
+                    }
+                  />
+                </label>
+
+                <label className="flex items-center gap-2 text-sm text-[var(--muted)]">
+                  <input
+                    type="checkbox"
+                    checked={selectedDraft.internalNote}
+                    onChange={(event) =>
+                      updateSelectedDraft({
+                        internalNote: event.target.checked,
+                      })
+                    }
+                  />
+                  {t("Gửi dưới dạng ghi chú nội bộ")}
+                </label>
+
+                <div className="flex flex-wrap justify-end gap-3">
+                  <GhostButton
+                    disabled={isSaving || !selectedDraft.replyDraft.trim()}
+                    onClick={() => void handleSendMessage()}
+                    type="button"
+                  >
+                    {selectedDraft.internalNote
+                      ? copy.saveInternal
+                      : copy.sendReply}
+                  </GhostButton>
+                  <PrimaryButton
+                    disabled={isSaving}
+                    onClick={() => void handleSave()}
+                    type="button"
+                  >
+                    {isSaving ? `${copy.save}...` : copy.save}
+                  </PrimaryButton>
+                </div>
               </div>
-
-              <label className="block text-sm text-[var(--ink)]">
-                <span className={tableMetaClass}>{copy.reply}</span>
-                <textarea
-                  className={`${textareaClass} mt-2 min-h-[120px]`}
-                  value={replyDraft}
-                  onChange={(event) => setReplyDraft(event.target.value)}
-                  placeholder={
-                    internalNote
-                      ? "Nhập ghi chú nội bộ chỉ dành cho admin..."
-                      : "Nhập phản hồi sẽ được gửi tới đại lý..."
-                  }
-                />
-              </label>
-
-              <label className="flex items-center gap-2 text-sm text-[var(--muted)]">
-                <input
-                  type="checkbox"
-                  checked={internalNote}
-                  onChange={(event) => setInternalNote(event.target.checked)}
-                />
-                Gửi dưới dạng ghi chú nội bộ
-              </label>
-
-              <div className="flex flex-wrap justify-end gap-3">
-                <GhostButton
-                  disabled={isSaving || !replyDraft.trim()}
-                  onClick={() => void handleSendMessage()}
-                  type="button"
-                >
-                  {internalNote ? copy.saveInternal : copy.sendReply}
-                </GhostButton>
-                <PrimaryButton
-                  disabled={isSaving}
-                  onClick={() => void handleSave()}
-                  type="button"
-                >
-                  {isSaving ? `${copy.save}...` : copy.save}
-                </PrimaryButton>
-              </div>
-            </div>
-          ) : (
-            <EmptyState
-              icon={MessageSquareMore}
-              title={copy.emptyTitle}
-              message={copy.emptyMessage}
-            />
-          )}
+            ) : (
+              <EmptyState
+                icon={MessageSquareMore}
+                title={copy.emptyDetailTitle}
+                message={copy.emptyDetailMessage}
+              />
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </PagePanel>
   );
 }

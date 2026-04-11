@@ -118,6 +118,13 @@ public class UploadController {
                 requireDealerPortalAccess(account);
                 yield new UploadTarget(actorScopedFolder("payments/proofs/dealers", account), null);
             }
+            case "support-tickets" -> {
+                if (isAdmin(account)) {
+                    yield new UploadTarget(adminScopedFolder("support/evidence", account), null);
+                }
+                requireDealerPortalAccess(account);
+                yield new UploadTarget(actorScopedFolder("support/evidence/dealers", account), null);
+            }
             default -> throw new BadRequestException("Unsupported upload category: " + category);
         };
     }
@@ -193,6 +200,15 @@ public class UploadController {
             }
             requireDealerPortalAccess(account);
             requireOwnedPath(normalized, actorScopedFolder("payments/proofs/dealers", account));
+            return;
+        }
+
+        if (normalized.startsWith("support/evidence/")) {
+            if (isAdmin(account)) {
+                return;
+            }
+            requireDealerPortalAccess(account);
+            requireOwnedPath(normalized, actorScopedFolder("support/evidence/dealers", account));
             return;
         }
 

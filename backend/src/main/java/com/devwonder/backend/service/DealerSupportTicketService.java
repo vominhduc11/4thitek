@@ -16,6 +16,7 @@ import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.DealerSupportTicketRepository;
 import com.devwonder.backend.service.support.AppMessageSupport;
+import com.devwonder.backend.service.support.SupportTicketPayloadSupport;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
@@ -34,6 +35,7 @@ public class DealerSupportTicketService {
     private final NotificationService notificationService;
     private final AppMessageSupport appMessageSupport;
     private final WebSocketEventPublisher webSocketEventPublisher;
+    private final SupportTicketPayloadSupport supportTicketPayloadSupport;
 
     @Transactional(readOnly = true)
     public DealerSupportTicketResponse getLatestTicket(String username) {
@@ -62,7 +64,8 @@ public class DealerSupportTicketService {
         ticket.setStatus(DealerSupportTicketStatus.OPEN);
         ticket.setSubject(request.subject().trim());
         ticket.setMessage(request.message().trim());
-        ticket.addMessage(buildDealerMessage(dealer, request.message()));
+        ticket.setContextData(supportTicketPayloadSupport.writeContext(request.contextData()));
+        ticket.addMessage(buildDealerMessage(dealer, request.message(), request.attachments()));
 
         DealerSupportTicket saved = dealerSupportTicketRepository.save(ticket);
         webSocketEventPublisher.publishAdminNewSupportTicket(new AdminNewSupportTicketEvent(
@@ -107,7 +110,7 @@ public class DealerSupportTicketService {
             ticket.setClosedAt(null);
         }
 
-        ticket.addMessage(buildDealerMessage(dealer, request.message()));
+        ticket.addMessage(buildDealerMessage(dealer, request.message(), request.attachments()));
         ticket.setMessage(resolveFirstDealerMessage(ticket.getMessages()));
 
         DealerSupportTicket saved = dealerSupportTicketRepository.save(ticket);
@@ -151,6 +154,7 @@ public class DealerSupportTicketService {
                 ticket.getStatus(),
                 ticket.getSubject(),
                 resolveFirstDealerMessage(ticket.getMessages()),
+                supportTicketPayloadSupport.readContext(ticket.getContextData()),
                 ticket.getAssignee() == null ? null : ticket.getAssignee().getId(),
                 resolveAssigneeName(ticket),
                 visibleMessages,
@@ -161,12 +165,17 @@ public class DealerSupportTicketService {
         );
     }
 
-    private SupportTicketMessage buildDealerMessage(Dealer dealer, String message) {
+    private SupportTicketMessage buildDealerMessage(
+            Dealer dealer,
+            String message,
+            List<com.devwonder.backend.dto.support.SupportTicketAttachmentPayload> attachments
+    ) {
         SupportTicketMessage supportTicketMessage = new SupportTicketMessage();
         supportTicketMessage.setAuthorRole(SupportTicketMessageAuthorRole.DEALER);
         supportTicketMessage.setAuthorName(resolveDealerName(dealer));
         supportTicketMessage.setInternalNote(Boolean.FALSE);
         supportTicketMessage.setMessage(message.trim());
+        supportTicketMessage.setAttachments(supportTicketPayloadSupport.writeAttachments(attachments));
         return supportTicketMessage;
     }
 
@@ -177,6 +186,7 @@ public class DealerSupportTicketService {
                 message.getAuthorName(),
                 Boolean.TRUE.equals(message.getInternalNote()),
                 message.getMessage(),
+                supportTicketPayloadSupport.readAttachments(message.getAttachments()),
                 message.getCreatedAt()
         );
     }

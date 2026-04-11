@@ -242,6 +242,42 @@ class SupportTicketApiContractTests {
                 .andExpect(jsonPath("$.data.items[0].messages.length()").value(5));
     }
 
+    @Test
+    void supportTicketApiPersistsContextDataAndAttachments() throws Exception {
+        String dealerToken = registerDealerAndExtractAccessToken("support-ticket-attachments");
+
+        JsonNode created = readData(mockMvc.perform(post("/api/v1/dealer/support-tickets")
+                        .contentType(APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + dealerToken)
+                        .content("""
+                                {
+                                  "category": "payment",
+                                  "priority": "high",
+                                  "subject": "Need payment review",
+                                  "message": "Please verify this transfer.",
+                                  "contextData": {
+                                    "orderCode": "ORD-2026-001",
+                                    "transactionCode": "FT123456",
+                                    "paidAmount": 22000,
+                                    "paymentReference": "Thanh toan don ORD-2026-001"
+                                  },
+                                  "attachments": [
+                                    {
+                                      "url": "/api/v1/upload/support/evidence/dealers/example-proof.png",
+                                      "fileName": "example-proof.png"
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn());
+
+        assertThat(created.path("contextData").path("orderCode").asText()).isEqualTo("ORD-2026-001");
+        assertThat(created.path("messages").get(0).path("attachments").size()).isEqualTo(1);
+        assertThat(created.path("messages").get(0).path("attachments").get(0).path("fileName").asText())
+                .isEqualTo("example-proof.png");
+    }
+
     private org.springframework.test.web.servlet.ResultActions createSupportTicket(String dealerToken) throws Exception {
         return mockMvc.perform(post("/api/v1/dealer/support-tickets")
                 .contentType(APPLICATION_JSON)

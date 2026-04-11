@@ -66,6 +66,9 @@ public class DealerSupportTicket {
     @Column(name = "message", nullable = false, columnDefinition = "text")
     private String message;
 
+    @Column(name = "context_data", columnDefinition = "text")
+    private String contextData;
+
     // Legacy compatibility mirror for historical tickets and outbound email fallbacks.
     // Active runtime clients must consume the thread in `messages` instead.
     @Column(name = "admin_reply", columnDefinition = "text")

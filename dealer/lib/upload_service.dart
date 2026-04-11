@@ -160,6 +160,38 @@ class UploadService {
     );
   }
 
+  Future<void> deleteUrl(String url) async {
+    final normalizedUrl = url.trim();
+    if (normalizedUrl.isEmpty || !DealerApiConfig.isConfigured) {
+      return;
+    }
+    final accessToken = await _authStorage.readAccessToken();
+    if (accessToken == null || accessToken.trim().isEmpty) {
+      throw UploadException(
+        uploadServiceMessageToken(UploadMessageCode.unauthenticated),
+      );
+    }
+    final uri = DealerApiConfig.resolveApiUri(
+      '/upload',
+    ).replace(queryParameters: <String, String>{'url': normalizedUrl});
+    final response = await _client.delete(
+      uri,
+      headers: <String, String>{
+        HttpHeaders.authorizationHeader: 'Bearer ${accessToken.trim()}',
+        HttpHeaders.acceptHeader: 'application/json',
+      },
+    );
+    final decoded = jsonDecode(response.body.isEmpty ? '{}' : response.body);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = decoded is Map<String, dynamic>
+          ? decoded['error']?.toString()
+          : null;
+      throw UploadException(
+        message ?? uploadServiceMessageToken(UploadMessageCode.uploadFailed),
+      );
+    }
+  }
+
   static Future<String> xFileToDataUri(XFile file) async {
     final bytes = await file.readAsBytes();
     final parts = file.name.split('.');
@@ -171,6 +203,10 @@ class UploadService {
       _ => 'image/png',
     };
     return 'data:$mimeType;base64,${base64Encode(bytes)}';
+  }
+
+  void close() {
+    _client.close();
   }
 }
 

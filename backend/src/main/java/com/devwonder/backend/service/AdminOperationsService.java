@@ -48,6 +48,7 @@ import com.devwonder.backend.repository.WarrantyRegistrationRepository;
 import com.devwonder.backend.service.support.AccountValidationSupport;
 import com.devwonder.backend.service.support.AppMessageSupport;
 import com.devwonder.backend.service.support.ProductStockSyncSupport;
+import com.devwonder.backend.service.support.SupportTicketPayloadSupport;
 import com.devwonder.backend.service.support.WarrantyDateSupport;
 import com.devwonder.backend.service.support.WarrantyStatusSupport;
 import java.time.Instant;
@@ -87,6 +88,7 @@ public class AdminOperationsService {
     private final AsyncMailService asyncMailService;
     private final AppMessageSupport appMessageSupport;
     private final ProductStockSyncSupport productStockSyncSupport;
+    private final SupportTicketPayloadSupport supportTicketPayloadSupport;
 
     @Transactional(readOnly = true)
     public Page<AdminSupportTicketResponse> getSupportTickets(Pageable pageable) {
@@ -121,7 +123,8 @@ public class AdminOperationsService {
                             buildSupportTicketStatusLabel(previousStatus),
                             buildSupportTicketStatusLabel(nextStatus),
                             safeValue(resolveAdminName(actor), "Admin")
-                    )
+                    ),
+                    null
             ));
         }
         if (!Objects.equals(previousAssignee == null ? null : previousAssignee.getId(), request.assigneeId())) {
@@ -129,7 +132,8 @@ public class AdminOperationsService {
                     SupportTicketMessageAuthorRole.SYSTEM,
                     "System",
                     true,
-                    buildAssigneeAuditMessage(previousAssignee, ticket.getAssignee(), actor)
+                    buildAssigneeAuditMessage(previousAssignee, ticket.getAssignee(), actor),
+                    null
             ));
         }
 
@@ -165,7 +169,8 @@ public class AdminOperationsService {
                 SupportTicketMessageAuthorRole.ADMIN,
                 resolveAdminName(actor),
                 internalNote,
-                requireNonBlank(request.message(), "message")
+                requireNonBlank(request.message(), "message"),
+                request.attachments()
         ));
         if (!internalNote) {
             ticket.setAdminReply(requireNonBlank(request.message(), "message"));
@@ -441,6 +446,7 @@ public class AdminOperationsService {
                 ticket.getStatus(),
                 ticket.getSubject(),
                 resolveFirstDealerMessage(ticket.getMessages()),
+                supportTicketPayloadSupport.readContext(ticket.getContextData()),
                 ticket.getAssignee() == null ? null : ticket.getAssignee().getId(),
                 ticket.getAssignee() == null ? null : resolveAdminName(ticket.getAssignee()),
                 ticket.getMessages().stream().map(this::toSupportTicketMessageResponse).toList(),
@@ -798,6 +804,7 @@ public class AdminOperationsService {
                 message.getAuthorName(),
                 Boolean.TRUE.equals(message.getInternalNote()),
                 message.getMessage(),
+                supportTicketPayloadSupport.readAttachments(message.getAttachments()),
                 message.getCreatedAt()
         );
     }
@@ -806,13 +813,15 @@ public class AdminOperationsService {
             SupportTicketMessageAuthorRole authorRole,
             String authorName,
             boolean internalNote,
-            String message
+            String message,
+            List<com.devwonder.backend.dto.support.SupportTicketAttachmentPayload> attachments
     ) {
         SupportTicketMessage supportTicketMessage = new SupportTicketMessage();
         supportTicketMessage.setAuthorRole(authorRole);
         supportTicketMessage.setAuthorName(authorName);
         supportTicketMessage.setInternalNote(internalNote);
         supportTicketMessage.setMessage(message);
+        supportTicketMessage.setAttachments(supportTicketPayloadSupport.writeAttachments(attachments));
         return supportTicketMessage;
     }
 

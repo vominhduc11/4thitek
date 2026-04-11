@@ -39,9 +39,9 @@ export type BackendRmaRequest = {
   proofUrls?: string[]
 }
 export type BackendNotifyType = 'SYSTEM' | 'PROMOTION' | 'ORDER' | 'WARRANTY'
-export type BackendSupportPriority = 'NORMAL' | 'HIGH' | 'URGENT'
-export type BackendSupportCategory = 'ORDER' | 'WARRANTY' | 'PRODUCT' | 'PAYMENT' | 'RETURN' | 'OTHER'
-export type BackendSupportTicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED'
+export type BackendSupportPriority = 'normal' | 'high' | 'urgent'
+export type BackendSupportCategory = 'order' | 'warranty' | 'product' | 'payment' | 'returnOrder' | 'other'
+export type BackendSupportTicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed'
 export type BackendSupportMessageAuthorRole = 'dealer' | 'admin' | 'system'
 export type BackendReportExportType = 'ORDERS' | 'REVENUE' | 'WARRANTIES' | 'SERIALS'
 export type BackendReportFormat = 'XLSX' | 'PDF'
@@ -309,6 +309,14 @@ export type BackendSupportTicketResponse = {
   status?: BackendSupportTicketStatus | null
   subject?: string | null
   message?: string | null
+  contextData?: {
+    orderCode?: string | null
+    transactionCode?: string | null
+    paidAmount?: number | string | null
+    paymentReference?: string | null
+    serial?: string | null
+    returnReason?: string | null
+  } | null
   assigneeId?: number | null
   assigneeName?: string | null
   messages?: Array<{
@@ -317,6 +325,10 @@ export type BackendSupportTicketResponse = {
     authorName?: string | null
     internalNote?: boolean | null
     message: string
+    attachments?: Array<{
+      url: string
+      fileName?: string | null
+    }> | null
     createdAt?: string | null
   }> | null
   createdAt?: string | null
@@ -1109,6 +1121,10 @@ export const createAdminSupportTicketMessage = (
   body: {
     message: string
     internalNote?: boolean
+    attachments?: Array<{
+      url: string
+      fileName?: string
+    }>
   },
 ) =>
   authorizedJsonRequest<BackendSupportTicketResponse>({

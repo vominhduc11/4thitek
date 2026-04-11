@@ -86,7 +86,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/v1/upload/dealer-avatars",
-                                "/api/v1/upload/payment-proofs"
+                                "/api/v1/upload/payment-proofs",
+                                "/api/v1/upload/support-tickets"
                         ).hasAnyAuthority("DEALER", "ADMIN", "SUPER_ADMIN")
                         .requestMatchers(
                                 HttpMethod.POST,

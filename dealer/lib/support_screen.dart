@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'app_settings_controller.dart';
@@ -7,6 +8,7 @@ import 'business_profile.dart';
 import 'breakpoints.dart';
 import 'notification_controller.dart';
 import 'support_service.dart';
+import 'upload_service.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/section_card.dart';
@@ -30,6 +32,7 @@ class _SupportScreenState extends State<SupportScreen> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
   final _ticketCardKey = GlobalKey();
+  final _composeSectionKey = GlobalKey();
   late final SupportService _supportService;
 
   SupportCategory _category = SupportCategory.order;
@@ -44,11 +47,20 @@ class _SupportScreenState extends State<SupportScreen> {
   String? _latestTicketLoadErrorMessage;
   String? _ticketHistoryLoadErrorMessage;
   final List<DealerSupportTicketRecord> _ticketHistory = [];
+  DealerSupportTicketRecord? _selectedTicketForReply;
+  final _contextOrderCodeController = TextEditingController();
+  final _contextTransactionCodeController = TextEditingController();
+  final _contextPaidAmountController = TextEditingController();
+  final _contextPaymentReferenceController = TextEditingController();
+  final _contextSerialController = TextEditingController();
+  final _contextReturnReasonController = TextEditingController();
+  final List<SupportTicketAttachmentRecord> _draftAttachments = [];
   int _ticketPage = 0;
   bool _isHistoryLoading = false;
   bool _isLoadingMoreTickets = false;
   bool _hasMoreTickets = true;
   bool _isSubmitting = false;
+  bool _isUploadingAttachment = false;
   int _handledSupportEventVersion = 0;
 
   static const _hotline = BusinessProfile.contactPhone;
@@ -82,7 +94,14 @@ class _SupportScreenState extends State<SupportScreen> {
   void dispose() {
     _subjectController.dispose();
     _messageController.dispose();
+    _contextOrderCodeController.dispose();
+    _contextTransactionCodeController.dispose();
+    _contextPaidAmountController.dispose();
+    _contextPaymentReferenceController.dispose();
+    _contextSerialController.dispose();
+    _contextReturnReasonController.dispose();
     _scrollController.dispose();
+    _cleanupPendingAttachments();
     _supportService.close();
     super.dispose();
   }
@@ -121,6 +140,7 @@ class _SupportScreenState extends State<SupportScreen> {
       _lastPriority = _parsePriority(ticket.priority);
       _lastStatus = ticket.status;
       _lastAdminUpdate = _resolveLatestPublicAdminMessage(ticket);
+      _selectedTicketForReply = _resolveSelectedTicket(ticket.id) ?? ticket;
     });
   }
 
@@ -145,6 +165,7 @@ class _SupportScreenState extends State<SupportScreen> {
       }
       setState(() {
         _ticketHistoryLoadErrorMessage = null;
+        final previousSelectedId = _selectedTicketForReply?.id;
         if (!loadMore) {
           _ticketHistory
             ..clear()
@@ -154,6 +175,10 @@ class _SupportScreenState extends State<SupportScreen> {
         }
         _ticketPage = response.page;
         _hasMoreTickets = response.page + 1 < response.totalPages;
+        _selectedTicketForReply =
+            _resolveSelectedTicket(previousSelectedId) ??
+            _resolveSelectedTicket(_lastTicketNumericId) ??
+            (_ticketHistory.isNotEmpty ? _ticketHistory.first : null);
       });
     } on SupportException catch (error) {
       if (!mounted) {
@@ -326,6 +351,17 @@ class _SupportScreenState extends State<SupportScreen> {
             isLoading: _isHistoryLoading,
             isLoadingMore: _isLoadingMoreTickets,
             hasMore: _hasMoreTickets,
+            selectedTicketId: _selectedTicketForReply?.id,
+            onSelectTicket: (ticket) {
+              setState(() => _selectedTicketForReply = ticket);
+            },
+            onReplyToTicket: (ticket) {
+              setState(() => _selectedTicketForReply = ticket);
+              _showSnackBar(texts.replyTargetChangedMessage(ticket.ticketCode));
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _scrollToComposeSection();
+              });
+            },
             errorMessage: _ticketHistoryLoadErrorMessage == null
                 ? null
                 : texts.historyLoadWarning,
@@ -337,6 +373,7 @@ class _SupportScreenState extends State<SupportScreen> {
     );
 
     final submitSection = RepaintBoundary(
+      key: _composeSectionKey,
       child: FadeSlideIn(
         delay: const Duration(milliseconds: 140),
         child: SectionCard(
@@ -362,6 +399,7 @@ class _SupportScreenState extends State<SupportScreen> {
                     return;
                   }
                   setState(() => _category = value);
+                  _clearContextDraft();
                 },
               ),
               const SizedBox(height: 14),
@@ -387,6 +425,9 @@ class _SupportScreenState extends State<SupportScreen> {
                 },
               ),
               const SizedBox(height: 14),
+              ..._buildContextFields(texts),
+              if (_buildContextFields(texts).isNotEmpty)
+                const SizedBox(height: 14),
               TextField(
                 controller: _subjectController,
                 textInputAction: TextInputAction.next,
@@ -416,6 +457,8 @@ class _SupportScreenState extends State<SupportScreen> {
                   prefixIcon: const Icon(Icons.chat_bubble_outline),
                 ),
               ),
+              const SizedBox(height: 12),
+              _buildAttachmentComposer(texts),
               const SizedBox(height: 8),
               Align(
                 alignment: Alignment.centerLeft,
@@ -441,12 +484,27 @@ class _SupportScreenState extends State<SupportScreen> {
                       : Text(texts.submitRequestAction),
                 ),
               ),
-              if (_lastTicketNumericId != null && _lastStatus != 'CLOSED') ...[
+              if (_selectedTicketForReply != null &&
+                  _selectedTicketForReply!.status.trim().toLowerCase() !=
+                      'closed') ...[
                 const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    texts.followUpTargetLabel(
+                      _selectedTicketForReply!.ticketCode,
+                      _selectedTicketForReply!.subject,
+                    ),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
-                    onPressed: _isSubmitting
+                    onPressed: _isSubmitting || _isUploadingAttachment
                         ? null
                         : () => _handleFollowUp(texts),
                     child: Text(texts.followUpAction),
@@ -563,6 +621,40 @@ class _SupportScreenState extends State<SupportScreen> {
     await Future.wait<void>([_loadLatestTicket(), _loadTicketHistory()]);
   }
 
+  Future<void> _scrollToComposeSection() async {
+    if (!mounted) {
+      return;
+    }
+    final targetContext = _composeSectionKey.currentContext;
+    if (targetContext != null) {
+      await Scrollable.ensureVisible(
+        targetContext,
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOut,
+      );
+      return;
+    }
+    if (_scrollController.hasClients) {
+      await _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent * 0.4,
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  DealerSupportTicketRecord? _resolveSelectedTicket(int? ticketId) {
+    if (ticketId == null) {
+      return null;
+    }
+    for (final ticket in _ticketHistory) {
+      if (ticket.id == ticketId) {
+        return ticket;
+      }
+    }
+    return null;
+  }
+
   String? _resolveLatestPublicAdminMessage(DealerSupportTicketRecord ticket) {
     for (final message in ticket.messages.reversed) {
       if (!message.internalNote &&
@@ -574,6 +666,203 @@ class _SupportScreenState extends State<SupportScreen> {
       }
     }
     return null;
+  }
+
+  List<Widget> _buildContextFields(_SupportTexts texts) {
+    final fields = <Widget>[];
+    if (_category == SupportCategory.order ||
+        _category == SupportCategory.payment ||
+        _category == SupportCategory.returnOrder) {
+      fields.add(
+        TextField(
+          controller: _contextOrderCodeController,
+          textInputAction: TextInputAction.next,
+          decoration: InputDecoration(
+            labelText: texts.orderCodeFieldLabel,
+            prefixIcon: const Icon(Icons.receipt_long_outlined),
+          ),
+        ),
+      );
+    }
+    if (_category == SupportCategory.payment) {
+      if (fields.isNotEmpty) {
+        fields.add(const SizedBox(height: 14));
+      }
+      fields.add(
+        TextField(
+          controller: _contextTransactionCodeController,
+          textInputAction: TextInputAction.next,
+          decoration: InputDecoration(
+            labelText: texts.transactionCodeFieldLabel,
+            prefixIcon: const Icon(Icons.payments_outlined),
+          ),
+        ),
+      );
+      fields.add(const SizedBox(height: 14));
+      fields.add(
+        TextField(
+          controller: _contextPaidAmountController,
+          keyboardType: TextInputType.number,
+          textInputAction: TextInputAction.next,
+          decoration: InputDecoration(
+            labelText: texts.paidAmountFieldLabel,
+            prefixIcon: const Icon(Icons.attach_money_outlined),
+          ),
+        ),
+      );
+      fields.add(const SizedBox(height: 14));
+      fields.add(
+        TextField(
+          controller: _contextPaymentReferenceController,
+          textInputAction: TextInputAction.next,
+          decoration: InputDecoration(
+            labelText: texts.paymentReferenceFieldLabel,
+            prefixIcon: const Icon(Icons.notes_outlined),
+          ),
+        ),
+      );
+    }
+    if (_category == SupportCategory.warranty ||
+        _category == SupportCategory.product) {
+      if (fields.isNotEmpty) {
+        fields.add(const SizedBox(height: 14));
+      }
+      fields.add(
+        TextField(
+          controller: _contextSerialController,
+          textInputAction: TextInputAction.next,
+          decoration: InputDecoration(
+            labelText: texts.serialFieldLabel,
+            prefixIcon: const Icon(Icons.qr_code_2_outlined),
+          ),
+        ),
+      );
+    }
+    if (_category == SupportCategory.returnOrder) {
+      if (fields.isNotEmpty) {
+        fields.add(const SizedBox(height: 14));
+      }
+      fields.add(
+        TextField(
+          controller: _contextReturnReasonController,
+          textInputAction: TextInputAction.next,
+          decoration: InputDecoration(
+            labelText: texts.returnReasonFieldLabel,
+            prefixIcon: const Icon(Icons.assignment_return_outlined),
+          ),
+        ),
+      );
+    }
+    return fields;
+  }
+
+  Widget _buildAttachmentComposer(_SupportTexts texts) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                texts.attachmentSectionLabel,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+            ),
+            OutlinedButton.icon(
+              onPressed: _isSubmitting || _isUploadingAttachment
+                  ? null
+                  : () => _handleAddAttachment(texts),
+              icon: _isUploadingAttachment
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2.2),
+                    )
+                  : const Icon(Icons.attach_file_outlined, size: 18),
+              label: Text(
+                _isUploadingAttachment
+                    ? texts.uploadingAttachmentLabel
+                    : texts.addAttachmentAction,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          texts.attachmentHelper,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        if (_draftAttachments.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _draftAttachments
+                .map(
+                  (attachment) => InputChip(
+                    label: Text(attachment.fileName ?? attachment.url),
+                    onDeleted: _isSubmitting
+                        ? null
+                        : () => _removeDraftAttachment(attachment),
+                  ),
+                )
+                .toList(growable: false),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _handleAddAttachment(_SupportTexts texts) async {
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (picked == null || !mounted) {
+      return;
+    }
+    setState(() => _isUploadingAttachment = true);
+    final uploadService = UploadService();
+    try {
+      final uploaded = await uploadService.uploadXFile(
+        file: picked,
+        category: 'support-tickets',
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _draftAttachments.add(
+          SupportTicketAttachmentRecord(
+            url: uploaded.url,
+            fileName: uploaded.fileName,
+          ),
+        );
+      });
+      _showSnackBar(texts.attachmentAddedMessage(picked.name));
+    } catch (error) {
+      _showSnackBar(texts.attachmentUploadFailed(error));
+    } finally {
+      uploadService.close();
+      if (mounted) {
+        setState(() => _isUploadingAttachment = false);
+      }
+    }
+  }
+
+  Future<void> _removeDraftAttachment(
+    SupportTicketAttachmentRecord attachment,
+  ) async {
+    setState(() {
+      _draftAttachments.removeWhere((item) => item.url == attachment.url);
+    });
+    final uploadService = UploadService();
+    try {
+      await uploadService.deleteUrl(attachment.url);
+    } catch (_) {
+      // Keep the UI responsive even if cleanup fails.
+    } finally {
+      uploadService.close();
+    }
   }
 
   void _copyToClipboard(String value, {String? message}) {
@@ -680,12 +969,18 @@ class _SupportScreenState extends State<SupportScreen> {
         priority: _toRemotePriority(_priority),
         subject: subject,
         message: message,
+        contextData: _buildContextData(),
+        attachments: List<SupportTicketAttachmentRecord>.from(
+          _draftAttachments,
+        ),
       );
       _applyTicket(ticket);
       _loadTicketHistory();
       _showSnackBar(texts.requestSubmittedMessage(ticket.ticketCode));
       _subjectController.clear();
       _messageController.clear();
+      _clearContextDraft();
+      _clearDraftAttachments();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _scrollToTicketCard();
       });
@@ -701,9 +996,9 @@ class _SupportScreenState extends State<SupportScreen> {
   }
 
   Future<void> _handleFollowUp(_SupportTexts texts) async {
-    final ticketId = _lastTicketNumericId;
+    final ticket = _selectedTicketForReply;
     final message = _messageController.text.trim();
-    if (ticketId == null) {
+    if (ticket == null) {
       _showSnackBar(texts.latestTicketLoadWarning);
       return;
     }
@@ -718,14 +1013,18 @@ class _SupportScreenState extends State<SupportScreen> {
 
     setState(() => _isSubmitting = true);
     try {
-      final ticket = await _supportService.submitTicketMessage(
-        ticketId: ticketId,
+      final updatedTicket = await _supportService.submitTicketMessage(
+        ticketId: ticket.id,
         message: message,
+        attachments: List<SupportTicketAttachmentRecord>.from(
+          _draftAttachments,
+        ),
       );
-      _applyTicket(ticket);
+      _applyTicket(updatedTicket);
       _loadTicketHistory();
       _messageController.clear();
-      _showSnackBar(texts.followUpSubmittedMessage(ticket.ticketCode));
+      _clearDraftAttachments();
+      _showSnackBar(texts.followUpSubmittedMessage(updatedTicket.ticketCode));
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _scrollToTicketCard();
       });
@@ -743,17 +1042,17 @@ class _SupportScreenState extends State<SupportScreen> {
   String _toRemoteCategory(SupportCategory category) {
     switch (category) {
       case SupportCategory.order:
-        return 'ORDER';
+        return 'order';
       case SupportCategory.warranty:
-        return 'WARRANTY';
+        return 'warranty';
       case SupportCategory.product:
-        return 'PRODUCT';
+        return 'product';
       case SupportCategory.payment:
-        return 'PAYMENT';
+        return 'payment';
       case SupportCategory.returnOrder:
         return 'returnOrder';
       case SupportCategory.other:
-        return 'OTHER';
+        return 'other';
     }
   }
 
@@ -790,15 +1089,61 @@ class _SupportScreenState extends State<SupportScreen> {
   }
 
   SupportPriority _parsePriority(String? raw) {
-    switch ((raw ?? '').trim().toUpperCase()) {
-      case 'HIGH':
+    switch ((raw ?? '').trim().toLowerCase()) {
+      case 'high':
         return SupportPriority.high;
-      case 'URGENT':
+      case 'urgent':
         return SupportPriority.urgent;
-      case 'NORMAL':
+      case 'normal':
       default:
         return SupportPriority.normal;
     }
+  }
+
+  SupportTicketContextRecord? _buildContextData() {
+    final paidAmount = num.tryParse(_contextPaidAmountController.text.trim());
+    final contextData = SupportTicketContextRecord(
+      orderCode: _contextOrderCodeController.text.trim(),
+      transactionCode: _contextTransactionCodeController.text.trim(),
+      paidAmount: paidAmount,
+      paymentReference: _contextPaymentReferenceController.text.trim(),
+      serial: _contextSerialController.text.trim(),
+      returnReason: _contextReturnReasonController.text.trim(),
+    );
+    return contextData.isEmpty ? null : contextData;
+  }
+
+  void _clearContextDraft() {
+    _contextOrderCodeController.clear();
+    _contextTransactionCodeController.clear();
+    _contextPaidAmountController.clear();
+    _contextPaymentReferenceController.clear();
+    _contextSerialController.clear();
+    _contextReturnReasonController.clear();
+  }
+
+  void _clearDraftAttachments() {
+    if (!mounted) {
+      return;
+    }
+    setState(() => _draftAttachments.clear());
+  }
+
+  Future<void> _cleanupPendingAttachments() async {
+    if (_draftAttachments.isEmpty) {
+      return;
+    }
+    final uploadService = UploadService();
+    for (final attachment in List<SupportTicketAttachmentRecord>.from(
+      _draftAttachments,
+    )) {
+      try {
+        await uploadService.deleteUrl(attachment.url);
+      } catch (_) {
+        // Best-effort cleanup only.
+      }
+    }
+    uploadService.close();
   }
 
   Widget _buildCounter(
@@ -874,7 +1219,7 @@ class _SupportTexts {
   String get submitRequestAction =>
       isEnglish ? 'Submit request' : 'Gửi yêu cầu';
   String get followUpAction => isEnglish
-      ? 'Send follow-up to latest ticket'
+      ? 'Send follow-up to selected ticket'
       : 'Gửi bổ sung vào ticket gần nhất';
   String get cancelAction => isEnglish ? 'Cancel' : 'Hủy';
   String get cannotOpenDialerMessage => isEnglish
@@ -924,7 +1269,7 @@ class _SupportTexts {
       case SupportCategory.order:
         return isEnglish ? 'Order' : 'Đơn hàng';
       case SupportCategory.warranty:
-        return isEnglish ? 'Warranty / Serial' : 'Kho serial';
+        return isEnglish ? 'Warranty / Serial' : 'Bao hanh / Serial';
       case SupportCategory.product:
         return isEnglish ? 'Product' : 'Sản phẩm';
       case SupportCategory.payment:
@@ -959,14 +1304,14 @@ class _SupportTexts {
   }
 
   String statusLabel(String status) {
-    switch (status) {
-      case 'OPEN':
+    switch (status.trim().toLowerCase()) {
+      case 'open':
         return isEnglish ? 'Open' : 'Mở';
-      case 'IN_PROGRESS':
+      case 'in_progress':
         return isEnglish ? 'In progress' : 'Đang xử lý';
-      case 'RESOLVED':
+      case 'resolved':
         return isEnglish ? 'Resolved' : 'Đã xử lý';
-      case 'CLOSED':
+      case 'closed':
         return isEnglish ? 'Closed' : 'Đóng';
       default:
         return status;
@@ -1047,6 +1392,40 @@ extension _SupportTextsValidationMessages on _SupportTexts {
   String messageTooShortMessage(int minLength) => isEnglish
       ? 'Description must be at least $minLength characters.'
       : 'Nội dung phải có ít nhất $minLength ký tự.';
+}
+
+extension _SupportTextsSupportExtras on _SupportTexts {
+  String followUpTargetLabel(String ticketCode, String subject) => isEnglish
+      ? 'Reply target: #$ticketCode - $subject'
+      : 'Dang gui bo sung cho #$ticketCode - $subject';
+
+  String replyTargetChangedMessage(String ticketCode) => isEnglish
+      ? 'Reply target changed to ticket #$ticketCode.'
+      : 'Da chuyen ticket phan hoi sang #$ticketCode.';
+
+  String get orderCodeFieldLabel => isEnglish ? 'Order code' : 'Ma don hang';
+  String get transactionCodeFieldLabel =>
+      isEnglish ? 'Transaction code' : 'Ma giao dich';
+  String get paidAmountFieldLabel =>
+      isEnglish ? 'Paid amount' : 'So tien da chuyen';
+  String get paymentReferenceFieldLabel =>
+      isEnglish ? 'Payment reference' : 'Noi dung chuyen khoan';
+  String get serialFieldLabel => 'Serial';
+  String get returnReasonFieldLabel =>
+      isEnglish ? 'Return reason' : 'Ly do tra hang';
+  String get attachmentSectionLabel =>
+      isEnglish ? 'Evidence / attachments' : 'Hinh anh / chung tu';
+  String get addAttachmentAction =>
+      isEnglish ? 'Add attachment' : 'Them hinh anh';
+  String get uploadingAttachmentLabel =>
+      isEnglish ? 'Uploading...' : 'Dang tai...';
+  String get attachmentHelper => isEnglish
+      ? 'Attach screenshots or proof images to help support verify the issue faster.'
+      : 'Dinh kem anh chup man hinh hoac chung tu de doi ho tro kiem tra nhanh hon.';
+  String attachmentAddedMessage(String fileName) =>
+      isEnglish ? 'Attached $fileName.' : 'Da dinh kem $fileName.';
+  String attachmentUploadFailed(Object error) =>
+      uploadServiceErrorMessage(error, isEnglish: isEnglish);
 }
 
 class _InlineSupportWarning extends StatelessWidget {

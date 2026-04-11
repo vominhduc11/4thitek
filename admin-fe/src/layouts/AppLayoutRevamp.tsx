@@ -53,6 +53,7 @@ import { translateCopy } from "../lib/i18n";
 import {
   emitAdminDashboardRefresh,
   emitAdminRealtimeNotification,
+  emitAdminSupportRefresh,
 } from "../lib/adminRealtime";
 import { useProducts } from "../context/ProductsContext";
 import { useToast } from "../context/ToastContext";
@@ -271,6 +272,7 @@ function AppLayoutRevamp() {
       });
     },
     onNewSupportTicket: (event) => {
+      emitAdminSupportRefresh(event);
       notify(interpolate(copy.ws.newTicket, { dealer: event.dealerName }), {
         title: copy.nav.support,
         variant: "info",
