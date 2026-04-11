@@ -89,7 +89,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -706,7 +705,6 @@ public class AdminManagementService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(CacheNames.ADMIN_DASHBOARD)
     public AdminDashboardResponse getDashboard() {
         List<BulkDiscount> activeDiscountRules = activeDiscountRules();
         boolean inventoryAlertsEnabled = adminSettingsService.getEffectiveSettings().inventoryAlerts();

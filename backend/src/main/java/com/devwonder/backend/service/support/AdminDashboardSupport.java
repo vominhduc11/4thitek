@@ -299,7 +299,7 @@ public final class AdminDashboardSupport {
         List<AdminDashboardResponse.TrendPoint> points = buckets.entrySet().stream()
                 .map(entry -> new AdminDashboardResponse.TrendPoint(
                         MONTH_LABEL_FORMAT.format(entry.getKey()),
-                        entry.getValue().setScale(0, RoundingMode.HALF_UP).intValue()
+                        entry.getValue().setScale(0, RoundingMode.HALF_UP).longValueExact()
                 ))
                 .toList();
         return new AdminDashboardResponse.Trend(

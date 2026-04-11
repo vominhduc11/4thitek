@@ -68,7 +68,7 @@ public record AdminDashboardResponse(
 
     public record TrendPoint(
             String label,
-            int value
+            long value
     ) {
     }
 }

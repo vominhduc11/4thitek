@@ -50,7 +50,10 @@ import { useAdminData } from "../context/AdminDataContext";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { translateCopy } from "../lib/i18n";
-import { emitAdminRealtimeNotification } from "../lib/adminRealtime";
+import {
+  emitAdminDashboardRefresh,
+  emitAdminRealtimeNotification,
+} from "../lib/adminRealtime";
 import { useProducts } from "../context/ProductsContext";
 import { useToast } from "../context/ToastContext";
 import { useBodyScrollLock } from "../hooks/useBodyScrollLock";
@@ -253,6 +256,7 @@ function AppLayoutRevamp() {
   useAdminWebSocket(accessToken, {
     onNewOrder: (event) => {
       void reloadResource("orders");
+      emitAdminDashboardRefresh();
       notify(interpolate(copy.ws.newOrder, { dealer: event.dealerName }), {
         title: copy.order,
         variant: "info",
@@ -260,6 +264,7 @@ function AppLayoutRevamp() {
     },
     onNewDealer: (event) => {
       void reloadResource("dealers");
+      emitAdminDashboardRefresh();
       notify(interpolate(copy.ws.newDealer, { username: event.username }), {
         title: copy.dealer,
         variant: "info",
@@ -272,6 +277,7 @@ function AppLayoutRevamp() {
       });
     },
     onNotificationCreated: (event) => {
+      emitAdminDashboardRefresh();
       emitAdminRealtimeNotification(event);
     },
   });

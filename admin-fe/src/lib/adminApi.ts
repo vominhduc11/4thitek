@@ -281,9 +281,9 @@ export type BackendDashboardResponse = {
   system: Array<{
     label: string
     value: string
-    hint?: string | null
-    tone?: string | null
-    group?: string | null
+    hint: string
+    tone: 'warn' | 'good' | 'neutral'
+    group: 'sales' | 'ops'
   }>
   trend: {
     title: string
@@ -293,10 +293,10 @@ export type BackendDashboardResponse = {
       value: number
     }>
   }
-  unmatchedPendingCount?: number
-  settlementPendingCount?: number
-  staleOrdersCount?: number
-  shippingOverdueCount?: number
+  unmatchedPendingCount: number
+  settlementPendingCount: number
+  staleOrdersCount: number
+  shippingOverdueCount: number
 }
 
 export type BackendSupportTicketResponse = {

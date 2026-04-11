@@ -145,7 +145,43 @@ class AdminDashboardSupportTests {
                 .filteredOn(point -> point.label().equals(currentMonthLabel))
                 .singleElement()
                 .extracting(point -> point.value())
-                .isEqualTo(110);
+                .isEqualTo(110L);
+    }
+
+    @Test
+    void buildDashboardKeepsLargeMonthlyRevenueWithoutIntegerOverflow() {
+        YearMonth currentMonth = YearMonth.now(WarrantyDateSupport.APP_ZONE);
+        Instant completedThisMonth = currentMonth
+                .atDay(4)
+                .atStartOfDay(WarrantyDateSupport.APP_ZONE)
+                .toInstant();
+
+        Order largeOrder = createOrder(
+                "DASH-TREND-LARGE",
+                createProduct("Large trend product"),
+                1,
+                BigDecimal.valueOf(3_000_000_000L),
+                OrderStatus.COMPLETED,
+                completedThisMonth.minusSeconds(3600)
+        );
+        largeOrder.setCompletedAt(completedThisMonth);
+
+        var dashboard = AdminDashboardSupport.buildDashboard(
+                List.of(largeOrder),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                0
+        );
+
+        String currentMonthLabel = currentMonth.format(java.time.format.DateTimeFormatter.ofPattern("MM/yyyy"));
+        assertThat(dashboard.trend().points())
+                .filteredOn(point -> point.label().equals(currentMonthLabel))
+                .singleElement()
+                .extracting(point -> point.value())
+                .isEqualTo(3_000_000_000L);
     }
 
     @Test

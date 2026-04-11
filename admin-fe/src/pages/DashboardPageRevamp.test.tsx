@@ -6,13 +6,13 @@ import DashboardPageRevamp from './DashboardPageRevamp'
 
 const {
   fetchAdminDashboardMock,
-  subscribeAdminRealtimeNotificationMock,
+  subscribeAdminDashboardRefreshMock,
   notifyMock,
   barMock,
   doughnutMock,
 } = vi.hoisted(() => ({
   fetchAdminDashboardMock: vi.fn(),
-  subscribeAdminRealtimeNotificationMock: vi.fn(),
+  subscribeAdminDashboardRefreshMock: vi.fn(),
   notifyMock: vi.fn(),
   barMock: vi.fn(() => <div data-testid="trend-chart" />),
   doughnutMock: vi.fn(() => <div data-testid="order-status-chart" />),
@@ -45,7 +45,7 @@ vi.mock('../lib/adminApi', async () => {
 })
 
 vi.mock('../lib/adminRealtime', () => ({
-  subscribeAdminRealtimeNotification: subscribeAdminRealtimeNotificationMock,
+  subscribeAdminDashboardRefresh: subscribeAdminDashboardRefreshMock,
 }))
 
 vi.mock('react-chartjs-2', () => ({
@@ -56,9 +56,9 @@ vi.mock('react-chartjs-2', () => ({
 describe('DashboardPageRevamp', () => {
   beforeEach(() => {
     fetchAdminDashboardMock.mockReset()
-    subscribeAdminRealtimeNotificationMock.mockReset()
+    subscribeAdminDashboardRefreshMock.mockReset()
     notifyMock.mockReset()
-    subscribeAdminRealtimeNotificationMock.mockReturnValue(() => {})
+    subscribeAdminDashboardRefreshMock.mockReturnValue(() => {})
     fetchAdminDashboardMock.mockResolvedValue({
       revenue: { label: 'Doanh thu', value: 1200000, delta: '+12%', progress: 68 },
       orders: { total: 20, pending: 3, progress: 50 },
@@ -85,7 +85,54 @@ describe('DashboardPageRevamp', () => {
     cleanup()
   })
 
+  it('renders four KPI skeleton cards while dashboard data is loading', async () => {
+    fetchAdminDashboardMock.mockImplementation(() => new Promise(() => {}))
+
+    const { container } = render(
+      <MemoryRouter>
+        <DashboardPageRevamp />
+      </MemoryRouter>,
+    )
+
+    expect(container.querySelectorAll('[class*="dashboard-stat-skeleton-"]')).toHaveLength(0)
+    expect(container.querySelectorAll('.animate-pulse.h-28')).toHaveLength(4)
+    await waitFor(() => expect(fetchAdminDashboardMock).toHaveBeenCalledWith('admin-token'))
+  })
+
   it('routes the low-stock stat card to the filtered products view', async () => {
+    const { container } = render(
+      <MemoryRouter>
+        <DashboardPageRevamp />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(fetchAdminDashboardMock).toHaveBeenCalledWith('admin-token')
+    })
+
+    const lowStockLink = container.querySelector('a[href="/products?inventoryAlert=low"]')
+    expect(lowStockLink).toBeTruthy()
+  })
+
+  it('uses the standard page heading and does not reuse the generic dashboard empty message for top products', async () => {
+    fetchAdminDashboardMock.mockResolvedValue({
+      revenue: { label: 'Doanh thu', value: 0, delta: '0%', progress: 0 },
+      orders: { total: 0, pending: 0, progress: 0 },
+      lowStock: { skus: 0, restock: 0, progress: 0 },
+      orderStatus: [],
+      topProducts: [],
+      system: [],
+      trend: {
+        title: 'Revenue',
+        subtitle: 'Last 7 days',
+        points: [],
+      },
+      unmatchedPendingCount: 0,
+      settlementPendingCount: 0,
+      staleOrdersCount: 0,
+      shippingOverdueCount: 0,
+    })
+
     render(
       <MemoryRouter>
         <DashboardPageRevamp />
@@ -96,7 +143,7 @@ describe('DashboardPageRevamp', () => {
       expect(fetchAdminDashboardMock).toHaveBeenCalledWith('admin-token')
     })
 
-    const lowStockLink = screen.getByRole('link', { name: /Tồn kho thấp/i })
-    expect(lowStockLink.getAttribute('href')).toBe('/products?inventoryAlert=low')
+    expect(screen.getByRole('heading', { level: 1 })).toBeTruthy()
+    expect(screen.queryByText(/Backend/i)).toBeNull()
   })
 })

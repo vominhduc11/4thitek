@@ -256,6 +256,7 @@ type StatCardProps = {
   hint?: string;
   icon?: LucideIcon;
   tone?: "neutral" | "success" | "warning" | "info";
+  valueClassName?: string;
 };
 
 const statToneClass: Record<NonNullable<StatCardProps["tone"]>, string> = {
@@ -271,13 +272,21 @@ export const StatCard = ({
   hint,
   icon: Icon,
   tone = "neutral",
+  valueClassName,
 }: StatCardProps) => (
   <div className={`${softCardClass} animate-[card-enter_0.6s_ease_both]`}>
     <div className="flex items-center justify-between">
       <span className={labelClass}>{label}</span>
       {Icon && <Icon className={cx("h-4 w-4", statToneClass[tone])} />}
     </div>
-    <p className="mt-2 text-[1.65rem] font-semibold tracking-[-0.03em] text-[var(--ink)]">{value}</p>
+    <p
+      className={cx(
+        "mt-2 min-w-0 text-[1.65rem] font-semibold tracking-[-0.03em] text-[var(--ink)]",
+        valueClassName,
+      )}
+    >
+      {value}
+    </p>
     {hint && <p className={tableMetaClass}>{hint}</p>}
   </div>
 );

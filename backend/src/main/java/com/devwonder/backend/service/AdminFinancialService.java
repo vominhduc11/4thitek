@@ -162,7 +162,24 @@ public class AdminFinancialService {
         settlement.setResolution(request.resolution().trim());
         settlement.setResolvedBy(resolvedBy);
         settlement.setResolvedAt(Instant.now());
-        return toSettlementResponse(financialSettlementRepository.save(settlement));
+        FinancialSettlement savedSettlement = financialSettlementRepository.save(settlement);
+
+        Order relatedOrder = savedSettlement.getOrder();
+        if (relatedOrder != null) {
+            if (savedSettlement.getTypeEnum() == com.devwonder.backend.entity.enums.FinancialSettlementType.STALE_ORDER_REVIEW) {
+                relatedOrder.setStaleReviewRequired(Boolean.FALSE);
+            }
+            boolean hasPendingSettlements = financialSettlementRepository.existsByOrderIdAndStatus(
+                    relatedOrder.getId(),
+                    FinancialSettlementStatus.PENDING
+            );
+            if (!hasPendingSettlements) {
+                relatedOrder.setFinancialSettlementRequired(Boolean.FALSE);
+            }
+            orderRepository.save(relatedOrder);
+        }
+
+        return toSettlementResponse(savedSettlement);
     }
 
     private AdminFinancialSettlementResponse toSettlementResponse(FinancialSettlement s) {

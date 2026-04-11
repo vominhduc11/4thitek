@@ -24,6 +24,7 @@ import { Bar, Doughnut } from "react-chartjs-2";
 import {
   EmptyState,
   ErrorState,
+  PageHeader,
   PagePanel,
   StatCard,
   StatusBadge,
@@ -38,7 +39,7 @@ import {
   type BackendDashboardResponse,
 } from "../lib/adminApi";
 import { formatCurrency, formatNumber } from "../lib/formatters";
-import { subscribeAdminRealtimeNotification } from "../lib/adminRealtime";
+import { subscribeAdminDashboardRefresh } from "../lib/adminRealtime";
 
 ChartJS.register(
   CategoryScale,
@@ -50,6 +51,10 @@ ChartJS.register(
 );
 
 const copyKeys = {
+  topProductsEmptyTitle: "Chưa có dữ liệu bán hàng",
+  topProductsEmptyMessage:
+    "Chưa có đơn hàng hoàn tất để xếp hạng sản phẩm.",
+  trendUnit: "Đơn vị: VNĐ",
   title: "Tổng quan hệ thống",
   description: "Tổng quan vận hành hệ thống theo thời gian thực.",
   loadTitle: "Không tải được dashboard",
@@ -166,7 +171,7 @@ function DashboardPageRevamp() {
     if (!accessToken) {
       return
     }
-    return subscribeAdminRealtimeNotification(() => {
+    return subscribeAdminDashboardRefresh(() => {
       void loadDashboard(accessToken)
     })
   }, [accessToken, loadDashboard]);
@@ -232,6 +237,11 @@ function DashboardPageRevamp() {
         },
         y: {
           beginAtZero: true,
+          title: {
+            display: true,
+            text: "VNĐ",
+            color: themeTokens.muted,
+          },
           ticks: {
             color: themeTokens.muted,
             callback: (value) => formatNumber(Number(value)),
@@ -254,8 +264,8 @@ function DashboardPageRevamp() {
           role="status"
         >
           <span className="sr-only">Loading dashboard</span>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, index) => (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, index) => (
               <div
                 key={`dashboard-stat-skeleton-${index}`}
                 className={`${softCardClass} h-28 animate-pulse bg-[var(--surface-muted)]`}
@@ -301,15 +311,11 @@ function DashboardPageRevamp() {
 
   return (
     <PagePanel>
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-semibold text-[var(--ink)]">
-            {copy.title}
-          </h3>
-          <p className="text-sm text-[var(--muted)]">{copy.description}</p>
-        </div>
-        <StatusBadge tone="info">{dashboard.revenue.delta}</StatusBadge>
-      </div>
+      <PageHeader
+        title={copy.title}
+        subtitle={copy.description}
+        actions={<StatusBadge tone="info">{dashboard.revenue.delta}</StatusBadge>}
+      />
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Link
@@ -358,6 +364,7 @@ function DashboardPageRevamp() {
             value={dashboard.topProducts[0]?.name || "-"}
             hint={dashboard.topProducts[0]?.units || "0"}
             tone="neutral"
+            valueClassName="truncate text-[1.1rem] sm:text-[1.25rem]"
           />
         </Link>
       </div>
@@ -371,6 +378,7 @@ function DashboardPageRevamp() {
             <p className="text-xs text-[var(--muted)]">
               {dashboard.trend.subtitle}
             </p>
+            <p className="mt-1 text-xs text-[var(--muted)]">{copy.trendUnit}</p>
           </div>
           <div
             aria-label={t("Biểu đồ xu hướng doanh số")}
@@ -433,7 +441,10 @@ function DashboardPageRevamp() {
           </p>
           <div className="mt-4 space-y-3">
             {dashboard.topProducts.length === 0 ? (
-              <EmptyState title={copy.emptyTitle} message={copy.emptyMessage} />
+              <EmptyState
+                title={copy.topProductsEmptyTitle}
+                message={copy.topProductsEmptyMessage}
+              />
             ) : (
               dashboard.topProducts.map((item) => (
                 <div
