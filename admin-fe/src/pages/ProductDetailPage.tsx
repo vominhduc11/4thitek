@@ -1020,7 +1020,7 @@ function ProductDetailPage() {
       return (
         <h4
           key={`desc-title-${index}`}
-          className="text-base font-semibold leading-7 tracking-tight text-slate-900 sm:text-lg"
+          className="text-[15px] font-semibold leading-6 tracking-tight text-slate-900 sm:text-[17px]"
         >
           {item.text || ""}
         </h4>
@@ -1029,18 +1029,18 @@ function ProductDetailPage() {
 
     const paragraphs = normalizeProseParagraphs(item.text ?? "");
     return (
-      <div key={`desc-text-${index}`} className="space-y-2.5">
+      <div key={`desc-text-${index}`} className="space-y-2">
         {paragraphs.length > 0 ? (
           paragraphs.map((paragraph, paragraphIndex) => (
             <p
               key={`desc-text-${index}-${paragraphIndex}`}
-              className="text-sm leading-7 text-slate-600 sm:text-[15px]"
+              className="text-sm leading-6 text-slate-600 sm:text-[15px] sm:leading-[1.7]"
             >
               {paragraph}
             </p>
           ))
         ) : (
-          <p className="text-sm leading-7 text-slate-600 sm:text-[15px]">
+          <p className="text-sm leading-6 text-slate-600 sm:text-[15px] sm:leading-[1.7]">
             {t("Chưa có mô tả nào.")}
           </p>
         )}
@@ -2405,18 +2405,18 @@ function ProductDetailPage() {
                 {t("Chưa có mô tả nào.")}
               </p>
             ) : (
-              <div className="mt-4 space-y-3">
+              <div className="mt-4 space-y-2.5">
                 {descriptionReadBlocks.map((block, blockIndex) => (
                   <div
                     key={`description-block-${block.type}-${blockIndex}`}
                     className={
                       block.type === "prose"
-                        ? "rounded-2xl bg-slate-50/75 px-4 py-3 sm:px-5"
+                        ? "rounded-3xl border border-slate-200/70 bg-[var(--surface-muted)] px-4 py-2.5 sm:px-5 sm:py-3"
                         : "rounded-3xl border border-slate-200/90 bg-[var(--surface-muted)] p-3.5 shadow-[0_10px_28px_rgba(15,23,42,0.04)] sm:p-4"
                     }
                   >
                     {block.type === "prose" ? (
-                      <div className="max-w-3xl space-y-2.5">
+                      <div className="max-w-3xl space-y-2">
                         {block.items.map((item, itemIndex) =>
                           renderDescriptionProseItem(item, itemIndex),
                         )}
@@ -2621,7 +2621,7 @@ function ProductDetailPage() {
               <div
                 className={
                   hasSingleVideo
-                    ? "mt-4 max-w-3xl"
+                    ? "mt-4 mx-auto max-w-3xl"
                     : "mt-4 grid gap-4 lg:grid-cols-2"
                 }
               >
