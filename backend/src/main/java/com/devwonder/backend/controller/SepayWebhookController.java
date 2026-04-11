@@ -26,9 +26,13 @@ public class SepayWebhookController {
     @PostMapping
     public ResponseEntity<Map<String, Object>> receiveWebhook(
             @RequestBody SepayWebhookRequest request,
-            @RequestHeader(name = "X-Webhook-Token", required = false) String headerToken
+            @RequestHeader(name = "X-Webhook-Token", required = false) String headerToken,
+            @RequestHeader(name = "Authorization", required = false) String authorizationHeader
     ) {
-        SepayService.WebhookResult result = sepayService.processWebhook(request, headerToken);
+        SepayService.WebhookResult result = sepayService.processWebhook(
+                request,
+                resolveProvidedToken(headerToken, authorizationHeader)
+        );
         log.info(
                 "SePay webhook response: status={}, orderCode={}, transactionCode={}, message={}",
                 result.status(),
@@ -44,5 +48,20 @@ public class SepayWebhookController {
         body.put("transactionCode", result.transactionCode());
         body.put("message", result.message());
         return ResponseEntity.ok(body);
+    }
+
+    private String resolveProvidedToken(String headerToken, String authorizationHeader) {
+        if (headerToken != null && !headerToken.isBlank()) {
+            return headerToken;
+        }
+        if (authorizationHeader == null || authorizationHeader.isBlank()) {
+            return null;
+        }
+        String trimmed = authorizationHeader.trim();
+        if (trimmed.regionMatches(true, 0, "Apikey ", 0, "Apikey ".length())) {
+            String token = trimmed.substring("Apikey ".length()).trim();
+            return token.isEmpty() ? null : token;
+        }
+        return trimmed;
     }
 }

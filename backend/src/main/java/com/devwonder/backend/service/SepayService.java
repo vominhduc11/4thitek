@@ -81,9 +81,19 @@ public class SepayService {
     @Transactional
     public WebhookResult processWebhook(SepayWebhookRequest request, String providedToken) {
         AdminSettingsService.SepayRuntimeSettings settings = adminSettingsService.getSepaySettings();
-        log.info("SePay webhook received: id={}, gateway={}, transferType={}, amount={}, transferContent='{}', referenceCode={}, transactionDate={}",
-                request.id(), request.gateway(), request.transferType(), request.transferAmount(),
-                request.transferContent(), request.referenceCode(), request.transactionDate());
+        log.info(
+                "SePay webhook received: id={}, gateway={}, transferType={}, amount={}, code={}, content='{}', transferContent='{}', description='{}', referenceCode={}, transactionDate={}",
+                request.id(),
+                request.gateway(),
+                request.transferType(),
+                request.transferAmount(),
+                request.code(),
+                request.content(),
+                request.transferContent(),
+                request.description(),
+                request.referenceCode(),
+                request.transactionDate()
+        );
 
         if (!settings.enabled()) {
             log.warn("SePay webhook ignored: disabled");
@@ -102,9 +112,24 @@ public class SepayService {
         }
 
         String orderCode = extractOrderCode(request);
+        log.info(
+                "SePay webhook extracted order code: orderCode={}, code={}, contentPresent={}, transferContentPresent={}, descriptionPresent={}, referenceCode={}",
+                orderCode,
+                request.code(),
+                normalize(request.content()) != null,
+                normalize(request.transferContent()) != null,
+                normalize(request.description()) != null,
+                request.referenceCode()
+        );
         if (orderCode == null) {
-            log.warn("SePay webhook ignored: no order code found in content='{}', transferContent='{}'",
-                    request.content(), request.transferContent());
+            log.warn(
+                    "SePay webhook ignored: no order code found in code='{}', content='{}', transferContent='{}', description='{}', referenceCode='{}'",
+                    request.code(),
+                    request.content(),
+                    request.transferContent(),
+                    request.description(),
+                    request.referenceCode()
+            );
             recordUnmatchedPayment(request, amount, null, UnmatchedPaymentReason.ORDER_NOT_FOUND);
             return WebhookResult.ignored("order_not_found", null, null, "No order code found in transfer content");
         }
@@ -134,6 +159,17 @@ public class SepayService {
         int vatPercent = adminSettingsService.getVatPercent();
         BigDecimal totalAmount = OrderPricingSupport.computeTotalAmount(order, activeDiscountRules, vatPercent);
         BigDecimal outstandingAmount = remainingOutstandingAmount(order, totalAmount);
+        log.info(
+                "SePay webhook matched order: orderId={}, orderCode={}, paymentMethod={}, orderStatus={}, paymentStatus={}, totalAmount={}, paidAmount={}, outstandingAmount={}",
+                order.getId(),
+                order.getOrderCode(),
+                order.getPaymentMethod(),
+                order.getStatus(),
+                order.getPaymentStatus(),
+                totalAmount,
+                order.getPaidAmount(),
+                outstandingAmount
+        );
         if (outstandingAmount.compareTo(BigDecimal.ZERO) <= 0) {
             log.info("SePay webhook ignored: already_paid, orderCode={}", orderCode);
             recordUnmatchedPayment(request, amount, orderCode, UnmatchedPaymentReason.ORDER_ALREADY_SETTLED);
@@ -210,15 +246,18 @@ public class SepayService {
     private void validateWebhookToken(String providedToken, String configuredToken) {
         String normalizedConfigured = normalize(configuredToken);
         if (normalizedConfigured == null) {
+            log.error("SePay webhook rejected: configured webhook token is missing");
             throw new BadRequestException("SePay webhook token is not configured");
         }
         String normalizedProvided = normalize(providedToken);
         if (normalizedProvided == null) {
+            log.warn("SePay webhook rejected: missing webhook token header");
             throw new UnauthorizedException("Invalid SePay webhook token");
         }
         byte[] configuredBytes = normalizedConfigured.getBytes(StandardCharsets.UTF_8);
         byte[] providedBytes = normalizedProvided.getBytes(StandardCharsets.UTF_8);
         if (!MessageDigest.isEqual(configuredBytes, providedBytes)) {
+            log.warn("SePay webhook rejected: webhook token mismatch");
             throw new UnauthorizedException("Invalid SePay webhook token");
         }
     }
@@ -283,6 +322,7 @@ public class SepayService {
 
     private String extractOrderCode(SepayWebhookRequest request) {
         return firstOrderCode(
+                request.code(),
                 request.transferContent(),
                 request.content(),
                 request.description(),
@@ -435,6 +475,13 @@ public class SepayService {
         unmatched.setReason(reason);
         unmatched.setStatus(UnmatchedPaymentStatus.PENDING);
         unmatchedPaymentRepository.save(unmatched);
+        log.info(
+                "SePay unmatched payment recorded: transactionCode={}, amount={}, orderCodeHint={}, reason={}",
+                unmatched.getTransactionCode(),
+                unmatched.getAmount(),
+                unmatched.getOrderCodeHint(),
+                unmatched.getReason()
+        );
 
         String txCode = normalize(request.id() != null ? request.id() : request.referenceCode());
         String displayCode = txCode != null ? txCode : "(unknown)";

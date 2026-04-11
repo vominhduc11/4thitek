@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record SepayWebhookRequest(
+        @JsonAlias({"transaction_id"})
         String id,
         String gateway,
         @JsonAlias({"transaction_date"})
@@ -14,9 +15,10 @@ public record SepayWebhookRequest(
         String accountNumber,
         @JsonAlias({"transfer_type"})
         String transferType,
-        @JsonAlias({"transfer_amount"})
+        @JsonAlias({"transfer_amount", "amount"})
         BigDecimal transferAmount,
         BigDecimal accumulated,
+        @JsonAlias({"payment_code"})
         String code,
         String content,
         @JsonAlias({"reference_code"})

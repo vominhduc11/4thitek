@@ -191,6 +191,58 @@ class SepayServiceTests {
     }
 
     @Test
+    void orderCodeCanBeExtractedFromWebhookCodeField() {
+        Product product = createProduct("SEPAY-TEST-CODE");
+        Order order = orderRepository.save(createBankTransferOrder("SCS-2026-606", product, null));
+        SepayWebhookRequest request = new SepayWebhookRequest(
+                "TX-CODE-606",
+                "SePay",
+                "2026-04-11 10:15:00",
+                "123456789",
+                "in",
+                outstandingAmount(order),
+                null,
+                "SCS-2026-606",
+                null,
+                "FT123456789",
+                null,
+                null,
+                null
+        );
+
+        SepayService.WebhookResult result = sepayService.processWebhook(request, "test-token");
+
+        assertThat(result.status()).isEqualTo("processed");
+        assertThat(result.orderCode()).isEqualTo("SCS-2026-606");
+    }
+
+    @Test
+    void orderCodeCanBeExtractedFromDescriptionField() {
+        Product product = createProduct("SEPAY-TEST-DESCRIPTION");
+        Order order = orderRepository.save(createBankTransferOrder("SCS-2026-707", product, null));
+        SepayWebhookRequest request = new SepayWebhookRequest(
+                "TX-DESCRIPTION-707",
+                "SePay",
+                "2026-04-11 10:20:00",
+                "123456789",
+                "in",
+                outstandingAmount(order),
+                null,
+                null,
+                null,
+                "FT22334455",
+                "Chuyen khoan don SCS-2026-707",
+                null,
+                null
+        );
+
+        SepayService.WebhookResult result = sepayService.processWebhook(request, "test-token");
+
+        assertThat(result.status()).isEqualTo("processed");
+        assertThat(result.orderCode()).isEqualTo("SCS-2026-707");
+    }
+
+    @Test
     void unmatchedPaymentIsPersistedWhenNotificationFails() {
         // amount_mismatch path: unmatched payment must be saved even when admin notification throws
         Product product = createProduct("SEPAY-UNMATCHED-1");

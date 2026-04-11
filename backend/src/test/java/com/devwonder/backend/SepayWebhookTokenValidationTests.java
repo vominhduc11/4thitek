@@ -13,12 +13,9 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * Verifies that the SePay webhook endpoint enforces token authentication exclusively
- * via the {@code X-Webhook-Token} request header.
- *
- * <p>Query-parameter token delivery is intentionally not supported: tokens sent via
- * {@code ?token=} are silently ignored, so a request carrying only a query-param token
- * is treated as if no token was provided at all and must be rejected with HTTP 401.
+ * Verifies that the SePay webhook endpoint accepts the legacy
+ * {@code X-Webhook-Token} header and the current
+ * {@code Authorization: Apikey ...} format, while still rejecting query-param tokens.
  */
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:sepay_token_validation;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
@@ -66,9 +63,6 @@ class SepayWebhookTokenValidationTests {
 
     @Test
     void correctTokenHeaderIsAccepted() throws Exception {
-        // Token is valid — service proceeds past auth and returns a business-level result.
-        // The exact status value (e.g. "invalid_amount") is not the focus here; HTTP 200
-        // with success=true proves authentication was accepted.
         mockMvc.perform(post("/api/v1/webhooks/sepay")
                         .contentType(APPLICATION_JSON)
                         .content("{}")
@@ -78,10 +72,49 @@ class SepayWebhookTokenValidationTests {
     }
 
     @Test
+    void authorizationApikeyHeaderIsAccepted() throws Exception {
+        mockMvc.perform(post("/api/v1/webhooks/sepay")
+                        .contentType(APPLICATION_JSON)
+                        .content("{}")
+                        .header("Authorization", "Apikey correct-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    void wrongAuthorizationApikeyHeaderIsRejected() throws Exception {
+        mockMvc.perform(post("/api/v1/webhooks/sepay")
+                        .contentType(APPLICATION_JSON)
+                        .content("{}")
+                        .header("Authorization", "Apikey wrong-token"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("Invalid SePay webhook token"));
+    }
+
+    @Test
+    void currentSepayIpnAliasesBindThroughController() throws Exception {
+        mockMvc.perform(post("/api/v1/webhooks/sepay")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "transaction_id": "TX-ALIAS-001",
+                                  "gateway": "VPBank",
+                                  "transaction_date": "2026-04-11 09:45:00",
+                                  "account_number": "123456789",
+                                  "transfer_type": "credit",
+                                  "amount": 22000,
+                                  "payment_code": "SCS-2026-999",
+                                  "reference_code": "FT123456789"
+                                }
+                                """)
+                        .header("Authorization", "Apikey correct-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("order_not_found"))
+                .andExpect(jsonPath("$.orderCode").value("SCS-2026-999"));
+    }
+
+    @Test
     void queryParamTokenAloneIsRejected() throws Exception {
-        // A token delivered only via ?token= must NOT grant access.
-        // After the fix the controller no longer binds the query parameter,
-        // so this request is equivalent to sending no token at all.
         mockMvc.perform(post("/api/v1/webhooks/sepay?token=correct-token")
                         .contentType(APPLICATION_JSON)
                         .content("{}"))
@@ -91,8 +124,6 @@ class SepayWebhookTokenValidationTests {
 
     @Test
     void queryParamTokenDoesNotSupplementMissingHeader() throws Exception {
-        // Even if the caller provides the correct token as a query param AND a wrong
-        // token in the header, the header value must be used — not the query param.
         mockMvc.perform(post("/api/v1/webhooks/sepay?token=correct-token")
                         .contentType(APPLICATION_JSON)
                         .content("{}")
