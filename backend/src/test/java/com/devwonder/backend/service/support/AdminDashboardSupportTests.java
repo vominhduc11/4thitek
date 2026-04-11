@@ -66,7 +66,7 @@ class AdminDashboardSupportTests {
                 10
         );
 
-        assertThat(dashboard.revenue().label()).isEqualTo("Doanh thu 30 ngay");
+        assertThat(dashboard.revenue().label()).isEqualTo("Doanh thu 30 ngày");
         assertThat(dashboard.revenue().value()).isEqualByComparingTo("110");
         assertThat(dashboard.revenue().delta()).isEqualTo("-50%");
         assertThat(dashboard.topProducts())
@@ -171,10 +171,10 @@ class AdminDashboardSupportTests {
         );
 
         assertThat(dashboard.system())
-                .filteredOn(item -> item.label().equals("San pham"))
+                .filteredOn(item -> item.label().equals("Sản phẩm"))
                 .singleElement()
                 .extracting(item -> item.hint())
-                .isEqualTo("1 ban nhap");
+                .isEqualTo("1 bản nháp");
     }
 
     private Order createOrder(

@@ -155,7 +155,7 @@ public final class AdminDashboardSupport {
 
         return new AdminDashboardResponse(
                 new AdminDashboardResponse.Metric(
-                        "Doanh thu 30 ngay",
+                        "Doanh thu 30 ngày",
                         current30,
                         formatDelta(current30, previous30),
                         toProgress(current30, progressTarget)
@@ -175,11 +175,11 @@ public final class AdminDashboardSupport {
                                 : clampProgress((safeSnapshot.lowStockSkus() * 100) / safeSnapshot.activeProductCount())
                 ),
                 List.of(
-                        new AdminDashboardResponse.StatusItem("Cho xu ly", safeSnapshot.pendingOrders()),
-                        new AdminDashboardResponse.StatusItem("Xac nhan", safeSnapshot.confirmedOrders()),
-                        new AdminDashboardResponse.StatusItem("Dang giao", safeSnapshot.shippingOrders()),
-                        new AdminDashboardResponse.StatusItem("Hoan tat", safeSnapshot.completedOrders()),
-                        new AdminDashboardResponse.StatusItem("Huy", safeSnapshot.cancelledOrders())
+                        new AdminDashboardResponse.StatusItem("Chờ xử lý", safeSnapshot.pendingOrders()),
+                        new AdminDashboardResponse.StatusItem("Xác nhận", safeSnapshot.confirmedOrders()),
+                        new AdminDashboardResponse.StatusItem("Đang giao", safeSnapshot.shippingOrders()),
+                        new AdminDashboardResponse.StatusItem("Hoàn tất", safeSnapshot.completedOrders()),
+                        new AdminDashboardResponse.StatusItem("Hủy", safeSnapshot.cancelledOrders())
                 ),
                 buildTopProducts(safeSnapshot.topProducts()),
                 buildSystemItems(safeSnapshot),
@@ -243,37 +243,37 @@ public final class AdminDashboardSupport {
     private static List<AdminDashboardResponse.SystemItem> buildSystemItems(DashboardSnapshot snapshot) {
         return List.of(
                 new AdminDashboardResponse.SystemItem(
-                        "Dai ly",
-                        snapshot.totalDealers() + " tai khoan",
-                        snapshot.pendingDealers() + " dang xem xet",
+                        "Đại lý",
+                        snapshot.totalDealers() + " tài khoản",
+                        snapshot.pendingDealers() + " đang xem xét",
                         snapshot.pendingDealers() > 0 ? "warn" : "good",
                         "sales"
                 ),
                 new AdminDashboardResponse.SystemItem(
-                        "Chiet khau ban si",
-                        snapshot.totalRules() + " quy tac",
-                        snapshot.pendingRules() + " cho phe duyet",
+                        "Chiết khấu bán sỉ",
+                        snapshot.totalRules() + " quy tắc",
+                        snapshot.pendingRules() + " chờ phê duyệt",
                         snapshot.pendingRules() > 0 ? "warn" : "neutral",
                         "sales"
                 ),
                 new AdminDashboardResponse.SystemItem(
-                        "San pham",
-                        snapshot.publishedProducts() + " dang ban",
-                        snapshot.draftProducts() + " ban nhap",
+                        "Sản phẩm",
+                        snapshot.publishedProducts() + " đang bán",
+                        snapshot.draftProducts() + " bản nháp",
                         "neutral",
                         "sales"
                 ),
                 new AdminDashboardResponse.SystemItem(
-                        "Quan tri",
-                        snapshot.totalAdmins() + " tai khoan",
-                        snapshot.pendingAdmins() + " cho kich hoat",
+                        "Quản trị",
+                        snapshot.totalAdmins() + " tài khoản",
+                        snapshot.pendingAdmins() + " chờ kích hoạt",
                         snapshot.pendingAdmins() > 0 ? "warn" : "neutral",
                         "ops"
                 ),
                 new AdminDashboardResponse.SystemItem(
-                        "Bai viet",
-                        snapshot.publishedBlogs() + " da dang",
-                        snapshot.draftBlogs() + " ban nhap",
+                        "Bài viết",
+                        snapshot.publishedBlogs() + " đã đăng",
+                        snapshot.draftBlogs() + " bản nháp",
                         "neutral",
                         "ops"
                 )
@@ -303,8 +303,8 @@ public final class AdminDashboardSupport {
                 ))
                 .toList();
         return new AdminDashboardResponse.Trend(
-                "Doanh thu theo thang",
-                "6 thang gan nhat",
+                "Doanh thu theo tháng",
+                "6 tháng gần nhất",
                 points
         );
     }

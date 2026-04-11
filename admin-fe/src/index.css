@@ -109,6 +109,42 @@
     font-family: var(--font-sans);
     @apply antialiased;
     overflow-x: hidden;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  body:hover {
+    scrollbar-color: var(--scroll-thumb) var(--scroll-track);
+  }
+
+  body::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+
+  body::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 999px;
+  }
+
+  body::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+
+  body:hover::-webkit-scrollbar-track {
+    background: var(--scroll-track);
+  }
+
+  body:hover::-webkit-scrollbar-thumb {
+    background: var(--scroll-thumb);
+  }
+
+  body:hover::-webkit-scrollbar-thumb:hover {
+    background: var(--scroll-thumb-hover);
   }
 
   body::before {
