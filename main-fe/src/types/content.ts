@@ -101,3 +101,58 @@ export interface ResellerLocationsContent {
         districtsByCity: Record<string, string[]>;
     };
 }
+
+export interface HomeHeroContent {
+    eyebrow: string;
+    badge: string;
+    summary: string;
+    primaryCtaLabel: string;
+    primaryCtaHref?: string;
+    secondaryCtaLabel: string;
+    secondaryCtaHref: string;
+}
+
+export interface HomeSectionHeaderContent {
+    eyebrow: string;
+    title: string;
+    titleHighlight?: string;
+    description: string;
+    ctaLabel?: string;
+    ctaHref?: string;
+}
+
+export interface HomeBrandProofLink {
+    href: string;
+    label: string;
+    detail: string;
+}
+
+export interface HomeBrandValueItem {
+    key: string;
+    title: string;
+    description: string;
+}
+
+export interface HomeBrandValuesContent {
+    eyebrow: string;
+    title: string;
+    subtitle: string;
+    becomeResellerLabel: string;
+    becomeResellerHref: string;
+    proofLinks: HomeBrandProofLink[];
+    items: HomeBrandValueItem[];
+}
+
+export interface HomeNewsroomContent {
+    eyebrow: string;
+    title: string;
+    tagline: string;
+    exploreMoreLabel: string;
+}
+
+export interface HomeContent {
+    hero: HomeHeroContent;
+    showcase: HomeSectionHeaderContent;
+    brandValues: HomeBrandValuesContent;
+    newsroom: HomeNewsroomContent;
+}

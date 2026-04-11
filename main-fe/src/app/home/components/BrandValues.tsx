@@ -6,6 +6,7 @@ import { FiArrowRight, FiHeadphones, FiMapPin, FiShield } from 'react-icons/fi';
 import AvoidSidebar from '@/components/ui/AvoidSidebar';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAnimationConfig } from '@/hooks/useReducedMotion';
+import type { HomeBrandValuesContent } from '@/types/content';
 
 const ITEMS = [
     { icon: FiHeadphones, key: 'exclusive' },
@@ -19,9 +20,34 @@ const PROOF_LINKS = [
     { href: '/contact', labelKey: 'nav.contact', detailKey: 'brandValues.items.network.title' }
 ] as const;
 
-export default function BrandValues() {
+type BrandValuesProps = {
+    content?: HomeBrandValuesContent | null;
+};
+
+export default function BrandValues({ content = null }: BrandValuesProps) {
     const { t } = useLanguage();
     const { enableDecorativeAnimations } = useAnimationConfig();
+    const proofLinks =
+        content?.proofLinks?.length
+            ? content.proofLinks
+            : PROOF_LINKS.map(({ href, labelKey, detailKey }) => ({
+                  href,
+                  label: t(labelKey),
+                  detail: t(detailKey)
+              }));
+    const valueItems =
+        content?.items?.length
+            ? content.items
+            : ITEMS.map(({ key }) => ({
+                  key,
+                  title: t(`brandValues.items.${key}.title`),
+                  description: t(`brandValues.items.${key}.description`)
+              }));
+    const eyebrow = content?.eyebrow?.trim() || t('brandValues.eyebrow');
+    const title = content?.title?.trim() || t('brandValues.title');
+    const subtitle = content?.subtitle?.trim() || t('brandValues.subtitle');
+    const becomeResellerLabel = content?.becomeResellerLabel?.trim() || t('brandValues.becomeReseller');
+    const becomeResellerHref = content?.becomeResellerHref?.trim() || '/become_our_reseller';
 
     return (
         <AvoidSidebar>
@@ -39,15 +65,15 @@ export default function BrandValues() {
                             viewport={{ once: true }}
                             transition={{ duration: 0.45, ease: 'easeOut' }}
                         >
-                            <span className="brand-badge mb-4">{t('brandValues.eyebrow')}</span>
+                            <span className="brand-badge mb-4">{eyebrow}</span>
                             <h2
                                 id="brand-values-heading"
                                 className="font-serif text-3xl font-semibold text-[var(--text-primary)] sm:text-4xl lg:text-5xl"
                             >
-                                {t('brandValues.title')}
+                                {title}
                             </h2>
                             <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-[var(--text-secondary)] sm:text-lg lg:mx-0">
-                                {t('brandValues.subtitle')}
+                                {subtitle}
                             </p>
                         </motion.div>
 
@@ -60,7 +86,7 @@ export default function BrandValues() {
                         >
                             <p className="brand-eyebrow text-[0.68rem]">{t('certification.title')}</p>
                             <div className="mt-4 space-y-3">
-                                {PROOF_LINKS.map(({ href, labelKey, detailKey }) => (
+                                {proofLinks.map(({ href, label, detail }) => (
                                     <Link
                                         key={href}
                                         href={href}
@@ -68,9 +94,9 @@ export default function BrandValues() {
                                     >
                                         <div>
                                             <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[var(--text-primary)]">
-                                                {t(labelKey)}
+                                                {label}
                                             </p>
-                                            <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">{t(detailKey)}</p>
+                                            <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">{detail}</p>
                                         </div>
                                         <FiArrowRight className="mt-1 h-4 w-4 flex-shrink-0 text-[var(--brand-blue)]" />
                                     </Link>
@@ -80,29 +106,31 @@ export default function BrandValues() {
                     </div>
 
                     <div className="mx-auto mt-8 grid max-w-6xl gap-4 md:grid-cols-3 lg:max-w-none">
-                        {ITEMS.map(({ icon: Icon, key }, index) => (
-                            <motion.article
-                                key={key}
-                                className="brand-card group rounded-[28px] p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--brand-border-strong)] hover:shadow-[0_18px_34px_rgba(0,113,188,0.12)]"
-                                initial={enableDecorativeAnimations ? { opacity: 0, y: 22 } : false}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{
-                                    duration: 0.4,
-                                    delay: enableDecorativeAnimations ? index * 0.06 : 0
-                                }}
-                            >
-                                <div className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--brand-border-strong)] bg-[rgba(41,171,226,0.14)] text-[var(--brand-blue)]">
-                                    <Icon className="h-6 w-6" />
-                                </div>
-                                <h3 className="text-xl font-semibold text-[var(--text-primary)]">
-                                    {t(`brandValues.items.${key}.title`)}
-                                </h3>
-                                <p className="mt-3 text-sm leading-7 text-[var(--text-secondary)] sm:text-base">
-                                    {t(`brandValues.items.${key}.description`)}
-                                </p>
-                            </motion.article>
-                        ))}
+                        {valueItems.map(({ key, title: itemTitle, description }, index) => {
+                            const Icon = ITEMS.find((item) => item.key === key)?.icon ?? FiShield;
+
+                            return (
+                                <motion.article
+                                    key={key}
+                                    className="brand-card group rounded-[28px] p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--brand-border-strong)] hover:shadow-[0_18px_34px_rgba(0,113,188,0.12)]"
+                                    initial={enableDecorativeAnimations ? { opacity: 0, y: 22 } : false}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{
+                                        duration: 0.4,
+                                        delay: enableDecorativeAnimations ? index * 0.06 : 0
+                                    }}
+                                >
+                                    <div className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--brand-border-strong)] bg-[rgba(41,171,226,0.14)] text-[var(--brand-blue)]">
+                                        <Icon className="h-6 w-6" />
+                                    </div>
+                                    <h3 className="text-xl font-semibold text-[var(--text-primary)]">{itemTitle}</h3>
+                                    <p className="mt-3 text-sm leading-7 text-[var(--text-secondary)] sm:text-base">
+                                        {description}
+                                    </p>
+                                </motion.article>
+                            );
+                        })}
                     </div>
 
                     <motion.div
@@ -113,10 +141,10 @@ export default function BrandValues() {
                         transition={{ duration: 0.4, delay: enableDecorativeAnimations ? 0.12 : 0 }}
                     >
                         <Link
-                            href="/become_our_reseller"
+                            href={becomeResellerHref}
                             className="brand-button-primary inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-[var(--text-primary)] transition duration-200 hover:brightness-105"
                         >
-                            {t('brandValues.becomeReseller')}
+                            {becomeResellerLabel}
                             <FiArrowRight className="h-4 w-4" />
                         </Link>
                     </motion.div>

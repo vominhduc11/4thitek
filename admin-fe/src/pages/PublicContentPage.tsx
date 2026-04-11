@@ -48,6 +48,7 @@ const copyKeys = {
 } as const;
 
 const SECTION_PRIORITY = [
+  "home",
   "about",
   "contact",
   "policy",
@@ -76,7 +77,7 @@ const sortSections = (sections: string[]) =>
 export default function PublicContentPage() {
   const { accessToken } = useAuth();
   const { t } = useLanguage();
-  const { showToast } = useToast();
+  const { notify } = useToast();
   const copy = translateCopy(copyKeys, t);
 
   const [sections, setSections] = useState<BackendPublicContentSectionResponse[]>([]);
@@ -205,14 +206,15 @@ export default function PublicContentPage() {
         throw new Error(copy.invalidJson);
       }
     } catch (parseError) {
-      showToast({
-        title: copy.saveError,
-        description:
-          parseError instanceof Error && parseError.message
-            ? parseError.message
-            : copy.invalidJson,
-        tone: "danger",
-      });
+      notify(
+        parseError instanceof Error && parseError.message
+          ? parseError.message
+          : copy.invalidJson,
+        {
+          title: copy.saveError,
+          variant: "error",
+        },
+      );
       return;
     }
 
@@ -229,17 +231,16 @@ export default function PublicContentPage() {
       setUpdatedAt(response.updatedAt ?? null);
       const nextSections = await fetchAdminPublicContentSections(accessToken);
       setSections(nextSections);
-      showToast({
-        title: copy.saveSuccess,
-        tone: "success",
+      notify(copy.saveSuccess, {
+        title: copy.title,
+        variant: "success",
       });
     } catch (saveError) {
       const message = saveError instanceof Error ? saveError.message : copy.saveError;
       setError(message);
-      showToast({
+      notify(message, {
         title: copy.saveError,
-        description: message,
-        tone: "danger",
+        variant: "error",
       });
     } finally {
       setIsSaving(false);

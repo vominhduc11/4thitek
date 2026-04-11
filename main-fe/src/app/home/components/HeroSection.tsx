@@ -16,6 +16,7 @@ import { motion, Variants } from 'framer-motion';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAnimationConfig, useReducedMotion } from '@/hooks/useReducedMotion';
 import { buildProductPath } from '@/lib/slug';
+import type { HomeHeroContent } from '@/types/content';
 import type { SimpleProduct } from '@/types/product';
 
 const HERO_VIDEO = '/videos/hero-road-tech-loop.mp4';
@@ -124,9 +125,10 @@ const makeButtonVariants = (animate: boolean): Variants => ({
 
 interface HeroSectionProps {
     initialProduct?: SimpleProduct | null;
+    content?: HomeHeroContent | null;
 }
 
-export default function HeroSection({ initialProduct = null }: HeroSectionProps) {
+export default function HeroSection({ initialProduct = null, content = null }: HeroSectionProps) {
     const { t } = useLanguage();
     const { enableDecorativeAnimations } = useAnimationConfig();
     const { shouldReduceAnimations } = useReducedMotion();
@@ -141,8 +143,15 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
     const productVariants = makeProductVariants(enableDecorativeAnimations);
     const contentVariants = makeContentVariants(enableDecorativeAnimations);
     const buttonVariants = makeButtonVariants(enableDecorativeAnimations);
-    const productPath = product?.id ? buildProductPath(product.id, product.name) : '/products';
-    const heroSummary = createHeroSummary(product?.shortDescription || t('hero.subtitle'));
+    const primaryTargetHref = product?.id
+        ? buildProductPath(product.id, product.name)
+        : content?.primaryCtaHref?.trim() || '/products';
+    const heroSummary = createHeroSummary(product?.shortDescription || content?.summary || t('hero.subtitle'));
+    const heroEyebrow = content?.eyebrow?.trim() || t('brand.message');
+    const heroBadge = content?.badge?.trim() || t('brandValues.eyebrow');
+    const primaryCtaLabel = content?.primaryCtaLabel?.trim() || t('hero.cta');
+    const secondaryCtaLabel = content?.secondaryCtaLabel?.trim() || t('warrantyCheck.title');
+    const secondaryCtaHref = content?.secondaryCtaHref?.trim() || '/warranty-check';
     const shouldRenderVideo = !shouldReduceAnimations && !videoFailed;
 
     return (
@@ -198,9 +207,9 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
 
                 {/* Product preview: wrap with Link instead of onClick to improve semantics */}
                 <Link
-                    href={productPath}
+                    href={primaryTargetHref}
                     className="group relative flex min-h-0 w-full flex-1 items-center justify-center py-2 min-[480px]:items-center min-[480px]:py-3 sm:py-4"
-                    aria-label={t('hero.discoverAria').replace('{product}', displayName)}
+                    aria-label={product ? t('hero.discoverAria').replace('{product}', displayName) : primaryCtaLabel}
                 >
                     <motion.div
                         variants={productVariants}
@@ -234,10 +243,10 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
                     <div className="mx-auto mb-2.5 max-w-[22rem] min-[480px]:mx-0 min-[480px]:max-w-[30rem] sm:mb-4 sm:max-w-[34rem] md:max-w-[38rem] lg:max-w-2xl">
                         <div className="mb-2 flex flex-wrap items-center justify-center gap-2 min-[480px]:justify-start sm:mb-3">
                             <p className="brand-eyebrow text-center text-[0.66rem] leading-[1.48] tracking-[0.14em] min-[480px]:text-left min-[480px]:text-[0.7rem] min-[480px]:tracking-[0.17em] sm:text-[0.72rem] sm:tracking-[0.2em] md:text-[0.74rem] md:tracking-[0.22em]">
-                                {t('brand.message')}
+                                {heroEyebrow}
                             </p>
                             <span className="brand-badge-muted border-[rgba(41,171,226,0.2)] bg-[rgba(8,22,35,0.74)] px-3 py-1 text-[0.67rem] font-semibold uppercase tracking-[0.12em] text-[var(--text-primary)] sm:text-[0.72rem]">
-                                {t('brandValues.eyebrow')}
+                                {heroBadge}
                             </span>
                         </div>
                         <p className="text-[0.95rem] leading-[1.65] text-[var(--text-primary)] xs:text-[1rem] sm:text-[1.02rem] sm:leading-[1.7] md:text-[1.12rem] lg:text-xl lg:leading-relaxed">
@@ -254,19 +263,19 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
                             whileTap="tap"
                             onClick={() => {
                                 /* navigate via button only */
-                                window.location.href = productPath;
+                                window.location.href = primaryTargetHref;
                             }}
-                            aria-label={t('hero.discoverAria').replace('{product}', displayName)}
+                            aria-label={product ? t('hero.discoverAria').replace('{product}', displayName) : primaryCtaLabel}
                         >
-                            {t('hero.cta')}
+                            {primaryCtaLabel}
                         </motion.button>
 
                         {/* Secondary CTA: link to warranty check */}
                         <Link
-                            href="/warranty-check"
+                            href={secondaryCtaHref}
                             className="brand-button-secondary inline-flex min-w-[176px] items-center justify-center rounded-full px-5 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-[var(--text-primary)] transition duration-200 hover:border-[var(--brand-blue)] hover:bg-[rgba(41,171,226,0.12)] sm:min-w-[184px] sm:px-6 sm:text-base"
                         >
-                            {t('warrantyCheck.title')}
+                            {secondaryCtaLabel}
                         </Link>
                     </div>
                 </motion.div>

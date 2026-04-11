@@ -7,10 +7,12 @@ import { FiArrowRight, FiHeadphones } from 'react-icons/fi';
 import AvoidSidebar from '@/components/ui/AvoidSidebar';
 import { useLanguage } from '@/context/LanguageContext';
 import { buildProductPath } from '@/lib/slug';
+import type { HomeSectionHeaderContent } from '@/types/content';
 import type { SimpleProduct } from '@/types/product';
 
 interface ProductSeriesProps {
     initialProducts?: SimpleProduct[];
+    content?: HomeSectionHeaderContent | null;
 }
 
 function ensureTerminalPunctuation(value: string) {
@@ -38,9 +40,15 @@ function createResponsiveSummary(value: string, maxLength: number) {
     return trimAtWordBoundary(normalized, maxLength);
 }
 
-export default function ProductSeries({ initialProducts = [] }: ProductSeriesProps) {
+export default function ProductSeries({ initialProducts = [], content = null }: ProductSeriesProps) {
     const { t } = useLanguage();
     const skuFallback = t('brand.logoAlt');
+    const eyebrow = content?.eyebrow?.trim() || t('products.showcase.viewAll');
+    const title = content?.title?.trim() || t('products.showcase.titlePrimary');
+    const titleHighlight = content?.titleHighlight?.trim() || t('products.showcase.titleHighlight');
+    const sectionDescription = content?.description?.trim() || t('products.showcase.description');
+    const ctaLabel = content?.ctaLabel?.trim() || t('products.list.allProducts');
+    const ctaHref = content?.ctaHref?.trim() || '/products';
 
     return (
         <AvoidSidebar>
@@ -58,24 +66,24 @@ export default function ProductSeries({ initialProducts = [] }: ProductSeriesPro
                     >
                         <div className="flex flex-col gap-6 text-center lg:flex-row lg:items-end lg:justify-between lg:text-left">
                             <div className="max-w-4xl">
-                                <span className="brand-badge mb-5">{t('products.showcase.viewAll')}</span>
+                                <span className="brand-badge mb-5">{eyebrow}</span>
                                 <h2
                                     id="product-series-heading"
                                     className="scroll-mt-24 font-serif text-4xl font-semibold text-[var(--text-primary)] min-[480px]:scroll-mt-28 sm:text-5xl lg:scroll-mt-32 lg:text-6xl"
                                 >
-                                    {t('products.showcase.titlePrimary')}{' '}
-                                    <span className="brand-gradient-text">{t('products.showcase.titleHighlight')}</span>
+                                    {title}{' '}
+                                    <span className="brand-gradient-text">{titleHighlight}</span>
                                 </h2>
                                 <p className="mx-auto mt-5 max-w-[34rem] text-base leading-7 text-[var(--text-secondary)] min-[480px]:mt-6 min-[480px]:text-[1.0625rem] min-[480px]:leading-8 sm:max-w-3xl sm:text-lg lg:mx-0">
-                                    {t('products.showcase.description')}
+                                    {sectionDescription}
                                 </p>
                             </div>
 
                             <Link
-                                href="/products"
+                                href={ctaHref}
                                 className="brand-button-secondary inline-flex items-center justify-center gap-2 self-center rounded-full px-6 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-[var(--text-primary)] transition duration-200 hover:border-[var(--brand-blue)] hover:bg-[rgba(41,171,226,0.12)] lg:self-auto"
                             >
-                                {t('products.list.allProducts')}
+                                {ctaLabel}
                                 <FiArrowRight className="h-4 w-4" />
                             </Link>
                         </div>
@@ -94,7 +102,7 @@ export default function ProductSeries({ initialProducts = [] }: ProductSeriesPro
                                 const productPath = buildProductPath(product.id, product.name);
                                 const description =
                                     createResponsiveSummary(product.shortDescription ?? '', 132) ||
-                                    t('products.showcase.description');
+                                    sectionDescription;
 
                                 return (
                                     <motion.article

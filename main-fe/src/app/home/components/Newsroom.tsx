@@ -9,6 +9,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useHydration } from '@/hooks/useHydration';
 import { useAnimationConfig } from '@/hooks/useReducedMotion';
 import { buildBlogPath } from '@/lib/slug';
+import type { HomeNewsroomContent } from '@/types/content';
 import type { BlogPost } from '@/types/blog';
 import { formatDateSafe } from '@/utils/dateFormatter';
 
@@ -23,12 +24,17 @@ interface BlogItem {
 
 interface NewsroomProps {
     initialBlogs?: BlogPost[];
+    content?: HomeNewsroomContent | null;
 }
 
-export default function Newsroom({ initialBlogs = [] }: NewsroomProps) {
+export default function Newsroom({ initialBlogs = [], content = null }: NewsroomProps) {
     const { t, locale } = useLanguage();
     const isHydrated = useHydration();
     const { enableDecorativeAnimations } = useAnimationConfig();
+    const eyebrow = content?.eyebrow?.trim() || t('newsroom.subtitle');
+    const title = content?.title?.trim() || t('newsroom.title');
+    const tagline = content?.tagline?.trim() || t('newsroom.tagline');
+    const exploreMoreLabel = content?.exploreMoreLabel?.trim() || t('newsroom.exploreMore');
 
     const blogs: BlogItem[] = initialBlogs.map((blog) => ({
         id: blog.id,
@@ -63,15 +69,15 @@ export default function Newsroom({ initialBlogs = [] }: NewsroomProps) {
                 <div className="brand-shell relative z-10">
                     <div className="mb-10 flex flex-col gap-6 lg:mb-12 lg:flex-row lg:items-end lg:justify-between">
                         <div className="mx-auto max-w-3xl text-center lg:mx-0 lg:max-w-2xl lg:text-left">
-                            <span className="brand-badge mb-4">{t('newsroom.subtitle')}</span>
+                            <span className="brand-badge mb-4">{eyebrow}</span>
                             <h2
                                 id="newsroom-heading"
                                 className="font-serif text-3xl font-semibold text-[var(--text-primary)] sm:text-4xl lg:text-5xl"
                             >
-                                {t('newsroom.title')}
+                                {title}
                             </h2>
                             <p className="mt-4 text-base leading-7 text-[var(--text-secondary)] sm:text-lg">
-                                {t('newsroom.tagline')}
+                                {tagline}
                             </p>
                         </div>
 
@@ -80,7 +86,7 @@ export default function Newsroom({ initialBlogs = [] }: NewsroomProps) {
                             className="brand-button-secondary inline-flex items-center justify-center gap-2 self-center rounded-full px-5 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-[var(--text-primary)] transition duration-200 hover:border-[var(--brand-blue)] hover:bg-[rgba(41,171,226,0.12)] lg:self-auto"
                             aria-label={t('newsroom.exploreMoreAria')}
                         >
-                            {t('newsroom.exploreMore')}
+                            {exploreMoreLabel}
                             <FiArrowUpRight className="h-4 w-4" />
                         </Link>
                     </div>
