@@ -15,7 +15,9 @@ import java.io.InputStream;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.io.ClassPathResource;
@@ -24,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PublicContentService {
 
     private static final String DEFAULT_LANGUAGE = "vi";
@@ -49,13 +52,8 @@ public class PublicContentService {
         String normalizedSection = normalizeSection(section);
         String normalizedLanguage = normalizeLanguage(language);
 
-        PublicContentEntry localizedEntry = publicContentEntryRepository
-                .findByContentKeyAndLocaleAndPublishedTrue(normalizedSection, normalizedLanguage)
-                .orElseGet(() -> publicContentEntryRepository
-                        .findByContentKeyAndLocaleAndPublishedTrue(normalizedSection, DEFAULT_LANGUAGE)
-                        .orElseThrow(() -> new ResourceNotFoundException("Content section not found")));
-
-        return parsePayload(localizedEntry.getPayload());
+        return resolveSection(normalizedSection, normalizedLanguage)
+                .orElseThrow(() -> new ResourceNotFoundException("Content section not found"));
     }
 
     @Transactional(readOnly = true)
@@ -132,7 +130,11 @@ public class PublicContentService {
 
     private Map<String, Object> parsePayload(String payload) {
         try {
-            return objectMapper.readValue(payload, new TypeReference<>() {});
+            Object parsed = objectMapper.readValue(payload, Object.class);
+            if (!(parsed instanceof Map<?, ?> map)) {
+                throw new IllegalStateException("Stored public content payload root must be a JSON object");
+            }
+            return castToMap(map);
         } catch (IOException ex) {
             throw new IllegalStateException("Stored public content payload is invalid", ex);
         }
@@ -149,10 +151,10 @@ public class PublicContentService {
     private String normalizePayload(String payload) {
         try {
             Object normalized = objectMapper.readValue(payload, Object.class);
-            if (!(normalized instanceof Map<?, ?>) && !(normalized instanceof java.util.List<?>)) {
-                throw new BadRequestException("payload must be a JSON object or array");
+            if (!(normalized instanceof Map<?, ?> map)) {
+                throw new BadRequestException("payload root must be a JSON object");
             }
-            return objectMapper.writeValueAsString(normalized);
+            return objectMapper.writeValueAsString(castToMap(map));
         } catch (BadRequestException ex) {
             throw ex;
         } catch (IOException ex) {
@@ -182,8 +184,52 @@ public class PublicContentService {
     @SuppressWarnings("unchecked")
     private Map<String, Object> asMap(Object value) {
         if (value instanceof Map<?, ?> map) {
-            return new LinkedHashMap<>((Map<String, Object>) map);
+            return castToMap(map);
         }
         return Map.of();
+    }
+
+    private Optional<Map<String, Object>> resolveSection(String section, String language) {
+        return resolveDbSection(section, language)
+                .or(() -> resolveDbSection(section, DEFAULT_LANGUAGE))
+                .or(() -> resolveBundledSection(section, language))
+                .or(() -> resolveBundledSection(section, DEFAULT_LANGUAGE));
+    }
+
+    private Optional<Map<String, Object>> resolveDbSection(String section, String language) {
+        return publicContentEntryRepository.findByContentKeyAndLocaleAndPublishedTrue(section, language)
+                .flatMap(entry -> tryParseDbPayload(section, language, entry.getPayload()));
+    }
+
+    private Optional<Map<String, Object>> tryParseDbPayload(String section, String language, String payload) {
+        try {
+            return Optional.of(parsePayload(payload));
+        } catch (IllegalStateException ex) {
+            log.warn(
+                    "Ignoring invalid public content payload from DB for section '{}' and lang '{}': {}",
+                    section,
+                    language,
+                    ex.getMessage()
+            );
+            return Optional.empty();
+        }
+    }
+
+    private Optional<Map<String, Object>> resolveBundledSection(String section, String language) {
+        return Optional.ofNullable(bundledSiteContent.get(section))
+                .map(this::asMap)
+                .filter(localizedContent -> !localizedContent.isEmpty())
+                .map(localizedContent -> localizedContent.get(language))
+                .flatMap(this::asBundledPayload);
+    }
+
+    private Optional<Map<String, Object>> asBundledPayload(Object value) {
+        Map<String, Object> payload = asMap(value);
+        return payload.isEmpty() ? Optional.empty() : Optional.of(payload);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> castToMap(Map<?, ?> value) {
+        return new LinkedHashMap<>((Map<String, Object>) value);
     }
 }
