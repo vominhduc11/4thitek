@@ -79,11 +79,19 @@ class SupportTicketHistory extends StatelessWidget {
           ),
           const SizedBox(height: 12),
         ],
-        Text(
-          texts.inboxHelper,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: colors.onSurfaceVariant,
-            height: 1.4,
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: colors.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Text(
+            texts.inboxHelper,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: colors.onSurfaceVariant,
+              height: 1.4,
+            ),
           ),
         ),
         const SizedBox(height: 12),
@@ -150,6 +158,7 @@ class _HistoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final isClosed = item.status.trim().toLowerCase() == 'closed';
     final hasAdminUpdate = item.messages.any(
       (message) =>
           !message.internalNote &&
@@ -173,8 +182,8 @@ class _HistoryCard extends StatelessWidget {
               width: isSelected ? 1.5 : 1,
             ),
             color: isSelected
-                ? colors.primary.withValues(alpha: 0.08)
-                : colors.surfaceContainerHighest.withValues(alpha: 0.38),
+                ? colors.primary.withValues(alpha: 0.07)
+                : colors.surfaceContainerLowest,
             boxShadow: isSelected
                 ? [
                     BoxShadow(
@@ -197,13 +206,15 @@ class _HistoryCard extends StatelessWidget {
                       children: [
                         Text(
                           item.subject,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w800,
                           ),
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          '#${item.ticketCode}',
+                          texts.ticketCodeLabel(item.ticketCode),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: colors.onSurfaceVariant,
                           ),
@@ -226,7 +237,9 @@ class _HistoryCard extends StatelessWidget {
                   ),
                   _MetaChip(
                     icon: Icons.schedule_outlined,
-                    label: _formatDateTime(item.updatedAt),
+                    label: texts.lastUpdatedLabel(
+                      _formatDateTime(item.updatedAt),
+                    ),
                   ),
                   if (hasAdminUpdate)
                     _MetaChip(
@@ -237,8 +250,13 @@ class _HistoryCard extends StatelessWidget {
                   if (isSelected)
                     _MetaChip(
                       icon: Icons.check_circle_outline,
-                      label: texts.activeLabel,
+                      label: texts.selectedLabel,
                       highlighted: true,
+                    ),
+                  if (isClosed)
+                    _MetaChip(
+                      icon: Icons.lock_outline,
+                      label: texts.replyDisabledLabel,
                     ),
                 ],
               ),
@@ -512,53 +530,62 @@ class _SupportHistoryTexts {
   final bool isEnglish;
 
   String get emptyTitle =>
-      isEnglish ? 'No support tickets yet' : 'Chưa có ticket hỗ trợ';
+      isEnglish ? 'No support tickets yet' : 'Ch?a c? ticket h? tr?';
   String get emptyMessage => isEnglish
       ? 'Create your first ticket to start tracking support updates here.'
-      : 'Tạo ticket đầu tiên để theo dõi toàn bộ phản hồi hỗ trợ tại đây.';
+      : 'T?o ticket ??u ti?n ?? theo d?i to?n b? ph?n h?i h? tr? t?i ??y.';
   String get createFirstTicketLabel =>
-      isEnglish ? 'Create first ticket' : 'Tạo ticket đầu tiên';
+      isEnglish ? 'Create first ticket' : 'T?o ticket ??u ti?n';
   String get errorTitle => isEnglish
       ? 'Could not load ticket inbox'
-      : 'Không thể tải danh sách ticket';
-  String get retryLabel => isEnglish ? 'Retry' : 'Thử lại';
+      : 'Kh?ng th? t?i danh s?ch ticket';
+  String get retryLabel => isEnglish ? 'Retry' : 'Th? l?i';
   String get loadMoreLabel =>
-      isEnglish ? 'Load more tickets' : 'Xem thêm ticket';
+      isEnglish ? 'Load more tickets' : 'Xem th?m ticket';
   String get loadingMoreLabel =>
-      isEnglish ? 'Loading more...' : 'Đang tải thêm...';
-  String get activeLabel => isEnglish ? 'Active' : 'Đang chọn';
-  String get viewDetailsLabel => isEnglish ? 'View details' : 'Xem chi tiết';
+      isEnglish ? 'Loading more...' : '?ang t?i th?m...';
+  String get activeLabel => isEnglish ? 'Ticket selected' : 'Ticket ?ang ch?n';
+  String get selectedLabel => isEnglish ? 'Selected' : '?ang ch?n';
+  String get viewDetailsLabel => isEnglish ? 'View details' : 'Xem chi ti?t';
   String get replyThisTicketLabel =>
-      isEnglish ? 'Reply to this ticket' : 'Trả lời ticket này';
+      isEnglish ? 'Reply to this ticket' : 'Ph?n h?i ticket n?y';
   String get adminUpdatedLabel =>
-      isEnglish ? 'Admin updated' : 'Admin vừa phản hồi';
+      isEnglish ? 'Admin replied' : 'Admin v?a ph?n h?i';
+  String get replyDisabledLabel =>
+      isEnglish ? 'Reply unavailable' : 'Kh?ng th? ph?n h?i';
   String get inboxHelper => isEnglish
-      ? 'Choose a ticket to review the full thread and send a follow-up to the correct request.'
-      : 'Chọn một ticket để xem đầy đủ diễn tiến và gửi bổ sung đúng yêu cầu cần xử lý.';
+      ? 'Select a ticket to review the full thread and send a follow-up to the correct request.'
+      : 'Ch?n m?t ticket ?? xem ??y ?? di?n ti?n v? g?i b? sung ??ng y?u c?u ?ang x? l?.';
+
+  String ticketCodeLabel(String ticketCode) =>
+      isEnglish ? 'Ticket #$ticketCode' : 'Ticket #$ticketCode';
+
+  String lastUpdatedLabel(String value) =>
+      isEnglish ? 'Updated $value' : 'C?p nh?t $value';
 
   String statusLabel(String status) {
     switch (status.trim().toLowerCase()) {
       case 'resolved':
-        return isEnglish ? 'Resolved' : 'Đã xử lý';
+        return isEnglish ? 'Resolved' : '?? x? l?';
       case 'in_progress':
-        return isEnglish ? 'In progress' : 'Đang xử lý';
+        return isEnglish ? 'In progress' : '?ang x? l?';
       case 'closed':
-        return isEnglish ? 'Closed' : 'Đã đóng';
+        return isEnglish ? 'Closed' : '?? ??ng';
       case 'open':
       default:
-        return isEnglish ? 'Open' : 'Đang mở';
+        return isEnglish ? 'Open' : '?ang m?';
     }
   }
 
   String priorityValue(String priority) {
     switch (priority.trim().toLowerCase()) {
       case 'urgent':
-        return isEnglish ? 'Urgent' : 'Khẩn cấp';
+        return isEnglish ? 'Urgent' : 'Kh?n c?p';
       case 'high':
         return isEnglish ? 'High' : 'Cao';
       case 'normal':
       default:
-        return isEnglish ? 'Normal' : 'Bình thường';
+        return isEnglish ? 'Normal' : 'B?nh th??ng';
     }
   }
 }

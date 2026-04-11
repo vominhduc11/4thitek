@@ -29,26 +29,26 @@ String resolveSupportServiceMessage(
   if (normalized == null || normalized.isEmpty) {
     return isEnglish
         ? 'Unable to sync support request.'
-        : 'Không thể đồng bộ yêu cầu hỗ trợ.';
+        : 'Kh?ng th? ??ng b? y?u c?u h? tr?.';
   }
 
   switch (normalized) {
     case 'support.message.unauthenticated':
       return isEnglish
           ? 'You need to sign in before contacting support.'
-          : 'Bạn cần đăng nhập trước khi liên hệ hỗ trợ.';
+          : 'B?n c?n ??ng nh?p tr??c khi li?n h? h? tr?.';
     case 'support.message.invalidTicketPayload':
       return isEnglish
           ? 'Support ticket data is invalid.'
-          : 'Dữ liệu yêu cầu hỗ trợ không hợp lệ.';
+          : 'D? li?u ticket h? tr? kh?ng h?p l?.';
     case 'support.message.invalidTicketPagePayload':
       return isEnglish
           ? 'Support request history data is invalid.'
-          : 'Dữ liệu lịch sử yêu cầu hỗ trợ không hợp lệ.';
+          : 'D? li?u l?ch s? y?u c?u h? tr? kh?ng h?p l?.';
     case 'support.message.syncFailed':
       return isEnglish
           ? 'Unable to sync support request.'
-          : 'Không thể đồng bộ yêu cầu hỗ trợ.';
+          : 'Kh?ng th? ??ng b? y?u c?u h? tr?.';
     default:
       return normalized;
   }
