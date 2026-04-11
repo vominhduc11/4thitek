@@ -68,6 +68,7 @@ public class ProductStockSyncSupport {
     @CacheEvict(cacheNames = {
             CacheNames.PUBLIC_PRODUCTS,
             CacheNames.PUBLIC_PRODUCT_BY_ID,
+            CacheNames.PUBLIC_PRODUCT_RELATED,
             CacheNames.PUBLIC_FEATURED_PRODUCTS,
             CacheNames.PUBLIC_HOMEPAGE_PRODUCTS
     }, allEntries = true)
@@ -85,6 +86,7 @@ public class ProductStockSyncSupport {
     @CacheEvict(cacheNames = {
             CacheNames.PUBLIC_PRODUCTS,
             CacheNames.PUBLIC_PRODUCT_BY_ID,
+            CacheNames.PUBLIC_PRODUCT_RELATED,
             CacheNames.PUBLIC_FEATURED_PRODUCTS,
             CacheNames.PUBLIC_HOMEPAGE_PRODUCTS
     }, allEntries = true)
@@ -120,6 +122,7 @@ public class ProductStockSyncSupport {
     @CacheEvict(cacheNames = {
             CacheNames.PUBLIC_PRODUCTS,
             CacheNames.PUBLIC_PRODUCT_BY_ID,
+            CacheNames.PUBLIC_PRODUCT_RELATED,
             CacheNames.PUBLIC_FEATURED_PRODUCTS,
             CacheNames.PUBLIC_HOMEPAGE_PRODUCTS
     }, allEntries = true)
