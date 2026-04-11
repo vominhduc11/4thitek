@@ -5,7 +5,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import lombok.Getter;
@@ -31,7 +30,6 @@ public class PublicContentEntry {
     @Column(name = "locale", nullable = false, length = 8)
     private String locale;
 
-    @Lob
     @Column(name = "payload", nullable = false, columnDefinition = "TEXT")
     private String payload;
 
