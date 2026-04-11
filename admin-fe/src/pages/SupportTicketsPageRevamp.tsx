@@ -1,5 +1,12 @@
-import { LifeBuoy, MessageSquareMore, RefreshCw } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  LifeBuoy,
+  MessageSquareMore,
+  Paperclip,
+  RefreshCw,
+  Upload,
+  X,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createAdminSupportTicketMessage,
   fetchAllAdminSupportTickets,
@@ -18,6 +25,7 @@ import { translateCopy } from "../lib/i18n";
 import { useToast } from "../context/ToastContext";
 import { formatDateTime } from "../lib/formatters";
 import { subscribeAdminSupportRefresh } from "../lib/adminRealtime";
+import { deleteStoredFileReference, storeFileReference } from "../lib/upload";
 import {
   EmptyState,
   ErrorState,
@@ -73,6 +81,12 @@ type TicketDraftState = {
   statusDraft: BackendSupportTicketStatus;
   assigneeDraft: number | "";
   internalNote: boolean;
+  attachments: DraftAttachment[];
+};
+
+type DraftAttachment = {
+  url: string;
+  fileName?: string | null;
 };
 
 type ThreadItem = {
@@ -128,6 +142,7 @@ function createDraft(ticket: BackendSupportTicketResponse): TicketDraftState {
     statusDraft: ticket.status ?? "open",
     assigneeDraft: ticket.assigneeId ?? "",
     internalNote: false,
+    attachments: [],
   };
 }
 
@@ -196,8 +211,40 @@ function SupportTicketsPageRevamp() {
   const [isLoading, setIsLoading] = useState(true);
   const [isFilterLoading, setIsFilterLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const draftAttachmentUrlsRef = useRef<Set<string>>(new Set());
   const hasActiveFilters = query.trim().length > 0 || statusFilter !== "all";
+
+  const cleanupDraftAttachments = useCallback(
+    async (urls: Array<string | null | undefined>) => {
+      const trackedUrls = Array.from(
+        new Set(
+          urls
+            .map((url) => String(url ?? "").trim())
+            .filter((url) => url && draftAttachmentUrlsRef.current.has(url)),
+        ),
+      );
+
+      if (trackedUrls.length === 0) {
+        return;
+      }
+
+      const results = await Promise.allSettled(
+        trackedUrls.map(async (url) => {
+          await deleteStoredFileReference({ url, accessToken });
+          return url;
+        }),
+      );
+
+      results.forEach((result, index) => {
+        if (result.status === "fulfilled") {
+          draftAttachmentUrlsRef.current.delete(trackedUrls[index]);
+        }
+      });
+    },
+    [accessToken],
+  );
 
   const mergeTickets = useCallback(
     (nextTickets: BackendSupportTicketResponse[]) => {
@@ -261,6 +308,15 @@ function SupportTicketsPageRevamp() {
       )
       .catch(() => setStaffUsers([]));
   }, [accessToken]);
+
+  useEffect(() => {
+    const trackedUploads = draftAttachmentUrlsRef.current;
+    return () => {
+      if (trackedUploads.size > 0) {
+        void cleanupDraftAttachments(Array.from(trackedUploads));
+      }
+    };
+  }, [cleanupDraftAttachments]);
 
   const loadAllTickets = useCallback(async () => {
     if (!accessToken) return;
@@ -326,7 +382,8 @@ function SupportTicketsPageRevamp() {
         .join(" ")
         .toLowerCase();
       return (
-        matchesStatus && (!normalizedQuery || haystack.includes(normalizedQuery))
+        matchesStatus &&
+        (!normalizedQuery || haystack.includes(normalizedQuery))
       );
     });
   }, [query, sourceTickets, statusFilter]);
@@ -346,7 +403,7 @@ function SupportTicketsPageRevamp() {
     filteredTickets.find((ticket) => ticket.id === selectedId) ?? null;
 
   const selectedDraft = selectedTicket
-    ? draftsByTicketId[selectedTicket.id] ?? createDraft(selectedTicket)
+    ? (draftsByTicketId[selectedTicket.id] ?? createDraft(selectedTicket))
     : null;
 
   const updateSelectedDraft = useCallback(
@@ -390,35 +447,38 @@ function SupportTicketsPageRevamp() {
     }
   }, [hasActiveFilters, loadAllTickets, loadTickets, page]);
 
-  const replaceTicket = useCallback(
-    (updated: BackendSupportTicketResponse) => {
-      setTickets((current) =>
-        current.map((ticket) => (ticket.id === updated.id ? updated : ticket)),
-      );
-      setAllTickets((current) =>
-        current.map((ticket) => (ticket.id === updated.id ? updated : ticket)),
-      );
-      setDraftsByTicketId((current) => ({
-        ...current,
-        [updated.id]: {
-          ...(current[updated.id] ?? createDraft(updated)),
-          statusDraft: updated.status ?? "open",
-          assigneeDraft: updated.assigneeId ?? "",
-        },
-      }));
-    },
-    [],
-  );
+  const replaceTicket = useCallback((updated: BackendSupportTicketResponse) => {
+    setTickets((current) =>
+      current.map((ticket) => (ticket.id === updated.id ? updated : ticket)),
+    );
+    setAllTickets((current) =>
+      current.map((ticket) => (ticket.id === updated.id ? updated : ticket)),
+    );
+    setDraftsByTicketId((current) => ({
+      ...current,
+      [updated.id]: {
+        ...(current[updated.id] ?? createDraft(updated)),
+        statusDraft: updated.status ?? "open",
+        assigneeDraft: updated.assigneeId ?? "",
+      },
+    }));
+  }, []);
 
   const handleSave = async () => {
     if (!accessToken || !selectedTicket || !selectedDraft) return;
     setIsSaving(true);
     try {
-      const updated = await updateAdminSupportTicket(accessToken, selectedTicket.id, {
-        status: selectedDraft.statusDraft,
-        assigneeId:
-          selectedDraft.assigneeDraft === "" ? null : selectedDraft.assigneeDraft,
-      });
+      const updated = await updateAdminSupportTicket(
+        accessToken,
+        selectedTicket.id,
+        {
+          status: selectedDraft.statusDraft,
+          assigneeId:
+            selectedDraft.assigneeDraft === ""
+              ? null
+              : selectedDraft.assigneeDraft,
+        },
+      );
       replaceTicket(updated);
       notify(t("Đã lưu cập nhật ticket."), {
         title: copy.title,
@@ -437,6 +497,74 @@ function SupportTicketsPageRevamp() {
     }
   };
 
+  const handleAttachmentUpload = async (file: File | null) => {
+    if (!file || !accessToken || !selectedTicket) {
+      return;
+    }
+
+    setIsUploadingAttachment(true);
+    try {
+      const stored = await storeFileReference({
+        file,
+        category: "support-tickets",
+        accessToken,
+      });
+      draftAttachmentUrlsRef.current.add(stored.url);
+      setDraftsByTicketId((current) => {
+        const existingDraft =
+          current[selectedTicket.id] ?? createDraft(selectedTicket);
+        const attachments = [
+          ...existingDraft.attachments,
+          { url: stored.url, fileName: stored.fileName || file.name },
+        ];
+        return {
+          ...current,
+          [selectedTicket.id]: {
+            ...existingDraft,
+            attachments,
+          },
+        };
+      });
+    } catch (uploadError) {
+      notify(
+        uploadError instanceof Error
+          ? uploadError.message
+          : t("Khong the tai tep dinh kem."),
+        {
+          title: copy.title,
+          variant: "error",
+        },
+      );
+    } finally {
+      setIsUploadingAttachment(false);
+    }
+  };
+
+  const removeDraftAttachment = useCallback(
+    async (attachmentUrl: string) => {
+      if (!selectedTicket) {
+        return;
+      }
+
+      setDraftsByTicketId((current) => {
+        const existingDraft =
+          current[selectedTicket.id] ?? createDraft(selectedTicket);
+        return {
+          ...current,
+          [selectedTicket.id]: {
+            ...existingDraft,
+            attachments: existingDraft.attachments.filter(
+              (attachment) => attachment.url !== attachmentUrl,
+            ),
+          },
+        };
+      });
+
+      await cleanupDraftAttachments([attachmentUrl]);
+    },
+    [cleanupDraftAttachments, selectedTicket],
+  );
+
   const handleSendMessage = async () => {
     if (!accessToken || !selectedTicket || !selectedDraft?.replyDraft.trim()) {
       return;
@@ -449,8 +577,15 @@ function SupportTicketsPageRevamp() {
         {
           message: selectedDraft.replyDraft.trim(),
           internalNote: selectedDraft.internalNote,
+          attachments: selectedDraft.attachments.map((attachment) => ({
+            url: attachment.url,
+            fileName: attachment.fileName ?? undefined,
+          })),
         },
       );
+      selectedDraft.attachments.forEach((attachment) => {
+        draftAttachmentUrlsRef.current.delete(attachment.url);
+      });
       replaceTicket(updated);
       setDraftsByTicketId((current) => ({
         ...current,
@@ -458,6 +593,7 @@ function SupportTicketsPageRevamp() {
           ...(current[selectedTicket.id] ?? createDraft(updated)),
           replyDraft: "",
           internalNote: false,
+          attachments: [],
           statusDraft: updated.status ?? "open",
           assigneeDraft: updated.assigneeId ?? "",
         },
@@ -670,7 +806,9 @@ function SupportTicketsPageRevamp() {
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <StatusBadge
-                        tone={priorityTone[ticket.priority ?? "normal"] ?? "neutral"}
+                        tone={
+                          priorityTone[ticket.priority ?? "normal"] ?? "neutral"
+                        }
                       >
                         {priorityLabel(ticket.priority)}
                       </StatusBadge>
@@ -723,25 +861,33 @@ function SupportTicketsPageRevamp() {
                     <div className="grid gap-2 text-sm text-[var(--ink)] sm:grid-cols-2">
                       {selectedTicket.contextData.orderCode ? (
                         <p>
-                          <span className="font-medium">{t("Mã đơn hàng")}:</span>{" "}
+                          <span className="font-medium">
+                            {t("Mã đơn hàng")}:
+                          </span>{" "}
                           {selectedTicket.contextData.orderCode}
                         </p>
                       ) : null}
                       {selectedTicket.contextData.transactionCode ? (
                         <p>
-                          <span className="font-medium">{t("Mã giao dịch")}:</span>{" "}
+                          <span className="font-medium">
+                            {t("Mã giao dịch")}:
+                          </span>{" "}
                           {selectedTicket.contextData.transactionCode}
                         </p>
                       ) : null}
                       {selectedTicket.contextData.paidAmount != null ? (
                         <p>
-                          <span className="font-medium">{t("Số tiền đã chuyển")}:</span>{" "}
+                          <span className="font-medium">
+                            {t("Số tiền đã chuyển")}:
+                          </span>{" "}
                           {selectedTicket.contextData.paidAmount}
                         </p>
                       ) : null}
                       {selectedTicket.contextData.paymentReference ? (
                         <p>
-                          <span className="font-medium">{t("Nội dung chuyển khoản")}:</span>{" "}
+                          <span className="font-medium">
+                            {t("Nội dung chuyển khoản")}:
+                          </span>{" "}
                           {selectedTicket.contextData.paymentReference}
                         </p>
                       ) : null}
@@ -753,7 +899,9 @@ function SupportTicketsPageRevamp() {
                       ) : null}
                       {selectedTicket.contextData.returnReason ? (
                         <p className="sm:col-span-2">
-                          <span className="font-medium">{t("Lý do trả hàng")}:</span>{" "}
+                          <span className="font-medium">
+                            {t("Lý do trả hàng")}:
+                          </span>{" "}
                           {selectedTicket.contextData.returnReason}
                         </p>
                       ) : null}
@@ -778,12 +926,16 @@ function SupportTicketsPageRevamp() {
                     >
                       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
                         {message.authorRole === "dealer"
-                          ? message.authorName ?? selectedTicket.dealerName ?? t("Đại lý")
+                          ? (message.authorName ??
+                            selectedTicket.dealerName ??
+                            t("Đại lý"))
                           : message.authorRole === "admin"
-                            ? message.authorName ?? "Admin"
-                            : message.authorName ?? t("Hệ thống")}
+                            ? (message.authorName ?? "Admin")
+                            : (message.authorName ?? t("Hệ thống"))}
                         {message.syntheticRoot ? ` • ${t("Yêu cầu gốc")}` : ""}
-                        {message.internalNote ? ` • ${t("Ghi chú nội bộ")}` : ""}
+                        {message.internalNote
+                          ? ` • ${t("Ghi chú nội bộ")}`
+                          : ""}
                       </p>
                       <p className="whitespace-pre-wrap text-sm text-[var(--ink)]">
                         {message.message}
@@ -901,6 +1053,69 @@ function SupportTicketsPageRevamp() {
                     }
                   />
                 </label>
+
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <span className={tableMetaClass}>
+                      {t("Tep dinh kem cho phan hoi")}
+                    </span>
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--ink)] hover:border-[var(--accent)]">
+                      <Upload className="h-4 w-4" />
+                      <span>
+                        {isUploadingAttachment
+                          ? t("Dang tai tep...")
+                          : t("Tai tep minh chung")}
+                      </span>
+                      <input
+                        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                        className="hidden"
+                        disabled={isUploadingAttachment || isSaving}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0] ?? null;
+                          void handleAttachmentUpload(file);
+                          event.currentTarget.value = "";
+                        }}
+                        type="file"
+                      />
+                    </label>
+                  </div>
+                  {selectedDraft.attachments.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedDraft.attachments.map((attachment, index) => (
+                        <div
+                          key={`${attachment.url}-${index}`}
+                          className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--ink)]"
+                        >
+                          <a
+                            href={attachment.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-2 hover:text-[var(--accent)]"
+                          >
+                            <Paperclip className="h-4 w-4" />
+                            <span>
+                              {attachment.fileName || t("Tep dinh kem")}
+                            </span>
+                          </a>
+                          <button
+                            type="button"
+                            className="text-[var(--muted)] hover:text-[var(--danger)]"
+                            onClick={() =>
+                              void removeDraftAttachment(attachment.url)
+                            }
+                            aria-label={t("Xoa tep dinh kem")}
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-[var(--muted)]">
+                      {t("Chua co tep dinh kem cho phan hoi nay.")}
+                    </p>
+                  )}
+                </div>
 
                 <label className="flex items-center gap-2 text-sm text-[var(--muted)]">
                   <input
