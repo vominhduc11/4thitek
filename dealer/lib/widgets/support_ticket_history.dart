@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../support_service.dart';
 import 'skeleton_box.dart';
@@ -18,6 +17,7 @@ class SupportTicketHistory extends StatelessWidget {
     this.onReplyToTicket,
     required this.onLoadMore,
     this.onRetry,
+    this.onCreateTicket,
   });
 
   final bool isEnglish;
@@ -31,11 +31,38 @@ class SupportTicketHistory extends StatelessWidget {
   final ValueChanged<DealerSupportTicketRecord>? onReplyToTicket;
   final Future<void> Function() onLoadMore;
   final Future<void> Function()? onRetry;
+  final VoidCallback? onCreateTicket;
 
   @override
   Widget build(BuildContext context) {
     final texts = _SupportHistoryTexts(isEnglish: isEnglish);
     final colors = Theme.of(context).colorScheme;
+
+    if (isLoading && items.isEmpty) {
+      return const Column(
+        children: [
+          _HistorySkeletonCard(),
+          SizedBox(height: 12),
+          _HistorySkeletonCard(),
+          SizedBox(height: 12),
+          _HistorySkeletonCard(),
+        ],
+      );
+    }
+
+    if (items.isEmpty) {
+      return _HistoryStateCard(
+        icon: Icons.support_agent_outlined,
+        title: texts.emptyTitle,
+        message: texts.emptyMessage,
+        foregroundColor: colors.onSurface,
+        backgroundColor: colors.surfaceContainerHighest.withValues(alpha: 0.6),
+        actionLabel: onCreateTicket == null
+            ? null
+            : texts.createFirstTicketLabel,
+        onAction: onCreateTicket == null ? null : () async => onCreateTicket!(),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -52,70 +79,56 @@ class SupportTicketHistory extends StatelessWidget {
           ),
           const SizedBox(height: 12),
         ],
-        if (isLoading && items.isEmpty)
-          const Column(
-            children: [
-              _HistorySkeletonCard(),
-              SizedBox(height: 12),
-              _HistorySkeletonCard(),
-            ],
-          )
-        else if (items.isEmpty)
-          _HistoryStateCard(
-            icon: Icons.support_agent_outlined,
-            title: texts.emptyTitle,
-            message: texts.emptyMessage,
-            foregroundColor: colors.onSurface,
-            backgroundColor: colors.surfaceContainerHighest.withValues(
-              alpha: 0.6,
+        Text(
+          texts.inboxHelper,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: colors.onSurfaceVariant,
+            height: 1.4,
+          ),
+        ),
+        const SizedBox(height: 12),
+        for (final item in items) ...[
+          _HistoryCard(
+            item: item,
+            texts: texts,
+            isSelected: item.id == selectedTicketId,
+            onSelect: onSelectTicket == null
+                ? null
+                : () => onSelectTicket!(item),
+            onReply: onReplyToTicket == null || _isClosed(item)
+                ? null
+                : () => onReplyToTicket!(item),
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (hasMore)
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: isLoadingMore ? null : onLoadMore,
+              child: isLoadingMore
+                  ? Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(texts.loadingMoreLabel),
+                      ],
+                    )
+                  : Text(texts.loadMoreLabel),
             ),
-          )
-        else
-          Column(
-            children: [
-              for (final item in items) ...[
-                _HistoryCard(
-                  item: item,
-                  texts: texts,
-                  isSelected: item.id == selectedTicketId,
-                  onSelect: onSelectTicket == null
-                      ? null
-                      : () => onSelectTicket!(item),
-                  onReply: onReplyToTicket == null
-                      ? null
-                      : () => onReplyToTicket!(item),
-                ),
-                const SizedBox(height: 12),
-              ],
-              if (hasMore)
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: isLoadingMore ? null : onLoadMore,
-                    child: isLoadingMore
-                        ? Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Text(texts.loadingMoreLabel),
-                            ],
-                          )
-                        : Text(texts.loadMoreLabel),
-                  ),
-                ),
-            ],
           ),
       ],
     );
   }
+
+  static bool _isClosed(DealerSupportTicketRecord item) =>
+      item.status.trim().toLowerCase() == 'closed';
 }
 
 class _HistoryCard extends StatelessWidget {
@@ -136,127 +149,110 @@ class _HistoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final hasAdminUpdate = item.messages.any(
+      (message) =>
+          !message.internalNote &&
+          message.authorRole.trim().toLowerCase() == 'admin',
+    );
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(22),
         onTap: onSelect,
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(22),
             border: Border.all(
               color: isSelected
-                  ? theme.colorScheme.primary
-                  : theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
+                  ? colors.primary
+                  : colors.outlineVariant.withValues(alpha: 0.45),
+              width: isSelected ? 1.5 : 1,
             ),
             color: isSelected
-                ? theme.colorScheme.primary.withValues(alpha: 0.08)
-                : theme.colorScheme.surfaceContainerHighest.withValues(
-                    alpha: 0.45,
-                  ),
+                ? colors.primary.withValues(alpha: 0.08)
+                : colors.surfaceContainerHighest.withValues(alpha: 0.38),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: colors.primary.withValues(alpha: 0.08),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ]
+                : null,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: Text(
-                      item.subject,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.subject,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '#${item.ticketCode}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colors.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                  const SizedBox(width: 12),
                   _StatusChip(status: item.status, texts: texts),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  Text(
-                    '${texts.ticketLabel}: ${item.ticketCode}',
-                    style: theme.textTheme.bodySmall,
+                  _MetaChip(
+                    icon: Icons.flag_outlined,
+                    label: texts.priorityValue(item.priority),
                   ),
+                  _MetaChip(
+                    icon: Icons.schedule_outlined,
+                    label: _formatDateTime(item.updatedAt),
+                  ),
+                  if (hasAdminUpdate)
+                    _MetaChip(
+                      icon: Icons.mark_email_unread_outlined,
+                      label: texts.adminUpdatedLabel,
+                      highlighted: true,
+                    ),
                   if (isSelected)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(999),
-                        color: theme.colorScheme.primary.withValues(
-                          alpha: 0.14,
-                        ),
-                      ),
-                      child: Text(
-                        texts.activeLabel,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                    _MetaChip(
+                      icon: Icons.check_circle_outline,
+                      label: texts.activeLabel,
+                      highlighted: true,
                     ),
                 ],
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 10),
               Text(
                 item.message,
-                style: theme.textTheme.bodyMedium?.copyWith(height: 1.45),
-              ),
-              if (item.contextData != null) ...[
-                const SizedBox(height: 10),
-                _ContextSummary(contextData: item.contextData!, texts: texts),
-              ],
-              if (item.messages.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Text(
-                  texts.threadLabel,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  height: 1.45,
+                  color: colors.onSurface.withValues(alpha: 0.88),
                 ),
-                const SizedBox(height: 8),
-                ...item.messages
-                    .where((message) => !message.internalNote)
-                    .map(
-                      (message) => Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: _ThreadEntry(message: message, texts: texts),
-                      ),
-                    ),
-              ],
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 10,
-                runSpacing: 6,
-                children: [
-                  _InfoPill(
-                    label: texts.priorityLabel,
-                    value: texts.priorityValue(item.priority),
-                  ),
-                  _InfoPill(
-                    label: texts.createdLabel,
-                    value: _formatDateTime(item.createdAt),
-                  ),
-                  if (item.resolvedAt != null)
-                    _InfoPill(
-                      label: texts.resolvedLabel,
-                      value: _formatDateTime(item.resolvedAt!),
-                    ),
-                  if (item.closedAt != null)
-                    _InfoPill(
-                      label: texts.closedLabel,
-                      value: _formatDateTime(item.closedAt!),
-                    ),
-                ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               Wrap(
                 spacing: 10,
                 runSpacing: 8,
@@ -267,8 +263,7 @@ class _HistoryCard extends StatelessWidget {
                       icon: const Icon(Icons.visibility_outlined, size: 18),
                       label: Text(texts.viewDetailsLabel),
                     ),
-                  if (onReply != null &&
-                      item.status.trim().toLowerCase() != 'closed')
+                  if (onReply != null)
                     FilledButton.tonalIcon(
                       onPressed: onReply,
                       icon: const Icon(Icons.reply_outlined, size: 18),
@@ -283,7 +278,7 @@ class _HistoryCard extends StatelessWidget {
     );
   }
 
-  String _formatDateTime(DateTime value) {
+  static String _formatDateTime(DateTime value) {
     final day = value.day.toString().padLeft(2, '0');
     final month = value.month.toString().padLeft(2, '0');
     final hour = value.hour.toString().padLeft(2, '0');
@@ -292,156 +287,46 @@ class _HistoryCard extends StatelessWidget {
   }
 }
 
-class _ThreadEntry extends StatelessWidget {
-  const _ThreadEntry({required this.message, required this.texts});
+class _MetaChip extends StatelessWidget {
+  const _MetaChip({
+    required this.icon,
+    required this.label,
+    this.highlighted = false,
+  });
 
-  final SupportTicketMessageRecord message;
-  final _SupportHistoryTexts texts;
+  final IconData icon;
+  final String label;
+  final bool highlighted;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isAdmin = message.authorRole.trim().toLowerCase() == 'admin';
+    final colors = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        color: isAdmin
-            ? theme.colorScheme.primary.withValues(alpha: 0.08)
-            : theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(999),
+        color: highlighted
+            ? colors.primary.withValues(alpha: 0.12)
+            : colors.surface,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            texts.messageAuthorLabel(message.authorRole, message.authorName),
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+          Icon(
+            icon,
+            size: 14,
+            color: highlighted ? colors.primary : colors.onSurfaceVariant,
           ),
-          const SizedBox(height: 4),
+          const SizedBox(width: 6),
           Text(
-            message.message,
-            style: theme.textTheme.bodyMedium?.copyWith(height: 1.45),
-          ),
-          if (message.attachments.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: message.attachments
-                  .map((attachment) => _AttachmentChip(attachment: attachment))
-                  .toList(growable: false),
-            ),
-          ],
-          const SizedBox(height: 6),
-          Text(
-            _formatDateTime(message.createdAt),
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: highlighted ? colors.primary : null,
+              fontWeight: highlighted ? FontWeight.w700 : FontWeight.w500,
             ),
           ),
         ],
       ),
-    );
-  }
-
-  String _formatDateTime(DateTime value) {
-    final day = value.day.toString().padLeft(2, '0');
-    final month = value.month.toString().padLeft(2, '0');
-    final hour = value.hour.toString().padLeft(2, '0');
-    final minute = value.minute.toString().padLeft(2, '0');
-    return '$day/$month/${value.year} $hour:$minute';
-  }
-}
-
-class _AttachmentChip extends StatelessWidget {
-  const _AttachmentChip({required this.attachment});
-
-  final SupportTicketAttachmentRecord attachment;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: () async {
-        final uri = Uri.tryParse(attachment.url);
-        if (uri != null) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        }
-      },
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 220),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
-          ),
-          color: theme.colorScheme.surface,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.attach_file_outlined, size: 16),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                attachment.fileName ?? attachment.url,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ContextSummary extends StatelessWidget {
-  const _ContextSummary({required this.contextData, required this.texts});
-
-  final SupportTicketContextRecord contextData;
-  final _SupportHistoryTexts texts;
-
-  @override
-  Widget build(BuildContext context) {
-    final entries = <String>[
-      if (contextData.orderCode != null)
-        '${texts.orderCodeLabel}: ${contextData.orderCode}',
-      if (contextData.transactionCode != null)
-        '${texts.transactionCodeLabel}: ${contextData.transactionCode}',
-      if (contextData.paidAmount != null)
-        '${texts.paidAmountLabel}: ${contextData.paidAmount}',
-      if (contextData.paymentReference != null)
-        '${texts.paymentReferenceLabel}: ${contextData.paymentReference}',
-      if (contextData.serial != null)
-        '${texts.serialLabel}: ${contextData.serial}',
-      if (contextData.returnReason != null)
-        '${texts.returnReasonLabel}: ${contextData.returnReason}',
-    ];
-    if (entries.isEmpty) {
-      return const SizedBox.shrink();
-    }
-    final theme = Theme.of(context);
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: entries
-          .map(
-            (entry) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(999),
-                color: theme.colorScheme.surface,
-              ),
-              child: Text(entry, style: theme.textTheme.bodySmall),
-            ),
-          )
-          .toList(growable: false),
     );
   }
 }
@@ -470,9 +355,9 @@ class _HistoryStateCard extends StatelessWidget {
     final theme = Theme.of(context);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
         color: backgroundColor,
         border: Border.all(color: foregroundColor.withValues(alpha: 0.14)),
       ),
@@ -525,7 +410,7 @@ class _HistorySkeletonCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(22),
         color: Theme.of(
           context,
         ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
@@ -552,11 +437,11 @@ class _HistorySkeletonCard extends StatelessWidget {
           ),
           SizedBox(height: 12),
           SkeletonBox(
-            width: 120,
+            width: 140,
             height: 14,
             borderRadius: BorderRadius.all(Radius.circular(10)),
           ),
-          SizedBox(height: 10),
+          SizedBox(height: 12),
           SkeletonBox(
             width: double.infinity,
             height: 14,
@@ -569,28 +454,6 @@ class _HistorySkeletonCard extends StatelessWidget {
             borderRadius: BorderRadius.all(Radius.circular(10)),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _InfoPill extends StatelessWidget {
-  const _InfoPill({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        color: Theme.of(context).colorScheme.surface,
-      ),
-      child: Text(
-        '$label: $value',
-        style: Theme.of(context).textTheme.bodySmall,
       ),
     );
   }
@@ -614,13 +477,12 @@ class _StatusChip extends StatelessWidget {
         break;
       case 'in_progress':
         background = const Color(0xFF3A2C11);
-        foreground = const Color(0xFFBDF919);
+        foreground = const Color(0xFFF7D46B);
         break;
       case 'closed':
         background = scheme.surface;
         foreground = scheme.onSurfaceVariant;
         break;
-      case 'open':
       default:
         background = scheme.primary.withValues(alpha: 0.14);
         foreground = scheme.primary;
@@ -650,37 +512,29 @@ class _SupportHistoryTexts {
   final bool isEnglish;
 
   String get emptyTitle =>
-      isEnglish ? 'No support requests yet' : 'Chưa có yêu cầu hỗ trợ';
+      isEnglish ? 'No support tickets yet' : 'Chưa có ticket hỗ trợ';
   String get emptyMessage => isEnglish
-      ? 'Your recent support requests will appear here.'
-      : 'Các yêu cầu hỗ trợ gần đây của bạn sẽ hiển thị ở đây.';
+      ? 'Create your first ticket to start tracking support updates here.'
+      : 'Tạo ticket đầu tiên để theo dõi toàn bộ phản hồi hỗ trợ tại đây.';
+  String get createFirstTicketLabel =>
+      isEnglish ? 'Create first ticket' : 'Tạo ticket đầu tiên';
   String get errorTitle => isEnglish
-      ? 'Could not load support history'
-      : 'Không thể tải lịch sử hỗ trợ';
+      ? 'Could not load ticket inbox'
+      : 'Không thể tải danh sách ticket';
   String get retryLabel => isEnglish ? 'Retry' : 'Thử lại';
-  String get threadLabel => isEnglish ? 'Conversation' : 'Trao đổi';
-  String get ticketLabel => isEnglish ? 'Ticket' : 'Mã ticket';
-  String get priorityLabel => isEnglish ? 'Priority' : 'Mức ưu tiên';
-  String get createdLabel => isEnglish ? 'Created' : 'Tạo lúc';
-  String get resolvedLabel => isEnglish ? 'Resolved' : 'Đã xử lý';
-  String get closedLabel => isEnglish ? 'Closed' : 'Đã đóng';
   String get loadMoreLabel =>
-      isEnglish ? 'Load more requests' : 'Xem thêm yêu cầu';
+      isEnglish ? 'Load more tickets' : 'Xem thêm ticket';
   String get loadingMoreLabel =>
       isEnglish ? 'Loading more...' : 'Đang tải thêm...';
   String get activeLabel => isEnglish ? 'Active' : 'Đang chọn';
   String get viewDetailsLabel => isEnglish ? 'View details' : 'Xem chi tiết';
   String get replyThisTicketLabel =>
-      isEnglish ? 'Reply to this ticket' : 'Gửi bổ sung vào ticket này';
-  String get orderCodeLabel => isEnglish ? 'Order code' : 'Mã đơn hàng';
-  String get transactionCodeLabel =>
-      isEnglish ? 'Transaction code' : 'Mã giao dịch';
-  String get paidAmountLabel => isEnglish ? 'Paid amount' : 'Số tiền đã chuyển';
-  String get paymentReferenceLabel =>
-      isEnglish ? 'Payment reference' : 'Nội dung chuyển khoản';
-  String get serialLabel => 'Serial';
-  String get returnReasonLabel =>
-      isEnglish ? 'Return reason' : 'Lý do trả hàng';
+      isEnglish ? 'Reply to this ticket' : 'Trả lời ticket này';
+  String get adminUpdatedLabel =>
+      isEnglish ? 'Admin updated' : 'Admin vừa phản hồi';
+  String get inboxHelper => isEnglish
+      ? 'Choose a ticket to review the full thread and send a follow-up to the correct request.'
+      : 'Chọn một ticket để xem đầy đủ diễn tiến và gửi bổ sung đúng yêu cầu cần xử lý.';
 
   String statusLabel(String status) {
     switch (status.trim().toLowerCase()) {
@@ -705,23 +559,6 @@ class _SupportHistoryTexts {
       case 'normal':
       default:
         return isEnglish ? 'Normal' : 'Bình thường';
-    }
-  }
-
-  String messageAuthorLabel(String authorRole, String? authorName) {
-    switch (authorRole.trim().toLowerCase()) {
-      case 'admin':
-        return authorName?.trim().isNotEmpty == true
-            ? authorName!.trim()
-            : (isEnglish ? 'Admin support' : 'Hỗ trợ viên');
-      case 'dealer':
-        return authorName?.trim().isNotEmpty == true
-            ? authorName!.trim()
-            : (isEnglish ? 'You' : 'Bạn');
-      default:
-        return authorName?.trim().isNotEmpty == true
-            ? authorName!.trim()
-            : (isEnglish ? 'System' : 'Hệ thống');
     }
   }
 }
