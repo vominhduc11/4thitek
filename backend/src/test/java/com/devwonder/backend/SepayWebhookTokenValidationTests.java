@@ -13,9 +13,8 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * Verifies that the SePay webhook endpoint accepts the legacy
- * {@code X-Webhook-Token} header and the current
- * {@code Authorization: Apikey ...} format, while still rejecting query-param tokens.
+ * Verifies backward-compatible SePay webhook auth resolution:
+ * query param token first, then X-Webhook-Token, then Authorization: Apikey ...
  */
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:sepay_token_validation;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
@@ -33,7 +32,7 @@ class SepayWebhookTokenValidationTests {
     private MockMvc mockMvc;
 
     @Test
-    void missingTokenHeaderIsRejected() throws Exception {
+    void missingAllTokenSourcesIsRejected() throws Exception {
         mockMvc.perform(post("/api/v1/webhooks/sepay")
                         .contentType(APPLICATION_JSON)
                         .content("{}"))
@@ -42,21 +41,19 @@ class SepayWebhookTokenValidationTests {
     }
 
     @Test
-    void wrongTokenHeaderIsRejected() throws Exception {
-        mockMvc.perform(post("/api/v1/webhooks/sepay")
+    void correctQueryParamTokenIsAccepted() throws Exception {
+        mockMvc.perform(post("/api/v1/webhooks/sepay?token=correct-token")
                         .contentType(APPLICATION_JSON)
-                        .content("{}")
-                        .header("X-Webhook-Token", "wrong-token"))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.error").value("Invalid SePay webhook token"));
+                        .content("{}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
     }
 
     @Test
-    void blankTokenHeaderIsRejected() throws Exception {
-        mockMvc.perform(post("/api/v1/webhooks/sepay")
+    void wrongQueryParamTokenIsRejected() throws Exception {
+        mockMvc.perform(post("/api/v1/webhooks/sepay?token=wrong-token")
                         .contentType(APPLICATION_JSON)
-                        .content("{}")
-                        .header("X-Webhook-Token", "   "))
+                        .content("{}"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error").value("Invalid SePay webhook token"));
     }
@@ -69,6 +66,16 @@ class SepayWebhookTokenValidationTests {
                         .header("X-Webhook-Token", "correct-token"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    void wrongTokenHeaderIsRejected() throws Exception {
+        mockMvc.perform(post("/api/v1/webhooks/sepay")
+                        .contentType(APPLICATION_JSON)
+                        .content("{}")
+                        .header("X-Webhook-Token", "wrong-token"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("Invalid SePay webhook token"));
     }
 
     @Test
@@ -92,6 +99,37 @@ class SepayWebhookTokenValidationTests {
     }
 
     @Test
+    void queryParamTokenTakesPrecedenceOverWrongHeaderToken() throws Exception {
+        mockMvc.perform(post("/api/v1/webhooks/sepay?token=correct-token")
+                        .contentType(APPLICATION_JSON)
+                        .content("{}")
+                        .header("X-Webhook-Token", "wrong-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    void queryParamTokenTakesPrecedenceOverWrongAuthorizationHeader() throws Exception {
+        mockMvc.perform(post("/api/v1/webhooks/sepay?token=correct-token")
+                        .contentType(APPLICATION_JSON)
+                        .content("{}")
+                        .header("Authorization", "Apikey wrong-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    void headerTokenTakesPrecedenceOverAuthorizationHeader() throws Exception {
+        mockMvc.perform(post("/api/v1/webhooks/sepay")
+                        .contentType(APPLICATION_JSON)
+                        .content("{}")
+                        .header("X-Webhook-Token", "correct-token")
+                        .header("Authorization", "Apikey wrong-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
     void currentSepayIpnAliasesBindThroughController() throws Exception {
         mockMvc.perform(post("/api/v1/webhooks/sepay")
                         .contentType(APPLICATION_JSON)
@@ -111,23 +149,5 @@ class SepayWebhookTokenValidationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("order_not_found"))
                 .andExpect(jsonPath("$.orderCode").value("SCS-2026-999"));
-    }
-
-    @Test
-    void queryParamTokenAloneIsRejected() throws Exception {
-        mockMvc.perform(post("/api/v1/webhooks/sepay?token=correct-token")
-                        .contentType(APPLICATION_JSON)
-                        .content("{}"))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.error").value("Invalid SePay webhook token"));
-    }
-
-    @Test
-    void queryParamTokenDoesNotSupplementMissingHeader() throws Exception {
-        mockMvc.perform(post("/api/v1/webhooks/sepay?token=correct-token")
-                        .contentType(APPLICATION_JSON)
-                        .content("{}")
-                        .header("X-Webhook-Token", "wrong-token"))
-                .andExpect(status().isUnauthorized());
     }
 }

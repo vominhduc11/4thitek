@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -26,12 +27,13 @@ public class SepayWebhookController {
     @PostMapping
     public ResponseEntity<Map<String, Object>> receiveWebhook(
             @RequestBody SepayWebhookRequest request,
+            @RequestParam(name = "token", required = false) String queryToken,
             @RequestHeader(name = "X-Webhook-Token", required = false) String headerToken,
             @RequestHeader(name = "Authorization", required = false) String authorizationHeader
     ) {
         SepayService.WebhookResult result = sepayService.processWebhook(
                 request,
-                resolveProvidedToken(headerToken, authorizationHeader)
+                resolveProvidedToken(queryToken, headerToken, authorizationHeader)
         );
         log.info(
                 "SePay webhook response: status={}, orderCode={}, transactionCode={}, message={}",
@@ -50,7 +52,10 @@ public class SepayWebhookController {
         return ResponseEntity.ok(body);
     }
 
-    private String resolveProvidedToken(String headerToken, String authorizationHeader) {
+    private String resolveProvidedToken(String queryToken, String headerToken, String authorizationHeader) {
+        if (queryToken != null && !queryToken.isBlank()) {
+            return queryToken;
+        }
         if (headerToken != null && !headerToken.isBlank()) {
             return headerToken;
         }

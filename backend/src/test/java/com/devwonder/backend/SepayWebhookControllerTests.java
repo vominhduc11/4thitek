@@ -32,11 +32,7 @@ class SepayWebhookControllerTests {
     }
 
     @Test
-    void queryParamTokenIsNotReadByController() throws Exception {
-        // Passing a token as a query parameter must not grant authentication.
-        // With sepay.enabled=false the service exits before token validation, so the
-        // disabled response proves the controller reached the service at all — which
-        // in turn means the query param was silently ignored (not bound, not validated).
+    void queryParamTokenRemainsBackwardCompatibleWhenWebhookIsDisabled() throws Exception {
         mockMvc.perform(post("/api/v1/webhooks/sepay?token=any-value-here")
                         .contentType(APPLICATION_JSON)
                         .content("{}"))
