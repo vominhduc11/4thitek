@@ -139,15 +139,20 @@ extension _ProductListScreenSupport on _ProductListScreenState {
         return;
       }
 
+      if (cart.isOutOfStock(latestProduct)) {
+        _showOutOfStockSnackBar();
+        return;
+      }
+
       final remainingStock = cart.remainingStockFor(latestProduct);
-      if (remainingStock <= 0) {
-        _showCartLimitSnackBar();
+      if (cart.hasReachedCartLimit(latestProduct) || remainingStock <= 0) {
+        _showCartQuantityLimitSnackBar();
         return;
       }
 
       final quickQuantity = cart.suggestedAddQuantity(latestProduct);
       if (quickQuantity <= 0) {
-        _showCartLimitSnackBar();
+        _showCartQuantityLimitSnackBar();
         return;
       }
 
@@ -166,7 +171,11 @@ extension _ProductListScreenSupport on _ProductListScreenState {
         return;
       }
       if (!cart.canAdd(latestProduct, quantity: addQuantity)) {
-        _showCartLimitSnackBar();
+        if (cart.isOutOfStock(latestProduct)) {
+          _showOutOfStockSnackBar();
+        } else {
+          _showCartQuantityLimitSnackBar();
+        }
         return;
       }
 
@@ -181,7 +190,7 @@ extension _ProductListScreenSupport on _ProductListScreenState {
         // Server rejected the add (e.g. serial pool exhausted but product.stock
         // was stale). Refresh the list so the UI shows the authoritative stock.
         _refreshProducts();
-        _showCartLimitSnackBar();
+        _showOutOfStockSnackBar();
         return;
       }
       _markProductAdded(latestProduct.id);
@@ -215,14 +224,29 @@ extension _ProductListScreenSupport on _ProductListScreenState {
     );
   }
 
-  void _showCartLimitSnackBar() {
+  void _showOutOfStockSnackBar() {
     if (!mounted) {
       return;
     }
     final texts = _productListTexts(context);
     final message = texts.isEnglish
-        ? 'Product is out of stock or the cart limit has been reached.'
-        : 'Sản phẩm đã hết hàng hoặc đã chạm giới hạn trong giỏ.';
+        ? 'Product is out of stock.'
+        : 'Sản phẩm đã hết hàng.';
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(behavior: SnackBarBehavior.floating, content: Text(message)),
+    );
+  }
+
+  void _showCartQuantityLimitSnackBar() {
+    if (!mounted) {
+      return;
+    }
+    final texts = _productListTexts(context);
+    final message = texts.isEnglish
+        ? 'You have reached the maximum quantity allowed in the cart.'
+        : 'Bạn đã chạm số lượng tối đa có thể thêm trong giỏ.';
     final messenger = ScaffoldMessenger.of(context);
     messenger.hideCurrentSnackBar();
     messenger.showSnackBar(

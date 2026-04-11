@@ -27,6 +27,7 @@ import com.devwonder.backend.repository.BlogRepository;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
+import com.devwonder.backend.service.support.ProductStockSyncSupport;
 import com.devwonder.backend.service.support.WarrantyDateSupport;
 import com.devwonder.backend.service.support.WarrantyStatusSupport;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -34,8 +35,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.Locale;
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
@@ -50,33 +53,27 @@ public class PublicApiService {
     private final BlogRepository blogRepository;
     private final DealerRepository dealerRepository;
     private final WarrantyRegistrationRepository warrantyRegistrationRepository;
+    private final ProductStockSyncSupport productStockSyncSupport;
     private final ObjectMapper objectMapper;
 
     @Transactional(readOnly = true)
     @Cacheable(CacheNames.PUBLIC_HOMEPAGE_PRODUCTS)
     public List<PublicProductSummaryResponse> getHomepageProducts() {
-        return productRepository.findTop6ByIsDeletedFalseAndShowOnHomepageTrueAndPublishStatusOrderByUpdatedAtDesc(PublishStatus.PUBLISHED)
-                .stream()
-                .map(this::toSummary)
-                .toList();
+        return toSummaries(productRepository
+                .findTop6ByIsDeletedFalseAndShowOnHomepageTrueAndPublishStatusOrderByUpdatedAtDesc(PublishStatus.PUBLISHED));
     }
 
     @Transactional(readOnly = true)
     @Cacheable(CacheNames.PUBLIC_FEATURED_PRODUCTS)
     public List<PublicProductSummaryResponse> getFeaturedProducts() {
-        return productRepository.findTop6ByIsDeletedFalseAndIsFeaturedTrueAndPublishStatusOrderByUpdatedAtDesc(PublishStatus.PUBLISHED)
-                .stream()
-                .map(this::toSummary)
-                .toList();
+        return toSummaries(productRepository
+                .findTop6ByIsDeletedFalseAndIsFeaturedTrueAndPublishStatusOrderByUpdatedAtDesc(PublishStatus.PUBLISHED));
     }
 
     @Transactional(readOnly = true)
     @Cacheable(CacheNames.PUBLIC_PRODUCTS)
     public List<PublicProductSummaryResponse> getProducts() {
-        return productRepository.findByIsDeletedFalseAndPublishStatusOrderByNameAsc(PublishStatus.PUBLISHED)
-                .stream()
-                .map(this::toSummary)
-                .toList();
+        return toSummaries(productRepository.findByIsDeletedFalseAndPublishStatusOrderByNameAsc(PublishStatus.PUBLISHED));
     }
 
     @Transactional(readOnly = true)
@@ -92,10 +89,12 @@ public class PublicApiService {
         BigDecimal minPriceBd = minPrice != null ? BigDecimal.valueOf(minPrice) : null;
         BigDecimal maxPriceBd = maxPrice != null ? BigDecimal.valueOf(maxPrice) : null;
 
-        return productRepository.searchPublished(PublishStatus.PUBLISHED, normalizedQuery, minPriceBd, maxPriceBd)
-                .stream()
-                .map(this::toSummary)
-                .toList();
+        return toSummaries(productRepository.searchPublished(
+                PublishStatus.PUBLISHED,
+                normalizedQuery,
+                minPriceBd,
+                maxPriceBd
+        ));
     }
 
     @Transactional(readOnly = true)
@@ -103,7 +102,7 @@ public class PublicApiService {
     public PublicProductDetailResponse getProduct(Long id) {
         Product product = productRepository.findByIdAndIsDeletedFalseAndPublishStatus(id, PublishStatus.PUBLISHED)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-        return toDetail(product, safeStock(product));
+        return toDetail(product, resolveAvailableStock(product));
     }
 
     @Transactional(readOnly = true)
@@ -112,13 +111,11 @@ public class PublicApiService {
         productRepository.findByIdAndIsDeletedFalseAndPublishStatus(id, PublishStatus.PUBLISHED)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
         int effectiveLimit = validateLimit(limit);
-        return productRepository.findRelatedPublished(
-                        PublishStatus.PUBLISHED,
-                        id,
-                        PageRequest.of(0, effectiveLimit)
-                ).stream()
-                .map(this::toSummary)
-                .toList();
+        return toSummaries(productRepository.findRelatedPublished(
+                PublishStatus.PUBLISHED,
+                id,
+                PageRequest.of(0, effectiveLimit)
+        ));
     }
 
     @Transactional(readOnly = true)
@@ -177,7 +174,8 @@ public class PublicApiService {
         var pageable = PageRequest.of(validatePage(page), validatePageSize(size), Sort.by("name").ascending());
         var productPage = productRepository.findByIsDeletedFalseAndPublishStatusOrderByNameAsc(
                 PublishStatus.PUBLISHED, pageable);
-        return PagedResponse.from(productPage.map(this::toSummary), "name");
+        Map<Long, Integer> availableStocks = resolveAvailableStocks(productPage.getContent());
+        return PagedResponse.from(productPage.map(product -> toSummary(product, availableStocks)), "name");
     }
 
     @Transactional(readOnly = true)
@@ -191,8 +189,15 @@ public class PublicApiService {
         return new PublicSearchResponse(productResults, blogResults);
     }
 
-    private PublicProductSummaryResponse toSummary(Product product) {
-        int stock = safeStock(product);
+    private List<PublicProductSummaryResponse> toSummaries(List<Product> products) {
+        Map<Long, Integer> availableStocks = resolveAvailableStocks(products);
+        return products.stream()
+                .map(product -> toSummary(product, availableStocks))
+                .toList();
+    }
+
+    private PublicProductSummaryResponse toSummary(Product product, Map<Long, Integer> availableStocks) {
+        int stock = availableStocks.getOrDefault(product.getId(), 0);
         return new PublicProductSummaryResponse(
                 product.getId(),
                 product.getName(),
@@ -203,6 +208,30 @@ public class PublicApiService {
                 stock,
                 product.getWarrantyPeriod() == null ? 12 : product.getWarrantyPeriod()
         );
+    }
+
+    private int resolveAvailableStock(Product product) {
+        if (product == null || product.getId() == null) {
+            return 0;
+        }
+        return productStockSyncSupport.countAvailableStock(product.getId());
+    }
+
+    private Map<Long, Integer> resolveAvailableStocks(Collection<Product> products) {
+        if (products == null || products.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, Integer> stockByProductId = new LinkedHashMap<>();
+        for (Product product : products) {
+            if (product != null && product.getId() != null) {
+                stockByProductId.put(product.getId(), 0);
+            }
+        }
+        if (stockByProductId.isEmpty()) {
+            return Map.of();
+        }
+        stockByProductId.putAll(productStockSyncSupport.countAvailableStocks(stockByProductId.keySet()));
+        return stockByProductId;
     }
 
     private PublicProductDetailResponse toDetail(Product product, int availableStock) {

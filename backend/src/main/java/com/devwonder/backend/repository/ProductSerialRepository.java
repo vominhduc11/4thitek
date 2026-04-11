@@ -93,9 +93,13 @@ public interface ProductSerialRepository extends JpaRepository<ProductSerial, Lo
             SELECT ps.product.id, COUNT(ps) FROM ProductSerial ps
             WHERE ps.dealer IS NULL
               AND ps.order IS NULL
+              AND ps.product.id IN :productIds
               AND ps.status = :status
             GROUP BY ps.product.id
             """)
-    List<Object[]> countAvailableGroupByProduct(@Param("status") ProductSerialStatus status);
+    List<Object[]> countAvailableGroupByProductIds(
+            @Param("productIds") List<Long> productIds,
+            @Param("status") ProductSerialStatus status
+    );
 
 }

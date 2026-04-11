@@ -123,6 +123,14 @@ class CartController extends ChangeNotifier {
     return _items[productId]?.quantity ?? 0;
   }
 
+  bool isOutOfStock(Product product) {
+    return product.stock <= 0;
+  }
+
+  bool hasReachedCartLimit(Product product) {
+    return !isOutOfStock(product) && remainingStockFor(product) <= 0;
+  }
+
   bool isSyncingProduct(String productId) {
     return (_pendingSyncCounts[productId] ?? 0) > 0;
   }
@@ -136,7 +144,7 @@ class CartController extends ChangeNotifier {
   }
 
   int suggestedAddQuantity(Product product) {
-    if (product.stock <= 0) {
+    if (isOutOfStock(product)) {
       return 0;
     }
     final remaining = remainingStockFor(product);
@@ -149,7 +157,7 @@ class CartController extends ChangeNotifier {
 
   bool canAdd(Product product, {int? quantity}) {
     final requested = quantity ?? suggestedAddQuantity(product);
-    if (requested <= 0 || product.stock <= 0) {
+    if (requested <= 0 || isOutOfStock(product)) {
       return false;
     }
     return remainingStockFor(product) >= requested;

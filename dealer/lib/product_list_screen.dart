@@ -1532,6 +1532,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   Widget _buildQuickAddButtonContent(
     BuildContext context, {
     required bool isBusy,
+    required bool isEnabled,
     required bool isRecentlyAdded,
     required bool useCompactLayout,
     required String label,
@@ -1552,6 +1553,28 @@ class _ProductListScreenState extends State<ProductListScreen> {
               height: 18,
               child: CircularProgressIndicator(strokeWidth: 2.4),
             )
+          : !isEnabled
+          ? useCompactLayout
+                ? const Icon(
+                    Icons.remove_shopping_cart_outlined,
+                    key: ValueKey('quick-add-disabled-compact'),
+                    size: 18,
+                  )
+                : Row(
+                    key: ValueKey<String>('quick-add-disabled-$label'),
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.remove_shopping_cart_outlined, size: 18),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  )
           : isRecentlyAdded
           ? useCompactLayout
                 ? const Icon(
@@ -1617,10 +1640,14 @@ class _ProductListScreenState extends State<ProductListScreen> {
     final isRecentlyAdded = _recentlyAddedProductIds.contains(product.id);
     final isBusy = isAddingToCart || isSyncingProduct;
     final remainingStock = cart.remainingStockFor(product);
+    final isOutOfStock = cart.isOutOfStock(product);
+    final hasReachedCartLimit = cart.hasReachedCartLimit(product);
     final suggestedAddQuantity = cart.suggestedAddQuantity(product);
     final canAddToCart = suggestedAddQuantity > 0 && !isBusy;
-    final primaryAddActionLabel = remainingStock <= 0
-        ? texts.quickAddLabel(remainingStock: remainingStock)
+    final primaryAddActionLabel = isOutOfStock
+        ? texts.outOfStockAction
+        : hasReachedCartLimit
+        ? texts.unavailableAction
         : (texts.isEnglish ? 'Add to cart' : 'Thêm vào giỏ');
     final productSemanticsLabel = texts.productSemanticsLabel(
       product,
@@ -1846,6 +1873,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                             child: _buildQuickAddButtonContent(
                               context,
                               isBusy: isBusy,
+                              isEnabled: canAddToCart,
                               isRecentlyAdded: isRecentlyAdded,
                               useCompactLayout: useCompactQuickAdd,
                               label: addButtonLabel,
@@ -1925,8 +1953,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final isRecentlyAdded = _recentlyAddedProductIds.contains(product.id);
-    final primaryActionLabel = remainingStock <= 0
-        ? texts.quickAddLabel(remainingStock: remainingStock)
+    final isOutOfStock = cart.isOutOfStock(product);
+    final hasReachedCartLimit = cart.hasReachedCartLimit(product);
+    final primaryActionLabel = isOutOfStock
+        ? texts.outOfStockAction
+        : hasReachedCartLimit
+        ? texts.unavailableAction
         : texts.chooseQuantityAction;
     final warrantyLabel = product.warrantyMonths > 0
         ? (texts.isEnglish
@@ -2090,6 +2122,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         child: _buildQuickAddButtonContent(
                           context,
                           isBusy: isBusy,
+                          isEnabled: canAddToCart,
                           isRecentlyAdded: isRecentlyAdded,
                           useCompactLayout: false,
                           label: primaryActionLabel,
@@ -2717,6 +2750,7 @@ class _ProductListTexts {
   String get cancelAction => isEnglish ? 'Cancel' : 'Hủy';
   String get addAction => isEnglish ? 'Add' : 'Thêm';
   String get addToCartAction => isEnglish ? 'Add to cart' : 'Thêm vào giỏ';
+  String get outOfStockAction => isEnglish ? 'Out of stock' : 'Hết hàng';
   String get unavailableAction => isEnglish ? 'Unavailable' : 'Không thể thêm';
   String get dealerPriceLabel => isEnglish ? 'Dealer price' : 'Giá đại lý';
   String resultsLabel(int count) =>
@@ -2778,7 +2812,7 @@ class _ProductListTexts {
 
   String quickAddLabel({required int remainingStock}) {
     if (remainingStock <= 0) {
-      return isEnglish ? 'Out of stock' : 'Hết hàng';
+      return outOfStockAction;
     }
     return isEnglish ? 'Quick add' : 'Thêm nhanh';
   }
