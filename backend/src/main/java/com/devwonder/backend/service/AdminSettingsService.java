@@ -5,6 +5,7 @@ import com.devwonder.backend.config.RateLimitProperties;
 import com.devwonder.backend.config.SepayProperties;
 import com.devwonder.backend.dto.admin.AdminSettingsResponse;
 import com.devwonder.backend.dto.admin.UpdateAdminSettingsRequest;
+import com.devwonder.backend.dto.admin.UpdateSepayWebhookTokenRequest;
 import com.devwonder.backend.entity.AdminSettings;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.FieldValidationException;
@@ -93,6 +94,18 @@ public class AdminSettingsService {
         AdminSettings savedSettings = adminSettingsRepository.save(settings);
         EffectiveAdminSettings effectiveSettings = toEffectiveSettings(savedSettings);
         cachedEffectiveSettings = effectiveSettings;
+        return toResponse(savedSettings, effectiveSettings);
+    }
+
+    @Transactional
+    public AdminSettingsResponse replaceSepayWebhookToken(UpdateSepayWebhookTokenRequest request) {
+        AdminSettings settings = getOrCreateSettings();
+        settings.setSepayWebhookToken(validateNewWebhookToken(request.newWebhookToken()));
+        validateDependentSettings(settings);
+        AdminSettings savedSettings = adminSettingsRepository.save(settings);
+        EffectiveAdminSettings effectiveSettings = toEffectiveSettings(savedSettings);
+        cachedEffectiveSettings = effectiveSettings;
+        log.info("SePay webhook token updated for admin settings.");
         return toResponse(savedSettings, effectiveSettings);
     }
 
@@ -210,10 +223,6 @@ public class AdminSettingsService {
         }
         if (request.enabled() != null) {
             settings.setSepayEnabled(request.enabled());
-        }
-        if (request.webhookToken() != null
-                && !isMaskedWebhookTokenPlaceholder(request.webhookToken(), settings.getSepayWebhookToken())) {
-            settings.setSepayWebhookToken(normalize(request.webhookToken()));
         }
         if (request.bankName() != null) {
             settings.setSepayBankName(normalize(request.bankName()));
@@ -417,6 +426,7 @@ public class AdminSettingsService {
                 effectiveSettings.vatPercent(),
                 new AdminSettingsResponse.SepaySettings(
                         effectiveSettings.sepay().enabled(),
+                        effectiveSettings.sepay().webhookToken() != null,
                         maskSecret(effectiveSettings.sepay().webhookToken()),
                         effectiveSettings.sepay().bankName(),
                         effectiveSettings.sepay().accountNumber(),
@@ -476,16 +486,12 @@ public class AdminSettingsService {
         return SECRET_MASK_PREFIX + normalized.substring(normalized.length() - SECRET_MASK_VISIBLE_SUFFIX);
     }
 
-    private boolean isMaskedWebhookTokenPlaceholder(String candidate, String currentSecret) {
-        String normalizedCandidate = normalize(candidate);
-        if (normalizedCandidate == null) {
-            return false;
+    private String validateNewWebhookToken(String candidate) {
+        String normalized = normalize(candidate);
+        if (normalized == null) {
+            throw new BadRequestException("newWebhookToken must not be blank");
         }
-        if (SECRET_MASK_PREFIX.equals(normalizedCandidate)) {
-            return true;
-        }
-        String currentMask = maskSecret(currentSecret);
-        return currentMask != null && currentMask.equals(normalizedCandidate);
+        return normalized;
     }
 
     private void validatePositive(int value, String fieldName) {

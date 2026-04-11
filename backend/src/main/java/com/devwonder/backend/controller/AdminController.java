@@ -25,6 +25,7 @@ import com.devwonder.backend.dto.admin.AdminSerialResponse;
 import com.devwonder.backend.dto.admin.AdminStaffUserResponse;
 import com.devwonder.backend.dto.admin.AdminStaffUserUpsertRequest;
 import com.devwonder.backend.dto.admin.AdminSupportTicketResponse;
+import com.devwonder.backend.dto.admin.UpdateSepayWebhookTokenRequest;
 import com.devwonder.backend.dto.admin.AdminWarrantyResponse;
 import com.devwonder.backend.dto.admin.CreateAdminSupportTicketMessageRequest;
 import com.devwonder.backend.dto.admin.CreateAdminNotificationRequest;
@@ -508,6 +509,13 @@ public class AdminController {
             @Valid @RequestBody UpdateAdminSettingsRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(adminSettingsService.updateSettings(request)));
+    }
+
+    @PutMapping("/settings/sepay/webhook-token")
+    public ResponseEntity<ApiResponse<AdminSettingsResponse>> replaceSepayWebhookToken(
+            @Valid @RequestBody UpdateSepayWebhookTokenRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(adminSettingsService.replaceSepayWebhookToken(request)));
     }
 
     @PostMapping("/settings/test-email")

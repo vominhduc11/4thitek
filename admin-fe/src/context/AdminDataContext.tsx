@@ -26,6 +26,7 @@ import {
   fetchAdminOrders,
   fetchAdminSettings,
   fetchAdminUsers,
+  replaceAdminSepayWebhookToken,
   recordAdminOrderPayment,
   updateAdminBlog,
   updateAdminDealerAccountStatus,
@@ -51,6 +52,7 @@ import {
 import {
   initialSettings,
   type AppSettings,
+  type AppSettingsUpdate,
   type BlogPost,
   type BlogStatus,
   type Dealer,
@@ -66,6 +68,7 @@ import {
 
 export type {
   AppSettings,
+  AppSettingsUpdate,
   BlogPost,
   BlogStatus,
   Dealer,
@@ -137,7 +140,8 @@ type AdminDataContextValue = {
   settingsState: AdminResourceState
   isSettingsLoading: boolean
   isSettingsSaving: boolean
-  updateSettings: (patch: Partial<AppSettings>) => Promise<void>
+  updateSettings: (patch: AppSettingsUpdate) => Promise<void>
+  replaceSepayWebhookToken: (newWebhookToken: string) => Promise<void>
   ensureResourceLoaded: (resource: AdminResourceKey) => Promise<void>
   reloadResource: (resource: AdminResourceKey) => Promise<void>
 }
@@ -591,6 +595,25 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
+  const replaceSepayWebhookToken: AdminDataContextValue['replaceSepayWebhookToken'] = async (
+    newWebhookToken,
+  ) => {
+    const token = requireToken()
+    setIsSettingsSaving(true)
+    try {
+      const updated = await replaceAdminSepayWebhookToken(token, { newWebhookToken })
+      setSettings(mapBackendSettings(updated))
+      await queryClient.invalidateQueries({ queryKey: resourceQueryKeys.settings })
+      setResourceState('settings', {
+        status: 'success',
+        error: null,
+        lastLoadedAt: Date.now(),
+      })
+    } finally {
+      setIsSettingsSaving(false)
+    }
+  }
+
   const value: AdminDataContextValue = {
     orders,
     ordersState: resourceStates.orders,
@@ -619,6 +642,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     isSettingsLoading: resourceStates.settings.status === 'loading',
     isSettingsSaving,
     updateSettings,
+    replaceSepayWebhookToken,
     ensureResourceLoaded,
     reloadResource,
   }

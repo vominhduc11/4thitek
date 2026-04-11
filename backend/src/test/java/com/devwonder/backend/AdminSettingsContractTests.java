@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.devwonder.backend.dto.admin.UpdateAdminSettingsRequest;
+import com.devwonder.backend.dto.admin.UpdateSepayWebhookTokenRequest;
 import com.devwonder.backend.dto.dealer.CreateDealerOrderItemRequest;
 import com.devwonder.backend.dto.dealer.CreateDealerOrderRequest;
 import com.devwonder.backend.dto.dealer.RecordPaymentRequest;
@@ -26,6 +27,7 @@ import com.devwonder.backend.entity.enums.ProductSerialStatus;
 import com.devwonder.backend.entity.enums.StaffUserStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.repository.AdminRepository;
+import com.devwonder.backend.repository.AdminSettingsRepository;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.NotifyRepository;
 import com.devwonder.backend.repository.OrderRepository;
@@ -107,6 +109,9 @@ class AdminSettingsContractTests {
     private AdminRepository adminRepository;
 
     @Autowired
+    private AdminSettingsRepository adminSettingsRepository;
+
+    @Autowired
     private RoleRepository roleRepository;
 
     @Autowired
@@ -182,7 +187,8 @@ class AdminSettingsContractTests {
                 .andExpect(jsonPath("$.data.inventoryAlerts").value(true))
                 .andExpect(jsonPath("$.data.vatPercent").value(10))
                 .andExpect(jsonPath("$.data.sepay.enabled").value(false))
-                .andExpect(jsonPath("$.data.sepay.webhookToken").value(MASKED_PROPERTY_TOKEN))
+                .andExpect(jsonPath("$.data.sepay.hasWebhookToken").value(true))
+                .andExpect(jsonPath("$.data.sepay.webhookTokenMasked").value(MASKED_PROPERTY_TOKEN))
                 .andExpect(jsonPath("$.data.sepay.bankName").value("Property Bank"))
                 .andExpect(jsonPath("$.data.sepay.accountNumber").value("000111222"))
                 .andExpect(jsonPath("$.data.sepay.accountHolder").value("PROPERTY HOLDER"))
@@ -203,7 +209,7 @@ class AdminSettingsContractTests {
     }
 
     @Test
-    void updatingOtherSettingsDoesNotOverwriteStoredWebhookSecretWithMaskedPlaceholder() throws Exception {
+    void updatingOtherSettingsDoesNotOverwriteStoredWebhookSecret() throws Exception {
         String adminToken = login("settings.admin@example.com", "ChangedPass#456");
 
         mockMvc.perform(put("/api/v1/admin/settings")
@@ -211,21 +217,38 @@ class AdminSettingsContractTests {
                         .contentType(APPLICATION_JSON)
                         .content("""
                                 {
-                                  "sessionTimeoutMinutes": 60,
-                                  "sepay": {
-                                    "webhookToken": "%s"
-                                  }
+                                  "sessionTimeoutMinutes": 60
                                 }
-                                """.formatted(MASKED_PROPERTY_TOKEN)))
+                                """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.sessionTimeoutMinutes").value(60))
-                .andExpect(jsonPath("$.data.sepay.webhookToken").value(MASKED_PROPERTY_TOKEN));
+                .andExpect(jsonPath("$.data.sepay.webhookTokenMasked").value(MASKED_PROPERTY_TOKEN));
 
         assertThat(adminSettingsService.getSepaySettings().webhookToken()).isEqualTo("property-token");
     }
 
     @Test
+    void replacingWebhookTokenRequiresExplicitEndpoint() throws Exception {
+        String adminToken = login("settings.admin@example.com", "ChangedPass#456");
+
+        mockMvc.perform(put("/api/v1/admin/settings/sepay/webhook-token")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "newWebhookToken": "  override-token  "
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.sepay.hasWebhookToken").value(true))
+                .andExpect(jsonPath("$.data.sepay.webhookTokenMasked").value("********oken"));
+
+        assertThat(adminSettingsService.getSepaySettings().webhookToken()).isEqualTo("override-token");
+    }
+
+    @Test
     void updatingSettingsOverridesSepayDealerPaymentAndMailRuntimeBehavior() throws Exception {
+        adminSettingsService.replaceSepayWebhookToken(new UpdateSepayWebhookTokenRequest("override-token"));
         adminSettingsService.updateSettings(new UpdateAdminSettingsRequest(
                 false,
                 45,
@@ -234,7 +257,6 @@ class AdminSettingsContractTests {
                 8,
                 new UpdateAdminSettingsRequest.SepaySettings(
                         true,
-                        "override-token",
                         "Override Bank",
                         "999888777",
                         "OVERRIDE HOLDER"
@@ -346,6 +368,10 @@ class AdminSettingsContractTests {
     @Test
     void enablingSepayRequiresConfiguredWebhookAndBankFields() throws Exception {
         String adminToken = login("settings.admin@example.com", "ChangedPass#456");
+        adminSettingsService.getSettings();
+        var settings = adminSettingsRepository.findFirstByOrderByIdAsc().orElseThrow();
+        settings.setSepayWebhookToken(null);
+        adminSettingsRepository.saveAndFlush(settings);
 
         mockMvc.perform(put("/api/v1/admin/settings")
                         .header("Authorization", "Bearer " + adminToken)
@@ -354,7 +380,6 @@ class AdminSettingsContractTests {
                                 {
                                   "sepay": {
                                     "enabled": true,
-                                    "webhookToken": "   ",
                                     "bankName": "   ",
                                     "accountNumber": "   ",
                                     "accountHolder": "   "
@@ -367,6 +392,22 @@ class AdminSettingsContractTests {
                 .andExpect(jsonPath("$.data['sepay.bankName']").value("sepay.bankName is required when enabled"))
                 .andExpect(jsonPath("$.data['sepay.accountNumber']").value("sepay.accountNumber is required when enabled"))
                 .andExpect(jsonPath("$.data['sepay.accountHolder']").value("sepay.accountHolder is required when enabled"));
+    }
+
+    @Test
+    void replacingWebhookTokenRejectsBlankValue() throws Exception {
+        String adminToken = login("settings.admin@example.com", "ChangedPass#456");
+
+        mockMvc.perform(put("/api/v1/admin/settings/sepay/webhook-token")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "newWebhookToken": "   "
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Validation failed"));
     }
 
     @Test

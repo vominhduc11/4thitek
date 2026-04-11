@@ -32,6 +32,7 @@ import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { translateCopy } from "../lib/i18n";
 import { useToast } from "../context/ToastContext";
+import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { testAdminEmailSettings } from "../lib/adminApi";
 
 type RateLimitBucketKey =
@@ -111,7 +112,24 @@ const copyKeys = {
   enabled: "Bật",
   webhookToken: "Webhook token",
   webhookTokenHint:
-    "Chỉ lưu token webhook đang được SePay cấp cho môi trường vận hành hiện tại.",
+    "Token webhook hiện tại chỉ hiển thị ở dạng ẩn. Muốn thay token, hãy dùng luồng thay token riêng để tránh ghi đè nhầm secret đang chạy production.",
+  webhookTokenConfigured: "Webhook token đã được cấu hình.",
+  webhookTokenMissing: "Chưa có webhook token được cấu hình.",
+  replaceWebhookToken: "Thay token",
+  cancelWebhookToken: "Hủy thay token",
+  newWebhookToken: "Token webhook mới",
+  newWebhookTokenHint:
+    "Token mới sẽ chỉ được gửi khi bạn chủ động xác nhận thay token. Không dùng lại giá trị mask hiện tại.",
+  newWebhookTokenPlaceholder: "Nhập token webhook mới",
+  newWebhookTokenRequired: "Cần nhập webhook token mới trước khi cập nhật.",
+  updateWebhookToken: "Cập nhật token",
+  updatingWebhookToken: "Đang cập nhật token...",
+  replaceWebhookTokenConfirmTitle: "Xác nhận thay webhook token",
+  replaceWebhookTokenConfirmMessage:
+    "Thay đổi webhook token sẽ làm webhook SePay ngừng hoạt động nếu token tương ứng bên SePay chưa được cập nhật. Bạn có chắc muốn tiếp tục?",
+  replaceWebhookTokenSuccess:
+    "Webhook token đã được cập nhật. Hãy đảm bảo token tương ứng bên SePay cũng đã được cập nhật để tránh webhook mismatch.",
+  replaceWebhookTokenFailed: "Không cập nhật được webhook token.",
   bankName: "Tên ngân hàng",
   bankNameHint:
     "Hiển thị cho thao tác đối soát và kiểm tra thông tin nhận tiền.",
@@ -349,17 +367,23 @@ function SettingsPage() {
     isSettingsLoading,
     isSettingsSaving,
     updateSettings,
+    replaceSepayWebhookToken,
     reloadResource,
   } = useAdminData();
   const { t } = useLanguage();
   const { notify } = useToast();
   const { accessToken } = useAuth();
+  const { confirm, confirmDialog } = useConfirmDialog();
   const copy = translateCopy(copyKeys, t);
   const [draft, setDraft] = useState(settings);
   const [isTestingEmail, setIsTestingEmail] = useState(false);
+  const [isEditingWebhookToken, setIsEditingWebhookToken] = useState(false);
+  const [newWebhookToken, setNewWebhookToken] = useState("");
 
   useEffect(() => {
     setDraft(settings);
+    setIsEditingWebhookToken(false);
+    setNewWebhookToken("");
   }, [settings]);
 
   const validationErrors = useMemo(
@@ -367,6 +391,11 @@ function SettingsPage() {
     [copy, draft],
   );
   const hasValidationErrors = Object.keys(validationErrors).length > 0;
+  const normalizedNewWebhookToken = newWebhookToken.trim();
+  const webhookTokenError =
+    isEditingWebhookToken && !normalizedNewWebhookToken
+      ? copy.newWebhookTokenRequired
+      : undefined;
   const isDirty = useMemo(
     () => JSON.stringify(draft) !== JSON.stringify(settings),
     [draft, settings],
@@ -395,7 +424,6 @@ function SettingsPage() {
     }
 
     const normalizedDraft = {
-      ...draft,
       sessionTimeoutMinutes: clampInteger(
         draft.sessionTimeoutMinutes,
         SESSION_TIMEOUT_RANGE.min,
@@ -406,9 +434,11 @@ function SettingsPage() {
         VAT_PERCENT_RANGE.min,
         VAT_PERCENT_RANGE.max,
       ),
+      emailConfirmation: draft.emailConfirmation,
+      orderAlerts: draft.orderAlerts,
+      inventoryAlerts: draft.inventoryAlerts,
       sepay: {
-        ...draft.sepay,
-        webhookToken: draft.sepay.webhookToken.trim(),
+        enabled: draft.sepay.enabled,
         bankName: draft.sepay.bankName.trim(),
         accountNumber: draft.sepay.accountNumber.trim(),
         accountHolder: draft.sepay.accountHolder.trim(),
@@ -418,9 +448,19 @@ function SettingsPage() {
         from: draft.emailSettings.from.trim(),
         fromName: draft.emailSettings.fromName.trim(),
       },
+      rateLimitOverrides: draft.rateLimitOverrides,
     };
 
-    setDraft(normalizedDraft);
+    setDraft((previous) => ({
+      ...previous,
+      ...normalizedDraft,
+      sepay: {
+        ...previous.sepay,
+        ...normalizedDraft.sepay,
+      },
+      emailSettings: normalizedDraft.emailSettings,
+      rateLimitOverrides: normalizedDraft.rateLimitOverrides,
+    }));
 
     try {
       await updateSettings(normalizedDraft);
@@ -428,6 +468,39 @@ function SettingsPage() {
     } catch (error) {
       notify(error instanceof Error ? error.message : copy.saveFailed, {
         title: copy.title,
+        variant: "error",
+      });
+    }
+  };
+
+  const handleReplaceWebhookToken = async () => {
+    if (!isEditingWebhookToken || !normalizedNewWebhookToken || isSettingsSaving) {
+      return;
+    }
+
+    const confirmed = await confirm({
+      title: copy.replaceWebhookTokenConfirmTitle,
+      message: copy.replaceWebhookTokenConfirmMessage,
+      confirmLabel: copy.updateWebhookToken,
+      cancelLabel: copy.cancelWebhookToken,
+      tone: "danger",
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await replaceSepayWebhookToken(normalizedNewWebhookToken);
+      setIsEditingWebhookToken(false);
+      setNewWebhookToken("");
+      notify(copy.replaceWebhookTokenSuccess, {
+        title: copy.sepay,
+        variant: "success",
+      });
+    } catch (error) {
+      notify(error instanceof Error ? error.message : copy.replaceWebhookTokenFailed, {
+        title: copy.sepay,
         variant: "error",
       });
     }
@@ -472,6 +545,7 @@ function SettingsPage() {
 
   return (
     <PagePanel>
+      {confirmDialog}
       <PageHeader
         title={copy.title}
         subtitle={copy.description}
@@ -489,7 +563,14 @@ function SettingsPage() {
               {t("Public content")}
             </Link>
             {isDirty ? (
-              <GhostButton onClick={() => setDraft(settings)} type="button">
+              <GhostButton
+                onClick={() => {
+                  setDraft(settings);
+                  setIsEditingWebhookToken(false);
+                  setNewWebhookToken("");
+                }}
+                type="button"
+              >
                 {copy.reset}
               </GhostButton>
             ) : null}
@@ -677,21 +758,75 @@ function SettingsPage() {
             hint={copy.webhookTokenHint}
             inputId="settings-sepay-webhook-token"
           >
-            <input
-              autoComplete="off"
-              className={inputClass}
-              id="settings-sepay-webhook-token"
-              onChange={(event) =>
-                setDraft((previous) => ({
-                  ...previous,
-                  sepay: {
-                    ...previous.sepay,
-                    webhookToken: event.target.value,
-                  },
-                }))
-              }
-              value={draft.sepay.webhookToken}
-            />
+            <div className="space-y-3">
+              <input
+                autoComplete="off"
+                className={`${inputClass} bg-slate-50 text-[var(--muted)]`}
+                id="settings-sepay-webhook-token"
+                readOnly
+                value={
+                  draft.sepay.hasWebhookToken
+                    ? draft.sepay.webhookTokenMasked || "********"
+                    : ""
+                }
+              />
+              <p className={bodyTextClass}>
+                {draft.sepay.hasWebhookToken
+                  ? copy.webhookTokenConfigured
+                  : copy.webhookTokenMissing}
+              </p>
+              {isEditingWebhookToken ? (
+                <div className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4">
+                  <SettingField
+                    label={copy.newWebhookToken}
+                    hint={copy.newWebhookTokenHint}
+                    error={webhookTokenError}
+                    inputId="settings-sepay-webhook-token-new"
+                    className="border-0 bg-transparent px-0 py-0"
+                  >
+                    <input
+                      autoComplete="new-password"
+                      className={inputClass}
+                      id="settings-sepay-webhook-token-new"
+                      onChange={(event) => setNewWebhookToken(event.target.value)}
+                      placeholder={copy.newWebhookTokenPlaceholder}
+                      type="password"
+                      value={newWebhookToken}
+                    />
+                  </SettingField>
+                  <div className="flex flex-wrap gap-3">
+                    <PrimaryButton
+                      disabled={!normalizedNewWebhookToken || isSettingsSaving}
+                      onClick={() => void handleReplaceWebhookToken()}
+                      type="button"
+                    >
+                      {isSettingsSaving
+                        ? copy.updatingWebhookToken
+                        : copy.updateWebhookToken}
+                    </PrimaryButton>
+                    <GhostButton
+                      onClick={() => {
+                        setIsEditingWebhookToken(false);
+                        setNewWebhookToken("");
+                      }}
+                      type="button"
+                    >
+                      {copy.cancelWebhookToken}
+                    </GhostButton>
+                  </div>
+                </div>
+              ) : (
+                <GhostButton
+                  onClick={() => {
+                    setIsEditingWebhookToken(true);
+                    setNewWebhookToken("");
+                  }}
+                  type="button"
+                >
+                  {copy.replaceWebhookToken}
+                </GhostButton>
+              )}
+            </div>
           </SettingField>
 
           <div className="grid gap-4 md:grid-cols-2">

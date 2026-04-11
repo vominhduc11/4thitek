@@ -89,7 +89,8 @@ export type RateLimitBucketSettings = {
 
 export type SepayAppSettings = {
   enabled: boolean
-  webhookToken: string
+  hasWebhookToken: boolean
+  webhookTokenMasked: string
   bankName: string
   accountNumber: string
   accountHolder: string
@@ -121,6 +122,33 @@ export type AppSettings = {
   rateLimitOverrides: RateLimitOverridesSettings
 }
 
+export type AppSettingsUpdate = {
+  emailConfirmation?: boolean
+  sessionTimeoutMinutes?: number
+  orderAlerts?: boolean
+  inventoryAlerts?: boolean
+  vatPercent?: number
+  sepay?: {
+    enabled?: boolean
+    bankName?: string
+    accountNumber?: string
+    accountHolder?: string
+  }
+  emailSettings?: {
+    enabled?: boolean
+    from?: string
+    fromName?: string
+  }
+  rateLimitOverrides?: {
+    enabled?: boolean
+    auth?: RateLimitBucketSettings
+    passwordReset?: RateLimitBucketSettings
+    warrantyLookup?: RateLimitBucketSettings
+    upload?: RateLimitBucketSettings
+    webhook?: RateLimitBucketSettings
+  }
+}
+
 export const initialSettings: AppSettings = {
   emailConfirmation: true,
   sessionTimeoutMinutes: 30,
@@ -129,7 +157,8 @@ export const initialSettings: AppSettings = {
   vatPercent: 10,
   sepay: {
     enabled: false,
-    webhookToken: '',
+    hasWebhookToken: false,
+    webhookTokenMasked: '',
     bankName: '',
     accountNumber: '',
     accountHolder: '',

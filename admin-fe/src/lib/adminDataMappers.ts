@@ -295,7 +295,8 @@ export const mapBackendSettings = (settings: BackendAdminSettingsResponse): AppS
   vatPercent: Number(settings.vatPercent ?? initialSettings.vatPercent),
   sepay: {
     enabled: Boolean(settings.sepay?.enabled),
-    webhookToken: settings.sepay?.webhookToken?.trim() || '',
+    hasWebhookToken: Boolean(settings.sepay?.hasWebhookToken),
+    webhookTokenMasked: settings.sepay?.webhookTokenMasked?.trim() || '',
     bankName: settings.sepay?.bankName?.trim() || '',
     accountNumber: settings.sepay?.accountNumber?.trim() || '',
     accountHolder: settings.sepay?.accountHolder?.trim() || '',

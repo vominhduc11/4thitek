@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import com.devwonder.backend.config.AdminAuditLoggingAspect;
 import com.devwonder.backend.config.ClientIpResolver;
 import com.devwonder.backend.dto.admin.UpdateAdminSettingsRequest;
+import com.devwonder.backend.dto.admin.UpdateSepayWebhookTokenRequest;
 import com.devwonder.backend.dto.customer.ChangePasswordRequest;
 import com.devwonder.backend.dto.dealer.RecordPaymentRequest;
 import com.devwonder.backend.entity.AuditLog;
@@ -126,7 +127,6 @@ class AdminAuditLoggingAspectTests {
                         8,
                         new UpdateAdminSettingsRequest.SepaySettings(
                                 true,
-                                "whsec_live_123",
                                 "VCB",
                                 "123456789",
                                 "4T HITEK"
@@ -140,6 +140,22 @@ class AdminAuditLoggingAspectTests {
 
         assertThat(auditLog.getAction()).isEqualTo("update");
         assertThat(auditLog.getEntityType()).isEqualTo("settings");
+        assertThat(auditLog.getPayload())
+                .doesNotContain("whsec_live_123");
+    }
+
+    @Test
+    void sanitizesWebhookTokenWhenRotatingSepayWebhookSecret() {
+        setRequest("PUT", "/api/v1/admin/settings/sepay/webhook-token");
+        authenticate("settings.admin@example.com", "SUPER_ADMIN");
+        when(joinPoint.getArgs()).thenReturn(new Object[]{
+                new UpdateSepayWebhookTokenRequest("whsec_live_123")
+        });
+
+        AuditLog auditLog = captureSingleAuditLog();
+
+        assertThat(auditLog.getAction()).isEqualTo("update");
+        assertThat(auditLog.getEntityType()).isEqualTo("settings/sepay/webhook-token");
         assertThat(auditLog.getPayload())
                 .contains("[REDACTED]")
                 .doesNotContain("whsec_live_123");

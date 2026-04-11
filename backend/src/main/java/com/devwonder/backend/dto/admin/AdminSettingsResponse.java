@@ -17,7 +17,8 @@ public record AdminSettingsResponse(
 ) {
     public record SepaySettings(
             boolean enabled,
-            String webhookToken,
+            boolean hasWebhookToken,
+            String webhookTokenMasked,
             String bankName,
             String accountNumber,
             String accountHolder

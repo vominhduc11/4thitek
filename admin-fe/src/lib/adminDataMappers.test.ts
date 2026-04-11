@@ -76,7 +76,8 @@ describe('adminDataMappers', () => {
       vatPercent: 8,
       sepay: {
         enabled: true,
-        webhookToken: 'token-123',
+        hasWebhookToken: true,
+        webhookTokenMasked: '********-123',
         bankName: 'ACB',
         accountNumber: '123456789',
         accountHolder: 'CÔNG TY TNHH 4T HITEK',
@@ -97,7 +98,8 @@ describe('adminDataMappers', () => {
     })
 
     expect(mapped.sepay.enabled).toBe(true)
-    expect(mapped.sepay.webhookToken).toBe('token-123')
+    expect(mapped.sepay.hasWebhookToken).toBe(true)
+    expect(mapped.sepay.webhookTokenMasked).toBe('********-123')
     expect(mapped.emailSettings.from).toBe('info@4thitek.vn')
     expect(mapped.vatPercent).toBe(8)
     expect(mapped.rateLimitOverrides.auth.requests).toBe(12)

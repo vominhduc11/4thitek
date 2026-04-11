@@ -25,7 +25,6 @@ public record UpdateAdminSettingsRequest(
 ) {
     public record SepaySettings(
             Boolean enabled,
-            String webhookToken,
             String bankName,
             String accountNumber,
             String accountHolder

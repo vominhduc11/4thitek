@@ -433,7 +433,8 @@ export type BackendAdminSettingsResponse = {
   vatPercent: number
   sepay?: {
     enabled?: boolean | null
-    webhookToken?: string | null
+    hasWebhookToken?: boolean | null
+    webhookTokenMasked?: string | null
     bankName?: string | null
     accountNumber?: string | null
     accountHolder?: string | null
@@ -478,7 +479,6 @@ export type BackendAdminSettingsUpdateRequest = {
   vatPercent?: number
   sepay?: {
     enabled?: boolean
-    webhookToken?: string
     bankName?: string
     accountNumber?: string
     accountHolder?: string
@@ -1048,6 +1048,17 @@ export const updateAdminSettings = (
 ) =>
   authorizedJsonRequest<BackendAdminSettingsResponse>({
     path: '/admin/settings',
+    token,
+    method: 'PUT',
+    body,
+  })
+
+export const replaceAdminSepayWebhookToken = (
+  token: string,
+  body: { newWebhookToken: string },
+) =>
+  authorizedJsonRequest<BackendAdminSettingsResponse>({
+    path: '/admin/settings/sepay/webhook-token',
     token,
     method: 'PUT',
     body,
