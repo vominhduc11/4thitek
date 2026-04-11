@@ -47,6 +47,7 @@ fi
 POSTGRES_CONTAINER="postgres"
 POSTGRES_DB="${POSTGRES_DB:-app_db}"
 POSTGRES_USER="${POSTGRES_USER:-app}"
+FLYWAY_IMAGE="${FLYWAY_IMAGE:-flyway/flyway:10.20.1}"
 
 # ─── Detect MinIO data volume ────────────────────────────────────
 # Override by setting MINIO_VOLUME in the environment or .env file.
@@ -92,6 +93,53 @@ ensure_running() {
     echo "  $service is not running — starting it..."
     docker compose up -d "$service"
   fi
+}
+
+# ─────────────────────────────────────────────────────────────────
+# Helper: resolve the Docker network used by the postgres service.
+# This avoids guessing the Compose project name when we run the
+# Flyway CLI in a one-off container against the restored database.
+# ─────────────────────────────────────────────────────────────────
+get_service_network() {
+  local service="$1"
+  local container_id
+
+  container_id=$(docker compose ps -q "$service")
+  if [ -z "$container_id" ]; then
+    echo "ERROR: Could not resolve container id for service: $service" >&2
+    return 1
+  fi
+
+  docker inspect -f '{{range $name, $cfg := .NetworkSettings.Networks}}{{println $name}}{{end}}' "$container_id" \
+    | head -1
+}
+
+# ─────────────────────────────────────────────────────────────────
+# Helper: repair Flyway schema history checksums against the current
+# migration files in this workspace. This is needed when a backup was
+# taken before historical SQL migrations were edited in git.
+# ─────────────────────────────────────────────────────────────────
+repair_flyway_history() {
+  local migrations_dir network_name
+
+  migrations_dir="$(cd backend/src/main/resources/db/migration && pwd)"
+  network_name="$(get_service_network "$POSTGRES_CONTAINER")"
+
+  if [ -z "$network_name" ]; then
+    echo "ERROR: Could not determine the Docker network for $POSTGRES_CONTAINER." >&2
+    return 1
+  fi
+
+  echo "  Repairing Flyway schema history against current migration files..."
+  docker run --rm \
+    --network "$network_name" \
+    -v "$migrations_dir:/flyway/sql:ro" \
+    "$FLYWAY_IMAGE" \
+    -url="jdbc:postgresql://postgres:5432/$POSTGRES_DB" \
+    -user="$POSTGRES_USER" \
+    -password="$POSTGRES_PASSWORD" \
+    -locations="filesystem:/flyway/sql" \
+    repair
 }
 
 # ─────────────────────────────────────────────────────────────────
@@ -228,14 +276,29 @@ gunzip -c "$PG_ARCHIVE" \
 echo "  PostgreSQL restore completed."
 
 # ═════════════════════════════════════════════════════════════════
-# Phase 5 — Restore MinIO data volume
+# Phase 5 — Repair Flyway history against current migrations
+#
+# Restoring a backup can reintroduce schema history checksums from an
+# older revision of the repo. Repair aligns those checksums with the
+# SQL files currently present locally so backend startup can validate
+# and then apply any still-pending migrations.
+# ═════════════════════════════════════════════════════════════════
+echo ""
+echo "--- Phase 5: repairing Flyway schema history ---"
+
+repair_flyway_history
+
+echo "  Flyway schema history repair completed."
+
+# ═════════════════════════════════════════════════════════════════
+# Phase 6 — Restore MinIO data volume
 #
 # minio is confirmed stopped (Phase 2). The volume is wiped and the
 # backup archive is extracted. The bucket policy set by minio-init
 # is embedded in the volume and will be restored automatically.
 # ═════════════════════════════════════════════════════════════════
 echo ""
-echo "--- Phase 5: restoring MinIO data ---"
+echo "--- Phase 6: restoring MinIO data ---"
 
 docker run --rm \
   -v "$MINIO_VOLUME:/data" \
@@ -245,10 +308,10 @@ docker run --rm \
 echo "  MinIO data restore completed."
 
 # ═════════════════════════════════════════════════════════════════
-# Phase 6 — Restart services
+# Phase 7 — Restart services
 # ═════════════════════════════════════════════════════════════════
 echo ""
-echo "--- Phase 6: starting services ---"
+echo "--- Phase 7: starting services ---"
 
 docker compose start minio backend
 

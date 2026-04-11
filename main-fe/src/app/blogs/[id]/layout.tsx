@@ -38,13 +38,18 @@ export async function generateMetadata({
     }
 
     const article = response.data;
+    const articleTitle = typeof article.title === 'string' && article.title.trim() ? article.title.trim() : 'Bai viet';
+    const articleDescription =
+        typeof article.description === 'string' && article.description.trim() ? article.description.trim() : articleTitle;
+    const articleCategory = typeof article.category === 'string' ? article.category.trim() : '';
+    const articlePath = buildBlogPath(article.id, articleTitle);
     return createBaseMetadata({
         locale: 'vi',
-        path: buildBlogPath(article.id, article.title),
-        title: `${article.title} | 4T HITEK`,
-        description: article.description || article.title,
+        path: articlePath,
+        title: `${articleTitle} | 4T HITEK`,
+        description: articleDescription,
         image: parseImageUrl(article.image, '') || undefined,
-        keywords: ['4T HITEK', 'tai nghe SCS', article.category, article.title].filter(Boolean) as string[]
+        keywords: ['4T HITEK', 'tai nghe SCS', articleCategory, articleTitle].filter(Boolean) as string[]
     });
 }
 
@@ -59,6 +64,9 @@ export default async function BlogDetailLayout({
     const id = extractRouteId(rawId);
     const response = await publicApiServer.fetchBlogById(id);
     const article = response.success ? response.data : null;
+    const articleTitle = typeof article?.title === 'string' && article.title.trim() ? article.title.trim() : 'Bai viet';
+    const articleDescription =
+        typeof article?.description === 'string' && article.description.trim() ? article.description.trim() : articleTitle;
 
     return (
         <>
@@ -66,11 +74,11 @@ export default async function BlogDetailLayout({
                 <JsonLd
                     data={articleJsonLd({
                         id,
-                        title: article.title,
-                        description: article.description || article.title,
+                        title: articleTitle,
+                        description: articleDescription,
                         image: parseImageUrl(article.image, ''),
                         publishedAt: article.createdAt,
-                        path: buildBlogPath(article.id, article.title)
+                        path: buildBlogPath(article.id, articleTitle)
                     })}
                 />
             ) : null}

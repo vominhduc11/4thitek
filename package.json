@@ -1,4 +1,8 @@
 {
+  "scripts": {
+    "docker:up": "docker compose up -d --build",
+    "docker:reset": "docker compose down -v && docker compose up -d --build"
+  },
   "dependencies": {
     "@google/generative-ai": "^0.24.1"
   }

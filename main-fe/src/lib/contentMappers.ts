@@ -161,11 +161,11 @@ export function mapProductSummaryToProductCard(product: {
 
 export function mapBlogSummaryToPost(blog: {
     id: string | number;
-    title: string;
-    description: string;
+    title: unknown;
+    description: unknown;
     image: string;
-    category: string;
-    createdAt: string;
+    category: unknown;
+    createdAt: unknown;
     introduction?: string;
 }): BlogPost | null {
     const id = toEntityId(blog.id);
@@ -173,26 +173,35 @@ export function mapBlogSummaryToPost(blog: {
         return null;
     }
 
+    const title = pickString(blog.title);
+    if (!title) {
+        return null;
+    }
+
+    const description = pickString(blog.description, title);
+    const categoryName = pickString(blog.category);
+    const publishedAt = pickString(blog.createdAt);
+
     return {
         id,
-        title: blog.title,
-        slug: slugify(blog.title),
-        excerpt: blog.description,
-        content: blog.description,
+        title,
+        slug: slugify(title),
+        excerpt: description,
+        content: description,
         featuredImage: parseImageUrl(blog.image, ''),
-        publishedAt: blog.createdAt,
+        publishedAt,
         category: {
-            id: blog.category,
-            name: blog.category,
-            slug: slugify(blog.category),
-            description: blog.category
+            id: categoryName || 'uncategorized',
+            name: categoryName || 'Chua phan loai',
+            slug: slugify(categoryName),
+            description: categoryName || 'Chua phan loai'
         },
         introductionBlocks: parseJsonArray(blog.introduction || '[]', []).map((entry) => normalizeMediaPayload(entry)),
         tags: [],
         isPublished: true,
         seo: {
-            metaTitle: blog.title,
-            metaDescription: blog.description
+            metaTitle: title,
+            metaDescription: description
         }
     };
 }

@@ -80,10 +80,10 @@ cp .env.example .env
 docker compose up -d
 ```
 
-Neu da tung tao volume Postgres bang password cu, can reset volume:
+Neu da tung tao volume Postgres bang password cu hoac backend bao Flyway checksum mismatch sau khi migration da bi sua, can reset volume local:
 
 ```bash
-docker compose down -v && docker compose up -d --build
+npm run docker:reset
 ```
 
 ### Deploy production

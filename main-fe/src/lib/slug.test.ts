@@ -16,4 +16,9 @@ describe('slug helpers', () => {
         const source = `Tai nghe ${String.fromCharCode(272)}${String.fromCharCode(7863)}c bi${String.fromCharCode(7879)}t`;
         expect(slugify(source)).toBe('tai-nghe-dac-biet');
     });
+
+    it('returns an empty slug for non-string values', () => {
+        expect(slugify(null)).toBe('');
+        expect(slugify(undefined)).toBe('');
+    });
 });

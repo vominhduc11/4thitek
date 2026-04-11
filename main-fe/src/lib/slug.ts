@@ -1,10 +1,10 @@
-const normalizeVietnamese = (value: string) =>
-    value
+const normalizeVietnamese = (value: unknown) =>
+    (typeof value === 'string' ? value : '')
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
         .replace(/[đĐ]/g, 'd');
 
-export const slugify = (value: string) =>
+export const slugify = (value: unknown) =>
     normalizeVietnamese(value)
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')

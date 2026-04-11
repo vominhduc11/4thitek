@@ -137,4 +137,36 @@ describe('BlogDetailPage', () => {
             })
         ]);
     });
+
+    it('renders even when the blog category is missing from the API payload', async () => {
+        fetchBlogByIdMock.mockResolvedValueOnce({
+            success: true,
+            data: {
+                id: 1,
+                title: 'Tai nghe SCS la gi?',
+                description: 'Giai thich nhanh cho rider',
+                image: '/blog.png',
+                category: null,
+                createdAt: '2026-01-01T00:00:00Z'
+            }
+        });
+        fetchRelatedBlogsMock.mockResolvedValueOnce({
+            success: true,
+            data: []
+        });
+
+        const { default: BlogDetailPage } = await import('./page');
+        const element = await BlogDetailPage({
+            params: Promise.resolve({ id: '1-tai-nghe-scs-la-gi' })
+        });
+
+        expect(element.props.post).toMatchObject({
+            id: '1',
+            title: 'Tai nghe SCS la gi?',
+            category: {
+                name: 'Chua phan loai'
+            }
+        });
+        expect(element.props.relatedPosts).toEqual([]);
+    });
 });
