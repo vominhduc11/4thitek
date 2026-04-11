@@ -483,6 +483,53 @@ function ProductDetailPage() {
     [],
   );
 
+  const descriptionItems = useMemo(
+    () => (product ? parseDescriptionItems(product.descriptions) : []),
+    [product],
+  );
+  const specificationItems = useMemo(
+    () => (product ? parseSpecifications(product.specifications) : []),
+    [product],
+  );
+  const videoItems = useMemo(
+    () => (product ? parseVideoItems(product.videos) : []),
+    [product],
+  );
+  const shortDescription = product?.shortDescription?.trim() ?? "";
+  const hasSingleVideo = videoItems.length === 1;
+
+  const descriptionReadBlocks = useMemo<DescriptionReadBlock[]>(() => {
+    const blocks: DescriptionReadBlock[] = [];
+    let proseItems: DescriptionItem[] = [];
+
+    descriptionItems.forEach((item, index) => {
+      if (isDescriptionTextItem(item)) {
+        const normalizedText =
+          item.type === "description"
+            ? toPlainText(item.text ?? "")
+            : String(item.text ?? "").trim();
+
+        if (normalizedText) {
+          proseItems.push({ ...item, text: normalizedText });
+        }
+        return;
+      }
+
+      if (proseItems.length > 0) {
+        blocks.push({ type: "prose", items: proseItems });
+        proseItems = [];
+      }
+
+      blocks.push({ type: "media", item, index });
+    });
+
+    if (proseItems.length > 0) {
+      blocks.push({ type: "prose", items: proseItems });
+    }
+
+    return blocks;
+  }, [descriptionItems]);
+
   if (!product) {
     return (
       <section className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
@@ -506,12 +553,6 @@ function ProductDetailPage() {
   if (!draft) {
     return null;
   }
-
-  const descriptionItems = parseDescriptionItems(product.descriptions);
-  const specificationItems = parseSpecifications(product.specifications);
-  const videoItems = parseVideoItems(product.videos);
-  const shortDescription = product.shortDescription?.trim() ?? "";
-  const hasSingleVideo = videoItems.length === 1;
 
   const handleStartEdit = () => {
     if (editUploadedAssetUrlsRef.current.size > 0) {
@@ -1088,38 +1129,6 @@ function ProductDetailPage() {
 
     return null;
   };
-
-  const descriptionReadBlocks = useMemo<DescriptionReadBlock[]>(() => {
-    const blocks: DescriptionReadBlock[] = [];
-    let proseItems: DescriptionItem[] = [];
-
-    descriptionItems.forEach((item, index) => {
-      if (isDescriptionTextItem(item)) {
-        const normalizedText =
-          item.type === "description"
-            ? toPlainText(item.text ?? "")
-            : String(item.text ?? "").trim();
-
-        if (normalizedText) {
-          proseItems.push({ ...item, text: normalizedText });
-        }
-        return;
-      }
-
-      if (proseItems.length > 0) {
-        blocks.push({ type: "prose", items: proseItems });
-        proseItems = [];
-      }
-
-      blocks.push({ type: "media", item, index });
-    });
-
-    if (proseItems.length > 0) {
-      blocks.push({ type: "prose", items: proseItems });
-    }
-
-    return blocks;
-  }, [descriptionItems]);
 
   return (
     <section className="space-y-6 pb-8">
