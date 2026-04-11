@@ -1568,32 +1568,55 @@ function CreateProductPage() {
                   <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
                     {t("Hiển thị")}
                   </p>
+                  <p className="mt-2 text-sm text-slate-500">
+                    {t(
+                      "Thiết lập hiển thị này chỉ điều khiển dữ liệu cho Hero trang chủ và danh sách sản phẩm trang chủ, không tạo thêm section riêng.",
+                    )}
+                  </p>
                   <div className="mt-3 flex flex-wrap gap-3">
-                    <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
-                      <input
-                        type="checkbox"
-                        checked={newProduct.isFeatured}
-                        onChange={(e) =>
-                          setNewProduct({
-                            ...newProduct,
-                            isFeatured: e.target.checked,
-                          })
-                        }
-                      />
-                      {t("Nổi bật")}
+                    <label className="inline-flex max-w-full flex-col gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700">
+                      <span className="inline-flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={newProduct.isFeatured}
+                          onChange={(e) =>
+                            setNewProduct({
+                              ...newProduct,
+                              isFeatured: e.target.checked,
+                            })
+                          }
+                        />
+                        <span className="font-semibold">
+                          {t("Hiển thị ở Hero trang chủ")}
+                        </span>
+                      </span>
+                      <span className="pl-6 text-xs leading-5 text-slate-500">
+                        {t(
+                          "Chỉ dùng để chọn sản phẩm cho khu vực Hero đầu trang chủ. Main-fe hiện dùng featuredProducts[0] cho HeroSection.",
+                        )}
+                      </span>
                     </label>
-                    <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
-                      <input
-                        type="checkbox"
-                        checked={newProduct.showOnHomepage}
-                        onChange={(e) =>
-                          setNewProduct({
-                            ...newProduct,
-                            showOnHomepage: e.target.checked,
-                          })
-                        }
-                      />
-                      {t("Hiển thị ở trang chủ")}
+                    <label className="inline-flex max-w-full flex-col gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700">
+                      <span className="inline-flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={newProduct.showOnHomepage}
+                          onChange={(e) =>
+                            setNewProduct({
+                              ...newProduct,
+                              showOnHomepage: e.target.checked,
+                            })
+                          }
+                        />
+                        <span className="font-semibold">
+                          {t("Hiển thị trong danh sách sản phẩm trang chủ")}
+                        </span>
+                      </span>
+                      <span className="pl-6 text-xs leading-5 text-slate-500">
+                        {t(
+                          "Dùng để hiển thị sản phẩm trong section danh sách sản phẩm ở trang chủ. Main-fe hiện dùng homepageProducts cho ProductSeries.",
+                        )}
+                      </span>
                     </label>
                   </div>
                 </div>

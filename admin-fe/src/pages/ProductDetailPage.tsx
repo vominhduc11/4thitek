@@ -1021,7 +1021,7 @@ function ProductDetailPage() {
                     )
                   }
                 }}
-                title={`${product.isFeatured ? t('Bỏ nổi bật') : t('Đánh dấu nổi bật')} — ${t('Cập nhật ngay không cần lưu')}`}
+                title={`${product.isFeatured ? t('Ẩn khỏi Hero trang chủ') : t('Hiển thị ở Hero trang chủ')} — ${t('Cập nhật ngay không cần lưu')}`}
                 className={
                   'inline-flex items-center gap-1 rounded-full px-3 py-1 font-semibold transition ' +
                   (product.isFeatured
@@ -1030,7 +1030,7 @@ function ProductDetailPage() {
                 }
               >
                 <CheckCircle className="h-3.5 w-3.5" />
-                {t('Nổi bật')}
+                {t('Hero trang chủ')}
               </button>
               <button
                 type="button"
@@ -1045,7 +1045,7 @@ function ProductDetailPage() {
                     )
                   }
                 }}
-                title={`${product.showOnHomepage ? t('Bỏ khỏi trang chủ') : t('Hiển thị ở trang chủ')} — ${t('Cập nhật ngay không cần lưu')}`}
+                title={`${product.showOnHomepage ? t('Ẩn khỏi danh sách sản phẩm trang chủ') : t('Hiển thị trong danh sách sản phẩm trang chủ')} — ${t('Cập nhật ngay không cần lưu')}`}
                 className={
                   'inline-flex items-center gap-1 rounded-full px-3 py-1 font-semibold transition ' +
                   (product.showOnHomepage
@@ -1054,8 +1054,20 @@ function ProductDetailPage() {
                 }
               >
                 <CheckCircle className="h-3.5 w-3.5" />
-                {t('Trang chủ')}
+                {t('Danh sách trang chủ')}
               </button>
+            </div>
+            <div className="mt-3 grid gap-2 text-xs text-slate-500 sm:grid-cols-2">
+              <p>
+                {t(
+                  "Hero trang chủ: cấp dữ liệu cho khu vực hero đầu trang. Main-fe hiện lấy featuredProducts[0] cho HeroSection.",
+                )}
+              </p>
+              <p>
+                {t(
+                  "Danh sách trang chủ: cấp dữ liệu cho section danh sách sản phẩm. Main-fe hiện dùng homepageProducts cho ProductSeries.",
+                )}
+              </p>
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-2.5 text-xs text-slate-500">
               <span className="rounded-full bg-slate-900/5 px-3 py-1 font-semibold">

@@ -109,6 +109,15 @@
 
 ## 5. Checklist Test Cuối
 
+## 6. Product Visibility Semantics
+
+- `isFeatured` chỉ dùng để cấp dữ liệu cho Hero trang chủ.
+- `showOnHomepage` chỉ dùng để hiển thị trong danh sách sản phẩm ở trang chủ.
+- Main-fe behavior được giữ nguyên:
+  - `featuredProducts[0]` -> `HeroSection`
+  - `homepageProducts` -> `ProductSeries`
+- Admin-fe cần dùng wording theo semantics này để tránh hiểu nhầm `isFeatured` là một section list riêng.
+
 ### Verification đã chạy
 
 - [x] `npm run build` pass tại `E:\Project\4thitek\admin-fe`

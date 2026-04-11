@@ -182,8 +182,8 @@ function ProductsPage() {
       t('Giá'),
       t('Tồn kho'),
       t('Xuất bản'),
-      t('Nổi bật'),
-      t('Trang chủ'),
+      t('Hero trang chủ'),
+      t('Danh sách sản phẩm trang chủ'),
     ]
 
     const rows = visibleProducts.map((product) => [

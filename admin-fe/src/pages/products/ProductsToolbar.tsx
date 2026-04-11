@@ -140,32 +140,38 @@ function ProductsToolbar({
         <div className="grid gap-3 rounded-3xl border border-[var(--border)] bg-[var(--surface-muted)] p-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <label className="space-y-2">
             <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
-              {t('Nổi bật')}
+              {t('Hero trang chủ')}
             </span>
             <select
               className={`${selectClass} w-full`}
               onChange={(event) => onFilterFeaturedChange(event.target.value as FeaturedFilter)}
               value={filterFeatured}
             >
-              <option value="all">{t('Nổi bật: Tất cả')}</option>
-              <option value="featured">{t('Nổi bật')}</option>
-              <option value="nonFeatured">{t('Không nổi bật')}</option>
+              <option value="all">{t('Hero trang chủ: Tất cả')}</option>
+              <option value="featured">{t('Hiển thị ở Hero trang chủ')}</option>
+              <option value="nonFeatured">{t('Không hiển thị ở Hero trang chủ')}</option>
             </select>
+            <p className="text-xs leading-5 text-[var(--muted)]">
+              {t('Lọc theo sản phẩm cấp dữ liệu cho Hero đầu trang chủ.')}
+            </p>
           </label>
 
           <label className="space-y-2">
             <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
-              {t('Trang chủ')}
+              {t('Danh sách sản phẩm trang chủ')}
             </span>
             <select
               className={`${selectClass} w-full`}
               onChange={(event) => onFilterHomepageChange(event.target.value as HomepageFilter)}
               value={filterHomepage}
             >
-              <option value="all">{t('Trang chủ: Tất cả')}</option>
-              <option value="homepage">{t('Trang chủ')}</option>
-              <option value="nonHomepage">{t('Không ở trang chủ')}</option>
+              <option value="all">{t('Danh sách sản phẩm trang chủ: Tất cả')}</option>
+              <option value="homepage">{t('Hiển thị trong danh sách sản phẩm trang chủ')}</option>
+              <option value="nonHomepage">{t('Không hiển thị trong danh sách sản phẩm trang chủ')}</option>
             </select>
+            <p className="text-xs leading-5 text-[var(--muted)]">
+              {t('Lọc theo sản phẩm xuất hiện trong section danh sách sản phẩm ở homepage.')}
+            </p>
           </label>
 
           <label className="hidden">

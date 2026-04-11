@@ -88,20 +88,20 @@ function ProductsList({
                   ) : null}
                   {product.isFeatured ? (
                     <span
-                      aria-label={t('Nổi bật')}
+                      aria-label={t('Hiển thị ở Hero trang chủ')}
                       className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/15 text-amber-700"
                       role="img"
-                      title={t('Nổi bật')}
+                      title={t('Hiển thị ở Hero trang chủ')}
                     >
                       <Star aria-hidden="true" className="h-3 w-3" />
                     </span>
                   ) : null}
                   {product.showOnHomepage ? (
                     <span
-                      aria-label={t('Trang chủ')}
+                      aria-label={t('Hiển thị trong danh sách sản phẩm trang chủ')}
                       className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/15 text-blue-700"
                       role="img"
-                      title={t('Trang chủ')}
+                      title={t('Hiển thị trong danh sách sản phẩm trang chủ')}
                     >
                       <Sparkles aria-hidden="true" className="h-3 w-3" />
                     </span>
