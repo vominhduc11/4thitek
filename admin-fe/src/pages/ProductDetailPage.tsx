@@ -216,6 +216,25 @@ const formatNumberInput = (value: string) => {
 const isDescriptionTextItem = (item: DescriptionItem) =>
   item.type === "title" || item.type === "description";
 
+const normalizeProseParagraphs = (value: string) =>
+  toPlainText(value)
+    .replace(/\r\n/g, "\n")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.replace(/[ \t]*\n[ \t]*/g, "\n").trim())
+    .filter(Boolean);
+
+const getGalleryReadLayoutClass = (count: number) => {
+  if (count <= 1) {
+    return "mx-auto max-w-4xl";
+  }
+  if (count === 2) {
+    return "grid gap-3 sm:grid-cols-2";
+  }
+  return "grid gap-3 sm:grid-cols-2 xl:grid-cols-3";
+};
+
 function ProductDetailPage() {
   const { sku } = useParams();
   const navigate = useNavigate();
@@ -1001,21 +1020,31 @@ function ProductDetailPage() {
       return (
         <h4
           key={`desc-title-${index}`}
-          className="text-base font-semibold leading-7 text-slate-900 sm:text-lg"
+          className="text-base font-semibold leading-7 tracking-tight text-slate-900 sm:text-lg"
         >
           {item.text || ""}
         </h4>
       );
     }
 
-    const content = toPlainText(item.text ?? "");
+    const paragraphs = normalizeProseParagraphs(item.text ?? "");
     return (
-      <p
-        key={`desc-text-${index}`}
-        className="text-sm leading-7 text-slate-600 whitespace-pre-line sm:text-[15px]"
-      >
-        {content || t("Chưa có mô tả nào.")}
-      </p>
+      <div key={`desc-text-${index}`} className="space-y-2.5">
+        {paragraphs.length > 0 ? (
+          paragraphs.map((paragraph, paragraphIndex) => (
+            <p
+              key={`desc-text-${index}-${paragraphIndex}`}
+              className="text-sm leading-7 text-slate-600 sm:text-[15px]"
+            >
+              {paragraph}
+            </p>
+          ))
+        ) : (
+          <p className="text-sm leading-7 text-slate-600 sm:text-[15px]">
+            {t("Chưa có mô tả nào.")}
+          </p>
+        )}
+      </div>
     );
   };
 
@@ -1024,7 +1053,10 @@ function ProductDetailPage() {
       const imageUrl = item.url || (item as { imageUrl?: string }).imageUrl;
       const isLocal = isLocalBlobUrl(imageUrl);
       return (
-        <div key={`desc-image-${index}`} className="max-w-4xl space-y-3">
+        <div
+          key={`desc-image-${index}`}
+          className="mx-auto max-w-4xl space-y-3"
+        >
           {imageUrl ? (
             isLocal ? (
               <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">
@@ -1037,14 +1069,16 @@ function ProductDetailPage() {
               <img
                 src={resolveBackendAssetUrl(imageUrl)}
                 alt={item.caption || t("Xem trước")}
-                className="h-52 w-full rounded-2xl border border-slate-200 object-cover sm:h-60"
+                className="h-56 w-full rounded-[1.35rem] border border-slate-200 object-cover shadow-[0_12px_32px_rgba(15,23,42,0.08)] sm:h-64"
               />
             )
           ) : (
             <p className="text-sm text-slate-500">{t("Ảnh URL")}: -</p>
           )}
           {item.caption ? (
-            <p className="text-xs leading-6 text-slate-500">{item.caption}</p>
+            <p className="px-1 text-xs font-medium leading-6 text-slate-500">
+              {item.caption}
+            </p>
           ) : null}
         </div>
       );
@@ -1055,14 +1089,18 @@ function ProductDetailPage() {
         item.gallery?.map((entry) =>
           typeof entry === "string" ? { url: entry } : entry,
         ) ?? [];
+      const galleryLayoutClass = getGalleryReadLayoutClass(galleryItems.length);
       return (
-        <div key={`desc-gallery-${index}`} className="max-w-5xl space-y-3">
+        <div
+          key={`desc-gallery-${index}`}
+          className="mx-auto max-w-5xl space-y-3"
+        >
           {galleryItems.length === 0 ? (
             <p className="text-sm text-slate-500">
               {t("Chưa có hình ảnh nào.")}
             </p>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className={galleryLayoutClass}>
               {galleryItems.map((entry, galleryIndex) =>
                 isLocalBlobUrl(entry.url) ? (
                   <div
@@ -1081,14 +1119,20 @@ function ProductDetailPage() {
                     key={`desc-gallery-${index}-${galleryIndex}`}
                     src={resolveBackendAssetUrl(entry.url)}
                     alt={item.caption || t("Xem trước")}
-                    className="h-36 w-full rounded-2xl border border-slate-200 object-cover"
+                    className={
+                      galleryItems.length === 1
+                        ? "h-56 w-full rounded-[1.35rem] border border-slate-200 object-cover shadow-[0_12px_32px_rgba(15,23,42,0.08)] sm:h-64"
+                        : "h-40 w-full rounded-[1.2rem] border border-slate-200 object-cover shadow-[0_10px_24px_rgba(15,23,42,0.06)]"
+                    }
                   />
                 ),
               )}
             </div>
           )}
           {item.caption ? (
-            <p className="text-xs leading-6 text-slate-500">{item.caption}</p>
+            <p className="px-1 text-xs font-medium leading-6 text-slate-500">
+              {item.caption}
+            </p>
           ) : null}
         </div>
       );
@@ -1098,7 +1142,10 @@ function ProductDetailPage() {
       const videoUrl = item.url || (item as { videoUrl?: string }).videoUrl;
       const isLocal = isLocalBlobUrl(videoUrl);
       return (
-        <div key={`desc-video-${index}`} className="max-w-4xl space-y-3">
+        <div
+          key={`desc-video-${index}`}
+          className="mx-auto max-w-4xl space-y-3"
+        >
           {videoUrl ? (
             isLocal ? (
               <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">
@@ -1114,14 +1161,16 @@ function ProductDetailPage() {
                 src={videoUrl}
                 controls
                 preload="metadata"
-                className="h-52 w-full rounded-2xl border border-slate-200 bg-slate-950 object-cover sm:h-60"
+                className="h-56 w-full rounded-[1.35rem] border border-slate-200 bg-slate-950 object-cover shadow-[0_12px_32px_rgba(15,23,42,0.08)] sm:h-64"
               />
             )
           ) : (
             <p className="text-sm text-slate-500">{t("URL video")}: -</p>
           )}
           {item.caption ? (
-            <p className="text-xs leading-6 text-slate-500">{item.caption}</p>
+            <p className="px-1 text-xs font-medium leading-6 text-slate-500">
+              {item.caption}
+            </p>
           ) : null}
         </div>
       );
@@ -2356,18 +2405,18 @@ function ProductDetailPage() {
                 {t("Chưa có mô tả nào.")}
               </p>
             ) : (
-              <div className="mt-4 space-y-3.5">
+              <div className="mt-4 space-y-3">
                 {descriptionReadBlocks.map((block, blockIndex) => (
                   <div
                     key={`description-block-${block.type}-${blockIndex}`}
                     className={
                       block.type === "prose"
-                        ? "rounded-2xl border border-slate-200 bg-[var(--surface-muted)] px-4 py-3.5 sm:px-5"
-                        : "rounded-2xl border border-slate-200 bg-[var(--surface-muted)] p-3.5 sm:p-4"
+                        ? "rounded-2xl bg-slate-50/75 px-4 py-3 sm:px-5"
+                        : "rounded-3xl border border-slate-200/90 bg-[var(--surface-muted)] p-3.5 shadow-[0_10px_28px_rgba(15,23,42,0.04)] sm:p-4"
                     }
                   >
                     {block.type === "prose" ? (
-                      <div className="max-w-3xl space-y-3">
+                      <div className="max-w-3xl space-y-2.5">
                         {block.items.map((item, itemIndex) =>
                           renderDescriptionProseItem(item, itemIndex),
                         )}
