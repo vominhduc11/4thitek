@@ -110,10 +110,13 @@ describe("NotificationsPageRevamp", () => {
         size: 25,
       });
     });
+
     expect(fetchAllAdminNotificationsMock).not.toHaveBeenCalled();
     expect(subscribeAdminRealtimeNotificationMock).toHaveBeenCalledTimes(1);
     expect(await screen.findAllByText("Warehouse update")).toHaveLength(2);
-    expect(screen.getByRole("heading", { name: "Trung tâm thông báo" })).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { name: "Trung tâm thông báo" }),
+    ).toBeTruthy();
     expect(screen.getAllByRole("link", { name: "Mở liên kết" })).not.toHaveLength(0);
     expect(screen.queryByText(/Liên kết:/i)).toBeNull();
     expect(screen.queryByText(/Deep link:/i)).toBeNull();
@@ -124,7 +127,7 @@ describe("NotificationsPageRevamp", () => {
 
     await screen.findAllByText("Warehouse update");
     fireEvent.change(
-      screen.getByRole("searchbox", { name: "Tìm thông báo" }),
+      screen.getByRole("searchbox", { name: "Tìm trong trung tâm thông báo" }),
       { target: { value: "warehouse" } },
     );
 

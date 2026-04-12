@@ -1,5 +1,6 @@
 ﻿import {
   BadgeAlert,
+  Bell,
   BookOpenText,
   Boxes,
   ChevronDown,
@@ -376,7 +377,7 @@ function AppLayoutRevamp() {
       {
         to: "/notifications",
         label: copy.nav.notifications,
-        icon: BadgeAlert,
+        icon: Bell,
         group: "service",
       },
       {

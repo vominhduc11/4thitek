@@ -1,6 +1,5 @@
 package com.devwonder.backend.service;
 
-import com.devwonder.backend.config.InventoryAlertProperties;
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.service.support.InventoryAlertSupport;
@@ -20,8 +19,6 @@ public class InventoryAlertSweepJob {
 
     private final ProductRepository productRepository;
     private final InventoryAlertSupport inventoryAlertSupport;
-    private final InventoryAlertProperties inventoryAlertProperties;
-
     @Scheduled(fixedDelayString = "${app.inventory.alert-scan-interval-ms:3600000}")
     @Transactional
     public void scanExistingLowStockProducts() {
@@ -32,20 +29,17 @@ public class InventoryAlertSweepJob {
             return;
         }
 
-        int createdNotifications = 0;
+        int productsRequiringAttention = 0;
         for (Product product : lowStockProducts) {
-            createdNotifications += inventoryAlertSupport.notifyIfStockRequiresAttention(
-                    product,
-                    safeStock(product)
-            );
+            if (inventoryAlertSupport.shouldSurfaceAttention(product, safeStock(product))) {
+                productsRequiringAttention++;
+            }
         }
 
-        if (createdNotifications > 0) {
+        if (productsRequiringAttention > 0) {
             log.info(
-                    "InventoryAlertSweepJob created {} notifications across {} low-stock products (cooldown={}h)",
-                    createdNotifications,
-                    lowStockProducts.size(),
-                    inventoryAlertProperties.alertCooldownHours()
+                    "InventoryAlertSweepJob identified {} products requiring operational attention",
+                    productsRequiringAttention
             );
         }
     }
