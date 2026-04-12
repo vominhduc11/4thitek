@@ -1,7 +1,5 @@
 ﻿import {
   BadgeAlert,
-  Bell,
-  BellDot,
   BookOpenText,
   Boxes,
   ChevronDown,
@@ -114,7 +112,7 @@ const copyKeys = {
   searchSelectionHint: "Dùng phím mũi tên để duyệt, Enter để mở.",
   searchViewAll: "Xem tất cả {count} kết quả",
   searchCollapse: "Thu gọn kết quả",
-  alerts: "Cảnh báo",
+  alerts: "Cảnh báo vận hành",
   alertsEmpty: "Không có cảnh báo cần theo dõi.",
   markAllRead: "Đánh dấu đã đọc",
   account: "Tài khoản",
@@ -141,7 +139,7 @@ const copyKeys = {
     dealers: "Đại lý",
     warranties: "Bảo hành",
     serials: "Serial",
-    notifications: "Thông báo",
+    notifications: "Trung tâm thông báo",
     support: "Hỗ trợ",
     recentPayments: "Thanh toán chuyển khoản",
     unmatchedPayments: "Thanh toán không khớp",
@@ -378,7 +376,7 @@ function AppLayoutRevamp() {
       {
         to: "/notifications",
         label: copy.nav.notifications,
-        icon: Bell,
+        icon: BadgeAlert,
         group: "service",
       },
       {
@@ -1093,11 +1091,7 @@ function AppLayoutRevamp() {
                       onClick={toggleAlerts}
                       type="button"
                     >
-                      {unreadAlerts.length > 0 ? (
-                        <BellDot className="h-4 w-4" />
-                      ) : (
-                        <Bell className="h-4 w-4" />
-                      )}
+                      <BadgeAlert className="h-4 w-4" />
                       <span className="hidden sm:inline">{copy.alerts}</span>
                       {unreadAlerts.length > 0 ? (
                         <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-[var(--destructive)] px-1.5 py-0.5 text-[11px] font-semibold text-white">

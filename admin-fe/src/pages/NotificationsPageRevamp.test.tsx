@@ -113,6 +113,10 @@ describe("NotificationsPageRevamp", () => {
     expect(fetchAllAdminNotificationsMock).not.toHaveBeenCalled();
     expect(subscribeAdminRealtimeNotificationMock).toHaveBeenCalledTimes(1);
     expect(await screen.findAllByText("Warehouse update")).toHaveLength(2);
+    expect(screen.getByRole("heading", { name: "Trung tâm thông báo" })).toBeTruthy();
+    expect(screen.getAllByRole("link", { name: "Mở liên kết" })).not.toHaveLength(0);
+    expect(screen.queryByText(/Liên kết:/i)).toBeNull();
+    expect(screen.queryByText(/Deep link:/i)).toBeNull();
   });
 
   it("uses fetch-all only after a search query is entered", async () => {

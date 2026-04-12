@@ -144,14 +144,14 @@ const renderNavigationLink = (
   if (/^https?:\/\//i.test(value)) {
     return (
       <a className={className} href={value} rel="noreferrer" target="_blank">
-        {label}: {value}
+        {label}
       </a>
     );
   }
 
   return (
     <Link className={className} to={value}>
-      {label}: {value}
+      {label}
     </Link>
   );
 };
@@ -159,6 +159,8 @@ const renderNavigationLink = (
 function NotificationsPageRevamp() {
   const { t } = useLanguage();
   const copy = translateCopy(copyKeys, t);
+  const pageTitle = t("Trung tâm thông báo");
+  const pageDescription = t("Theo dõi thông báo đã lưu, nhận cập nhật realtime và gửi thông điệp chủ động theo nhóm nhận.");
   const audienceLabels = translateCopy(audienceLabelsKeys, t);
   const typeLabels = translateCopy(typeLabelsKeys, t);
   const { accessToken } = useAuth();
@@ -392,8 +394,8 @@ function NotificationsPageRevamp() {
   return (
     <PagePanel>
       <PageHeader
-        title={copy.title}
-        subtitle={copy.description}
+        title={pageTitle}
+        subtitle={pageDescription}
         actions={
           <>
             <SearchInput
@@ -626,16 +628,6 @@ function NotificationsPageRevamp() {
                     </StatusBadge>
                   </div>
                   <p className="mt-3 text-sm text-[var(--ink)]">{item.body}</p>
-                  {renderNavigationLink(
-                    item.link,
-                    copy.link,
-                    `mt-2 block break-all text-xs ${tableMetaClass} underline-offset-2 hover:underline`,
-                  )}
-                  {renderNavigationLink(
-                    item.deepLink,
-                    copy.deepLink,
-                    `mt-1 block break-all text-xs ${tableMetaClass} underline-offset-2 hover:underline`,
-                  )}
                   {item.deepLink || item.link ? (
                     <div className="mt-3">
                       <Link
@@ -683,16 +675,6 @@ function NotificationsPageRevamp() {
                         <p className={`${tableMetaClass} line-clamp-2`}>
                           {item.body}
                         </p>
-                        {renderNavigationLink(
-                          item.link,
-                          copy.link,
-                          `${tableMetaClass} mt-1 block break-all underline-offset-2 hover:underline`,
-                        )}
-                        {renderNavigationLink(
-                          item.deepLink,
-                          copy.deepLink,
-                          `${tableMetaClass} mt-1 block break-all underline-offset-2 hover:underline`,
-                        )}
                         {item.deepLink || item.link ? (
                           <div className="mt-2">
                             <Link
