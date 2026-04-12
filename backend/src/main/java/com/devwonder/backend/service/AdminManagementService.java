@@ -669,11 +669,8 @@ public class AdminManagementService {
         if (isSuperAdmin) {
             throw new BadRequestException("Cannot reset password of a super admin account");
         }
-        String temporaryPassword = generateTemporaryPassword();
-        admin.setPassword(passwordEncoder.encode(temporaryPassword));
-        admin.setRequirePasswordChange(Boolean.TRUE);
-        adminRepository.save(admin);
-        return java.util.Map.of("temporaryPassword", temporaryPassword);
+        passwordResetService.sendAdminTriggeredStaffResetLink(admin);
+        return java.util.Map.of("status", "reset_link_sent");
     }
     @Transactional(readOnly = true)
     public List<AdminDiscountRuleResponse> getDiscountRules() {

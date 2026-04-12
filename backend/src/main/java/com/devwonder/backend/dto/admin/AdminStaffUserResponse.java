@@ -11,7 +11,6 @@ public record AdminStaffUserResponse(
         String systemRole,
         StaffUserStatus status,
         String username,
-        String email,
-        String temporaryPassword
+        String email
 ) {
 }

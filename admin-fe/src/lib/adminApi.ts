@@ -227,7 +227,6 @@ export type BackendStaffUserResponse = {
   status?: BackendStaffUserStatus | null
   username?: string | null
   email?: string | null
-  temporaryPassword?: string | null
 }
 
 export type BackendStaffUserUpsertRequest = {
@@ -1361,7 +1360,7 @@ export const fetchAdminOrderPayments = (token: string, orderId: number) =>
   })
 
 export const resetAdminUserPassword = (token: string, userId: number) =>
-  authorizedJsonRequest<{ temporaryPassword: string }>({
+  authorizedJsonRequest<{ status: string }>({
     path: `/admin/users/${userId}/reset-password`,
     token,
     method: 'POST',
