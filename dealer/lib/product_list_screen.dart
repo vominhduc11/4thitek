@@ -2844,15 +2844,6 @@ String? _productNameForDiscountTarget(
   List<CartItem> items,
   BulkDiscountTarget target,
 ) {
-  final productId = target.productId;
-  if (productId == null) {
-    return null;
-  }
-  for (final item in items) {
-    if (item.product.id == productId) {
-      return item.product.name;
-    }
-  }
   return null;
 }
 

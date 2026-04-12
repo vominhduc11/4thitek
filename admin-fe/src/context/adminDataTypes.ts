@@ -6,7 +6,7 @@ export type PaymentStatus = 'pending' | 'paid' | 'cancelled'
 export type BlogStatus = 'published' | 'scheduled' | 'draft'
 export type DealerStatus = 'active' | 'under_review' | 'suspended'
 export type UserStatus = 'active' | 'pending'
-export type RuleStatus = 'active' | 'pending' | 'draft'
+export type RuleStatus = 'active' | 'draft'
 
 export type OrderItem = {
   productId: number
@@ -75,8 +75,9 @@ export type StaffUser = {
 
 export type DiscountRule = {
   id: string
-  label: string
-  range: string
+  fromQuantity: number
+  toQuantity: number | null
+  rangeLabel: string
   percent: number
   status: RuleStatus
   updatedAt: string

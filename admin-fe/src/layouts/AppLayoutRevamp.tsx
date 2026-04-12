@@ -650,14 +650,16 @@ function AppLayoutRevamp() {
       pushSearchItem(
         {
           id: `discount-${item.id}`,
-          title: item.label,
-          meta: `${copy.discount} · ${item.range}`,
+          title: `${copy.discount} · ${item.rangeLabel}`,
+          meta: `${item.fromQuantity} → ${item.toQuantity ?? "∞"} · ${item.percent}%`,
           to: "/discounts",
           icon: Percent,
         },
         item.id,
-        item.label,
-        item.range,
+        item.rangeLabel,
+        String(item.fromQuantity),
+        item.toQuantity == null ? "" : String(item.toQuantity),
+        String(item.percent),
       );
     });
 

@@ -165,8 +165,6 @@ export const mapBackendRuleStatus = (status?: BackendDiscountRuleStatus | null):
   switch (status) {
     case 'ACTIVE':
       return 'active'
-    case 'PENDING':
-      return 'pending'
     default:
       return 'draft'
   }
@@ -176,8 +174,6 @@ export const toBackendRuleStatus = (status: RuleStatus): BackendDiscountRuleStat
   switch (status) {
     case 'active':
       return 'ACTIVE'
-    case 'pending':
-      return 'PENDING'
     default:
       return 'DRAFT'
   }
@@ -281,8 +277,9 @@ export const mapUser = (user: BackendStaffUserResponse): StaffUser => ({
 
 export const mapDiscountRule = (rule: BackendDiscountRuleResponse): DiscountRule => ({
   id: String(rule.id),
-  label: rule.label || '',
-  range: rule.range || '',
+  fromQuantity: Number(rule.fromQuantity ?? 0),
+  toQuantity: rule.toQuantity == null ? null : Number(rule.toQuantity),
+  rangeLabel: rule.rangeLabel || '',
   percent: Number(rule.percent ?? 0),
   status: mapBackendRuleStatus(rule.status),
   updatedAt: rule.updatedAt || '',

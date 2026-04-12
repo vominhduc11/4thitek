@@ -4,12 +4,9 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import com.devwonder.backend.entity.enums.DiscountRuleStatus;
 import java.math.BigDecimal;
@@ -31,20 +28,14 @@ public class BulkDiscount {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "min_quantity")
-    private Integer minQuantity;
+    @Column(name = "from_quantity")
+    private Integer fromQuantity;
 
-    @Column(name = "max_quantity")
-    private Integer maxQuantity;
+    @Column(name = "to_quantity")
+    private Integer toQuantity;
 
     @Column(name = "discount_percent")
     private BigDecimal discountPercent;
-
-    @Column(name = "label")
-    private String label;
-
-    @Column(name = "range_label")
-    private String rangeLabel;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
@@ -57,8 +48,4 @@ public class BulkDiscount {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private Instant updatedAt;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_product")
-    private Product product;
 }

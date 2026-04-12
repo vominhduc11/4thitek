@@ -40,6 +40,7 @@ import com.devwonder.backend.service.support.DealerProfileWriteSupport;
 import com.devwonder.backend.service.support.DealerOrderWorkflowSupport;
 import com.devwonder.backend.service.support.DealerSerialSupport;
 import com.devwonder.backend.service.support.DealerWarrantySupport;
+import com.devwonder.backend.service.support.BulkDiscountTierSupport;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
@@ -80,32 +81,14 @@ public class DealerPortalService {
     public List<DealerDiscountRuleResponse> getDiscountRules(String username) {
         dealerPortalLookupSupport.requireDealerByUsername(username);
         return bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE).stream()
-                .sorted(
-                        java.util.Comparator
-                                .comparing(
-                                        (BulkDiscount rule) -> rule.getProduct() != null && rule.getProduct().getId() != null
-                                )
-                                .reversed()
-                                .thenComparing(
-                                        (BulkDiscount rule) -> rule.getMinQuantity() == null ? 0 : rule.getMinQuantity(),
-                                        java.util.Comparator.reverseOrder()
-                                )
-                                .thenComparing(
-                                        (BulkDiscount rule) -> rule.getDiscountPercent() == null
-                                                ? java.math.BigDecimal.ZERO
-                                                : rule.getDiscountPercent(),
-                                        java.util.Comparator.reverseOrder()
-                                )
-                                .thenComparing(BulkDiscount::getUpdatedAt, java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder()))
-                )
+                .sorted(BulkDiscountTierSupport.ruleSortOrder())
                 .map(rule -> new DealerDiscountRuleResponse(
-                        rule.getProduct() == null ? null : rule.getProduct().getId(),
-                        rule.getMinQuantity(),
-                        rule.getMaxQuantity(),
+                        rule.getFromQuantity(),
+                        rule.getToQuantity(),
                         rule.getDiscountPercent() == null
                                 ? 0
                                 : rule.getDiscountPercent().setScale(0, java.math.RoundingMode.HALF_UP).intValue(),
-                        rule.getRangeLabel()
+                        BulkDiscountTierSupport.buildRangeLabel(rule)
                 ))
                 .toList();
     }

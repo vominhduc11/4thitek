@@ -1,5 +1,12 @@
+// @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
-import { mapBackendSettings, mapOrder, toBlogUpsertRequest } from './adminDataMappers'
+import {
+  mapBackendSettings,
+  mapDiscountRule,
+  mapOrder,
+  toBackendRuleStatus,
+  toBlogUpsertRequest,
+} from './adminDataMappers'
 
 describe('adminDataMappers', () => {
   it('falls back to zero when numeric order fields are malformed', () => {
@@ -119,5 +126,32 @@ describe('adminDataMappers', () => {
     expect(request.showOnHomepage).toBe(false)
     expect(request.introduction).toContain('Paragraph one.')
     expect(request.introduction).toContain('Paragraph two.')
+  })
+
+  it('maps discount rules from the canonical quantity tier contract', () => {
+    const mapped = mapDiscountRule({
+      id: 4,
+      fromQuantity: 51,
+      toQuantity: null,
+      rangeLabel: '51+',
+      percent: 40,
+      status: 'ACTIVE',
+      updatedAt: '2026-04-12T08:30:00Z',
+    })
+
+    expect(mapped).toEqual({
+      id: '4',
+      fromQuantity: 51,
+      toQuantity: null,
+      rangeLabel: '51+',
+      percent: 40,
+      status: 'active',
+      updatedAt: '2026-04-12T08:30:00Z',
+    })
+  })
+
+  it('maps discount rule statuses without the legacy pending state', () => {
+    expect(toBackendRuleStatus('active')).toBe('ACTIVE')
+    expect(toBackendRuleStatus('draft')).toBe('DRAFT')
   })
 })

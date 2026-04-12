@@ -89,14 +89,14 @@ class AdminWriteValidationContractTests {
                         .contentType(APPLICATION_JSON)
                         .content("""
                                 {
-                                  "label": "Wholesale",
-                                  "range": "not-a-range",
+                                  "fromQuantity": 20,
+                                  "toQuantity": 10,
                                   "percent": 10
                                 }
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("Validation failed"))
-                .andExpect(jsonPath("$.data.range").value("range is invalid"));
+                .andExpect(jsonPath("$.data.toQuantity").value("toQuantity must be greater than or equal to fromQuantity"));
     }
 
     @Test

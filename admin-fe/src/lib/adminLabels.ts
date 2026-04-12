@@ -115,12 +115,10 @@ export const userStatusTone: Record<UserStatus, BadgeTone> = {
 
 export const ruleStatusLabel: Record<RuleStatus, string> = {
   active: 'Đang hoạt động',
-  pending: 'Chờ duyệt',
   draft: 'Bản nháp',
 }
 
 export const ruleStatusTone: Record<RuleStatus, BadgeTone> = {
   active: 'success',
-  pending: 'warning',
   draft: 'neutral',
 }

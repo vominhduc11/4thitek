@@ -29,7 +29,7 @@ export type BackendPaymentStatus = 'PENDING' | 'PAID' | 'CANCELLED'
 export type BackendDealerAccountStatus = 'ACTIVE' | 'UNDER_REVIEW' | 'SUSPENDED'
 export type BackendFinancialSettlementType = 'CANCELLATION_REFUND' | 'STALE_ORDER_REVIEW'
 export type BackendStaffUserStatus = 'ACTIVE' | 'PENDING'
-export type BackendDiscountRuleStatus = 'ACTIVE' | 'PENDING' | 'DRAFT'
+export type BackendDiscountRuleStatus = 'ACTIVE' | 'DRAFT'
 export type BackendWarrantyStatus = 'ACTIVE' | 'EXPIRED' | 'VOID'
 export type BackendProductSerialStatus = 'AVAILABLE' | 'RESERVED' | 'DEFECTIVE' | 'ASSIGNED' | 'WARRANTY' | 'RETURNED' | 'INSPECTING' | 'SCRAPPED'
 export type BackendRmaAction = 'START_INSPECTION' | 'PASS_QC' | 'SCRAP'
@@ -238,16 +238,17 @@ export type BackendStaffUserUpsertRequest = {
 
 export type BackendDiscountRuleResponse = {
   id: number
-  label: string
-  range: string
+  fromQuantity: number
+  toQuantity?: number | null
+  rangeLabel: string
   percent?: number | string | null
   status?: BackendDiscountRuleStatus | null
   updatedAt?: string | null
 }
 
 export type BackendDiscountRuleUpsertRequest = {
-  label: string
-  range: string
+  fromQuantity: number
+  toQuantity: number | null
   percent: number
   status?: BackendDiscountRuleStatus
 }
@@ -1026,6 +1027,18 @@ export const createAdminDiscountRule = (
     path: '/admin/discount-rules',
     token,
     method: 'POST',
+    body,
+  })
+
+export const updateAdminDiscountRule = (
+  token: string,
+  id: number,
+  body: BackendDiscountRuleUpsertRequest,
+) =>
+  authorizedJsonRequest<BackendDiscountRuleResponse>({
+    path: `/admin/discount-rules/${id}`,
+    token,
+    method: 'PUT',
     body,
   })
 

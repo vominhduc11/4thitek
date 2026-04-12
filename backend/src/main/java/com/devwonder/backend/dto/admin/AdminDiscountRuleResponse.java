@@ -6,8 +6,9 @@ import java.time.Instant;
 
 public record AdminDiscountRuleResponse(
         Long id,
-        String label,
-        String range,
+        Integer fromQuantity,
+        Integer toQuantity,
+        String rangeLabel,
         BigDecimal percent,
         DiscountRuleStatus status,
         Instant updatedAt

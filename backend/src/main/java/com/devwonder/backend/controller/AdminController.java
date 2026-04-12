@@ -477,6 +477,14 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.createDiscountRule(request)));
     }
 
+    @PutMapping("/discount-rules/{id}")
+    public ResponseEntity<ApiResponse<AdminDiscountRuleResponse>> updateDiscountRule(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody AdminDiscountRuleUpsertRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(adminManagementService.updateDiscountRule(id, request)));
+    }
+
     @PatchMapping("/discount-rules/{id}/status")
     public ResponseEntity<ApiResponse<AdminDiscountRuleResponse>> updateDiscountRuleStatus(
             @PathVariable("id") Long id,
