@@ -4,6 +4,7 @@ import com.devwonder.backend.dto.ApiResponse;
 import com.devwonder.backend.dto.admin.AdminAssignOrderSerialsRequest;
 import com.devwonder.backend.dto.admin.AdminBlogResponse;
 import com.devwonder.backend.dto.admin.AdminBlogUpsertRequest;
+import com.devwonder.backend.dto.admin.AdminCompleteReturnRequest;
 import com.devwonder.backend.dto.admin.AdminDashboardResponse;
 import com.devwonder.backend.dto.admin.AdminDealerAccountResponse;
 import com.devwonder.backend.dto.admin.AdminDealerAccountSummaryResponse;
@@ -41,6 +42,9 @@ import com.devwonder.backend.dto.admin.AdminOrderPaymentResponse;
 import com.devwonder.backend.dto.admin.AdminPublicContentSectionResponse;
 import com.devwonder.backend.dto.admin.AdminRecentPaymentResponse;
 import com.devwonder.backend.dto.admin.AdminRmaRequest;
+import com.devwonder.backend.dto.admin.AdminInspectReturnItemRequest;
+import com.devwonder.backend.dto.admin.AdminReceiveReturnRequest;
+import com.devwonder.backend.dto.admin.AdminReviewReturnRequest;
 import com.devwonder.backend.dto.admin.AdminUnmatchedPaymentResponse;
 import com.devwonder.backend.dto.admin.AdminUpdateFinancialSettlementRequest;
 import com.devwonder.backend.dto.admin.AdminAuditLogResponse;
@@ -52,8 +56,12 @@ import com.devwonder.backend.dto.customer.ChangePasswordRequest;
 import com.devwonder.backend.dto.dealer.RecordPaymentRequest;
 import com.devwonder.backend.dto.dealer.DealerProductSerialResponse;
 import com.devwonder.backend.dto.dealer.UpdateDealerOrderStatusRequest;
+import com.devwonder.backend.dto.returns.ReturnRequestDetailResponse;
+import com.devwonder.backend.dto.returns.ReturnRequestSummaryResponse;
 import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.entity.enums.OrderStatus;
+import com.devwonder.backend.entity.enums.ReturnRequestStatus;
+import com.devwonder.backend.entity.enums.ReturnRequestType;
 import com.devwonder.backend.dto.pagination.PagedResponse;
 import com.devwonder.backend.dto.serial.SerialImportSummaryResponse;
 import com.devwonder.backend.exception.BadRequestException;
@@ -66,6 +74,7 @@ import com.devwonder.backend.service.AuditLogService;
 import com.devwonder.backend.service.AdminSettingsService;
 import com.devwonder.backend.service.MailService;
 import com.devwonder.backend.service.PublicContentService;
+import com.devwonder.backend.service.ReturnRequestService;
 import com.devwonder.backend.util.PaginationUtils;
 import jakarta.validation.Valid;
 import java.nio.charset.StandardCharsets;
@@ -107,6 +116,7 @@ public class AdminController {
     private final AuditLogService auditLogService;
     private final MailService mailService;
     private final PublicContentService publicContentService;
+    private final ReturnRequestService returnRequestService;
 
     @GetMapping("/products")
     public ResponseEntity<ApiResponse<List<AdminProductResponse>>> products() {
@@ -542,6 +552,82 @@ public class AdminController {
     ) {
         return ResponseEntity.ok(ApiResponse.success(
                 adminRmaService.applyRmaAction(id, request, extractUsername(authentication))));
+    }
+
+    @GetMapping("/returns/page")
+    public ResponseEntity<ApiResponse<PagedResponse<ReturnRequestSummaryResponse>>> returnRequestsPaged(
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
+            @RequestParam(name = "sortBy", required = false) String sortBy,
+            @RequestParam(name = "sortDir", required = false) String sortDir,
+            @RequestParam(name = "status", required = false) ReturnRequestStatus status,
+            @RequestParam(name = "type", required = false) ReturnRequestType type,
+            @RequestParam(name = "dealer", required = false) String dealer,
+            @RequestParam(name = "orderCode", required = false) String orderCode,
+            @RequestParam(name = "serial", required = false) String serial
+    ) {
+        Pageable pageable = PaginationUtils.toPageable(page, size, sortBy, sortDir, "createdAt");
+        return ResponseEntity.ok(ApiResponse.success(
+                returnRequestService.getAdminReturnsPage(pageable, status, type, dealer, orderCode, serial)
+        ));
+    }
+
+    @GetMapping("/returns/{id}")
+    public ResponseEntity<ApiResponse<ReturnRequestDetailResponse>> returnRequestDetail(
+            @PathVariable("id") Long id
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(returnRequestService.getAdminReturnDetail(id)));
+    }
+
+    @PatchMapping("/returns/{id}/review")
+    public ResponseEntity<ApiResponse<ReturnRequestDetailResponse>> reviewReturnRequest(
+            Authentication authentication,
+            @PathVariable("id") Long id,
+            @Valid @RequestBody AdminReviewReturnRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                returnRequestService.reviewReturnRequest(id, request, extractUsername(authentication))
+        ));
+    }
+
+    @PatchMapping("/returns/{id}/receive")
+    public ResponseEntity<ApiResponse<ReturnRequestDetailResponse>> receiveReturnRequest(
+            Authentication authentication,
+            @PathVariable("id") Long id,
+            @RequestBody(required = false) AdminReceiveReturnRequest request
+    ) {
+        AdminReceiveReturnRequest payload = request == null
+                ? new AdminReceiveReturnRequest(null, null)
+                : request;
+        return ResponseEntity.ok(ApiResponse.success(
+                returnRequestService.receiveReturnRequest(id, payload, extractUsername(authentication))
+        ));
+    }
+
+    @PatchMapping("/returns/{id}/items/{itemId}/inspect")
+    public ResponseEntity<ApiResponse<ReturnRequestDetailResponse>> inspectReturnItem(
+            Authentication authentication,
+            @PathVariable("id") Long id,
+            @PathVariable("itemId") Long itemId,
+            @Valid @RequestBody AdminInspectReturnItemRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                returnRequestService.inspectReturnItem(id, itemId, request, extractUsername(authentication))
+        ));
+    }
+
+    @PatchMapping("/returns/{id}/complete")
+    public ResponseEntity<ApiResponse<ReturnRequestDetailResponse>> completeReturnRequest(
+            Authentication authentication,
+            @PathVariable("id") Long id,
+            @RequestBody(required = false) AdminCompleteReturnRequest request
+    ) {
+        AdminCompleteReturnRequest payload = request == null
+                ? new AdminCompleteReturnRequest(null)
+                : request;
+        return ResponseEntity.ok(ApiResponse.success(
+                returnRequestService.completeReturnRequest(id, payload, extractUsername(authentication))
+        ));
     }
 
     // ---- FinancialSettlement (BUSINESS_LOGIC.md Section 3.4) ----

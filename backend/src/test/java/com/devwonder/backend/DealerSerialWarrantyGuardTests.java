@@ -580,7 +580,7 @@ class DealerSerialWarrantyGuardTests {
     }
 
     @Test
-    void dealerCanMarkAssignedSerialAsReturned() {
+    void dealerCannotDirectlyMarkAssignedSerialAsReturned() {
         Dealer dealer = dealerRepository.save(createDealer("serial-returned@example.com"));
         Product product = productRepository.save(createProduct("SKU-SERIAL-RETURNED", BigDecimal.valueOf(100_000)));
         Order order = orderRepository.save(createOrder(dealer, product, 1, "SERIAL-ORDER-RETURNED"));
@@ -592,17 +592,17 @@ class DealerSerialWarrantyGuardTests {
                 ProductSerialStatus.ASSIGNED
         ));
 
-        var response = dealerPortalService.updateSerialStatus(
+        assertThatThrownBy(() -> dealerPortalService.updateSerialStatus(
                 dealer.getUsername(),
                 serial.getId(),
                 new UpdateDealerSerialStatusRequest(ProductSerialStatus.RETURNED)
-        );
-
-        assertThat(response.status()).isEqualTo(ProductSerialStatus.RETURNED);
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("submit a return request");
     }
 
     @Test
-    void dealerCanMarkWarrantySerialAsDefective() {
+    void dealerCannotDirectlyMarkWarrantySerialAsDefective() {
         Dealer dealer = dealerRepository.save(createDealer("serial-defective@example.com"));
         Product product = productRepository.save(createProduct("SKU-SERIAL-DEFECTIVE", BigDecimal.valueOf(100_000)));
         Order order = orderRepository.save(createOrder(dealer, product, 1, "SERIAL-ORDER-WARRANTY"));
@@ -614,13 +614,13 @@ class DealerSerialWarrantyGuardTests {
                 ProductSerialStatus.WARRANTY
         ));
 
-        var response = dealerPortalService.updateSerialStatus(
+        assertThatThrownBy(() -> dealerPortalService.updateSerialStatus(
                 dealer.getUsername(),
                 serial.getId(),
                 new UpdateDealerSerialStatusRequest(ProductSerialStatus.DEFECTIVE)
-        );
-
-        assertThat(response.status()).isEqualTo(ProductSerialStatus.DEFECTIVE);
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("submit a return request");
     }
 
     @Test
@@ -642,7 +642,7 @@ class DealerSerialWarrantyGuardTests {
                 new UpdateDealerSerialStatusRequest(ProductSerialStatus.RETURNED)
         ))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("ASSIGNED or WARRANTY");
+                .hasMessageContaining("submit a return request");
     }
 
     @Test

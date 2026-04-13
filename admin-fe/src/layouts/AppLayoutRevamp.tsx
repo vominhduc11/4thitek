@@ -17,6 +17,7 @@
   Moon,
   Package,
   Percent,
+  RotateCcw,
   Search,
   Settings,
   ShieldCheck,
@@ -143,6 +144,7 @@ const copyKeys = {
     serials: "Serial",
     notifications: "Thông báo",
     support: "Hỗ trợ",
+    returns: "Đổi trả",
     recentPayments: "Thanh toán chuyển khoản",
     unmatchedPayments: "Thanh toán không khớp",
     financialSettlements: "Quyết toán tài chính",
@@ -385,6 +387,12 @@ function AppLayoutRevamp() {
         to: "/support-tickets",
         label: copy.nav.support,
         icon: LifeBuoy,
+        group: "service",
+      },
+      {
+        to: "/returns",
+        label: copy.nav.returns,
+        icon: RotateCcw,
         group: "service",
       },
       {

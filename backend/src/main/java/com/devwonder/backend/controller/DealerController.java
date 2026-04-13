@@ -2,6 +2,7 @@ package com.devwonder.backend.controller;
 
 import com.devwonder.backend.dto.ApiResponse;
 import com.devwonder.backend.dto.dealer.CreateDealerOrderRequest;
+import com.devwonder.backend.dto.dealer.CreateDealerReturnRequest;
 import com.devwonder.backend.dto.dealer.CreateDealerSupportTicketMessageRequest;
 import com.devwonder.backend.dto.dealer.CreateDealerSupportTicketRequest;
 import com.devwonder.backend.dto.dealer.DealerBankTransferInstructionResponse;
@@ -25,10 +26,15 @@ import com.devwonder.backend.dto.dealer.UpsertDealerCartItemRequest;
 import com.devwonder.backend.dto.customer.ChangePasswordRequest;
 import com.devwonder.backend.dto.notify.NotifyResponse;
 import com.devwonder.backend.dto.pagination.PagedResponse;
+import com.devwonder.backend.dto.returns.ReturnEligibilityResponse;
+import com.devwonder.backend.dto.returns.ReturnRequestDetailResponse;
+import com.devwonder.backend.dto.returns.ReturnRequestSummaryResponse;
 import com.devwonder.backend.dto.warranty.CreateWarrantyRegistrationRequest;
 import com.devwonder.backend.dto.warranty.WarrantyRegistrationResponse;
 import com.devwonder.backend.entity.Account;
 import com.devwonder.backend.entity.enums.ProductSerialStatus;
+import com.devwonder.backend.entity.enums.ReturnRequestStatus;
+import com.devwonder.backend.entity.enums.ReturnRequestType;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.service.DealerAccountLifecycleService;
 import com.devwonder.backend.service.DealerPortalService;
@@ -335,6 +341,81 @@ public class DealerController {
             @Valid @RequestBody UpdateDealerSerialStatusRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(dealerPortalService.updateSerialStatus(extractUsername(authentication), id, request)));
+    }
+
+    @GetMapping("/returns/page")
+    public ResponseEntity<ApiResponse<PagedResponse<ReturnRequestSummaryResponse>>> returnRequestsPaged(
+            Authentication authentication,
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
+            @RequestParam(name = "sortBy", required = false) String sortBy,
+            @RequestParam(name = "sortDir", required = false) String sortDir,
+            @RequestParam(name = "status", required = false) ReturnRequestStatus status,
+            @RequestParam(name = "type", required = false) ReturnRequestType type,
+            @RequestParam(name = "orderCode", required = false) String orderCode,
+            @RequestParam(name = "serial", required = false) String serial
+    ) {
+        Pageable pageable = PaginationUtils.toPageable(page, size, sortBy, sortDir, "createdAt");
+        return ResponseEntity.ok(ApiResponse.success(
+                dealerPortalService.getReturnRequests(
+                        extractUsername(authentication),
+                        pageable,
+                        status,
+                        type,
+                        orderCode,
+                        serial
+                )
+        ));
+    }
+
+    @GetMapping("/returns/{id}")
+    public ResponseEntity<ApiResponse<ReturnRequestDetailResponse>> returnRequestDetail(
+            Authentication authentication,
+            @PathVariable("id") Long id
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                dealerPortalService.getReturnRequest(extractUsername(authentication), id)
+        ));
+    }
+
+    @PostMapping("/returns")
+    public ResponseEntity<ApiResponse<ReturnRequestDetailResponse>> createReturnRequest(
+            Authentication authentication,
+            @Valid @RequestBody CreateDealerReturnRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                dealerPortalService.createReturnRequest(extractUsername(authentication), request)
+        ));
+    }
+
+    @PostMapping("/returns/{id}/cancel")
+    public ResponseEntity<ApiResponse<ReturnRequestDetailResponse>> cancelReturnRequest(
+            Authentication authentication,
+            @PathVariable("id") Long id
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                dealerPortalService.cancelReturnRequest(extractUsername(authentication), id)
+        ));
+    }
+
+    @GetMapping("/orders/{id}/return-eligible-serials")
+    public ResponseEntity<ApiResponse<List<ReturnEligibilityResponse>>> returnEligibleSerialsForOrder(
+            Authentication authentication,
+            @PathVariable("id") Long id
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                dealerPortalService.getOrderReturnEligibleSerials(extractUsername(authentication), id)
+        ));
+    }
+
+    @GetMapping("/inventory/serials/{id}/return-eligibility")
+    public ResponseEntity<ApiResponse<ReturnEligibilityResponse>> returnEligibilityForSerial(
+            Authentication authentication,
+            @PathVariable("id") Long id
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                dealerPortalService.getSerialReturnEligibility(extractUsername(authentication), id)
+        ));
     }
 
     @GetMapping("/support-tickets/latest")

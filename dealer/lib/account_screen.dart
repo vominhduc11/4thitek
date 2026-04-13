@@ -720,6 +720,7 @@ class _AccountScreenState extends State<AccountScreen> {
           const SizedBox(height: 16),
           LayoutBuilder(
             builder: (context, constraints) {
+              // Unify column logic using the helper
               final useTwoColumns = isWide && constraints.maxWidth >= 720;
               if (!useTwoColumns) return _tileColumn(tiles);
               final left = <Widget>[];
@@ -735,6 +736,7 @@ class _AccountScreenState extends State<AccountScreen> {
                   Expanded(child: _tileColumn(right)),
                 ],
               );
+              return _buildResponsiveGrid(tiles, useTwoColumns);
             },
           ),
         ],
@@ -818,8 +820,29 @@ class _AccountScreenState extends State<AccountScreen> {
           ),
           const SizedBox(height: 16),
           content,
+          _buildResponsiveGrid(tiles, isWide),
         ],
       ),
+    );
+  }
+
+  /// Reusable helper to create a 1 or 2 column grid of tiles
+  Widget _buildResponsiveGrid(List<Widget> children, bool useTwoColumns) {
+    if (!useTwoColumns || children.length < 2) {
+      return _tileColumn(children);
+    }
+    final left = <Widget>[];
+    final right = <Widget>[];
+    for (var i = 0; i < children.length; i++) {
+      (i.isEven ? left : right).add(children[i]);
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: _tileColumn(left)),
+        const SizedBox(width: 12),
+        Expanded(child: _tileColumn(right)),
+      ],
     );
   }
 

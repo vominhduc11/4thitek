@@ -10,6 +10,7 @@ import com.devwonder.backend.dto.dealer.DealerInventorySerialResponse;
 import com.devwonder.backend.dto.dealer.DealerInventorySummaryResponse;
 import com.devwonder.backend.dto.dealer.DealerOrderResponse;
 import com.devwonder.backend.dto.dealer.DealerPaymentResponse;
+import com.devwonder.backend.dto.dealer.CreateDealerReturnRequest;
 import com.devwonder.backend.dto.dealer.DealerProductSerialResponse;
 import com.devwonder.backend.dto.dealer.DealerProfileResponse;
 import com.devwonder.backend.dto.dealer.RegisterPushTokenRequest;
@@ -19,6 +20,10 @@ import com.devwonder.backend.dto.dealer.UpdateDealerProfileRequest;
 import com.devwonder.backend.dto.dealer.UpdateDealerSerialStatusRequest;
 import com.devwonder.backend.dto.dealer.UpsertDealerCartItemRequest;
 import com.devwonder.backend.dto.notify.NotifyResponse;
+import com.devwonder.backend.dto.pagination.PagedResponse;
+import com.devwonder.backend.dto.returns.ReturnEligibilityResponse;
+import com.devwonder.backend.dto.returns.ReturnRequestDetailResponse;
+import com.devwonder.backend.dto.returns.ReturnRequestSummaryResponse;
 import com.devwonder.backend.dto.serial.SerialImportSummaryResponse;
 import com.devwonder.backend.dto.warranty.CreateWarrantyRegistrationRequest;
 import com.devwonder.backend.dto.warranty.WarrantyRegistrationResponse;
@@ -67,6 +72,7 @@ public class DealerPortalService {
     private final PushTokenRegistrationService pushTokenRegistrationService;
     private final IdempotencyStore idempotencyStore;
     private final AdminSettingsService adminSettingsService;
+    private final ReturnRequestService returnRequestService;
 
     @Transactional(readOnly = true)
     public DealerProfileResponse getProfile(String username) {
@@ -351,6 +357,43 @@ public class DealerPortalService {
     ) {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
         return dealerSerialSupport.updateSerialStatus(dealer.getId(), serialId, request);
+    }
+
+    @Transactional(readOnly = true)
+    public PagedResponse<ReturnRequestSummaryResponse> getReturnRequests(
+            String username,
+            Pageable pageable,
+            com.devwonder.backend.entity.enums.ReturnRequestStatus status,
+            com.devwonder.backend.entity.enums.ReturnRequestType type,
+            String orderCode,
+            String serialQuery
+    ) {
+        return returnRequestService.getDealerReturnsPage(username, pageable, status, type, orderCode, serialQuery);
+    }
+
+    @Transactional(readOnly = true)
+    public ReturnRequestDetailResponse getReturnRequest(String username, Long requestId) {
+        return returnRequestService.getDealerReturnDetail(username, requestId);
+    }
+
+    @Transactional
+    public ReturnRequestDetailResponse createReturnRequest(String username, CreateDealerReturnRequest request) {
+        return returnRequestService.createDealerReturnRequest(username, request);
+    }
+
+    @Transactional
+    public ReturnRequestDetailResponse cancelReturnRequest(String username, Long requestId) {
+        return returnRequestService.cancelDealerReturnRequest(username, requestId);
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<ReturnEligibilityResponse> getOrderReturnEligibleSerials(String username, Long orderId) {
+        return returnRequestService.getOrderEligibleSerials(username, orderId);
+    }
+
+    @Transactional(readOnly = true)
+    public ReturnEligibilityResponse getSerialReturnEligibility(String username, Long serialId) {
+        return returnRequestService.getSerialEligibility(username, serialId);
     }
 
     @Transactional

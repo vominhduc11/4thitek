@@ -48,17 +48,12 @@ public class DealerSerialSupport {
         ProductSerial productSerial = productSerialRepository.findByIdAndDealerId(serialId, dealerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Serial not found"));
         ProductSerialStatus nextStatus = request.status();
-        if (nextStatus != ProductSerialStatus.DEFECTIVE && nextStatus != ProductSerialStatus.RETURNED) {
-            throw new BadRequestException("Unsupported serial status transition");
+        if (nextStatus == ProductSerialStatus.DEFECTIVE || nextStatus == ProductSerialStatus.RETURNED) {
+            throw new BadRequestException(
+                    "Dealer cannot mark serial as DEFECTIVE or RETURNED directly. Please submit a return request."
+            );
         }
-
-        ProductSerialStatus currentStatus = productSerial.getStatus();
-        if (currentStatus != ProductSerialStatus.ASSIGNED && currentStatus != ProductSerialStatus.WARRANTY) {
-            throw new BadRequestException("Only ASSIGNED or WARRANTY serials can be marked DEFECTIVE or RETURNED");
-        }
-
-        productSerial.setStatus(nextStatus);
-        return ProductSerialResponseMapper.toDealerProductSerialResponse(productSerialRepository.save(productSerial));
+        throw new BadRequestException("Unsupported serial status transition");
     }
 
     public SerialImportSummaryResponse<DealerProductSerialResponse> importSerials(

@@ -19,6 +19,8 @@ const WholesaleDiscountsPage = lazy(() => import('./pages/WholesaleDiscountsPage
 const DealersPage = lazy(() => import('./pages/DealersPageRevamp'))
 const DealerDetailPage = lazy(() => import('./pages/DealerDetailPage'))
 const SupportTicketsPage = lazy(() => import('./pages/SupportTicketsPageRevamp'))
+const ReturnsPage = lazy(() => import('./pages/ReturnsPageRevamp'))
+const ReturnDetailPage = lazy(() => import('./pages/ReturnDetailPage'))
 const WarrantiesPage = lazy(() => import('./pages/WarrantiesPageRevamp'))
 const SerialsPage = lazy(() => import('./pages/SerialsPageRevamp'))
 const NotificationsPage = lazy(() => import('./pages/NotificationsPageRevamp'))
@@ -86,6 +88,8 @@ function App() {
             path="/support-tickets"
             element={renderLazyElement(SupportTicketsPage)}
           />
+          <Route path="/returns" element={renderLazyElement(ReturnsPage)} />
+          <Route path="/returns/:id" element={renderLazyElement(ReturnDetailPage)} />
           <Route
             path="/warranties"
             element={renderLazyElement(WarrantiesPage)}
