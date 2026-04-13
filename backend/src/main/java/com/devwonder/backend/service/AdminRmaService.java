@@ -9,10 +9,12 @@ import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.ProductSerial;
 import com.devwonder.backend.entity.WarrantyRegistration;
 import com.devwonder.backend.entity.enums.ProductSerialStatus;
+import com.devwonder.backend.entity.enums.ReturnRequestStatus;
 import com.devwonder.backend.entity.enums.WarrantyStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.repository.ProductSerialRepository;
+import com.devwonder.backend.repository.ReturnRequestItemRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
 import com.devwonder.backend.service.support.ProductStockSyncSupport;
 import java.util.EnumSet;
@@ -45,14 +47,46 @@ public class AdminRmaService {
             ProductSerialStatus.DEFECTIVE,
             ProductSerialStatus.RETURNED
     );
+    private static final Set<ReturnRequestStatus> ACTIVE_RETURN_REQUEST_STATUSES = EnumSet.of(
+            ReturnRequestStatus.SUBMITTED,
+            ReturnRequestStatus.UNDER_REVIEW,
+            ReturnRequestStatus.APPROVED,
+            ReturnRequestStatus.AWAITING_RECEIPT,
+            ReturnRequestStatus.RECEIVED,
+            ReturnRequestStatus.INSPECTING,
+            ReturnRequestStatus.PARTIALLY_RESOLVED
+    );
 
     private final ProductSerialRepository productSerialRepository;
+    private final ReturnRequestItemRepository returnRequestItemRepository;
     private final WarrantyRegistrationRepository warrantyRegistrationRepository;
     private final AuditLogService auditLogService;
     private final ProductStockSyncSupport productStockSyncSupport;
 
     @Transactional
     public AdminSerialResponse applyRmaAction(Long serialId, AdminRmaRequest request, String actorUsername) {
+        return applyRmaAction(serialId, request, actorUsername, false);
+    }
+
+    @Transactional
+    public AdminSerialResponse applyRmaAction(
+            Long serialId,
+            AdminRmaRequest request,
+            String actorUsername,
+            boolean allowWhenActiveReturnRequest
+    ) {
+        if (!allowWhenActiveReturnRequest) {
+            List<Long> activeRefs = returnRequestItemRepository.findActiveSerialIds(
+                    Set.of(serialId),
+                    ACTIVE_RETURN_REQUEST_STATUSES
+            );
+            if (!activeRefs.isEmpty()) {
+                throw new BadRequestException(
+                        "Serial has an active return request. Use return item inspection actions instead."
+                );
+            }
+        }
+
         ProductSerial serial = productSerialRepository.findById(serialId)
                 .orElseThrow(() -> new ResourceNotFoundException("Serial not found: " + serialId));
 
@@ -96,8 +130,8 @@ public class AdminRmaService {
             default -> throw new BadRequestException("Unknown RMA action: " + request.action());
         }
 
-        if (newStatus == ProductSerialStatus.AVAILABLE) {
-            applyPassQcSideEffects(serial);
+        if (newStatus == ProductSerialStatus.AVAILABLE || newStatus == ProductSerialStatus.SCRAPPED) {
+            applyTerminalSideEffects(serial);
         }
         serial.setStatus(newStatus);
         ProductSerial saved = productSerialRepository.save(serial);
@@ -160,7 +194,7 @@ public class AdminRmaService {
         );
     }
 
-    private void applyPassQcSideEffects(ProductSerial serial) {
+    private void applyTerminalSideEffects(ProductSerial serial) {
         serial.setDealer(null);
         serial.setOrder(null);
         WarrantyRegistration warranty = serial.getWarranty();

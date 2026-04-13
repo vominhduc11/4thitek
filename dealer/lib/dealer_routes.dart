@@ -24,6 +24,11 @@ class DealerRoutePath {
 
   static String returnDetail(int requestId) => '$returns/$requestId';
 
+  static String supportWithTicket(int ticketId) => Uri(
+    path: support,
+    queryParameters: <String, String>{'ticketId': '$ticketId'},
+  ).toString();
+
   static String createReturnRequest(String orderId, {int? prefilledSerialId}) {
     final queryParameters = <String, String>{
       if (prefilledSerialId != null) 'serialId': '$prefilledSerialId',

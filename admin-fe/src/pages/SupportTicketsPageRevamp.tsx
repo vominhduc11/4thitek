@@ -7,6 +7,7 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import {
   createAdminSupportTicketMessage,
   fetchAllAdminSupportTickets,
@@ -192,6 +193,7 @@ function SupportTicketsPageRevamp() {
   const copy = translateCopy(copyKeys, t);
   const { accessToken } = useAuth();
   const { notify } = useToast();
+  const location = useLocation();
   const [tickets, setTickets] = useState<BackendSupportTicketResponse[]>([]);
   const [allTickets, setAllTickets] = useState<BackendSupportTicketResponse[]>(
     [],
@@ -214,7 +216,14 @@ function SupportTicketsPageRevamp() {
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const draftAttachmentUrlsRef = useRef<Set<string>>(new Set());
+  const hasAppliedTicketQueryRef = useRef(false);
   const hasActiveFilters = query.trim().length > 0 || statusFilter !== "all";
+  const queryTicketId = useMemo(() => {
+    const raw = new URLSearchParams(location.search).get("ticketId");
+    if (!raw) return null;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }, [location.search]);
 
   const cleanupDraftAttachments = useCallback(
     async (urls: Array<string | null | undefined>) => {
@@ -398,6 +407,18 @@ function SupportTicketsPageRevamp() {
       setSelectedId(filteredTickets[0].id);
     }
   }, [filteredTickets, selectedId]);
+
+  useEffect(() => {
+    if (hasAppliedTicketQueryRef.current || !queryTicketId || filteredTickets.length === 0) {
+      return;
+    }
+    const matched = filteredTickets.find((ticket) => ticket.id === queryTicketId);
+    if (!matched) {
+      return;
+    }
+    hasAppliedTicketQueryRef.current = true;
+    setSelectedId(matched.id);
+  }, [filteredTickets, queryTicketId]);
 
   const selectedTicket =
     filteredTickets.find((ticket) => ticket.id === selectedId) ?? null;

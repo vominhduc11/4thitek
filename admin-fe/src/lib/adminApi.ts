@@ -407,6 +407,7 @@ export type BackendReturnRequestItemResponse = {
   replacementOrderId?: number | null
   refundAmount?: number | string | null
   creditAmount?: number | string | null
+  orderAdjustmentId?: number | null
 }
 
 export type BackendReturnRequestAttachmentResponse = {

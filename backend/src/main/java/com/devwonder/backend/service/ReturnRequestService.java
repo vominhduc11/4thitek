@@ -2,6 +2,7 @@ package com.devwonder.backend.service;
 
 import com.devwonder.backend.dto.admin.AdminCompleteReturnRequest;
 import com.devwonder.backend.dto.admin.AdminInspectReturnItemRequest;
+import com.devwonder.backend.dto.admin.AdminOrderAdjustmentRequest;
 import com.devwonder.backend.dto.admin.AdminReceiveReturnRequest;
 import com.devwonder.backend.dto.admin.AdminReviewReturnItemDecision;
 import com.devwonder.backend.dto.admin.AdminReviewReturnRequest;
@@ -20,6 +21,7 @@ import com.devwonder.backend.dto.support.SupportTicketContextPayload;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.DealerSupportTicket;
 import com.devwonder.backend.entity.Order;
+import com.devwonder.backend.entity.OrderAdjustment;
 import com.devwonder.backend.entity.OrderItem;
 import com.devwonder.backend.entity.ProductSerial;
 import com.devwonder.backend.entity.ReturnRequest;
@@ -28,6 +30,7 @@ import com.devwonder.backend.entity.ReturnRequestEvent;
 import com.devwonder.backend.entity.ReturnRequestItem;
 import com.devwonder.backend.entity.enums.DealerSupportCategory;
 import com.devwonder.backend.entity.enums.DealerSupportPriority;
+import com.devwonder.backend.entity.enums.OrderAdjustmentType;
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.ProductSerialStatus;
 import com.devwonder.backend.entity.enums.ReturnRequestItemFinalResolution;
@@ -36,6 +39,8 @@ import com.devwonder.backend.entity.enums.ReturnRequestStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.repository.DealerSupportTicketRepository;
+import com.devwonder.backend.repository.OrderAdjustmentRepository;
+import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.ReturnRequestItemRepository;
 import com.devwonder.backend.repository.ReturnRequestRepository;
@@ -94,12 +99,21 @@ public class ReturnRequestService {
             ReturnRequestItemStatus.CREDITED
     );
 
+    private static final Set<ProductSerialStatus> ELIGIBLE_SERIAL_STATUSES = EnumSet.of(
+            ProductSerialStatus.ASSIGNED,
+            ProductSerialStatus.WARRANTY,
+            ProductSerialStatus.DEFECTIVE
+    );
+
     private final DealerPortalLookupSupport dealerPortalLookupSupport;
     private final ReturnRequestRepository returnRequestRepository;
     private final ReturnRequestItemRepository returnRequestItemRepository;
     private final ProductSerialRepository productSerialRepository;
     private final DealerSupportTicketService dealerSupportTicketService;
     private final DealerSupportTicketRepository dealerSupportTicketRepository;
+    private final OrderRepository orderRepository;
+    private final OrderAdjustmentRepository orderAdjustmentRepository;
+    private final AdminFinancialService adminFinancialService;
     private final AdminRmaService adminRmaService;
     private final ObjectMapper objectMapper;
 
@@ -158,9 +172,7 @@ public class ReturnRequestService {
             if (serial.getOrder() == null || !Objects.equals(serial.getOrder().getId(), order.getId())) {
                 throw new BadRequestException("Serial " + serial.getSerial() + " does not belong to order " + order.getOrderCode());
             }
-            if (serial.getStatus() == ProductSerialStatus.RETURNED
-                    || serial.getStatus() == ProductSerialStatus.INSPECTING
-                    || serial.getStatus() == ProductSerialStatus.SCRAPPED) {
+            if (!ELIGIBLE_SERIAL_STATUSES.contains(serial.getStatus())) {
                 throw new BadRequestException("Serial " + serial.getSerial() + " is not eligible for return in current state");
             }
             serials.add(serial);
@@ -201,10 +213,13 @@ public class ReturnRequestService {
                 attachment.setUrl(attachmentPayload.url().trim());
                 attachment.setFileName(trimOrNull(attachmentPayload.fileName()));
                 attachment.setCategory(attachmentPayload.category());
-                if (attachmentPayload.itemId() != null) {
-                    ReturnRequestItem linkedItem = itemBySerialId.get(attachmentPayload.itemId());
+                Long linkedSerialId = attachmentPayload.productSerialId() != null
+                        ? attachmentPayload.productSerialId()
+                        : attachmentPayload.itemId();
+                if (linkedSerialId != null) {
+                    ReturnRequestItem linkedItem = itemBySerialId.get(linkedSerialId);
                     if (linkedItem == null) {
-                        throw new BadRequestException("Attachment itemId must match one of request item serial ids");
+                        throw new BadRequestException("Attachment productSerialId/itemId must match one of request item serial ids");
                     }
                     attachment.setItem(linkedItem);
                 }
@@ -230,7 +245,9 @@ public class ReturnRequestService {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
         ReturnRequest request = returnRequestRepository.findDetailByIdAndDealerId(requestId, dealer.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Return request not found"));
-        if (request.getStatus() == ReturnRequestStatus.CANCELLED || request.getStatus() == ReturnRequestStatus.COMPLETED) {
+        if (request.getStatus() == ReturnRequestStatus.CANCELLED
+                || request.getStatus() == ReturnRequestStatus.COMPLETED
+                || request.getStatus() == ReturnRequestStatus.REJECTED) {
             throw new BadRequestException("Return request is already closed");
         }
         if (request.getStatus() == ReturnRequestStatus.RECEIVED
@@ -255,7 +272,7 @@ public class ReturnRequestService {
                 .filter(serial -> serial.getOrder() != null && Objects.equals(serial.getOrder().getId(), order.getId()))
                 .toList();
         Set<Long> serialIds = serials.stream().map(ProductSerial::getId).collect(java.util.stream.Collectors.toSet());
-        Map<Long, String> activeRefs = resolveActiveRequestRefBySerialId(serialIds);
+        Map<Long, ActiveRequestRef> activeRefs = resolveActiveRequestRefBySerialId(serialIds);
         List<ReturnEligibilityResponse> responses = new ArrayList<>(serials.size());
         for (ProductSerial serial : serials) {
             responses.add(toEligibilityResponse(serial, order, activeRefs.get(serial.getId())));
@@ -269,7 +286,7 @@ public class ReturnRequestService {
         ProductSerial serial = productSerialRepository.findInventoryByIdAndDealerId(serialId, dealer.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Serial not found"));
         Order order = serial.getOrder();
-        String activeRef = resolveActiveRequestRefBySerialId(Set.of(serial.getId())).get(serial.getId());
+        ActiveRequestRef activeRef = resolveActiveRequestRefBySerialId(Set.of(serial.getId())).get(serial.getId());
         return toEligibilityResponse(serial, order, activeRef);
     }
 
@@ -401,9 +418,7 @@ public class ReturnRequestService {
             throw new BadRequestException("rmaAction is required");
         }
         if (item.getItemStatus() != ReturnRequestItemStatus.RECEIVED
-                && item.getItemStatus() != ReturnRequestItemStatus.INSPECTING
-                && item.getItemStatus() != ReturnRequestItemStatus.QC_FAILED
-                && item.getItemStatus() != ReturnRequestItemStatus.QC_PASSED) {
+                && item.getItemStatus() != ReturnRequestItemStatus.INSPECTING) {
             throw new BadRequestException("Return item is not inspectable in current state: " + item.getItemStatus());
         }
         if (item.getProductSerial() == null) {
@@ -419,7 +434,8 @@ public class ReturnRequestService {
         adminRmaService.applyRmaAction(
                 item.getProductSerial().getId(),
                 new com.devwonder.backend.dto.admin.AdminRmaRequest(payload.rmaAction(), reason, payload.proofUrls()),
-                actorUsername
+                actorUsername,
+                true
         );
 
         item.setInspectionNote(reason);
@@ -432,7 +448,15 @@ public class ReturnRequestService {
                         ? ReturnRequestItemFinalResolution.RESTOCK
                         : ReturnRequestItemFinalResolution.SCRAP;
             }
-            applyFinalResolution(item, finalResolution, payload.replacementOrderId(), payload.refundAmount(), payload.creditAmount());
+            applyFinalResolution(
+                    request,
+                    item,
+                    finalResolution,
+                    payload.replacementOrderId(),
+                    payload.refundAmount(),
+                    payload.creditAmount(),
+                    actorUsername
+            );
         }
 
         request.setUpdatedBy(actorUsername);
@@ -446,6 +470,18 @@ public class ReturnRequestService {
         eventPayload.put("itemStatus", item.getItemStatus().name());
         if (item.getFinalResolution() != null) {
             eventPayload.put("finalResolution", item.getFinalResolution().name());
+        }
+        if (item.getReplacementOrderId() != null) {
+            eventPayload.put("replacementOrderId", item.getReplacementOrderId());
+        }
+        if (item.getRefundAmount() != null) {
+            eventPayload.put("refundAmount", item.getRefundAmount());
+        }
+        if (item.getCreditAmount() != null) {
+            eventPayload.put("creditAmount", item.getCreditAmount());
+        }
+        if (item.getOrderAdjustmentId() != null) {
+            eventPayload.put("orderAdjustmentId", item.getOrderAdjustmentId());
         }
         appendEvent(request, "ITEM_INSPECTED", actorUsername, "ADMIN", eventPayload);
         return toDetailResponse(returnRequestRepository.save(request));
@@ -488,22 +524,26 @@ public class ReturnRequestService {
     }
 
     private void applyFinalResolution(
+            ReturnRequest request,
             ReturnRequestItem item,
             ReturnRequestItemFinalResolution finalResolution,
             Long replacementOrderId,
             BigDecimal refundAmount,
-            BigDecimal creditAmount
+            BigDecimal creditAmount,
+            String actorUsername
     ) {
         item.setFinalResolution(finalResolution);
         item.setReplacementOrderId(null);
         item.setRefundAmount(null);
         item.setCreditAmount(null);
+        item.setOrderAdjustmentId(null);
         switch (finalResolution) {
             case RESTOCK -> item.setItemStatus(ReturnRequestItemStatus.RESTOCKED);
             case REPLACE -> {
                 if (replacementOrderId == null || replacementOrderId <= 0) {
                     throw new BadRequestException("replacementOrderId is required for REPLACE resolution");
                 }
+                validateReplacementOrder(request, item, replacementOrderId);
                 item.setItemStatus(ReturnRequestItemStatus.REPLACED);
                 item.setReplacementOrderId(replacementOrderId);
             }
@@ -511,15 +551,31 @@ public class ReturnRequestService {
                 if (creditAmount == null || creditAmount.signum() <= 0) {
                     throw new BadRequestException("creditAmount must be greater than 0 for CREDIT_NOTE resolution");
                 }
+                OrderAdjustment adjustment = createReturnAdjustment(
+                        request,
+                        item,
+                        OrderAdjustmentType.CREDIT_NOTE,
+                        negativeAmount(creditAmount),
+                        actorUsername
+                );
                 item.setItemStatus(ReturnRequestItemStatus.CREDITED);
                 item.setCreditAmount(creditAmount);
+                item.setOrderAdjustmentId(adjustment.getId());
             }
             case REFUND -> {
                 if (refundAmount == null || refundAmount.signum() <= 0) {
                     throw new BadRequestException("refundAmount must be greater than 0 for REFUND resolution");
                 }
+                OrderAdjustment adjustment = createReturnAdjustment(
+                        request,
+                        item,
+                        OrderAdjustmentType.REFUND_RECORD,
+                        negativeAmount(refundAmount),
+                        actorUsername
+                );
                 item.setItemStatus(ReturnRequestItemStatus.CREDITED);
                 item.setRefundAmount(refundAmount);
+                item.setOrderAdjustmentId(adjustment.getId());
             }
             case SCRAP -> item.setItemStatus(ReturnRequestItemStatus.SCRAPPED);
         }
@@ -538,15 +594,52 @@ public class ReturnRequestService {
             return;
         }
 
-        ReturnRequestItemFinalResolution requestedFinalResolution = payload.finalResolution();
-        if (payload.rmaAction() == com.devwonder.backend.dto.admin.AdminRmaRequest.RmaAction.PASS_QC
-                && requestedFinalResolution == ReturnRequestItemFinalResolution.SCRAP) {
-            throw new BadRequestException("PASS_QC cannot use SCRAP final resolution");
+        ReturnRequestItemFinalResolution finalResolution = payload.finalResolution();
+        if (payload.rmaAction() == com.devwonder.backend.dto.admin.AdminRmaRequest.RmaAction.PASS_QC) {
+            if (finalResolution != null && finalResolution != ReturnRequestItemFinalResolution.RESTOCK) {
+                throw new BadRequestException("PASS_QC supports RESTOCK only");
+            }
+            if (payload.replacementOrderId() != null
+                    || payload.refundAmount() != null
+                    || payload.creditAmount() != null) {
+                throw new BadRequestException("PASS_QC does not accept replacement or settlement fields");
+            }
+            return;
         }
-        if (payload.rmaAction() == com.devwonder.backend.dto.admin.AdminRmaRequest.RmaAction.SCRAP
-                && requestedFinalResolution != null
-                && requestedFinalResolution != ReturnRequestItemFinalResolution.SCRAP) {
-            throw new BadRequestException("SCRAP action requires SCRAP final resolution");
+
+        if (payload.rmaAction() == com.devwonder.backend.dto.admin.AdminRmaRequest.RmaAction.SCRAP) {
+            if (finalResolution == null) {
+                if (payload.replacementOrderId() != null
+                        || payload.refundAmount() != null
+                        || payload.creditAmount() != null) {
+                    throw new BadRequestException("Settlement fields require explicit finalResolution");
+                }
+                return;
+            }
+            if (finalResolution == ReturnRequestItemFinalResolution.RESTOCK) {
+                throw new BadRequestException("SCRAP action cannot use RESTOCK final resolution");
+            }
+            boolean needsReplacement = finalResolution == ReturnRequestItemFinalResolution.REPLACE;
+            if (needsReplacement && (payload.replacementOrderId() == null || payload.replacementOrderId() <= 0)) {
+                throw new BadRequestException("replacementOrderId is required for REPLACE resolution");
+            }
+            if (!needsReplacement && payload.replacementOrderId() != null) {
+                throw new BadRequestException("replacementOrderId is only allowed for REPLACE resolution");
+            }
+            boolean needsRefund = finalResolution == ReturnRequestItemFinalResolution.REFUND;
+            if (needsRefund && (payload.refundAmount() == null || payload.refundAmount().signum() <= 0)) {
+                throw new BadRequestException("refundAmount must be greater than 0 for REFUND resolution");
+            }
+            if (!needsRefund && payload.refundAmount() != null) {
+                throw new BadRequestException("refundAmount is only allowed for REFUND resolution");
+            }
+            boolean needsCredit = finalResolution == ReturnRequestItemFinalResolution.CREDIT_NOTE;
+            if (needsCredit && (payload.creditAmount() == null || payload.creditAmount().signum() <= 0)) {
+                throw new BadRequestException("creditAmount must be greater than 0 for CREDIT_NOTE resolution");
+            }
+            if (!needsCredit && payload.creditAmount() != null) {
+                throw new BadRequestException("creditAmount is only allowed for CREDIT_NOTE resolution");
+            }
         }
     }
 
@@ -576,9 +669,7 @@ public class ReturnRequestService {
             return ReturnRequestStatus.PARTIALLY_RESOLVED;
         }
         if (request.getItems().stream().anyMatch(item ->
-                item.getItemStatus() == ReturnRequestItemStatus.INSPECTING
-                        || item.getItemStatus() == ReturnRequestItemStatus.QC_PASSED
-                        || item.getItemStatus() == ReturnRequestItemStatus.QC_FAILED)) {
+                item.getItemStatus() == ReturnRequestItemStatus.INSPECTING)) {
             return ReturnRequestStatus.INSPECTING;
         }
         if (request.getItems().stream().anyMatch(item -> item.getItemStatus() == ReturnRequestItemStatus.RECEIVED)) {
@@ -607,11 +698,11 @@ public class ReturnRequestService {
         }
     }
 
-    private Map<Long, String> resolveActiveRequestRefBySerialId(Collection<Long> serialIds) {
+    private Map<Long, ActiveRequestRef> resolveActiveRequestRefBySerialId(Collection<Long> serialIds) {
         if (serialIds == null || serialIds.isEmpty()) {
             return Map.of();
         }
-        Map<Long, String> refs = new HashMap<>();
+        Map<Long, ActiveRequestRef> refs = new HashMap<>();
         for (Object[] row : returnRequestItemRepository.findActiveSerialRequestRefs(serialIds, ACTIVE_REQUEST_STATUSES)) {
             Long serialId = row[0] instanceof Number number ? number.longValue() : null;
             Long requestId = row[1] instanceof Number number ? number.longValue() : null;
@@ -619,17 +710,18 @@ public class ReturnRequestService {
             if (serialId == null) {
                 continue;
             }
-            refs.put(serialId, requestCode == null ? "#" + requestId : requestCode);
+            refs.put(serialId, new ActiveRequestRef(
+                    requestId,
+                    requestCode == null ? "#" + requestId : requestCode
+            ));
         }
         return refs;
     }
 
-    private ReturnEligibilityResponse toEligibilityResponse(ProductSerial serial, Order order, String activeRequestCode) {
+    private ReturnEligibilityResponse toEligibilityResponse(ProductSerial serial, Order order, ActiveRequestRef activeRequest) {
         boolean orderCompleted = order != null && order.getStatus() == OrderStatus.COMPLETED;
-        boolean statusAllowed = serial.getStatus() != ProductSerialStatus.RETURNED
-                && serial.getStatus() != ProductSerialStatus.INSPECTING
-                && serial.getStatus() != ProductSerialStatus.SCRAPPED;
-        boolean noActiveRequest = activeRequestCode == null;
+        boolean statusAllowed = ELIGIBLE_SERIAL_STATUSES.contains(serial.getStatus());
+        boolean noActiveRequest = activeRequest == null;
         boolean eligible = orderCompleted && statusAllowed && noActiveRequest;
         String reasonCode;
         String reasonMessage;
@@ -657,23 +749,67 @@ public class ReturnRequestService {
                 eligible,
                 reasonCode,
                 reasonMessage,
-                activeRequestCode == null ? null : extractRequestId(activeRequestCode),
-                activeRequestCode
+                activeRequest == null ? null : activeRequest.requestId(),
+                activeRequest == null ? null : activeRequest.requestCode()
         );
     }
 
-    private Long extractRequestId(String requestCodeOrRef) {
-        if (requestCodeOrRef == null || requestCodeOrRef.isBlank()) {
-            return null;
+    private void validateReplacementOrder(ReturnRequest request, ReturnRequestItem item, Long replacementOrderId) {
+        Order replacementOrder = orderRepository.findById(replacementOrderId)
+                .orElseThrow(() -> new BadRequestException("Replacement order not found: " + replacementOrderId));
+        if (replacementOrder.getDealer() == null
+                || request.getDealer() == null
+                || !Objects.equals(replacementOrder.getDealer().getId(), request.getDealer().getId())) {
+            throw new BadRequestException("Replacement order must belong to the same dealer");
         }
-        if (!requestCodeOrRef.startsWith("#")) {
-            return null;
+        Long expectedProductId = item.getProduct() == null ? null : item.getProduct().getId();
+        if (expectedProductId == null) {
+            throw new BadRequestException("Return item is missing product linkage");
         }
-        try {
-            return Long.parseLong(requestCodeOrRef.substring(1));
-        } catch (NumberFormatException ex) {
-            return null;
+        boolean hasMatchingProduct = replacementOrder.getOrderItems() != null
+                && replacementOrder.getOrderItems().stream()
+                .anyMatch(orderItem -> orderItem.getProduct() != null
+                        && Objects.equals(orderItem.getProduct().getId(), expectedProductId));
+        if (!hasMatchingProduct) {
+            throw new BadRequestException("Replacement order must contain the same product as the return item");
         }
+    }
+
+    private OrderAdjustment createReturnAdjustment(
+            ReturnRequest request,
+            ReturnRequestItem item,
+            OrderAdjustmentType type,
+            BigDecimal amount,
+            String actorUsername
+    ) {
+        if (request.getOrder() == null || request.getOrder().getId() == null) {
+            throw new BadRequestException("Return request is missing original order linkage");
+        }
+        if (amount == null || amount.signum() >= 0) {
+            throw new BadRequestException("Adjustment amount must be negative");
+        }
+        String reason = "Return request "
+                + safeValue(request.getRequestCode(), "#" + request.getId())
+                + " item " + safeValue(item.getSerialSnapshot(), "#" + item.getId())
+                + " resolved as " + safeValue(item.getFinalResolution() == null ? null : item.getFinalResolution().name(), type.name());
+        AdminOrderAdjustmentRequest adjustmentRequest = new AdminOrderAdjustmentRequest(
+                type,
+                amount,
+                reason,
+                safeValue(request.getRequestCode(), "RETURN-" + request.getId()),
+                Boolean.TRUE
+        );
+        var created = adminFinancialService.createOrderAdjustment(
+                request.getOrder().getId(),
+                adjustmentRequest,
+                actorUsername,
+                "ADMIN"
+        );
+        if (created.id() == null) {
+            throw new BadRequestException("Created adjustment id is missing");
+        }
+        return orderAdjustmentRepository.findById(created.id())
+                .orElseThrow(() -> new BadRequestException("Created adjustment could not be loaded"));
     }
 
     private DealerSupportTicket maybeCreateLinkedSupportTicket(
@@ -724,6 +860,9 @@ public class ReturnRequestService {
         }
     }
 
+    private record ActiveRequestRef(Long requestId, String requestCode) {
+    }
+
     private OrderItem resolveOrderItem(Order order, Long productId) {
         if (order == null || order.getOrderItems() == null || productId == null) {
             return null;
@@ -759,9 +898,7 @@ public class ReturnRequestService {
         int approvedItems = (int) request.getItems().stream()
                 .filter(item -> item.getItemStatus() == ReturnRequestItemStatus.APPROVED
                         || item.getItemStatus() == ReturnRequestItemStatus.RECEIVED
-                        || item.getItemStatus() == ReturnRequestItemStatus.INSPECTING
-                        || item.getItemStatus() == ReturnRequestItemStatus.QC_PASSED
-                        || item.getItemStatus() == ReturnRequestItemStatus.QC_FAILED)
+                        || item.getItemStatus() == ReturnRequestItemStatus.INSPECTING)
                 .count();
         int rejectedItems = (int) request.getItems().stream()
                 .filter(item -> item.getItemStatus() == ReturnRequestItemStatus.REJECTED)
@@ -813,7 +950,8 @@ public class ReturnRequestService {
                         item.getFinalResolution(),
                         item.getReplacementOrderId(),
                         item.getRefundAmount(),
-                        item.getCreditAmount()
+                        item.getCreditAmount(),
+                        item.getOrderAdjustmentId()
                 ))
                 .toList();
         List<ReturnRequestAttachmentResponse> attachments = request.getAttachments().stream()
@@ -905,5 +1043,9 @@ public class ReturnRequestService {
     private String safeValue(String value, String fallback) {
         String normalized = trimOrNull(value);
         return normalized == null ? fallback : normalized;
+    }
+
+    private BigDecimal negativeAmount(BigDecimal amount) {
+        return amount == null ? null : amount.abs().negate();
     }
 }

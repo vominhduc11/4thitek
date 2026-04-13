@@ -66,5 +66,13 @@ void main() {
         '/orders/DH-001/returns/new?serialId=9',
       );
     });
+
+    test('builds support route with ticket preselection query', () {
+      expect(DealerRoutePath.supportWithTicket(18), '/support?ticketId=18');
+      expect(
+        normalizeDealerInternalRoute('/dealer/support?ticketId=18'),
+        '/support?ticketId=18',
+      );
+    });
   });
 }

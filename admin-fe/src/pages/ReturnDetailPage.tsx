@@ -109,6 +109,26 @@ const inferResolutionFromAction = (
   return "";
 };
 
+const allowedResolutionsForAction = (
+  action: BackendRmaAction,
+): BackendReturnRequestItemFinalResolution[] => {
+  if (action === "PASS_QC") {
+    return ["RESTOCK"];
+  }
+  if (action === "SCRAP") {
+    return ["SCRAP", "REPLACE", "CREDIT_NOTE", "REFUND"];
+  }
+  return [];
+};
+
+const terminalItemStatuses = new Set<string>([
+  "REJECTED",
+  "RESTOCKED",
+  "SCRAPPED",
+  "REPLACED",
+  "CREDITED",
+]);
+
 const effectiveResolution = (
   draft: InspectDraft,
 ): BackendReturnRequestItemFinalResolution | "" =>
@@ -324,11 +344,28 @@ function ReturnDetailPage() {
     () =>
       (detail?.items ?? []).filter(
         (item) =>
-          item.id &&
-          (item.itemStatus === "RECEIVED" ||
-            item.itemStatus === "INSPECTING" ||
-            item.itemStatus === "QC_FAILED" ||
-            item.itemStatus === "QC_PASSED"),
+          item.id && (item.itemStatus === "RECEIVED" || item.itemStatus === "INSPECTING"),
+      ),
+    [detail?.items],
+  );
+
+  const hasUnresolvedItems = useMemo(
+    () =>
+      (detail?.items ?? []).some(
+        (item) => !item.itemStatus || !terminalItemStatuses.has(item.itemStatus),
+      ),
+    [detail?.items],
+  );
+
+  const outcomeItems = useMemo(
+    () =>
+      (detail?.items ?? []).filter(
+        (item) =>
+          item.finalResolution ||
+          item.replacementOrderId != null ||
+          item.refundAmount != null ||
+          item.creditAmount != null ||
+          item.orderAdjustmentId != null,
       ),
     [detail?.items],
   );
@@ -409,6 +446,48 @@ function ReturnDetailPage() {
     }
 
     const selectedResolution = effectiveResolution(draft);
+    const replacementOrderId = draft.replacementOrderId.trim()
+      ? Number(draft.replacementOrderId.trim())
+      : undefined;
+    const refundAmount = parseAmount(draft.refundAmount);
+    const creditAmount = parseAmount(draft.creditAmount);
+
+    if (draft.rmaAction === "PASS_QC" && selectedResolution !== "RESTOCK") {
+      notify("PASS_QC only supports RESTOCK resolution.", {
+        title: "Returns",
+        variant: "error",
+      });
+      return;
+    }
+    if (draft.rmaAction === "SCRAP" && selectedResolution === "RESTOCK") {
+      notify("SCRAP action cannot use RESTOCK resolution.", {
+        title: "Returns",
+        variant: "error",
+      });
+      return;
+    }
+    if (needsReplacementOrder(selectedResolution) && (!replacementOrderId || replacementOrderId <= 0)) {
+      notify("Replacement order id must be a positive number.", {
+        title: "Returns",
+        variant: "error",
+      });
+      return;
+    }
+    if (needsRefundAmount(selectedResolution) && (refundAmount == null || refundAmount <= 0)) {
+      notify("Refund amount must be greater than 0.", {
+        title: "Returns",
+        variant: "error",
+      });
+      return;
+    }
+    if (needsCreditAmount(selectedResolution) && (creditAmount == null || creditAmount <= 0)) {
+      notify("Credit amount must be greater than 0.", {
+        title: "Returns",
+        variant: "error",
+      });
+      return;
+    }
+
     const requestPayload: BackendAdminInspectReturnItemRequest = {
       rmaAction: draft.rmaAction,
       reason: draft.reason.trim(),
@@ -417,16 +496,11 @@ function ReturnDetailPage() {
         .map((value) => value.trim())
         .filter((value) => value.length > 0),
       finalResolution: selectedResolution || undefined,
-      replacementOrderId:
-        needsReplacementOrder(selectedResolution) && draft.replacementOrderId.trim()
-          ? Number(draft.replacementOrderId.trim())
-          : undefined,
-      refundAmount: needsRefundAmount(selectedResolution)
-        ? parseAmount(draft.refundAmount)
+      replacementOrderId: needsReplacementOrder(selectedResolution)
+        ? replacementOrderId
         : undefined,
-      creditAmount: needsCreditAmount(selectedResolution)
-        ? parseAmount(draft.creditAmount)
-        : undefined,
+      refundAmount: needsRefundAmount(selectedResolution) ? refundAmount : undefined,
+      creditAmount: needsCreditAmount(selectedResolution) ? creditAmount : undefined,
     };
 
     setIsSaving(true);
@@ -562,7 +636,20 @@ function ReturnDetailPage() {
         <CollapsibleSection id="request-details" title="Request details" defaultExpanded>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             <KeyValueRow label="Reason code" value={detail.reasonCode ?? "-"} />
-            <KeyValueRow label="Support ticket" value={String(detail.supportTicketId ?? "-")} />
+            <div>
+              <p className={tableMetaClass}>Support ticket</p>
+              {detail.supportTicketId ? (
+                <button
+                  type="button"
+                  className="mt-1 text-sm font-semibold text-[var(--accent)] hover:underline"
+                  onClick={() => navigate(`/support-tickets?ticketId=${detail.supportTicketId}`)}
+                >
+                  #{detail.supportTicketId}
+                </button>
+              ) : (
+                <p className="mt-1 text-sm text-[var(--ink)]">-</p>
+              )}
+            </div>
             <KeyValueRow label="Created by" value={detail.createdBy ?? "-"} />
             <KeyValueRow
               label="Created at"
@@ -736,6 +823,44 @@ function ReturnDetailPage() {
           defaultExpanded={inspectableItems.length > 0}
         >
           <div className="space-y-4">
+            {outcomeItems.length > 0 ? (
+              <article className="rounded-xl border border-[var(--border)] bg-[var(--surface-ghost)] px-3 py-3">
+                <p className="font-semibold text-[var(--ink)]">Recorded outcomes</p>
+                <div className="mt-2 space-y-2">
+                  {outcomeItems.map((item) => (
+                    <div
+                      key={`outcome-${item.id}`}
+                      className="rounded-lg border border-[var(--border)] px-3 py-2"
+                    >
+                      <p className="text-sm font-semibold text-[var(--ink)]">
+                        {item.serialSnapshot ?? `Item #${item.id}`}
+                      </p>
+                      {item.finalResolution ? (
+                        <p className={tableMetaClass}>
+                          Current resolution: {toDisplay(item.finalResolution)}
+                        </p>
+                      ) : null}
+                      {item.replacementOrderId ? (
+                        <p className={tableMetaClass}>
+                          Replacement order #{item.replacementOrderId}
+                        </p>
+                      ) : null}
+                      {item.refundAmount != null ? (
+                        <p className={tableMetaClass}>Refund amount: {item.refundAmount}</p>
+                      ) : null}
+                      {item.creditAmount != null ? (
+                        <p className={tableMetaClass}>Credit amount: {item.creditAmount}</p>
+                      ) : null}
+                      {item.orderAdjustmentId ? (
+                        <p className={tableMetaClass}>
+                          Adjustment reference #{item.orderAdjustmentId}
+                        </p>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </article>
+            ) : null}
             {inspectableItems.length === 0 ? (
               <p className={tableMetaClass}>No items available for inspection.</p>
             ) : (
@@ -751,6 +876,7 @@ function ReturnDetailPage() {
                   creditAmount: "",
                 };
                 const selectedResolution = effectiveResolution(draft);
+                const allowedResolutions = allowedResolutionsForAction(draft.rmaAction);
                 return (
                   <article
                     key={item.id}
@@ -764,6 +890,27 @@ function ReturnDetailPage() {
                         <p className={tableMetaClass}>
                           Current status: {toDisplay(item.itemStatus)}
                         </p>
+                        {item.finalResolution ? (
+                          <p className={tableMetaClass}>
+                            Current resolution: {toDisplay(item.finalResolution)}
+                          </p>
+                        ) : null}
+                        {item.replacementOrderId ? (
+                          <p className={tableMetaClass}>
+                            Replacement order #{item.replacementOrderId}
+                          </p>
+                        ) : null}
+                        {item.refundAmount != null ? (
+                          <p className={tableMetaClass}>Refund amount: {item.refundAmount}</p>
+                        ) : null}
+                        {item.creditAmount != null ? (
+                          <p className={tableMetaClass}>Credit amount: {item.creditAmount}</p>
+                        ) : null}
+                        {item.orderAdjustmentId ? (
+                          <p className={tableMetaClass}>
+                            Adjustment reference #{item.orderAdjustmentId}
+                          </p>
+                        ) : null}
                       </div>
                       <StatusBadge tone={itemStatusTone[item.itemStatus ?? "REQUESTED"]}>
                         {toDisplay(item.itemStatus)}
@@ -774,15 +921,39 @@ function ReturnDetailPage() {
                       <select
                         className={inputClass}
                         value={draft.rmaAction}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          const nextAction = event.target.value as BackendRmaAction;
+                          const nextAllowedResolutions = allowedResolutionsForAction(nextAction);
+                          const retainedResolution =
+                            draft.finalResolution &&
+                            nextAllowedResolutions.includes(draft.finalResolution)
+                              ? draft.finalResolution
+                              : "";
+                          const nextResolution =
+                            nextAction === "PASS_QC"
+                              ? "RESTOCK"
+                              : nextAction === "START_INSPECTION"
+                                ? ""
+                                : retainedResolution;
                           setInspectDrafts((current) => ({
                             ...current,
                             [item.id!]: {
                               ...draft,
-                              rmaAction: event.target.value as BackendRmaAction,
+                              rmaAction: nextAction,
+                              finalResolution: nextResolution,
+                              replacementOrderId:
+                                nextResolution === "REPLACE"
+                                  ? draft.replacementOrderId
+                                  : "",
+                              refundAmount:
+                                nextResolution === "REFUND" ? draft.refundAmount : "",
+                              creditAmount:
+                                nextResolution === "CREDIT_NOTE"
+                                  ? draft.creditAmount
+                                  : "",
                             },
-                          }))
-                        }
+                          }));
+                        }}
                       >
                         <option value="START_INSPECTION">Start inspection</option>
                         <option value="PASS_QC">Pass QC</option>
@@ -791,6 +962,7 @@ function ReturnDetailPage() {
                       <select
                         className={inputClass}
                         value={draft.finalResolution}
+                        disabled={draft.rmaAction === "START_INSPECTION"}
                         onChange={(event) =>
                           setInspectDrafts((current) => ({
                             ...current,
@@ -802,12 +974,16 @@ function ReturnDetailPage() {
                           }))
                         }
                       >
-                        <option value="">Auto from RMA action</option>
-                        <option value="RESTOCK">Restock</option>
-                        <option value="REPLACE">Replace</option>
-                        <option value="CREDIT_NOTE">Credit note</option>
-                        <option value="REFUND">Refund</option>
-                        <option value="SCRAP">Scrap</option>
+                        {draft.rmaAction === "START_INSPECTION" ? (
+                          <option value="">Not applicable</option>
+                        ) : (
+                          <option value="">Auto from RMA action</option>
+                        )}
+                        {allowedResolutions.map((resolution) => (
+                          <option key={`${item.id}-${resolution}`} value={resolution}>
+                            {toDisplay(resolution)}
+                          </option>
+                        ))}
                       </select>
                       <input
                         className={inputClass}
@@ -908,7 +1084,7 @@ function ReturnDetailPage() {
           <div className="mt-3 flex justify-end">
             <PrimaryButton
               type="button"
-              disabled={isSaving}
+              disabled={isSaving || hasUnresolvedItems}
               onClick={() => void submitComplete()}
             >
               Complete

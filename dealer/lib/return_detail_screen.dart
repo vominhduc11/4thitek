@@ -252,7 +252,9 @@ class _DealerReturnDetailScreenState extends State<DealerReturnDetailScreen> {
                       if (detail.supportTicketId != null) ...[
                         const SizedBox(height: 8),
                         InkWell(
-                          onTap: () => context.pushDealerSupport(),
+                          onTap: () => context.pushDealerSupport(
+                            ticketId: detail.supportTicketId,
+                          ),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 2),
                             child: Text(
@@ -496,6 +498,22 @@ class _ReturnItemCard extends StatelessWidget {
         if (item.inspectionNote != null) ...[
           const SizedBox(height: 4),
           Text('${texts.inspectionNoteLabel}: ${item.inspectionNote}'),
+        ],
+        if (item.replacementOrderId != null) ...[
+          const SizedBox(height: 4),
+          Text('Replacement order: #${item.replacementOrderId}'),
+        ],
+        if (item.refundAmount != null) ...[
+          const SizedBox(height: 4),
+          Text('Refund amount: ${item.refundAmount}'),
+        ],
+        if (item.creditAmount != null) ...[
+          const SizedBox(height: 4),
+          Text('Credit amount: ${item.creditAmount}'),
+        ],
+        if (item.orderAdjustmentId != null) ...[
+          const SizedBox(height: 4),
+          Text('Adjustment ref: #${item.orderAdjustmentId}'),
         ],
       ],
     );

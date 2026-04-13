@@ -305,6 +305,7 @@ class DealerReturnRequestItemRecord {
     required this.replacementOrderId,
     required this.refundAmount,
     required this.creditAmount,
+    required this.orderAdjustmentId,
   });
 
   final int id;
@@ -320,6 +321,7 @@ class DealerReturnRequestItemRecord {
   final int? replacementOrderId;
   final num? refundAmount;
   final num? creditAmount;
+  final int? orderAdjustmentId;
 }
 
 class DealerReturnRequestAttachmentRecord {
@@ -404,18 +406,21 @@ class DealerCreateReturnRequestItemPayload {
 class DealerCreateReturnRequestAttachmentPayload {
   const DealerCreateReturnRequestAttachmentPayload({
     this.itemId,
+    this.productSerialId,
     required this.url,
     this.fileName,
     required this.category,
   });
 
   final int? itemId;
+  final int? productSerialId;
   final String url;
   final String? fileName;
   final DealerReturnAttachmentCategory category;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
     if (itemId != null) 'itemId': itemId,
+    if (productSerialId != null) 'productSerialId': productSerialId,
     'url': url.trim(),
     if (fileName != null && fileName!.trim().isNotEmpty)
       'fileName': fileName!.trim(),
@@ -677,6 +682,7 @@ class ReturnRequestService {
               replacementOrderId: _parseOptionalInt(item['replacementOrderId']),
               refundAmount: _parseOptionalNum(item['refundAmount']),
               creditAmount: _parseOptionalNum(item['creditAmount']),
+              orderAdjustmentId: _parseOptionalInt(item['orderAdjustmentId']),
             ),
           )
           .toList(growable: false),

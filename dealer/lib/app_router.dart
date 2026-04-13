@@ -114,7 +114,11 @@ GoRouter buildDealerRouter({
       ),
       GoRoute(
         path: '/support',
-        builder: (context, state) => const SupportScreen(),
+        builder: (context, state) => SupportScreen(
+          initialTicketId: int.tryParse(
+            state.uri.queryParameters['ticketId'] ?? '',
+          ),
+        ),
       ),
       GoRoute(
         path: '/inventory',

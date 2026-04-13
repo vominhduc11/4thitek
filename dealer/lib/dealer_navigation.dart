@@ -46,8 +46,11 @@ extension DealerNavigationX on BuildContext {
   void goDealerOrderDetail(String orderId) =>
       go(DealerRoutePath.orderDetail(orderId));
 
-  Future<T?> pushDealerSupport<T extends Object?>() =>
-      push<T>(DealerRoutePath.support);
+  Future<T?> pushDealerSupport<T extends Object?>({int? ticketId}) => push<T>(
+    ticketId != null && ticketId > 0
+        ? DealerRoutePath.supportWithTicket(ticketId)
+        : DealerRoutePath.support,
+  );
 
   Future<T?> pushDealerInventory<T extends Object?>({
     InventoryStockFilter? filter,

@@ -21,9 +21,14 @@ enum SupportPriority { normal, high, urgent }
 enum SupportComposerMode { create, followUp }
 
 class SupportScreen extends StatefulWidget {
-  const SupportScreen({super.key, this.supportService});
+  const SupportScreen({
+    super.key,
+    this.supportService,
+    this.initialTicketId,
+  });
 
   final SupportService? supportService;
+  final int? initialTicketId;
 
   @override
   State<SupportScreen> createState() => _SupportScreenState();
@@ -38,6 +43,7 @@ class _SupportScreenState extends State<SupportScreen> {
   final _detailSectionKey = GlobalKey();
   final _composerSectionKey = GlobalKey();
   late final SupportService _supportService;
+  int? _pendingInitialTicketId;
 
   SupportCategory _category = SupportCategory.order;
   SupportPriority _priority = SupportPriority.normal;
@@ -82,6 +88,7 @@ class _SupportScreenState extends State<SupportScreen> {
   void initState() {
     super.initState();
     _supportService = widget.supportService ?? SupportService();
+    _pendingInitialTicketId = widget.initialTicketId;
     _loadLatestTicket();
     _loadTicketHistory();
   }
@@ -188,8 +195,13 @@ class _SupportScreenState extends State<SupportScreen> {
         }
         _ticketPage = response.page;
         _hasMoreTickets = response.page + 1 < response.totalPages;
+        final preferredInitial = _resolveSelectedTicket(_pendingInitialTicketId);
+        if (preferredInitial != null) {
+          _pendingInitialTicketId = null;
+        }
         _selectedTicketForReply =
             _resolveSelectedTicket(previousSelectedId) ??
+            preferredInitial ??
             _resolveSelectedTicket(_lastTicketNumericId) ??
             (_ticketHistory.isNotEmpty ? _ticketHistory.first : null);
         if (_composerMode == SupportComposerMode.followUp &&

@@ -20,6 +20,7 @@ public record ReturnRequestItemResponse(
         ReturnRequestItemFinalResolution finalResolution,
         Long replacementOrderId,
         BigDecimal refundAmount,
-        BigDecimal creditAmount
+        BigDecimal creditAmount,
+        Long orderAdjustmentId
 ) {
 }

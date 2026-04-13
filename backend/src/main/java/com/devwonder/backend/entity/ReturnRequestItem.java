@@ -75,4 +75,7 @@ public class ReturnRequestItem {
 
     @Column(name = "credit_amount", precision = 19, scale = 2)
     private BigDecimal creditAmount;
+
+    @Column(name = "order_adjustment_id")
+    private Long orderAdjustmentId;
 }
