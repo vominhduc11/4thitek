@@ -109,6 +109,7 @@ describe("LoginPage", () => {
       ),
     ).toBeTruthy();
     expect(screen.getByRole("button", { name: "Gửi lại email xác thực" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Quên mật khẩu?" }).getAttribute("href")).toBe("/forgot-password");
   });
 
   it("resends the verification email for the entered identity", async () => {

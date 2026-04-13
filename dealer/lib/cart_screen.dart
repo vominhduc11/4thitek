@@ -100,9 +100,7 @@ class _CartScreenState extends State<CartScreen> {
             target: nextDiscountTarget,
             items: items,
           );
-    final nextDiscountProductName = nextDiscountTarget?.productId == null
-        ? null
-        : _productNameForDiscountTarget(items, nextDiscountTarget!);
+    final nextDiscountProductName = null;
     final compactCheckoutButtonLabel = isCartSyncing
         ? (isEnglish ? 'Syncing...' : 'Đang đồng bộ...')
         : (isEnglish ? 'Checkout' : 'Thanh toán');
@@ -1880,18 +1878,3 @@ class _CartTexts {
       isEnglish ? 'Continue shopping' : 'Tiếp tục mua hàng';
 }
 
-String? _productNameForDiscountTarget(
-  List<CartItem> items,
-  BulkDiscountTarget target,
-) {
-  final productId = target.productId;
-  if (productId == null) {
-    return null;
-  }
-  for (final item in items) {
-    if (item.product.id == productId) {
-      return item.product.name;
-    }
-  }
-  return null;
-}

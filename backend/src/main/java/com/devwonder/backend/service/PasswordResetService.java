@@ -72,6 +72,30 @@ public class PasswordResetService {
         return GENERIC_REQUEST_MESSAGE;
     }
 
+    @Transactional
+    public void sendAdminTriggeredStaffResetLink(Account account) {
+        if (account == null) {
+            throw new BadRequestException("Staff account is required");
+        }
+        String email = normalizeEmail(account.getEmail());
+        if (email == null) {
+            throw new BadRequestException("Staff account must have an email address");
+        }
+        if (!mailService.isEnabled()) {
+            throw new BadRequestException("Email delivery is not configured");
+        }
+        if (!StringUtils.hasText(resetBaseUrl)) {
+            throw new BadRequestException("Password reset link is not configured");
+        }
+
+        PasswordResetToken savedToken = createFreshToken(account);
+        asyncMailService.sendText(
+                email,
+                BusinessIdentity.BRAND_NAME + " password reset",
+                buildAdminTriggeredResetEmail(savedToken.getToken(), account)
+        );
+    }
+
     @Transactional(readOnly = true)
     public String resolveTokenStatus(String rawToken) {
         String token = normalizeToken(rawToken);
@@ -116,6 +140,15 @@ public class PasswordResetService {
         return "Password reset successful";
     }
 
+    private PasswordResetToken createFreshToken(Account account) {
+        passwordResetTokenRepository.deleteByAccountId(account.getId());
+        PasswordResetToken token = new PasswordResetToken();
+        token.setAccount(account);
+        token.setToken(UUID.randomUUID().toString());
+        token.setExpiresAt(Instant.now().plus(expirationMinutes, ChronoUnit.MINUTES));
+        return passwordResetTokenRepository.save(token);
+    }
+
     private boolean isNotExpired(PasswordResetToken token) {
         return token.getExpiresAt() != null && token.getExpiresAt().isAfter(Instant.now());
     }
@@ -140,6 +173,28 @@ public class PasswordResetService {
                 """.formatted(BusinessIdentity.BRAND_NAME, resetLink, expirationMinutes);
     }
 
+    private String buildAdminTriggeredResetEmail(String token, Account account) {
+        String displayName = account instanceof Admin admin && admin.getDisplayName() != null
+                ? admin.getDisplayName()
+                : account.getEmail();
+        String resetLink = UriComponentsBuilder.fromUriString(resetBaseUrl)
+                .queryParam("token", token)
+                .build(true)
+                .toUriString();
+        return """
+                Xin chao %s,
+
+                Quan tri vien he thong da yeu cau dat lai mat khau cho tai khoan quan tri %s cua ban.
+
+                Mo lien ket duoi day de dat mat khau moi:
+                %s
+
+                Lien ket se het han sau %d phut.
+
+                Neu ban khong cho rang yeu cau nay la dung, vui long lien he SUPER_ADMIN cua he thong.
+                """.formatted(displayName, BusinessIdentity.BRAND_NAME, resetLink, expirationMinutes);
+    }
+
     /**
      * Issues a one-time setup link and sends a welcome email for a newly created staff account.
      * No temporary password is included in the email; the recipient sets their own password
@@ -155,12 +210,7 @@ public class PasswordResetService {
                     account.getEmail());
             return;
         }
-        passwordResetTokenRepository.deleteByAccountId(account.getId());
-        PasswordResetToken token = new PasswordResetToken();
-        token.setAccount(account);
-        token.setToken(UUID.randomUUID().toString());
-        token.setExpiresAt(Instant.now().plus(expirationMinutes, ChronoUnit.MINUTES));
-        PasswordResetToken savedToken = passwordResetTokenRepository.save(token);
+        PasswordResetToken savedToken = createFreshToken(account);
         try {
             mailService.sendText(
                     account.getEmail(),

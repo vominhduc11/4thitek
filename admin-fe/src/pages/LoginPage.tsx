@@ -1,6 +1,6 @@
 ﻿import { Eye, EyeOff, Lock, User } from "lucide-react";
-import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import logoCard from "../assets/images/logo-4t.png";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import { FieldErrorMessage, ghostButtonClass, inputClass, primaryButtonClass } from "../components/ui-kit";
@@ -12,6 +12,7 @@ import { AuthApiError, resendAdminEmailVerification } from "../lib/authApi";
 
 type LocationState = {
   from?: string;
+  notice?: string;
 };
 
 const copyByLanguage = {
@@ -45,6 +46,7 @@ const copyByLanguage = {
     loginSuccess: "Đăng nhập thành công",
     loginButton: "Đăng nhập",
     loggingIn: "Đang đăng nhập...",
+    forgotPassword: "Quên mật khẩu?",
   },
   en: {
     adminEmailRequired: "Please contact your system owner to add an email address to your admin account.",
@@ -76,6 +78,7 @@ const copyByLanguage = {
     loginSuccess: "Signed in successfully",
     loginButton: "Sign in",
     loggingIn: "Signing in...",
+    forgotPassword: "Forgot password?",
   },
 } as const;
 
@@ -107,10 +110,20 @@ function LoginPage() {
   const [authErrorCode, setAuthErrorCode] = useState<string | undefined>();
   const [resendNotice, setResendNotice] = useState("");
   const [isResendingVerification, setIsResendingVerification] = useState(false);
+  const [pageNotice, setPageNotice] = useState("");
   const [fieldErrors, setFieldErrors] = useState<{ username?: string; password?: string }>({});
   const [showPassword, setShowPassword] = useState(false);
 
   const target = ((location.state as LocationState | null)?.from || "/") as string;
+
+  useEffect(() => {
+    const notice = (location.state as LocationState | null)?.notice;
+    if (!notice) {
+      return;
+    }
+    setPageNotice(notice);
+    navigate(location.pathname, { replace: true, state: { from: target } });
+  }, [location.pathname, location.state, navigate, target]);
 
   const validateFields = (nextUsername: string, nextPassword: string) => {
     const nextErrors: { username?: string; password?: string } = {};
@@ -201,6 +214,12 @@ function LoginPage() {
         </header>
 
         <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+          {pageNotice ? (
+            <div className="rounded-[18px] border border-[rgba(41,171,226,0.28)] bg-[rgba(41,171,226,0.14)] px-4 py-3 text-sm text-[var(--accent)]">
+              {pageNotice}
+            </div>
+          ) : null}
+
           <div>
             <label className="text-sm font-semibold text-[var(--ink)]" htmlFor="username">{copy.username}</label>
             <div className="relative mt-2">
@@ -264,6 +283,12 @@ function LoginPage() {
             <input className="h-4 w-4 accent-[var(--accent)]" type="checkbox" checked={remember} disabled={isLoggingIn || isResendingVerification} onChange={(event) => setRemember(event.target.checked)} />
             <span>{copy.remember}</span>
           </label>
+
+          <div className="flex justify-end">
+            <Link className="text-sm font-semibold text-[var(--accent)] transition hover:text-[var(--accent-strong)]" to="/forgot-password">
+              {copy.forgotPassword}
+            </Link>
+          </div>
 
           {error ? <FieldErrorMessage>{error}</FieldErrorMessage> : null}
 

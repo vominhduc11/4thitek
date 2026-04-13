@@ -28,6 +28,7 @@ import {
   fetchAdminUsers,
   replaceAdminSepayWebhookToken,
   recordAdminOrderPayment,
+  updateAdminDiscountRule,
   updateAdminBlog,
   updateAdminDealerAccountStatus,
   updateAdminDiscountRuleStatus,
@@ -133,8 +134,12 @@ type AdminDataContextValue = {
   discountRules: DiscountRule[]
   discountRulesState: AdminResourceState
   addDiscountRule: (
-    payload: Pick<DiscountRule, 'label' | 'range' | 'percent' | 'status'>,
+    payload: Pick<DiscountRule, 'fromQuantity' | 'toQuantity' | 'percent' | 'status'>,
   ) => Promise<DiscountRule>
+  updateDiscountRule: (
+    id: string,
+    payload: Pick<DiscountRule, 'fromQuantity' | 'toQuantity' | 'percent' | 'status'>,
+  ) => Promise<void>
   updateDiscountRuleStatus: (id: string, status: RuleStatus) => Promise<void>
   settings: AppSettings
   settingsState: AdminResourceState
@@ -556,8 +561,8 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
   const addDiscountRule: AdminDataContextValue['addDiscountRule'] = async (payload) => {
     const token = requireToken()
     const created = await createAdminDiscountRule(token, {
-      label: payload.label.trim(),
-      range: payload.range.trim(),
+      fromQuantity: payload.fromQuantity,
+      toQuantity: payload.toQuantity,
       percent: payload.percent,
       status: toBackendRuleStatus(payload.status),
     })
@@ -565,6 +570,20 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     setDiscountRules((previous) => [nextRule, ...previous])
     await queryClient.invalidateQueries({ queryKey: resourceQueryKeys.discountRules })
     return nextRule
+  }
+
+  const updateDiscountRule: AdminDataContextValue['updateDiscountRule'] = async (id, payload) => {
+    const token = requireToken()
+    const updated = await updateAdminDiscountRule(token, Number(id), {
+      fromQuantity: payload.fromQuantity,
+      toQuantity: payload.toQuantity,
+      percent: payload.percent,
+      status: toBackendRuleStatus(payload.status),
+    })
+    setDiscountRules((previous) =>
+      previous.map((item) => (item.id === id ? mapDiscountRule(updated) : item)),
+    )
+    await queryClient.invalidateQueries({ queryKey: resourceQueryKeys.discountRules })
   }
 
   const updateDiscountRuleStatus: AdminDataContextValue['updateDiscountRuleStatus'] = async (
@@ -637,6 +656,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     discountRules,
     discountRulesState: resourceStates.discountRules,
     addDiscountRule,
+    updateDiscountRule,
     updateDiscountRuleStatus,
     settings,
     settingsState: resourceStates.settings,

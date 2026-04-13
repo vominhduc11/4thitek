@@ -65,6 +65,7 @@ import com.devwonder.backend.service.support.AdminOrderNotificationSupport;
 import com.devwonder.backend.service.support.AdminResponseMapper;
 import com.devwonder.backend.service.support.AccountValidationSupport;
 import com.devwonder.backend.service.support.AdminWriteSupport;
+import com.devwonder.backend.service.support.BulkDiscountTierSupport;
 import com.devwonder.backend.service.support.DealerOrderNotificationSupport;
 import com.devwonder.backend.service.support.DealerPaymentSupport;
 import com.devwonder.backend.service.support.DealerAccountStatusTransitionPolicy;
@@ -669,16 +670,13 @@ public class AdminManagementService {
         if (isSuperAdmin) {
             throw new BadRequestException("Cannot reset password of a super admin account");
         }
-        String temporaryPassword = generateTemporaryPassword();
-        admin.setPassword(passwordEncoder.encode(temporaryPassword));
-        admin.setRequirePasswordChange(Boolean.TRUE);
-        adminRepository.save(admin);
-        return java.util.Map.of("temporaryPassword", temporaryPassword);
+        passwordResetService.sendAdminTriggeredStaffResetLink(admin);
+        return java.util.Map.of("status", "reset_link_sent");
     }
     @Transactional(readOnly = true)
     public List<AdminDiscountRuleResponse> getDiscountRules() {
         return bulkDiscountRepository.findAll().stream()
-                .sorted(Comparator.comparing(BulkDiscount::getUpdatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
+                .sorted(BulkDiscountTierSupport.ruleSortOrder())
                 .map(AdminResponseMapper::toDiscountRuleResponse)
                 .toList();
     }
@@ -688,10 +686,19 @@ public class AdminManagementService {
     public AdminDiscountRuleResponse createDiscountRule(AdminDiscountRuleUpsertRequest request) {
         adminWriteSupport.validateDiscountRuleRequest(request);
         BulkDiscount rule = new BulkDiscount();
-        rule.setLabel(requireNonBlank(request.label(), "label"));
-        applyDiscountRuleRange(rule, requireNonBlank(request.range(), "range"));
-        rule.setDiscountPercent(adminWriteSupport.requirePositivePercent(request.percent()));
-        rule.setStatus(request.status() == null ? DiscountRuleStatus.DRAFT : request.status());
+        applyDiscountRule(rule, request);
+        validateActiveDiscountRuleConstraints(rule);
+        return AdminResponseMapper.toDiscountRuleResponse(bulkDiscountRepository.save(rule));
+    }
+
+    @Transactional
+    @CacheEvict(cacheNames = CacheNames.ADMIN_DASHBOARD, allEntries = true)
+    public AdminDiscountRuleResponse updateDiscountRule(Long id, AdminDiscountRuleUpsertRequest request) {
+        adminWriteSupport.validateDiscountRuleRequest(request);
+        BulkDiscount rule = bulkDiscountRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Discount rule not found"));
+        applyDiscountRule(rule, request);
+        validateActiveDiscountRuleConstraints(rule);
         return AdminResponseMapper.toDiscountRuleResponse(bulkDiscountRepository.save(rule));
     }
 
@@ -701,6 +708,7 @@ public class AdminManagementService {
         BulkDiscount rule = bulkDiscountRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Discount rule not found"));
         rule.setStatus(request.status());
+        validateActiveDiscountRuleConstraints(rule);
         return AdminResponseMapper.toDiscountRuleResponse(bulkDiscountRepository.save(rule));
     }
 
@@ -742,7 +750,7 @@ public class AdminManagementService {
                 Math.toIntExact(blogRepository.countActiveByStatus(com.devwonder.backend.entity.enums.BlogStatus.PUBLISHED)),
                 Math.toIntExact(blogRepository.countActiveByStatusNot(com.devwonder.backend.entity.enums.BlogStatus.PUBLISHED)),
                 Math.toIntExact(bulkDiscountRepository.count()),
-                Math.toIntExact(bulkDiscountRepository.countByStatus(DiscountRuleStatus.PENDING)),
+                Math.toIntExact(bulkDiscountRepository.countByStatus(DiscountRuleStatus.DRAFT)),
                 revenueOrders,
                 topProducts,
                 activeDiscountRules,
@@ -787,14 +795,20 @@ public class AdminManagementService {
         return adminSettingsService.getVatPercent();
     }
 
-    private void applyDiscountRuleRange(BulkDiscount rule, String rangeLabel) {
-        OrderPricingSupport.QuantityRange range = OrderPricingSupport.parseRange(rangeLabel);
-        if (range == null) {
-            throw new BadRequestException("range is invalid");
-        }
-        rule.setRangeLabel(OrderPricingSupport.canonicalRangeLabel(range));
-        rule.setMinQuantity(range == null ? null : range.min());
-        rule.setMaxQuantity(range == null ? null : range.max());
+    private void applyDiscountRule(BulkDiscount rule, AdminDiscountRuleUpsertRequest request) {
+        rule.setFromQuantity(request.fromQuantity());
+        rule.setToQuantity(request.toQuantity());
+        rule.setDiscountPercent(adminWriteSupport.requirePositivePercent(request.percent()));
+        rule.setStatus(request.status() == null ? DiscountRuleStatus.DRAFT : request.status());
+    }
+
+    private void validateActiveDiscountRuleConstraints(BulkDiscount candidate) {
+        List<BulkDiscount> rules = bulkDiscountRepository.findAll().stream()
+                .filter(existing -> candidate.getId() == null || !Objects.equals(existing.getId(), candidate.getId()))
+                .toList();
+        List<BulkDiscount> allRules = new java.util.ArrayList<>(rules);
+        allRules.add(candidate);
+        BulkDiscountTierSupport.assertNoActiveOverlap(allRules);
     }
 
     private AdminDashboardSupport.TopProductStat toDashboardTopProductStat(Object[] row) {

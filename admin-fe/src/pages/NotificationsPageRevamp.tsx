@@ -1,4 +1,4 @@
-import { Megaphone, RefreshCw, Send } from "lucide-react";
+import { Bell, Megaphone, RefreshCw, Send } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -11,9 +11,7 @@ import {
 } from "../lib/adminApi";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
-import { translateCopy } from "../lib/i18n";
 import { useToast } from "../context/ToastContext";
-import { formatDateTime } from "../lib/formatters";
 import {
   EmptyState,
   ErrorState,
@@ -38,6 +36,8 @@ import {
   textareaClass,
 } from "../components/ui-kit";
 import { subscribeAdminRealtimeNotification } from "../lib/adminRealtime";
+import { formatDateTime } from "../lib/formatters";
+import { translateCopy } from "../lib/i18n";
 
 const AUDIENCE_OPTIONS: BackendNotificationCreateRequest["audience"][] = [
   "DEALERS",
@@ -72,6 +72,43 @@ const typeLabelsKeys = {
   WARRANTY: "Bảo hành",
 } as const;
 
+const copyKeys = {
+  title: "Trung tâm thông báo",
+  description:
+    "Theo dõi thông báo đã lưu, nhận cập nhật realtime và gửi thông điệp chủ động theo nhóm nhận.",
+  searchLabel: "Tìm trong trung tâm thông báo",
+  searchPlaceholder: "Tìm tiêu đề, tài khoản, nội dung...",
+  audience: "Đối tượng",
+  type: "Loại",
+  content: "Nội dung",
+  link: "Liên kết web",
+  deepLink: "Liên kết nội bộ",
+  accountIds: "Danh sách ID tài khoản",
+  send: "Gửi thông báo",
+  currentPage: "Bản ghi hiện tại",
+  unread: "Chưa đọc",
+  promotions: "Khuyến mãi",
+  emptyTitle: "Chưa có thông báo đã lưu",
+  emptyMessage:
+    "Tạo thông báo mới hoặc tải lại dữ liệu để xem lịch sử gửi gần đây.",
+  loadTitle: "Không tải được trung tâm thông báo",
+  loadFallback: "Danh sách thông báo hiện chưa thể tải.",
+  createTitle: "Tạo thông báo mới",
+  titleLabel: "Tiêu đề",
+  account: "Tài khoản",
+  created: "Tạo lúc",
+  next: "Tiếp",
+  previous: "Trước",
+  statusRead: "Đã đọc",
+  statusUnread: "Chưa đọc",
+  titleRequired: "Vui lòng nhập tiêu đề.",
+  contentRequired: "Vui lòng nhập nội dung.",
+  accountIdsRequired: "Vui lòng nhập ít nhất một ID tài khoản hợp lệ.",
+  contentError: "Tiêu đề hoặc nội dung vượt quá giới hạn cho phép.",
+  reload: "Tải lại",
+  openLink: "Mở liên kết",
+} as const;
+
 const TITLE_MAX = 120;
 const CONTENT_MAX = 500;
 
@@ -95,63 +132,26 @@ const createInitialForm = (): NotificationFormState => ({
   accountIdsText: "",
 });
 
-const copyKeys = {
-  title: "Thông báo",
-  description:
-    "Gửi thông báo chủ động theo nhóm nhận và kiểm tra lịch sử thông báo đã phát đi.",
-  searchLabel: "Tìm thông báo",
-  searchPlaceholder: "Tìm tiêu đề, tài khoản, nội dung...",
-  audience: "Đối tượng",
-  type: "Loại",
-  content: "Nội dung",
-  link: "Liên kết",
-  deepLink: "Deep link",
-  accountIds: "Danh sách ID tài khoản",
-  send: "Gửi thông báo",
-  currentPage: "Trang hiện tại",
-  unread: "Chưa đọc",
-  promotions: "Khuyến mãi",
-  emptyTitle: "Chưa có thông báo",
-  emptyMessage: "Tạo thông báo đầu tiên hoặc tải lại dữ liệu.",
-  loadTitle: "Không tải được thông báo",
-  loadFallback: "Danh sách thông báo chưa thể tải.",
-  createTitle: "Tạo chiến dịch thông báo",
-  titleLabel: "Tiêu đề",
-  account: "Tài khoản",
-  created: "Tạo lúc",
-  next: "Tiếp",
-  previous: "Trước",
-  statusRead: "Đã đọc",
-  statusUnread: "Chưa đọc",
-  validationError: "Vui lòng nhập đủ tiêu đề và nội dung.",
-  titleRequired: "Vui lòng nhập tiêu đề.",
-  contentRequired: "Vui lòng nhập nội dung.",
-  accountIdsRequired: "Vui lòng nhập ít nhất một ID tài khoản hợp lệ.",
-  contentError: "Tiêu đề hoặc nội dung vượt quá giới hạn cho phép.",
-  reload: "Tải lại",
-  openLink: "Mở liên kết",
-} as const;
+const resolveNotificationDestination = (
+  item: Pick<BackendNotificationResponse, "deepLink" | "link">,
+) => item.deepLink ?? item.link ?? null;
 
-const renderNavigationLink = (
-  value: string | null | undefined,
+const renderNotificationLinkAction = (
+  destination: string,
   label: string,
   className: string,
 ) => {
-  if (!value) {
-    return null;
-  }
-
-  if (/^https?:\/\//i.test(value)) {
+  if (/^https?:\/\//i.test(destination)) {
     return (
-      <a className={className} href={value} rel="noreferrer" target="_blank">
-        {label}: {value}
+      <a className={className} href={destination} rel="noreferrer" target="_blank">
+        {label}
       </a>
     );
   }
 
   return (
-    <Link className={className} to={value}>
-      {label}: {value}
+    <Link className={className} to={destination}>
+      {label}
     </Link>
   );
 };
@@ -163,6 +163,7 @@ function NotificationsPageRevamp() {
   const typeLabels = translateCopy(typeLabelsKeys, t);
   const { accessToken } = useAuth();
   const { notify } = useToast();
+
   const [items, setItems] = useState<BackendNotificationResponse[]>([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -177,37 +178,41 @@ function NotificationsPageRevamp() {
   const [formErrors, setFormErrors] = useState<
     Partial<Record<keyof NotificationFormState, string>>
   >({});
+
   const toolbarSearchClass = "w-full sm:max-w-sm lg:w-72 xl:w-80";
   const hasSearchQuery = query.trim().length > 0;
 
-  const validateForm = (value: NotificationFormState) => {
-    const errors: Partial<Record<keyof NotificationFormState, string>> = {};
-    const accountIds =
-      value.audience === "ACCOUNTS"
-        ? value.accountIdsText
-            .split(/[,\n]+/)
-            .map((entry) => Number(entry.trim()))
-            .filter((entry) => Number.isFinite(entry))
-        : [];
+  const validateForm = useCallback(
+    (value: NotificationFormState) => {
+      const errors: Partial<Record<keyof NotificationFormState, string>> = {};
+      const accountIds =
+        value.audience === "ACCOUNTS"
+          ? value.accountIdsText
+              .split(/[,\n]+/)
+              .map((entry) => Number(entry.trim()))
+              .filter((entry) => Number.isFinite(entry))
+          : [];
 
-    if (!value.title.trim()) {
-      errors.title = copy.titleRequired;
-    } else if (value.title.trim().length > TITLE_MAX) {
-      errors.title = copy.contentError;
-    }
+      if (!value.title.trim()) {
+        errors.title = copy.titleRequired;
+      } else if (value.title.trim().length > TITLE_MAX) {
+        errors.title = copy.contentError;
+      }
 
-    if (!value.content.trim()) {
-      errors.content = copy.contentRequired;
-    } else if (value.content.trim().length > CONTENT_MAX) {
-      errors.content = copy.contentError;
-    }
+      if (!value.content.trim()) {
+        errors.content = copy.contentRequired;
+      } else if (value.content.trim().length > CONTENT_MAX) {
+        errors.content = copy.contentError;
+      }
 
-    if (value.audience === "ACCOUNTS" && accountIds.length === 0) {
-      errors.accountIdsText = copy.accountIdsRequired;
-    }
+      if (value.audience === "ACCOUNTS" && accountIds.length === 0) {
+        errors.accountIdsText = copy.accountIdsRequired;
+      }
 
-    return errors;
-  };
+      return errors;
+    },
+    [copy.accountIdsRequired, copy.contentError, copy.contentRequired, copy.titleRequired],
+  );
 
   const updateFormField = <K extends keyof NotificationFormState>(
     field: K,
@@ -222,7 +227,9 @@ function NotificationsPageRevamp() {
 
   const loadData = useCallback(
     async (nextPage: number) => {
-      if (!accessToken) return;
+      if (!accessToken) {
+        return;
+      }
       setIsLoading(true);
       setError(null);
       try {
@@ -245,12 +252,10 @@ function NotificationsPageRevamp() {
     [accessToken, copy.loadFallback],
   );
 
-  useEffect(() => {
-    void loadData(page);
-  }, [loadData, page]);
-
   const loadAllItems = useCallback(async () => {
-    if (!accessToken) return;
+    if (!accessToken) {
+      return;
+    }
     setIsSearchLoading(true);
     setError(null);
     try {
@@ -264,6 +269,10 @@ function NotificationsPageRevamp() {
       setIsSearchLoading(false);
     }
   }, [accessToken, copy.loadFallback]);
+
+  useEffect(() => {
+    void loadData(page);
+  }, [loadData, page]);
 
   useEffect(() => {
     if (!hasSearchQuery) {
@@ -323,7 +332,10 @@ function NotificationsPageRevamp() {
   }, [hasSearchQuery, loadAllItems, loadData, page]);
 
   const handleSend = async () => {
-    if (!accessToken) return;
+    if (!accessToken) {
+      return;
+    }
+
     const nextErrors = validateForm(form);
     setFormErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
@@ -381,7 +393,7 @@ function NotificationsPageRevamp() {
     return (
       <PagePanel>
         <ErrorState
-          title={t("Không tải được dữ liệu")}
+          title={copy.loadTitle}
           message={t("Vui lòng kiểm tra kết nối và thử lại.")}
           onRetry={() => void handleReload()}
         />
@@ -418,13 +430,13 @@ function NotificationsPageRevamp() {
 
       <div className="grid gap-4 md:grid-cols-3">
         <StatCard
-          icon={Megaphone}
+          icon={Bell}
           label={copy.currentPage}
           value={stats.total}
           tone="neutral"
         />
         <StatCard
-          icon={Megaphone}
+          icon={Bell}
           label={copy.unread}
           value={stats.unread}
           tone="warning"
@@ -452,8 +464,7 @@ function NotificationsPageRevamp() {
               onChange={(event) =>
                 updateFormField(
                   "audience",
-                  event.target
-                    .value as BackendNotificationCreateRequest["audience"],
+                  event.target.value as BackendNotificationCreateRequest["audience"],
                 )
               }
             >
@@ -464,6 +475,7 @@ function NotificationsPageRevamp() {
               ))}
             </select>
           </label>
+
           <label className="space-y-2" htmlFor="notification-type">
             <span className={labelClass}>{copy.type}</span>
             <select
@@ -482,10 +494,8 @@ function NotificationsPageRevamp() {
               ))}
             </select>
           </label>
-          <label
-            className="space-y-2 md:col-span-2"
-            htmlFor="notification-title"
-          >
+
+          <label className="space-y-2 md:col-span-2" htmlFor="notification-title">
             <span className={labelClass}>{copy.titleLabel}</span>
             <input
               id="notification-title"
@@ -507,6 +517,7 @@ function NotificationsPageRevamp() {
               </FieldErrorMessage>
             ) : null}
           </label>
+
           <label
             className="space-y-2 md:col-span-2"
             htmlFor="notification-content"
@@ -521,9 +532,7 @@ function NotificationsPageRevamp() {
               className={`${textareaClass} ${formErrors.content ? "border-rose-300" : ""}`}
               maxLength={CONTENT_MAX}
               value={form.content}
-              onChange={(event) =>
-                updateFormField("content", event.target.value)
-              }
+              onChange={(event) => updateFormField("content", event.target.value)}
             />
             {formErrors.content ? (
               <FieldErrorMessage
@@ -534,6 +543,7 @@ function NotificationsPageRevamp() {
               </FieldErrorMessage>
             ) : null}
           </label>
+
           <label className="space-y-2" htmlFor="notification-link">
             <span className={labelClass}>{copy.link}</span>
             <input
@@ -544,6 +554,7 @@ function NotificationsPageRevamp() {
               onChange={(event) => updateFormField("link", event.target.value)}
             />
           </label>
+
           <label className="space-y-2" htmlFor="notification-deep-link">
             <span className={labelClass}>{copy.deepLink}</span>
             <input
@@ -556,6 +567,7 @@ function NotificationsPageRevamp() {
               }
             />
           </label>
+
           {form.audience === "ACCOUNTS" ? (
             <label className="space-y-2" htmlFor="notification-account-ids">
               <span className={labelClass}>{copy.accountIds}</span>
@@ -584,9 +596,11 @@ function NotificationsPageRevamp() {
             </label>
           ) : null}
         </div>
+
         <p className={`mt-2 ${tableMetaClass}`}>
           {form.title.length}/{TITLE_MAX} · {form.content.length}/{CONTENT_MAX}
         </p>
+
         <div className="mt-4">
           <PrimaryButton
             aria-label={copy.send}
@@ -610,52 +624,48 @@ function NotificationsPageRevamp() {
         ) : (
           <>
             <div className="grid gap-3 md:hidden">
-              {filteredItems.map((item) => (
-                <article key={item.id} className={tableCardClass}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-semibold text-[var(--ink)]">
-                        {item.title}
-                      </p>
-                      <p className={tableMetaClass}>
-                        {item.accountName ?? item.accountType ?? "-"}
-                      </p>
+              {filteredItems.map((item) => {
+                const destination = resolveNotificationDestination(item);
+
+                return (
+                  <article key={item.id} className={tableCardClass}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-[var(--ink)]">
+                          {item.title}
+                        </p>
+                        <p className={tableMetaClass}>
+                          {item.accountName ?? item.accountType ?? "-"}
+                        </p>
+                      </div>
+                      <StatusBadge tone={typeTone[item.type ?? "SYSTEM"]}>
+                        {typeLabels[item.type ?? "SYSTEM"]}
+                      </StatusBadge>
                     </div>
-                    <StatusBadge tone={typeTone[item.type ?? "SYSTEM"]}>
-                      {typeLabels[item.type ?? "SYSTEM"]}
-                    </StatusBadge>
-                  </div>
-                  <p className="mt-3 text-sm text-[var(--ink)]">{item.body}</p>
-                  {renderNavigationLink(
-                    item.link,
-                    copy.link,
-                    `mt-2 block break-all text-xs ${tableMetaClass} underline-offset-2 hover:underline`,
-                  )}
-                  {renderNavigationLink(
-                    item.deepLink,
-                    copy.deepLink,
-                    `mt-1 block break-all text-xs ${tableMetaClass} underline-offset-2 hover:underline`,
-                  )}
-                  {item.deepLink || item.link ? (
-                    <div className="mt-3">
-                      <Link
-                        className="inline-flex items-center rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-semibold text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                        to={item.deepLink ?? item.link ?? "/notifications"}
-                      >
-                        {copy.openLink}
-                      </Link>
+
+                    <p className="mt-3 text-sm text-[var(--ink)]">{item.body}</p>
+
+                    {destination ? (
+                      <div className="mt-3">
+                        {renderNotificationLinkAction(
+                          destination,
+                          copy.openLink,
+                          "inline-flex items-center rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-semibold text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]",
+                        )}
+                      </div>
+                    ) : null}
+
+                    <div className="mt-4 flex items-center justify-between gap-3">
+                      <StatusBadge tone={item.isRead ? "neutral" : "warning"}>
+                        {item.isRead ? copy.statusRead : copy.statusUnread}
+                      </StatusBadge>
+                      <span className={tableMetaClass}>
+                        {item.createdAt ? formatDateTime(item.createdAt) : "-"}
+                      </span>
                     </div>
-                  ) : null}
-                  <div className="mt-4 flex items-center justify-between gap-3">
-                    <StatusBadge tone={item.isRead ? "neutral" : "warning"}>
-                      {item.isRead ? copy.statusRead : copy.statusUnread}
-                    </StatusBadge>
-                    <span className={tableMetaClass}>
-                      {item.createdAt ? formatDateTime(item.createdAt) : "-"}
-                    </span>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                );
+              })}
             </div>
 
             <div className="hidden overflow-x-auto md:block">
@@ -665,66 +675,63 @@ function NotificationsPageRevamp() {
                     <th className="min-w-64 px-3 py-2 font-semibold">
                       {copy.titleLabel}
                     </th>
-                    <th className="min-w-40 px-3 py-2 font-semibold">{copy.account}</th>
+                    <th className="min-w-40 px-3 py-2 font-semibold">
+                      {copy.account}
+                    </th>
                     <th className="w-36 px-3 py-2 font-semibold">{copy.type}</th>
                     <th className="w-36 px-3 py-2 font-semibold">
                       {copy.statusRead}
                     </th>
-                    <th className="w-40 px-3 py-2 font-semibold">{copy.created}</th>
+                    <th className="w-40 px-3 py-2 font-semibold">
+                      {copy.created}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredItems.map((item) => (
-                    <tr key={item.id} className={tableRowClass}>
-                      <td className="rounded-l-2xl px-3 py-3">
-                        <p className="font-semibold text-[var(--ink)]">
-                          {item.title}
-                        </p>
-                        <p className={`${tableMetaClass} line-clamp-2`}>
-                          {item.body}
-                        </p>
-                        {renderNavigationLink(
-                          item.link,
-                          copy.link,
-                          `${tableMetaClass} mt-1 block break-all underline-offset-2 hover:underline`,
-                        )}
-                        {renderNavigationLink(
-                          item.deepLink,
-                          copy.deepLink,
-                          `${tableMetaClass} mt-1 block break-all underline-offset-2 hover:underline`,
-                        )}
-                        {item.deepLink || item.link ? (
-                          <div className="mt-2">
-                            <Link
-                              className="inline-flex items-center rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-semibold text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                              to={item.deepLink ?? item.link ?? "/notifications"}
-                            >
-                              {copy.openLink}
-                            </Link>
-                          </div>
-                        ) : null}
-                      </td>
-                      <td className="px-3 py-3">
-                        <p>{item.accountName ?? "-"}</p>
-                        <p className={tableMetaClass}>
-                          {item.accountType ?? "-"}
-                        </p>
-                      </td>
-                      <td className="px-3 py-3">
-                        <StatusBadge tone={typeTone[item.type ?? "SYSTEM"]}>
-                          {typeLabels[item.type ?? "SYSTEM"]}
-                        </StatusBadge>
-                      </td>
-                      <td className="px-3 py-3">
-                        <StatusBadge tone={item.isRead ? "neutral" : "warning"}>
-                          {item.isRead ? copy.statusRead : copy.statusUnread}
-                        </StatusBadge>
-                      </td>
-                      <td className="rounded-r-2xl px-3 py-3 text-sm">
-                        {item.createdAt ? formatDateTime(item.createdAt) : "-"}
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredItems.map((item) => {
+                    const destination = resolveNotificationDestination(item);
+
+                    return (
+                      <tr key={item.id} className={tableRowClass}>
+                        <td className="rounded-l-2xl px-3 py-3">
+                          <p className="font-semibold text-[var(--ink)]">
+                            {item.title}
+                          </p>
+                          <p className={`${tableMetaClass} line-clamp-2`}>
+                            {item.body}
+                          </p>
+                          {destination ? (
+                            <div className="mt-2">
+                              {renderNotificationLinkAction(
+                                destination,
+                                copy.openLink,
+                                "inline-flex items-center rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-semibold text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]",
+                              )}
+                            </div>
+                          ) : null}
+                        </td>
+                        <td className="px-3 py-3">
+                          <p>{item.accountName ?? "-"}</p>
+                          <p className={tableMetaClass}>
+                            {item.accountType ?? "-"}
+                          </p>
+                        </td>
+                        <td className="px-3 py-3">
+                          <StatusBadge tone={typeTone[item.type ?? "SYSTEM"]}>
+                            {typeLabels[item.type ?? "SYSTEM"]}
+                          </StatusBadge>
+                        </td>
+                        <td className="px-3 py-3">
+                          <StatusBadge tone={item.isRead ? "neutral" : "warning"}>
+                            {item.isRead ? copy.statusRead : copy.statusUnread}
+                          </StatusBadge>
+                        </td>
+                        <td className="rounded-r-2xl px-3 py-3 text-sm">
+                          {item.createdAt ? formatDateTime(item.createdAt) : "-"}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

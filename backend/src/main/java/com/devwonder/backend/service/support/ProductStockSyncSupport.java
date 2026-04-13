@@ -20,8 +20,6 @@ public class ProductStockSyncSupport {
 
     private final ProductRepository productRepository;
     private final ProductSerialRepository productSerialRepository;
-    private final InventoryAlertSupport inventoryAlertSupport;
-
     public int countAvailableStock(Long productId) {
         if (productId == null) {
             return 0;
@@ -76,11 +74,9 @@ public class ProductStockSyncSupport {
         if (product == null || product.getId() == null) {
             return;
         }
-        int previousStock = safeStock(product);
         int nextStock = countAvailableStock(product.getId());
         product.setStock(nextStock);
-        Product saved = productRepository.save(product);
-        inventoryAlertSupport.notifyIfThresholdCrossed(saved, previousStock, nextStock);
+        productRepository.save(product);
     }
 
     @CacheEvict(cacheNames = {
@@ -105,18 +101,12 @@ public class ProductStockSyncSupport {
             return;
         }
         List<Product> toSave = new ArrayList<>(productsById.size());
-        Map<Long, Integer> previousStocks = new LinkedHashMap<>();
         Map<Long, Integer> availableStocks = countAvailableStocks(productsById.keySet());
         for (Product product : productsById.values()) {
-            previousStocks.put(product.getId(), safeStock(product));
             product.setStock(availableStocks.getOrDefault(product.getId(), 0));
             toSave.add(product);
         }
-        List<Product> savedProducts = productRepository.saveAll(toSave);
-        for (Product savedProduct : savedProducts) {
-            int previousStock = previousStocks.getOrDefault(savedProduct.getId(), 0);
-            inventoryAlertSupport.notifyIfThresholdCrossed(savedProduct, previousStock, safeStock(savedProduct));
-        }
+        productRepository.saveAll(toSave);
     }
 
     @CacheEvict(cacheNames = {
@@ -135,9 +125,5 @@ public class ProductStockSyncSupport {
             return;
         }
         syncProductStocks(products);
-    }
-
-    private int safeStock(Product product) {
-        return product == null || product.getStock() == null ? 0 : Math.max(0, product.getStock());
     }
 }

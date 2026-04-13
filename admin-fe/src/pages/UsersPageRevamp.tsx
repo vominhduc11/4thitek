@@ -121,6 +121,8 @@ const getInviteFormErrors = (copy: typeof copyKeys, form: InviteForm) => {
 function UsersPageRevamp() {
   const { t } = useLanguage();
   const copy = translateCopy(copyKeys, t);
+  const manualResetConfirmMessageTemplate = t('Đặt lại mật khẩu cho tài khoản "{name}"? Hệ thống sẽ gửi liên kết đặt lại mật khẩu đến email của tài khoản.');
+  const manualResetSuccessMessage = t("Đã gửi liên kết đặt lại mật khẩu đến email của tài khoản.");
   const { notify } = useToast();
   const { accessToken } = useAuth();
   const { confirm, confirmDialog } = useConfirmDialog();
@@ -137,7 +139,7 @@ function UsersPageRevamp() {
 
     const approved = await confirm({
       title: copy.resetPasswordConfirmTitle,
-      message: copy.resetPasswordConfirmMessage.replace("{name}", userName),
+      message: manualResetConfirmMessageTemplate.replace("{name}", userName),
       tone: "warning",
       confirmLabel: copy.resetPassword,
     });
@@ -146,8 +148,8 @@ function UsersPageRevamp() {
 
     setResettingPasswordFor(userId);
     try {
-      const result = await resetAdminUserPassword(accessToken, Number(userId));
-      notify(copy.resetPasswordSuccess.replace("{password}", result.temporaryPassword), {
+      await resetAdminUserPassword(accessToken, Number(userId));
+      notify(manualResetSuccessMessage, {
         title: copy.resetPasswordConfirmTitle,
         variant: "success",
       });

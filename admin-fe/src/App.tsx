@@ -29,6 +29,8 @@ const UsersPage = lazy(() => import('./pages/UsersPageRevamp'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const PublicContentPage = lazy(() => import('./pages/PublicContentPage'))
 const LoginPage = lazy(() => import('./pages/LoginPage'))
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'))
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'))
 const ChangePasswordPage = lazy(() => import('./pages/ChangePasswordPage'))
 const UnmatchedPaymentsPage = lazy(() => import('./pages/UnmatchedPaymentsPageRevamp'))
@@ -57,8 +59,11 @@ function App() {
     <Routes>
       <Route element={<PublicOnlyRoute />}>
         <Route path="/login" element={renderLazyElement(LoginPage)} />
+        <Route path="/forgot-password" element={renderLazyElement(ForgotPasswordPage)} />
       </Route>
 
+      <Route path="/reset-password" element={renderLazyElement(ResetPasswordPage)} />
+      <Route path="/reset" element={renderLazyElement(ResetPasswordPage)} />
       <Route path="/verify-email" element={renderLazyElement(VerifyEmailPage)} />
 
       <Route element={<ProtectedRoute />}>

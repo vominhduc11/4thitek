@@ -129,26 +129,20 @@ class CartItem {
 
 class BulkDiscountRule {
   const BulkDiscountRule({
+    required this.fromQuantity,
     required this.percent,
-    this.productId,
-    this.minQuantity,
-    this.maxQuantity,
+    this.toQuantity,
     this.rangeLabel,
   });
 
+  final int fromQuantity;
+  final int? toQuantity;
   final int percent;
-  final String? productId;
-  final int? minQuantity;
-  final int? maxQuantity;
   final String? rangeLabel;
 
   bool appliesToCart(Iterable<CartItem> items) {
-    final stats = _buildBulkDiscountStats(
-      items.map(
-        (item) => (productId: item.product.id, quantity: item.quantity),
-      ),
-    );
-    return _matchesBulkDiscountRule(this, stats);
+    final totalQuantity = _totalCartQuantity(items);
+    return _matchesBulkDiscountRule(this, totalQuantity);
   }
 }
 
@@ -156,13 +150,11 @@ class BulkDiscountTarget {
   const BulkDiscountTarget({
     required this.targetQuantity,
     required this.percent,
-    this.productId,
     this.rangeLabel,
   });
 
   final int targetQuantity;
   final int percent;
-  final String? productId;
   final String? rangeLabel;
 }
 
@@ -226,51 +218,24 @@ BulkDiscountTarget? nextBulkDiscountTargetForCart({
   required Iterable<CartItem> items,
   required List<BulkDiscountRule> rules,
 }) {
-  final stats = _buildBulkDiscountStats(
-    items.map((item) => (productId: item.product.id, quantity: item.quantity)),
-  );
-  if (stats.totalItems <= 0 || rules.isEmpty) {
+  final totalQuantity = _totalCartQuantity(items);
+  if (totalQuantity <= 0 || rules.isEmpty) {
     return null;
   }
 
-  BulkDiscountRule? nextRule;
-  int? nextAdditionalQuantity;
-  for (final rule in rules) {
-    final minQuantity = rule.minQuantity;
-    if (minQuantity == null) {
-      continue;
-    }
-    if (rule.productId != null &&
-        !stats.productQuantities.containsKey(rule.productId)) {
-      continue;
-    }
-
-    final currentQuantity = _quantityForRule(rule, stats);
-    if (currentQuantity <= 0 || minQuantity <= currentQuantity) {
-      continue;
-    }
-
-    final additionalQuantity = minQuantity - currentQuantity;
-    if (nextRule == null ||
-        _isBetterNextDiscountTarget(
-          candidate: rule,
-          best: nextRule,
-          candidateAdditionalQuantity: additionalQuantity,
-          bestAdditionalQuantity: nextAdditionalQuantity!,
-        )) {
-      nextRule = rule;
-      nextAdditionalQuantity = additionalQuantity;
-    }
-  }
+  final orderedRules = _sortedBulkDiscountRules(rules);
+  final nextRule = orderedRules.cast<BulkDiscountRule?>().firstWhere(
+    (rule) => rule != null && rule.fromQuantity > totalQuantity,
+    orElse: () => null,
+  );
 
   if (nextRule == null) {
     return null;
   }
 
   return BulkDiscountTarget(
-    targetQuantity: nextRule.minQuantity ?? stats.totalItems,
+    targetQuantity: nextRule.fromQuantity,
     percent: nextRule.percent,
-    productId: nextRule.productId,
     rangeLabel: nextRule.rangeLabel,
   );
 }
@@ -279,13 +244,7 @@ int currentQuantityForBulkDiscountTarget({
   required BulkDiscountTarget target,
   required Iterable<CartItem> items,
 }) {
-  final stats = _buildBulkDiscountStats(
-    items.map((item) => (productId: item.product.id, quantity: item.quantity)),
-  );
-  if (target.productId == null) {
-    return stats.totalItems;
-  }
-  return stats.productQuantities[target.productId] ?? 0;
+  return _totalCartQuantity(items);
 }
 
 int remainingQuantityForBulkDiscountTarget({
@@ -491,43 +450,6 @@ class DistributorNotice {
   final String? deepLink;
 }
 
-typedef _BulkDiscountLine = ({String productId, int quantity});
-
-class _BulkDiscountStats {
-  const _BulkDiscountStats({
-    required this.totalItems,
-    required this.productQuantities,
-    required this.singleProductId,
-  });
-
-  final int totalItems;
-  final Map<String, int> productQuantities;
-  final String? singleProductId;
-}
-
-_BulkDiscountStats _buildBulkDiscountStats(Iterable<_BulkDiscountLine> lines) {
-  final productIds = <String>{};
-  final productQuantities = <String, int>{};
-  var totalItems = 0;
-  for (final line in lines) {
-    final safeQuantity = line.quantity < 0 ? 0 : line.quantity;
-    totalItems += safeQuantity;
-    if (line.productId.trim().isNotEmpty && safeQuantity > 0) {
-      productIds.add(line.productId);
-      productQuantities.update(
-        line.productId,
-        (quantity) => quantity + safeQuantity,
-        ifAbsent: () => safeQuantity,
-      );
-    }
-  }
-  return _BulkDiscountStats(
-    totalItems: totalItems,
-    productQuantities: Map<String, int>.unmodifiable(productQuantities),
-    singleProductId: productIds.length == 1 ? productIds.first : null,
-  );
-}
-
 class _BulkDiscountPricing {
   const _BulkDiscountPricing({
     required this.discountPercent,
@@ -543,156 +465,75 @@ _BulkDiscountPricing _resolveBulkDiscountPricing({
   required List<BulkDiscountRule> rules,
 }) {
   final itemList = items.toList(growable: false);
-  final stats = _buildBulkDiscountStats(
-    itemList.map(
-      (item) => (productId: item.product.id, quantity: item.quantity),
-    ),
-  );
-  if (stats.totalItems <= 0 || rules.isEmpty) {
+  final totalQuantity = _totalCartQuantity(itemList);
+  if (totalQuantity <= 0 || rules.isEmpty) {
     return const _BulkDiscountPricing(discountPercent: 0, discountAmount: 0);
   }
 
-  final globalRule = _selectBestMatchingRule(
-    rules.where((rule) => rule.productId == null),
-    quantity: stats.totalItems,
-  );
-  final productRules = <String, BulkDiscountRule>{};
-  for (final entry in stats.productQuantities.entries) {
-    final matchedRule = _selectBestMatchingRule(
-      rules.where((rule) => rule.productId == entry.key),
-      quantity: entry.value,
-    );
-    if (matchedRule != null) {
-      productRules[entry.key] = matchedRule;
-    }
-  }
+  final matchedRule = _selectMatchingRule(rules, quantity: totalQuantity);
+  final discountPercent = matchedRule?.percent ?? 0;
 
   var subtotal = 0;
-  var discountAmount = 0;
   for (final item in itemList) {
     final safeQuantity = item.quantity < 0 ? 0 : item.quantity;
     if (safeQuantity <= 0) {
       continue;
     }
-    final lineSubtotal = item.product.price * safeQuantity;
-    subtotal += lineSubtotal;
-    final matchedRule = productRules[item.product.id] ?? globalRule;
-    if (matchedRule == null) {
-      continue;
-    }
-    discountAmount += bulkDiscountAmount(
-      subtotal: lineSubtotal,
-      discountPercent: matchedRule.percent,
-    );
+    subtotal += item.product.price * safeQuantity;
   }
+  final discountAmount = bulkDiscountAmount(
+    subtotal: subtotal,
+    discountPercent: discountPercent,
+  );
 
   return _BulkDiscountPricing(
-    discountPercent: _resolveBulkDiscountPercentForSubtotal(
-      subtotal: subtotal,
-      discountAmount: discountAmount,
-    ),
+    discountPercent: discountPercent,
     discountAmount: discountAmount,
   );
 }
 
-int _resolveBulkDiscountPercentForSubtotal({
-  required int subtotal,
-  required int discountAmount,
-}) {
-  if (subtotal <= 0 || discountAmount <= 0) {
-    return 0;
-  }
-  return (discountAmount * 100 / subtotal).round();
+int _totalCartQuantity(Iterable<CartItem> items) {
+  return items.fold<int>(
+    0,
+    (total, item) => total + (item.quantity < 0 ? 0 : item.quantity),
+  );
 }
 
-bool _matchesBulkDiscountRule(BulkDiscountRule rule, _BulkDiscountStats stats) {
-  final quantity = _quantityForRule(rule, stats);
+bool _matchesBulkDiscountRule(BulkDiscountRule rule, int quantity) {
   if (quantity <= 0) {
     return false;
   }
-  if (rule.minQuantity != null && quantity < rule.minQuantity!) {
+  if (quantity < rule.fromQuantity) {
     return false;
   }
-  if (rule.maxQuantity != null && quantity > rule.maxQuantity!) {
+  if (rule.toQuantity != null && quantity > rule.toQuantity!) {
     return false;
   }
   return true;
 }
 
-int _quantityForRule(BulkDiscountRule rule, _BulkDiscountStats stats) {
-  if (rule.productId == null) {
-    return stats.totalItems;
-  }
-  return stats.productQuantities[rule.productId] ?? 0;
-}
-
-BulkDiscountRule? _selectBestMatchingRule(
-  Iterable<BulkDiscountRule> rules, {
+BulkDiscountRule? _selectMatchingRule(
+  List<BulkDiscountRule> rules, {
   required int quantity,
 }) {
-  BulkDiscountRule? bestRule;
-  for (final rule in rules) {
-    if (!_matchesQuantity(rule, quantity)) {
-      continue;
-    }
-    if (bestRule == null || _compareDiscountRulePriority(rule, bestRule) < 0) {
-      bestRule = rule;
+  for (final rule in _sortedBulkDiscountRules(rules)) {
+    if (_matchesBulkDiscountRule(rule, quantity)) {
+      return rule;
     }
   }
-  return bestRule;
+  return null;
 }
 
-bool _matchesQuantity(BulkDiscountRule rule, int quantity) {
-  if (quantity <= 0) {
-    return false;
-  }
-  if (rule.minQuantity != null && quantity < rule.minQuantity!) {
-    return false;
-  }
-  if (rule.maxQuantity != null && quantity > rule.maxQuantity!) {
-    return false;
-  }
-  return true;
-}
-
-int _compareDiscountRulePriority(BulkDiscountRule a, BulkDiscountRule b) {
-  final minCompare = (b.minQuantity ?? 0).compareTo(a.minQuantity ?? 0);
-  if (minCompare != 0) {
-    return minCompare;
-  }
-  final percentCompare = b.percent.compareTo(a.percent);
-  if (percentCompare != 0) {
-    return percentCompare;
-  }
-  final maxA = a.maxQuantity ?? 1 << 30;
-  final maxB = b.maxQuantity ?? 1 << 30;
-  return maxA.compareTo(maxB);
-}
-
-bool _isBetterNextDiscountTarget({
-  required BulkDiscountRule candidate,
-  required BulkDiscountRule best,
-  required int candidateAdditionalQuantity,
-  required int bestAdditionalQuantity,
-}) {
-  final additionalCompare = candidateAdditionalQuantity.compareTo(
-    bestAdditionalQuantity,
-  );
-  if (additionalCompare != 0) {
-    return additionalCompare < 0;
-  }
-
-  final percentCompare = candidate.percent.compareTo(best.percent);
-  if (percentCompare != 0) {
-    return percentCompare > 0;
-  }
-
-  if (candidate.productId != null && best.productId == null) {
-    return true;
-  }
-  if (candidate.productId == null && best.productId != null) {
-    return false;
-  }
-
-  return _compareDiscountRulePriority(candidate, best) < 0;
+List<BulkDiscountRule> _sortedBulkDiscountRules(List<BulkDiscountRule> rules) {
+  final sorted = rules.toList(growable: false);
+  sorted.sort((left, right) {
+    final fromCompare = left.fromQuantity.compareTo(right.fromQuantity);
+    if (fromCompare != 0) {
+      return fromCompare;
+    }
+    final leftTo = left.toQuantity ?? 1 << 30;
+    final rightTo = right.toQuantity ?? 1 << 30;
+    return leftTo.compareTo(rightTo);
+  });
+  return sorted;
 }

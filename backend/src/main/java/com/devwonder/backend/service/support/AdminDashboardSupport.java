@@ -108,7 +108,7 @@ public final class AdminDashboardSupport {
                         .count(),
                 allRules.size(),
                 (int) allRules.stream()
-                        .filter(rule -> rule != null && rule.getStatus() == DiscountRuleStatus.PENDING)
+                        .filter(rule -> rule != null && rule.getStatus() == DiscountRuleStatus.DRAFT)
                         .count(),
                 revenueOrders,
                 aggregateTopProducts(revenueOrders),

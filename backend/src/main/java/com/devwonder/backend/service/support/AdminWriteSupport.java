@@ -159,10 +159,14 @@ public class AdminWriteSupport {
 
     public void validateDiscountRuleRequest(AdminDiscountRuleUpsertRequest request) {
         Map<String, String> errors = new LinkedHashMap<>();
-        validateRequiredText(request.label(), "label", true, errors);
-        String normalizedRange = validateRequiredText(request.range(), "range", true, errors);
-        if (normalizedRange != null && OrderPricingSupport.parseRange(normalizedRange) == null) {
-            errors.put("range", "range is invalid");
+        if (request.fromQuantity() == null) {
+            errors.put("fromQuantity", "fromQuantity is required");
+        } else if (request.fromQuantity() < 1) {
+            errors.put("fromQuantity", "fromQuantity must be greater than or equal to 1");
+        }
+        if (request.toQuantity() != null && request.fromQuantity() != null
+                && request.toQuantity() < request.fromQuantity()) {
+            errors.put("toQuantity", "toQuantity must be greater than or equal to fromQuantity");
         }
         if (request.percent() == null) {
             errors.put("percent", "percent is required");

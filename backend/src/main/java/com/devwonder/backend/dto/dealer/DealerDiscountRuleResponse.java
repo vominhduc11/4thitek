@@ -1,9 +1,8 @@
 package com.devwonder.backend.dto.dealer;
 
 public record DealerDiscountRuleResponse(
-        Long productId,
-        Integer minQuantity,
-        Integer maxQuantity,
+        Integer fromQuantity,
+        Integer toQuantity,
         Integer percent,
         String rangeLabel
 ) {

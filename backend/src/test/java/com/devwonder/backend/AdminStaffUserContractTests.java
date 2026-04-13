@@ -10,7 +10,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.devwonder.backend.entity.Admin;
+import com.devwonder.backend.entity.PasswordResetToken;
 import com.devwonder.backend.repository.AdminRepository;
+import com.devwonder.backend.repository.PasswordResetTokenRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.mail.Message;
@@ -57,6 +59,9 @@ class AdminStaffUserContractTests {
     private AdminRepository adminRepository;
 
     @Autowired
+    private PasswordResetTokenRepository passwordResetTokenRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @MockBean
@@ -64,6 +69,7 @@ class AdminStaffUserContractTests {
 
     @BeforeEach
     void setUp() {
+        passwordResetTokenRepository.deleteAll();
         Admin owner = adminRepository.findByUsername("staff.owner@example.com").orElseThrow();
         owner.setPassword(passwordEncoder.encode("ChangedPass#456"));
         owner.setRequirePasswordChange(false);
@@ -177,6 +183,79 @@ class AdminStaffUserContractTests {
                 .doesNotContain("temporaryPassword");
         assertThat(verificationMessage.getRecipients(Message.RecipientType.TO)[0].toString()).isEqualTo("staff.ops@example.com");
         assertThat(verificationMessage.getContent().toString()).contains("https://admin.4thitek.local/verify-email");
+    }
+
+    @Test
+    void superAdminCanTriggerStaffResetWithoutReceivingPlaintextPassword() throws Exception {
+        String accessToken = login("staff.owner@example.com", "ChangedPass#456");
+
+        mockMvc.perform(post("/api/v1/admin/users")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "staff.reset@example.com",
+                                  "name": "Reset Agent",
+                                  "role": "Support"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        Admin created = adminRepository.findAll().stream()
+                .filter(admin -> "staff.reset@example.com".equals(admin.getEmail()))
+                .findFirst()
+                .orElseThrow();
+        MvcResult result = mockMvc.perform(post("/api/v1/admin/users/%d/reset-password".formatted(created.getId()))
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("reset_link_sent"))
+                .andExpect(jsonPath("$.data.temporaryPassword").doesNotExist())
+                .andReturn();
+
+        JsonNode payload = objectMapper.readTree(result.getResponse().getContentAsString()).path("data");
+        assertThat(payload.has("temporaryPassword")).isFalse();
+
+        List<PasswordResetToken> tokens = passwordResetTokenRepository.findAll();
+        assertThat(tokens).hasSize(1);
+        assertThat(tokens.get(0).getAccount().getId()).isEqualTo(created.getId());
+
+        ArgumentCaptor<MimeMessage> messageCaptor = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(javaMailSender, timeout(1_000).atLeast(3)).send(messageCaptor.capture());
+        MimeMessage latestResetMessage = messageCaptor.getAllValues().stream()
+                .filter(message -> {
+                    try {
+                        return message.getRecipients(Message.RecipientType.TO)[0].toString().equals("staff.reset@example.com")
+                                && message.getSubject().contains("password reset");
+                    } catch (Exception ex) {
+                        return false;
+                    }
+                })
+                .reduce((first, second) -> second)
+                .orElseThrow();
+
+        String body = latestResetMessage.getContent().toString();
+        assertThat(body)
+                .contains("https://admin.4thitek.local/reset")
+                .doesNotContain("temporaryPassword")
+                .doesNotContain("Mật khẩu tạm thời");
+    }
+
+    @Test
+    void superAdminCannotManuallyResetAnotherSuperAdmin() throws Exception {
+        String accessToken = login("staff.owner@example.com", "ChangedPass#456");
+
+        Admin protectedSuperAdmin = new Admin();
+        protectedSuperAdmin.setUsername("other.owner@example.com");
+        protectedSuperAdmin.setEmail("other.owner@example.com");
+        protectedSuperAdmin.setDisplayName("Other Owner");
+        protectedSuperAdmin.setPassword(passwordEncoder.encode("ChangedPass#456"));
+        protectedSuperAdmin.setRequirePasswordChange(false);
+        protectedSuperAdmin.setRoles(adminRepository.findByUsername("staff.owner@example.com").orElseThrow().getRoles());
+        adminRepository.save(protectedSuperAdmin);
+
+        mockMvc.perform(post("/api/v1/admin/users/%d/reset-password".formatted(protectedSuperAdmin.getId()))
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isForbidden());
     }
 
     private String login(String username, String password) throws Exception {

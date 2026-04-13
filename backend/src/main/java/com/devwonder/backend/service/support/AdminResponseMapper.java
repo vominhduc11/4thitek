@@ -193,10 +193,6 @@ public final class AdminResponseMapper {
     }
 
     public static AdminStaffUserResponse toStaffUserResponse(Admin admin) {
-        return toStaffUserResponse(admin, null);
-    }
-
-    public static AdminStaffUserResponse toStaffUserResponse(Admin admin, String temporaryPassword) {
         return new AdminStaffUserResponse(
                 admin.getId(),
                 firstNonBlank(admin.getDisplayName(), admin.getUsername()),
@@ -204,16 +200,16 @@ public final class AdminResponseMapper {
                 resolvePrimarySystemRole(admin),
                 admin.getUserStatus() == null ? StaffUserStatus.ACTIVE : admin.getUserStatus(),
                 admin.getUsername(),
-                admin.getEmail(),
-                temporaryPassword
+                admin.getEmail()
         );
     }
 
     public static AdminDiscountRuleResponse toDiscountRuleResponse(BulkDiscount rule) {
         return new AdminDiscountRuleResponse(
                 rule.getId(),
-                firstNonBlank(rule.getLabel(), "Rule " + rule.getId()),
-                firstNonBlank(rule.getRangeLabel(), buildRangeLabel(rule)),
+                rule.getFromQuantity(),
+                rule.getToQuantity(),
+                BulkDiscountTierSupport.buildRangeLabel(rule),
                 rule.getDiscountPercent() == null ? BigDecimal.ZERO : rule.getDiscountPercent(),
                 rule.getStatus() == null ? DiscountRuleStatus.ACTIVE : rule.getStatus(),
                 rule.getUpdatedAt()
@@ -241,21 +237,6 @@ public final class AdminResponseMapper {
                 .sorted((left, right) -> Boolean.compare("SUPER_ADMIN".equals(right), "SUPER_ADMIN".equals(left)))
                 .findFirst()
                 .orElse("ADMIN");
-    }
-
-    private static String buildRangeLabel(BulkDiscount rule) {
-        Integer min = rule.getMinQuantity();
-        Integer max = rule.getMaxQuantity();
-        if (min == null && max == null) {
-            return "Theo cau hinh";
-        }
-        if (min != null && max != null) {
-            return min + " - " + max;
-        }
-        if (min != null) {
-            return ">=" + min;
-        }
-        return "<=" + max;
     }
 
     private static String firstNonBlank(String... values) {

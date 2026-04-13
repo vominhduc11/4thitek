@@ -1,12 +1,14 @@
 package com.devwonder.backend;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.devwonder.backend.entity.Account;
+import com.devwonder.backend.entity.Admin;
 import com.devwonder.backend.entity.PasswordResetToken;
 import com.devwonder.backend.repository.AccountRepository;
 import com.devwonder.backend.repository.PasswordResetTokenRepository;
@@ -88,5 +90,40 @@ class PasswordResetServiceTests {
         assertThat(message).isEqualTo("Password reset successful");
         assertThat(passwordEncoder.matches("NewPass#456", updatedAccount.getPassword())).isTrue();
         assertThat(passwordResetTokenRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void adminTriggeredStaffResetCreatesFreshTokenAndSendsEmailWithoutPlaintextPassword() throws Exception {
+        Admin account = new Admin();
+        account.setUsername("staff-reset");
+        account.setEmail("staff-reset@example.com");
+        account.setDisplayName("Staff Reset");
+        account.setPassword(passwordEncoder.encode("OldPass#123"));
+        accountRepository.save(account);
+
+        PasswordResetToken previousToken = new PasswordResetToken();
+        previousToken.setAccount(account);
+        previousToken.setToken("old-token");
+        previousToken.setExpiresAt(java.time.Instant.now().plusSeconds(60));
+        passwordResetTokenRepository.save(previousToken);
+
+        passwordResetService.sendAdminTriggeredStaffResetLink(account);
+
+        List<PasswordResetToken> tokens = passwordResetTokenRepository.findAll();
+        assertThat(tokens).hasSize(1);
+        assertThat(tokens.get(0).getToken()).isNotEqualTo("old-token");
+        verify(javaMailSender, timeout(1_000)).send(any(MimeMessage.class));
+    }
+
+    @Test
+    void adminTriggeredStaffResetRejectsWhenEmailDeliveryIsUnavailable() {
+        Admin account = new Admin();
+        account.setUsername("staff-reset-2");
+        account.setEmail(null);
+        account.setPassword(passwordEncoder.encode("OldPass#123"));
+
+        assertThatThrownBy(() -> passwordResetService.sendAdminTriggeredStaffResetLink(account))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("email");
     }
 }

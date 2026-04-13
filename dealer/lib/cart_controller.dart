@@ -658,10 +658,15 @@ class CartController extends ChangeNotifier {
   }
 
   BulkDiscountRule _mapDiscountRule(Map<String, dynamic> json) {
+    final fromQuantity =
+        _parseNullableInt(json['fromQuantity']) ??
+        _parseNullableInt(json['minQuantity']) ??
+        0;
     return BulkDiscountRule(
-      productId: _normalizeString(json['productId']),
-      minQuantity: _parseNullableInt(json['minQuantity']),
-      maxQuantity: _parseNullableInt(json['maxQuantity']),
+      fromQuantity: fromQuantity,
+      toQuantity:
+          _parseNullableInt(json['toQuantity']) ??
+          _parseNullableInt(json['maxQuantity']),
       percent: _parseInt(json['percent']),
       rangeLabel: _normalizeString(json['rangeLabel']),
     );

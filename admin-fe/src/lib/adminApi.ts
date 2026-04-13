@@ -29,7 +29,7 @@ export type BackendPaymentStatus = 'PENDING' | 'PAID' | 'CANCELLED'
 export type BackendDealerAccountStatus = 'ACTIVE' | 'UNDER_REVIEW' | 'SUSPENDED'
 export type BackendFinancialSettlementType = 'CANCELLATION_REFUND' | 'STALE_ORDER_REVIEW'
 export type BackendStaffUserStatus = 'ACTIVE' | 'PENDING'
-export type BackendDiscountRuleStatus = 'ACTIVE' | 'PENDING' | 'DRAFT'
+export type BackendDiscountRuleStatus = 'ACTIVE' | 'DRAFT'
 export type BackendWarrantyStatus = 'ACTIVE' | 'EXPIRED' | 'VOID'
 export type BackendProductSerialStatus = 'AVAILABLE' | 'RESERVED' | 'DEFECTIVE' | 'ASSIGNED' | 'WARRANTY' | 'RETURNED' | 'INSPECTING' | 'SCRAPPED'
 export type BackendRmaAction = 'START_INSPECTION' | 'PASS_QC' | 'SCRAP'
@@ -255,7 +255,6 @@ export type BackendStaffUserResponse = {
   status?: BackendStaffUserStatus | null
   username?: string | null
   email?: string | null
-  temporaryPassword?: string | null
 }
 
 export type BackendStaffUserUpsertRequest = {
@@ -267,16 +266,17 @@ export type BackendStaffUserUpsertRequest = {
 
 export type BackendDiscountRuleResponse = {
   id: number
-  label: string
-  range: string
+  fromQuantity: number
+  toQuantity?: number | null
+  rangeLabel: string
   percent?: number | string | null
   status?: BackendDiscountRuleStatus | null
   updatedAt?: string | null
 }
 
 export type BackendDiscountRuleUpsertRequest = {
-  label: string
-  range: string
+  fromQuantity: number
+  toQuantity: number | null
   percent: number
   status?: BackendDiscountRuleStatus
 }
@@ -1175,6 +1175,18 @@ export const createAdminDiscountRule = (
     body,
   })
 
+export const updateAdminDiscountRule = (
+  token: string,
+  id: number,
+  body: BackendDiscountRuleUpsertRequest,
+) =>
+  authorizedJsonRequest<BackendDiscountRuleResponse>({
+    path: `/admin/discount-rules/${id}`,
+    token,
+    method: 'PUT',
+    body,
+  })
+
 export const updateAdminDiscountRuleStatus = (
   token: string,
   id: number,
@@ -1581,7 +1593,7 @@ export const fetchAdminOrderPayments = (token: string, orderId: number) =>
   })
 
 export const resetAdminUserPassword = (token: string, userId: number) =>
-  authorizedJsonRequest<{ temporaryPassword: string }>({
+  authorizedJsonRequest<{ status: string }>({
     path: `/admin/users/${userId}/reset-password`,
     token,
     method: 'POST',

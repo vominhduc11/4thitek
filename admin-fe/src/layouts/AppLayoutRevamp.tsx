@@ -1,7 +1,6 @@
 ﻿import {
   BadgeAlert,
   Bell,
-  BellDot,
   BookOpenText,
   Boxes,
   ChevronDown,
@@ -115,7 +114,7 @@ const copyKeys = {
   searchSelectionHint: "Dùng phím mũi tên để duyệt, Enter để mở.",
   searchViewAll: "Xem tất cả {count} kết quả",
   searchCollapse: "Thu gọn kết quả",
-  alerts: "Cảnh báo",
+  alerts: "Cảnh báo vận hành",
   alertsEmpty: "Không có cảnh báo cần theo dõi.",
   markAllRead: "Đánh dấu đã đọc",
   account: "Tài khoản",
@@ -142,7 +141,7 @@ const copyKeys = {
     dealers: "Đại lý",
     warranties: "Bảo hành",
     serials: "Serial",
-    notifications: "Thông báo",
+    notifications: "Trung tâm thông báo",
     support: "Hỗ trợ",
     returns: "Đổi trả",
     recentPayments: "Thanh toán chuyển khoản",
@@ -659,14 +658,16 @@ function AppLayoutRevamp() {
       pushSearchItem(
         {
           id: `discount-${item.id}`,
-          title: item.label,
-          meta: `${copy.discount} · ${item.range}`,
+          title: `${copy.discount} · ${item.rangeLabel}`,
+          meta: `${item.fromQuantity} → ${item.toQuantity ?? "∞"} · ${item.percent}%`,
           to: "/discounts",
           icon: Percent,
         },
         item.id,
-        item.label,
-        item.range,
+        item.rangeLabel,
+        String(item.fromQuantity),
+        item.toQuantity == null ? "" : String(item.toQuantity),
+        String(item.percent),
       );
     });
 
@@ -1101,11 +1102,7 @@ function AppLayoutRevamp() {
                       onClick={toggleAlerts}
                       type="button"
                     >
-                      {unreadAlerts.length > 0 ? (
-                        <BellDot className="h-4 w-4" />
-                      ) : (
-                        <Bell className="h-4 w-4" />
-                      )}
+                      <BadgeAlert className="h-4 w-4" />
                       <span className="hidden sm:inline">{copy.alerts}</span>
                       {unreadAlerts.length > 0 ? (
                         <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-[var(--destructive)] px-1.5 py-0.5 text-[11px] font-semibold text-white">

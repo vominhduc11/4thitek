@@ -168,9 +168,8 @@ class AdminReportingServiceContractTests {
         dealer = dealerRepository.save(dealer);
 
         BulkDiscount discount = new BulkDiscount();
-        discount.setLabel("Global 10%");
-        discount.setRangeLabel("1+");
-        discount.setMinQuantity(1);
+        discount.setFromQuantity(1);
+        discount.setToQuantity(null);
         discount.setDiscountPercent(new BigDecimal("10"));
         discount.setStatus(DiscountRuleStatus.ACTIVE);
         bulkDiscountRepository.save(discount);

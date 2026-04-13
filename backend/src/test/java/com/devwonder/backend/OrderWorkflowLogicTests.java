@@ -306,7 +306,7 @@ class OrderWorkflowLogicTests {
     void discountPercentUsesActiveBulkDiscountRuleRange() {
         Dealer dealer = dealerRepository.save(createDealer("discount-rule@example.com"));
         Product product = saveProduct("SKU-DISCOUNT-1", BigDecimal.valueOf(100_000));
-        bulkDiscountRepository.save(createBulkDiscount("3 - 5", BigDecimal.valueOf(15)));
+        bulkDiscountRepository.save(createBulkDiscount(3, 5, BigDecimal.valueOf(15)));
 
         var response = dealerPortalService.createOrder(
                 dealer.getUsername(),
@@ -417,15 +417,12 @@ class OrderWorkflowLogicTests {
     }
 
     @Test
-    void mixedOrderAppliesProductSpecificDiscountPerMatchingLine() {
+    void mixedOrderAppliesGlobalQuantityTierToWholeSubtotal() {
         Dealer dealer = dealerRepository.save(createDealer("mixed-discount@example.com"));
         Product discountedProduct = saveProduct("SKU-MIX-1", BigDecimal.valueOf(100_000));
         Product regularProduct = saveProduct("SKU-MIX-2", BigDecimal.valueOf(50_000));
 
-        BulkDiscount productRule = createBulkDiscount(">=1", BigDecimal.valueOf(20));
-        productRule.setProduct(discountedProduct);
-        bulkDiscountRepository.save(productRule);
-        bulkDiscountRepository.save(createBulkDiscount(">=2", BigDecimal.valueOf(10)));
+        bulkDiscountRepository.save(createBulkDiscount(2, null, BigDecimal.valueOf(10)));
 
         var response = dealerPortalService.createOrder(
                 dealer.getUsername(),
@@ -435,7 +432,7 @@ class OrderWorkflowLogicTests {
                         "456 Mixed Street",
                         "0900000000",
                         0,
-                        "Mixed product discount",
+                        "Mixed quantity tier discount",
                         List.of(
                                 new CreateDealerOrderItemRequest(discountedProduct.getId(), 1, discountedProduct.getRetailPrice()),
                                 new CreateDealerOrderItemRequest(regularProduct.getId(), 1, regularProduct.getRetailPrice())
@@ -445,9 +442,9 @@ class OrderWorkflowLogicTests {
         );
 
         assertThat(response.subtotal()).isEqualByComparingTo("150000");
-        assertThat(response.discountAmount()).isEqualByComparingTo("25000");
-        assertThat(response.discountPercent()).isEqualTo(17);
-        assertThat(response.totalAmount()).isEqualByComparingTo("137500");
+        assertThat(response.discountAmount()).isEqualByComparingTo("15000");
+        assertThat(response.discountPercent()).isEqualTo(10);
+        assertThat(response.totalAmount()).isEqualByComparingTo("148500");
     }
 
     @Test
@@ -961,10 +958,10 @@ class OrderWorkflowLogicTests {
         }
     }
 
-    private BulkDiscount createBulkDiscount(String rangeLabel, BigDecimal percent) {
+    private BulkDiscount createBulkDiscount(int fromQuantity, Integer toQuantity, BigDecimal percent) {
         BulkDiscount discount = new BulkDiscount();
-        discount.setLabel("Rule " + rangeLabel);
-        discount.setRangeLabel(rangeLabel);
+        discount.setFromQuantity(fromQuantity);
+        discount.setToQuantity(toQuantity);
         discount.setDiscountPercent(percent);
         discount.setStatus(DiscountRuleStatus.ACTIVE);
         return discount;

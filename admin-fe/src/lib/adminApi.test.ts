@@ -143,4 +143,94 @@ describe('adminApi importAdminSerials', () => {
       totalPages: 3,
     })
   })
+
+  it('sends canonical create discount rule payloads with structured quantity tiers', async () => {
+    vi.stubEnv('VITE_API_BASE_URL', 'https://api.example.com/api/v1')
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          success: true,
+          data: {
+            id: 1,
+            fromQuantity: 11,
+            toQuantity: 20,
+            rangeLabel: '11 - 20',
+            percent: 20,
+            status: 'ACTIVE',
+          },
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { createAdminDiscountRule } = await importAdminApi()
+    await createAdminDiscountRule('access-token', {
+      fromQuantity: 11,
+      toQuantity: 20,
+      percent: 20,
+      status: 'ACTIVE',
+    })
+
+    expect(String(fetchMock.mock.calls[0]?.[0])).toMatch(/\/api\/v1\/admin\/discount-rules$/)
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer access-token',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        fromQuantity: 11,
+        toQuantity: 20,
+        percent: 20,
+        status: 'ACTIVE',
+      }),
+    })
+  })
+
+  it('sends canonical update discount rule payloads with open-ended tiers', async () => {
+    vi.stubEnv('VITE_API_BASE_URL', 'https://api.example.com/api/v1')
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          success: true,
+          data: {
+            id: 4,
+            fromQuantity: 51,
+            toQuantity: null,
+            rangeLabel: '51+',
+            percent: 40,
+            status: 'ACTIVE',
+          },
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { updateAdminDiscountRule } = await importAdminApi()
+    await updateAdminDiscountRule('access-token', 4, {
+      fromQuantity: 51,
+      toQuantity: null,
+      percent: 40,
+      status: 'ACTIVE',
+    })
+
+    expect(String(fetchMock.mock.calls[0]?.[0])).toMatch(/\/api\/v1\/admin\/discount-rules\/4$/)
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: 'PUT',
+      body: JSON.stringify({
+        fromQuantity: 51,
+        toQuantity: null,
+        percent: 40,
+        status: 'ACTIVE',
+      }),
+    })
+  })
 })

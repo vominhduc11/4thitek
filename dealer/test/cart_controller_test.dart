@@ -290,6 +290,67 @@ void main() {
     expect(controller.vatAmount, 15200);
     expect(controller.total, 205200);
   });
+
+  test('parses canonical quantity-tier discount rules from backend', () async {
+    client.enqueue(
+      'GET',
+      '/api/v1/dealer/discount-rules',
+      (request) => Future<http.StreamedResponse>.value(
+        _jsonResponse(
+          request,
+          body: <String, dynamic>{
+            'data': <Map<String, dynamic>>[
+              <String, dynamic>{
+                'fromQuantity': 1,
+                'toQuantity': 10,
+                'percent': 10,
+                'rangeLabel': '1 - 10',
+              },
+              <String, dynamic>{
+                'fromQuantity': 51,
+                'toQuantity': null,
+                'percent': 40,
+                'rangeLabel': '51+',
+              },
+            ],
+          },
+        ),
+      ),
+    );
+    client.enqueue(
+      'GET',
+      '/api/v1/dealer/cart',
+      (request) => Future<http.StreamedResponse>.value(
+        _jsonResponse(
+          request,
+          body: <String, dynamic>{'data': const <Object>[]},
+        ),
+      ),
+    );
+    client.enqueue(
+      'GET',
+      '/api/v1/dealer/cart/summary',
+      (request) => Future<http.StreamedResponse>.value(
+        _cartSummaryResponse(
+          request,
+          subtotal: 0,
+          vatPercent: 8,
+          vatAmount: 0,
+          totalAmount: 0,
+        ),
+      ),
+    );
+
+    await controller.load();
+
+    expect(controller.discountRules, hasLength(2));
+    expect(controller.discountRules.first.fromQuantity, 1);
+    expect(controller.discountRules.first.toQuantity, 10);
+    expect(controller.discountRules.first.percent, 10);
+    expect(controller.discountRules.last.fromQuantity, 51);
+    expect(controller.discountRules.last.toQuantity, isNull);
+    expect(controller.discountRules.last.rangeLabel, '51+');
+  });
 }
 
 typedef _RequestHandler =

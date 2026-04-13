@@ -99,6 +99,4 @@ public class Product {
     @OneToMany(mappedBy = "product")
     private Set<ProductOfCart> productOfCarts = new HashSet<>();
 
-    @OneToMany(mappedBy = "product")
-    private Set<BulkDiscount> bulkDiscounts = new HashSet<>();
 }

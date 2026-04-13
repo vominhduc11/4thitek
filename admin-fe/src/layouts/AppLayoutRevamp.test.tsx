@@ -134,10 +134,10 @@ describe("AppLayoutRevamp", () => {
     });
   });
 
-  it("loads only alert resources when the alerts popover opens", async () => {
+  it("loads only alert resources when the operational alerts popover opens", async () => {
     renderLayout();
 
-    fireEvent.click(screen.getByRole("button", { name: "Cảnh báo" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cảnh báo vận hành" }));
 
     await waitFor(() => {
       expect(new Set(ensureResourceLoadedMock.mock.calls.map(([key]) => key))).toEqual(
