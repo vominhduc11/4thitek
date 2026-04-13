@@ -1397,141 +1397,141 @@ class _SupportTexts {
 
   final bool isEnglish;
 
-  String get screenTitle => isEnglish ? 'Support' : 'H? tr?';
-  String get quickContactTitle => isEnglish ? 'Quick contact' : 'Li?n h? nhanh';
+  String get screenTitle => isEnglish ? 'Support' : 'Hỗ trợ';
+  String get quickContactTitle => isEnglish ? 'Quick contact' : 'Liên hệ nhanh';
   String get hotlineLabel => 'Hotline';
   String get emailLabel => 'Email';
-  String get copyAction => isEnglish ? 'Copy' : 'Sao ch?p';
+  String get copyAction => isEnglish ? 'Copy' : 'Sao chép';
   String get hotlineCopiedMessage =>
-      isEnglish ? 'Hotline number copied.' : '?? sao ch?p s? hotline.';
+      isEnglish ? 'Hotline number copied.' : 'Đã sao chép số hotline.';
   String get supportEmailCopiedMessage =>
-      isEnglish ? 'Support email copied.' : '?? sao ch?p email h? tr?.';
+      isEnglish ? 'Support email copied.' : 'Đã sao chép email hỗ trợ.';
   String copiedValueMessage(String value) =>
-      isEnglish ? 'Copied $value' : '?? sao ch?p $value';
-  String get callHotlineAction => isEnglish ? 'Call hotline' : 'G?i hotline';
-  String get sendEmailAction => isEnglish ? 'Send email' : 'G?i email';
+      isEnglish ? 'Copied $value' : 'Đã sao chép $value';
+  String get callHotlineAction => isEnglish ? 'Call hotline' : 'Gọi hotline';
+  String get sendEmailAction => isEnglish ? 'Send email' : 'Gửi email';
   String get supportHours => isEnglish
       ? 'Support hours: 8:00-18:00 (Mon-Sat)'
-      : 'Th?i gian h? tr?: 8:00-18:00 (T2-T7)';
+      : 'Thời gian hỗ trợ: 8:00-18:00 (T2-T7)';
   String get faqTitle =>
-      isEnglish ? 'Frequently asked questions' : 'C?u h?i th??ng g?p';
+      isEnglish ? 'Frequently asked questions' : 'Câu hỏi thường gặp';
   String get recentRequestsTitle =>
-      isEnglish ? 'Recent requests' : 'Y?u c?u g?n ??y';
+      isEnglish ? 'Recent requests' : 'Yêu cầu gần đây';
   String get submitRequestTitle =>
-      isEnglish ? 'Submit support request' : 'G?i y?u c?u h? tr?';
+      isEnglish ? 'Submit support request' : 'Gửi yêu cầu hỗ trợ';
   String get categoryFieldLabel =>
-      isEnglish ? 'Request category' : 'Lo?i y?u c?u';
-  String get categorySummaryLabel => isEnglish ? 'Category' : 'Lo?i y?u c?u';
-  String get priorityFieldLabel => isEnglish ? 'Priority' : 'M?c ?? ?u ti?n';
-  String get prioritySummaryLabel => isEnglish ? 'Priority' : '?u ti?n';
-  String get subjectFieldLabel => isEnglish ? 'Subject' : 'Ti?u ??';
-  String get descriptionFieldLabel => isEnglish ? 'Description' : 'N?i dung';
+      isEnglish ? 'Request category' : 'Loại yêu cầu';
+  String get categorySummaryLabel => isEnglish ? 'Category' : 'Loại yêu cầu';
+  String get priorityFieldLabel => isEnglish ? 'Priority' : 'Mức độ ưu tiên';
+  String get prioritySummaryLabel => isEnglish ? 'Priority' : 'Ưu tiên';
+  String get subjectFieldLabel => isEnglish ? 'Subject' : 'Tiêu đề';
+  String get descriptionFieldLabel => isEnglish ? 'Description' : 'Nội dung';
   String get descriptionHint => isEnglish
       ? 'Describe your issue, event time, and order/serial code if available.'
-      : 'M? t? v?n ??, th?i ?i?m x?y ra v? m? ??n ho?c serial n?u c?.';
+      : 'Mô tả vấn đề, thời điểm xảy ra và mã đơn hoặc serial nếu có.';
   String get descriptionHelper => isEnglish
       ? 'The more details you share, the faster support can help.'
-      : 'Th?ng tin c?ng chi ti?t, ??i h? tr? x? l? c?ng nhanh.';
+      : 'Thông tin càng chi tiết, đội hỗ trợ xử lý càng nhanh.';
   String expectedResponseTime(String sla) => isEnglish
       ? 'Expected response time: $sla'
-      : 'Th?i gian ph?n h?i d? ki?n: $sla';
+      : 'Thời gian phản hồi dự kiến: $sla';
   String get submitRequestAction =>
-      isEnglish ? 'Submit request' : 'G?i y?u c?u';
+      isEnglish ? 'Submit request' : 'Gửi yêu cầu';
   String get followUpAction => isEnglish
       ? 'Send reply to selected ticket'
-      : 'G?i ph?n h?i v?o ticket ?ang ch?n';
-  String get cancelAction => isEnglish ? 'Cancel' : 'H?y';
+      : 'Gửi phản hồi vào ticket đang chọn';
+  String get cancelAction => isEnglish ? 'Cancel' : 'Hủy';
   String get cannotOpenDialerMessage => isEnglish
       ? 'Cannot open dialer. Number has been copied.'
-      : 'Kh?ng m? ???c cu?c g?i. ?? sao ch?p s?.';
+      : 'Không mở được cuộc gọi. Đã sao chép số.';
   String get cannotOpenEmailAppMessage => isEnglish
       ? 'Cannot open email app. Address has been copied.'
-      : 'Kh?ng m? ???c ?ng d?ng email. ?? sao ch?p ??a ch?.';
+      : 'Không mở được ứng dụng email. Đã sao chép địa chỉ.';
   String get confirmSubmitTitle =>
-      isEnglish ? 'Confirm request' : 'X?c nh?n g?i y?u c?u';
+      isEnglish ? 'Confirm request' : 'Xác nhận gửi yêu cầu';
   String get confirmSubmitDescription => isEnglish
       ? 'Please review the request details before submitting.'
-      : 'Vui l?ng ki?m tra th?ng tin y?u c?u tr??c khi g?i.';
+      : 'Vui lòng kiểm tra thông tin yêu cầu trước khi gửi.';
   String get latestTicketLoadWarning => isEnglish
       ? 'Unable to load the latest support status right now.'
-      : 'Ch?a th? t?i tr?ng th?i h? tr? m?i nh?t l?c n?y.';
+      : 'Chưa thể tải trạng thái hỗ trợ mới nhất lúc này.';
   String get historyLoadWarning => isEnglish
       ? 'Unable to load support request history right now.'
-      : 'Ch?a th? t?i l?ch s? y?u c?u h? tr? l?c n?y.';
+      : 'Chưa thể tải lịch sử yêu cầu hỗ trợ lúc này.';
   String get statusSyncWarningTitle =>
-      isEnglish ? 'Support status' : 'Tr?ng th?i h? tr?';
-  String get retryAction => isEnglish ? 'Retry' : 'Th? l?i';
+      isEnglish ? 'Support status' : 'Trạng thái hỗ trợ';
+  String get retryAction => isEnglish ? 'Retry' : 'Thử lại';
   String get missingFieldsMessage => isEnglish
       ? 'Please enter both subject and description.'
-      : 'Vui l?ng nh?p ti?u ?? v? n?i dung.';
+      : 'Vui lòng nhập tiêu đề và nội dung.';
   String get messageOnlyRequiredMessage => isEnglish
       ? 'Please enter the follow-up message.'
-      : 'Vui l?ng nh?p n?i dung ph?n h?i.';
+      : 'Vui lòng nhập nội dung phản hồi.';
   String requestSubmittedMessage(String ticketCode) => isEnglish
       ? 'Request #$ticketCode has been submitted.'
-      : 'Y?u c?u #$ticketCode ?? ???c g?i.';
+      : 'Yêu cầu #$ticketCode đã được gửi.';
   String followUpSubmittedMessage(String ticketCode) => isEnglish
       ? 'Follow-up sent to ticket #$ticketCode.'
-      : '?? g?i ph?n h?i v?o ticket #$ticketCode.';
+      : 'Đã gửi phản hồi vào ticket #$ticketCode.';
   String get requestSubmittedTitle =>
-      isEnglish ? 'Request submitted' : 'Y?u c?u ?? g?i';
-  String get hideAction => isEnglish ? 'Hide' : '?n';
-  String get ticketIdLabel => isEnglish ? 'Ticket ID' : 'M? ticket';
-  String get submittedAtLabel => isEnglish ? 'Submitted at' : 'Th?i gian g?i';
-  String get responseSlaLabel => isEnglish ? 'Response SLA' : 'SLA ph?n h?i';
-  String get statusSummaryLabel => isEnglish ? 'Status' : 'Tr?ng th?i';
+      isEnglish ? 'Request submitted' : 'Yêu cầu đã gửi';
+  String get hideAction => isEnglish ? 'Hide' : 'Ẩn';
+  String get ticketIdLabel => isEnglish ? 'Ticket ID' : 'Mã ticket';
+  String get submittedAtLabel => isEnglish ? 'Submitted at' : 'Thời gian gửi';
+  String get responseSlaLabel => isEnglish ? 'Response SLA' : 'SLA phản hồi';
+  String get statusSummaryLabel => isEnglish ? 'Status' : 'Trạng thái';
   String get adminReplyLabel =>
-      isEnglish ? 'Latest admin update' : 'C?p nh?t m?i nh?t t? admin';
+      isEnglish ? 'Latest admin update' : 'Cập nhật mới nhất từ admin';
 
   String categoryLabel(SupportCategory category) {
     switch (category) {
       case SupportCategory.order:
-        return isEnglish ? 'Order' : '??n h?ng';
+        return isEnglish ? 'Order' : 'Đơn hàng';
       case SupportCategory.warranty:
-        return isEnglish ? 'Warranty / Serial' : 'B?o h?nh / Serial';
+        return isEnglish ? 'Warranty / Serial' : 'Bảo hành / Serial';
       case SupportCategory.product:
-        return isEnglish ? 'Product' : 'S?n ph?m';
+        return isEnglish ? 'Product' : 'Sản phẩm';
       case SupportCategory.payment:
-        return isEnglish ? 'Payment' : 'Thanh to?n';
+        return isEnglish ? 'Payment' : 'Thanh toán';
       case SupportCategory.returnOrder:
-        return isEnglish ? 'Return' : '??i tr? h?ng';
+        return isEnglish ? 'Return' : 'Đổi trả hàng';
       case SupportCategory.other:
-        return isEnglish ? 'Other' : 'Kh?c';
+        return isEnglish ? 'Other' : 'Khác';
     }
   }
 
   String priorityLabel(SupportPriority priority) {
     switch (priority) {
       case SupportPriority.normal:
-        return isEnglish ? 'Normal' : 'B?nh th??ng';
+        return isEnglish ? 'Normal' : 'Bình thường';
       case SupportPriority.high:
         return isEnglish ? 'High' : 'Cao';
       case SupportPriority.urgent:
-        return isEnglish ? 'Urgent' : 'Kh?n c?p';
+        return isEnglish ? 'Urgent' : 'Khẩn cấp';
     }
   }
 
   String slaText(SupportPriority priority) {
     switch (priority) {
       case SupportPriority.normal:
-        return isEnglish ? '4-8 business hours' : '4-8 gi? l?m vi?c';
+        return isEnglish ? '4-8 business hours' : '4-8 giờ làm việc';
       case SupportPriority.high:
-        return isEnglish ? '2-4 business hours' : '2-4 gi? l?m vi?c';
+        return isEnglish ? '2-4 business hours' : '2-4 giờ làm việc';
       case SupportPriority.urgent:
-        return isEnglish ? '30-60 minutes' : '30-60 ph?t';
+        return isEnglish ? '30-60 minutes' : '30-60 phút';
     }
   }
 
   String statusLabel(String status) {
     switch (status.trim().toLowerCase()) {
       case 'open':
-        return isEnglish ? 'Open' : 'M?';
+        return isEnglish ? 'Open' : 'Mở';
       case 'in_progress':
-        return isEnglish ? 'In progress' : '?ang x? l?';
+        return isEnglish ? 'In progress' : 'Đang xử lý';
       case 'resolved':
-        return isEnglish ? 'Resolved' : '?? x? l?';
+        return isEnglish ? 'Resolved' : 'Đã xử lý';
       case 'closed':
-        return isEnglish ? 'Closed' : '??ng';
+        return isEnglish ? 'Closed' : 'Đóng';
       default:
         return status;
     }
@@ -1572,32 +1572,32 @@ class _SupportTexts {
         ]
       : const [
           _FaqItem(
-            title: 'Kh?ng ??ng nh?p ???c',
+            title: 'Không đăng nhập được',
             body:
-                'Ki?m tra email, m?t kh?u v? ??m b?o thi?t b? c? k?t n?i m?ng.',
+                'Kiểm tra email, mật khẩu và đảm bảo thiết bị có kết nối mạng.',
             icon: Icons.lock_outline,
           ),
           _FaqItem(
-            title: '??n h?ng ch?a c?p nh?t',
+            title: 'Đơn hàng chưa cập nhật',
             body:
-                'H? th?ng c? th? c?n 3-5 ph?t ?? ??ng b? tr?ng th?i ??n h?ng.',
+                'Hệ thống có thể cần 3-5 phút để đồng bộ trạng thái đơn hàng.',
             icon: Icons.receipt_long_outlined,
           ),
           _FaqItem(
-            title: 'X? l? serial',
-            body: 'Chu?n b? serial/IMEI v? s? ?i?n tho?i ?? x? l? nhanh h?n.',
+            title: 'Xử lý serial',
+            body: 'Chuẩn bị serial/IMEI và số điện thoại để xử lý nhanh hơn.',
             icon: Icons.verified_outlined,
           ),
           _FaqItem(
-            title: '??i so?t thanh to?n ch?m',
+            title: 'Đối soát thanh toán chậm',
             body:
-                '??i so?t chuy?n kho?n c? th? ch?m h?n v?o khung gi? cao ?i?m.',
+                'Đối soát chuyển khoản có thể chậm hơn vào khung giờ cao điểm.',
             icon: Icons.account_balance_wallet_outlined,
           ),
           _FaqItem(
-            title: 'L?i k?ch ho?t b?o h?nh',
+            title: 'Lỗi kích hoạt bảo hành',
             body:
-                'Ki?m tra ng?y mua v? ??nh d?ng serial tr??c khi g?i y?u c?u.',
+                'Kiểm tra ngày mua và định dạng serial trước khi gửi yêu cầu.',
             icon: Icons.shield_outlined,
           ),
         ];
@@ -1606,178 +1606,178 @@ class _SupportTexts {
 extension _SupportTextsValidationMessages on _SupportTexts {
   String subjectTooShortMessage(int minLength) => isEnglish
       ? 'Subject must be at least $minLength characters.'
-      : 'Ti?u ?? ph?i c? ?t nh?t $minLength k? t?.';
+      : 'Tiêu đề phải có ít nhất $minLength ký tự.';
 
   String messageTooShortMessage(int minLength) => isEnglish
       ? 'Description must be at least $minLength characters.'
-      : 'N?i dung ph?i c? ?t nh?t $minLength k? t?.';
+      : 'Nội dung phải có ít nhất $minLength ký tự.';
 }
 
 extension _SupportTextsSupportExtras on _SupportTexts {
   String get supportCenterTitle =>
-      isEnglish ? 'Dealer support center' : 'Trung t?m h? tr? ??i l?';
+      isEnglish ? 'Dealer support center' : 'Trung tâm hỗ trợ đại lý';
   String get supportCenterDescription => isEnglish
       ? 'Track every support request in one place, review updates, and send follow-ups to the correct ticket.'
-      : 'Theo d?i to?n b? y?u c?u h? tr? t?i m?t n?i, xem c?p nh?t m?i nh?t v? g?i b? sung ??ng ticket c?n x? l?.';
+      : 'Theo dõi toàn bộ yêu cầu hỗ trợ tại một nơi, xem cập nhật mới nhất và gửi bổ sung đúng ticket cần xử lý.';
   String get statusSummaryTitle =>
-      isEnglish ? 'Support status summary' : 'T?m t?t tr?ng th?i h? tr?';
+      isEnglish ? 'Support status summary' : 'Tóm tắt trạng thái hỗ trợ';
   String statusSummarySubtitle(String ticketCode) => isEnglish
       ? 'Selected ticket: #$ticketCode'
-      : 'Ticket ?ang ch?n: #$ticketCode';
+      : 'Ticket đang chọn: #$ticketCode';
   String get noActiveTicketSummary => isEnglish
       ? 'No active ticket yet. Create a new request whenever you need support.'
-      : 'Hi?n ch?a c? ticket ?ang theo d?i. B?n c? th? t?o y?u c?u m?i b?t c? l?c n?o.';
+      : 'Hiện chưa có ticket đang theo dõi. Bạn có thể tạo yêu cầu mới bất cứ lúc nào.';
   String get supportHoursLabel =>
-      isEnglish ? 'Support hours' : 'Khung gi? h? tr?';
+      isEnglish ? 'Support hours' : 'Khung giờ hỗ trợ';
   String get startNewTicketAction =>
-      isEnglish ? 'Create new ticket' : 'T?o ticket m?i';
+      isEnglish ? 'Create new ticket' : 'Tạo ticket mới';
   String get replyActiveTicketAction =>
-      isEnglish ? 'Reply selected ticket' : 'Ph?n h?i ticket ?ang ch?n';
-  String get activeLabel => isEnglish ? 'Selected ticket' : 'Ticket ?ang ch?n';
+      isEnglish ? 'Reply selected ticket' : 'Phản hồi ticket đang chọn';
+  String get activeLabel => isEnglish ? 'Selected ticket' : 'Ticket đang chọn';
   String get ticketInboxTitle =>
-      isEnglish ? 'Ticket inbox' : 'Danh s?ch ticket';
+      isEnglish ? 'Ticket inbox' : 'Danh sách ticket';
   String get ticketDetailTitle =>
-      isEnglish ? 'Ticket detail' : 'Chi ti?t ticket';
+      isEnglish ? 'Ticket detail' : 'Chi tiết ticket';
   String get emptyDetailTitle => isEnglish
       ? 'Choose a ticket to view the full thread'
-      : 'Ch?n m?t ticket ?? xem ??y ?? trao ??i';
+      : 'Chọn một ticket để xem đầy đủ trao đổi';
   String get emptyDetailDescription => isEnglish
       ? 'Once you select a ticket, you will see its status, context, and conversation timeline here.'
-      : 'Khi ch?n m?t ticket, b?n s? xem ???c tr?ng th?i, th?ng tin li?n quan v? to?n b? di?n ti?n trao ??i t?i ??y.';
+      : 'Khi chọn một ticket, bạn sẽ xem được trạng thái, thông tin liên quan và toàn bộ diễn tiến trao đổi tại đây.';
   String get startFirstTicketAction =>
-      isEnglish ? 'Create your first ticket' : 'T?o ticket ??u ti?n';
+      isEnglish ? 'Create your first ticket' : 'Tạo ticket đầu tiên';
   String get threadTitle =>
-      isEnglish ? 'Conversation thread' : 'Lu?ng trao ??i';
+      isEnglish ? 'Conversation thread' : 'Luồng trao đổi';
   String threadCountLabel(int count) =>
-      isEnglish ? '$count updates' : '$count c?p nh?t';
+      isEnglish ? '$count updates' : '$count cập nhật';
   String get rootMessageLabel =>
-      isEnglish ? 'Original request' : 'Y?u c?u ban ??u';
+      isEnglish ? 'Original request' : 'Yêu cầu ban đầu';
   String threadAuthorLabel(String authorRole, String? authorName) {
     switch (authorRole.trim().toLowerCase()) {
       case 'admin':
         return authorName?.trim().isNotEmpty == true
             ? authorName!.trim()
-            : (isEnglish ? 'Support team' : '??i h? tr?');
+            : (isEnglish ? 'Support team' : 'Đội hỗ trợ');
       case 'dealer':
         return authorName?.trim().isNotEmpty == true
             ? authorName!.trim()
-            : (isEnglish ? 'You' : 'B?n');
+            : (isEnglish ? 'You' : 'Bạn');
       default:
         return authorName?.trim().isNotEmpty == true
             ? authorName!.trim()
-            : (isEnglish ? 'System' : 'H? th?ng');
+            : (isEnglish ? 'System' : 'Hệ thống');
     }
   }
 
   String threadRoleLabel(String authorRole, {required bool isRootMessage}) {
     if (isRootMessage) {
-      return isEnglish ? 'Opened by dealer' : '??i l? t?o ticket';
+      return isEnglish ? 'Opened by dealer' : 'Đại lý tạo ticket';
     }
     switch (authorRole.trim().toLowerCase()) {
       case 'admin':
-        return isEnglish ? 'Support reply' : 'Ph?n h?i t? h? tr?';
+        return isEnglish ? 'Support reply' : 'Phản hồi từ hỗ trợ';
       case 'dealer':
-        return isEnglish ? 'Dealer reply' : 'Ph?n h?i t? ??i l?';
+        return isEnglish ? 'Dealer reply' : 'Phản hồi từ đại lý';
       default:
-        return isEnglish ? 'System update' : 'C?p nh?t h? th?ng';
+        return isEnglish ? 'System update' : 'Cập nhật hệ thống';
     }
   }
 
-  String get openAttachmentAction => isEnglish ? 'Open' : 'M?';
+  String get openAttachmentAction => isEnglish ? 'Open' : 'Mở';
 
   String get composerTitle =>
-      isEnglish ? 'Create or follow up' : 'T?o m?i ho?c ph?n h?i';
-  String get createModeLabel => isEnglish ? 'New ticket' : 'Ticket m?i';
+      isEnglish ? 'Create or follow up' : 'Tạo mới hoặc phản hồi';
+  String get createModeLabel => isEnglish ? 'New ticket' : 'Ticket mới';
   String get followUpModeLabel =>
-      isEnglish ? 'Reply ticket' : 'Ph?n h?i ticket';
+      isEnglish ? 'Reply ticket' : 'Phản hồi ticket';
   String get newRequestModeTitle =>
-      isEnglish ? 'Create a new support ticket' : 'T?o ticket h? tr? m?i';
+      isEnglish ? 'Create a new support ticket' : 'Tạo ticket hỗ trợ mới';
   String get newRequestModeDescription => isEnglish
       ? 'Use this form for a brand-new issue. Your request will appear in the ticket inbox right after submission.'
-      : 'D?ng bi?u m?u n?y khi b?n c?n m? m?t y?u c?u m?i. Ticket s? xu?t hi?n ngay trong danh s?ch sau khi g?i.';
+      : 'Dùng biểu mẫu này khi bạn cần mở một yêu cầu mới. Ticket sẽ xuất hiện ngay trong danh sách sau khi gửi.';
   String get followUpModeTitle =>
-      isEnglish ? 'Reply to the selected ticket' : 'Ph?n h?i ticket ?ang ch?n';
+      isEnglish ? 'Reply to the selected ticket' : 'Phản hồi ticket đang chọn';
   String get followUpModeUnavailableTitle =>
-      isEnglish ? 'No ticket selected' : 'Ch?a ch?n ticket';
+      isEnglish ? 'No ticket selected' : 'Chưa chọn ticket';
   String get followUpModeUnavailable => isEnglish
       ? 'Select an active ticket from the list above to send more details.'
-      : 'H?y ch?n m?t ticket ?ang m? ? ph?a tr?n ?? g?i th?m th?ng tin.';
+      : 'Hãy chọn một ticket đang mở ở phía trên để gửi thêm thông tin.';
   String get selectTicketToReplyMessage => isEnglish
       ? 'Please choose a ticket before sending a follow-up.'
-      : 'Vui l?ng ch?n ticket tr??c khi g?i ph?n h?i.';
+      : 'Vui lòng chọn ticket trước khi gửi phản hồi.';
   String get closedTicketReplyTitle =>
-      isEnglish ? 'Ticket is closed' : 'Ticket ?? ??ng';
+      isEnglish ? 'Ticket is closed' : 'Ticket đã đóng';
   String get closedTicketReplyMessage => isEnglish
       ? 'This ticket is already closed. Create a new ticket if you still need assistance.'
-      : 'Ticket n?y ?? ??ng. H?y t?o ticket m?i n?u b?n v?n c?n h? tr?.';
+      : 'Ticket này đã đóng. Hãy tạo ticket mới nếu bạn vẫn cần hỗ trợ.';
   String get followUpFieldLabel =>
-      isEnglish ? 'Reply message' : 'N?i dung ph?n h?i';
+      isEnglish ? 'Reply message' : 'Nội dung phản hồi';
   String get followUpHint => isEnglish
       ? 'Share the latest update, evidence, or any extra details for this ticket.'
-      : 'M? t? c?p nh?t m?i nh?t, b? sung b?ng ch?ng ho?c th?ng tin c?n l?m r? cho ticket n?y.';
+      : 'Mô tả cập nhật mới nhất, bổ sung bằng chứng hoặc thông tin cần làm rõ cho ticket này.';
   String get followUpHelper => isEnglish
       ? 'Your message will be added to the conversation thread of the selected ticket.'
-      : 'N?i dung n?y s? ???c th?m v?o lu?ng trao ??i c?a ticket ?ang ch?n.';
+      : 'Nội dung này sẽ được thêm vào luồng trao đổi của ticket đang chọn.';
   String get contextSectionTitle =>
-      isEnglish ? 'Related information' : 'Th?ng tin li?n quan';
+      isEnglish ? 'Related information' : 'Thông tin liên quan';
   String get contextSectionDescription => isEnglish
       ? 'Add the order code, payment reference, serial, or return reason so support can handle the ticket faster.'
-      : 'B? sung m? ??n, giao d?ch, serial ho?c l? do tr? h?ng ?? ??i h? tr? x? l? nhanh h?n.';
+      : 'Bổ sung mã đơn, giao dịch, serial hoặc lý do trả hàng để đội hỗ trợ xử lý nhanh hơn.';
   String get contextSummaryTitle =>
-      isEnglish ? 'Ticket context' : 'Th?ng tin li?n quan';
-  String get createdLabel => isEnglish ? 'Created' : 'T?o l?c';
-  String get resolvedLabel => isEnglish ? 'Resolved' : '?? x? l?';
-  String get closedLabel => isEnglish ? 'Closed' : '?? ??ng';
+      isEnglish ? 'Ticket context' : 'Thông tin liên quan';
+  String get createdLabel => isEnglish ? 'Created' : 'Tạo lúc';
+  String get resolvedLabel => isEnglish ? 'Resolved' : 'Đã xử lý';
+  String get closedLabel => isEnglish ? 'Closed' : 'Đã đóng';
   String get quickTipsTitle =>
-      isEnglish ? 'Quick tips before sending' : 'G?i ? tr??c khi g?i';
+      isEnglish ? 'Quick tips before sending' : 'Gợi ý trước khi gửi';
   String get quickTipOneTitle => isEnglish
       ? 'Use the correct order or serial'
-      : 'Chu?n b? ??ng m? ??n ho?c serial';
+      : 'Chuẩn bị đúng mã đơn hoặc serial';
   String get quickTipOneBody => isEnglish
       ? 'Adding the right order code or serial helps support verify the issue much faster.'
-      : 'Th?m ??ng m? ??n ho?c serial gi?p ??i h? tr? x?c minh v?n ?? nhanh h?n.';
+      : 'Thêm đúng mã đơn hoặc serial giúp đội hỗ trợ xác minh vấn đề nhanh hơn.';
   String get quickTipTwoTitle =>
-      isEnglish ? 'Attach evidence when possible' : '??nh k?m h?nh ?nh n?u c?';
+      isEnglish ? 'Attach evidence when possible' : 'Đính kèm hình ảnh nếu có';
   String get quickTipTwoBody => isEnglish
       ? 'Screenshots, payment proof, or serial labels usually shorten the processing time.'
-      : '?nh ch?p m?n h?nh, ch?ng t? chuy?n kho?n ho?c tem serial th??ng gi?p r?t ng?n th?i gian x? l?.';
+      : 'Ảnh chụp màn hình, chứng từ chuyển khoản hoặc tem serial thường giúp rút ngắn thời gian xử lý.';
   String get quickTipThreeTitle => isEnglish
       ? 'Reply inside the same ticket'
-      : 'Ph?n h?i ngay trong ticket ?ang ch?n';
+      : 'Phản hồi ngay trong ticket đang chọn';
   String get quickTipThreeBody => isEnglish
       ? 'When support asks for more information, reply in the same ticket so the thread stays complete.'
-      : 'Khi c?n b? sung th?ng tin, h?y ph?n h?i ngay trong ticket ?ang ch?n ?? lu?ng trao ??i lu?n ??y ??.';
+      : 'Khi cần bổ sung thông tin, hãy phản hồi ngay trong ticket đang chọn để luồng trao đổi luôn đầy đủ.';
   String get replyThisTicketAction =>
-      isEnglish ? 'Reply to this ticket' : 'Ph?n h?i ticket n?y';
+      isEnglish ? 'Reply to this ticket' : 'Phản hồi ticket này';
   String followUpTargetLabel(String ticketCode, String subject) => isEnglish
       ? 'Reply target: #$ticketCode - $subject'
-      : '?ang ph?n h?i ticket #$ticketCode - $subject';
+      : 'Đang phản hồi ticket #$ticketCode - $subject';
 
   String replyTargetChangedMessage(String ticketCode) => isEnglish
       ? 'Reply target changed to ticket #$ticketCode.'
-      : '?? chuy?n sang ph?n h?i ticket #$ticketCode.';
+      : 'Đã chuyển sang phản hồi ticket #$ticketCode.';
 
-  String get orderCodeFieldLabel => isEnglish ? 'Order code' : 'M? ??n h?ng';
+  String get orderCodeFieldLabel => isEnglish ? 'Order code' : 'Mã đơn hàng';
   String get transactionCodeFieldLabel =>
-      isEnglish ? 'Transaction code' : 'M? giao d?ch';
+      isEnglish ? 'Transaction code' : 'Mã giao dịch';
   String get paidAmountFieldLabel =>
-      isEnglish ? 'Paid amount' : 'S? ti?n ?? chuy?n';
+      isEnglish ? 'Paid amount' : 'Số tiền đã chuyển';
   String get paymentReferenceFieldLabel =>
-      isEnglish ? 'Payment reference' : 'N?i dung chuy?n kho?n';
+      isEnglish ? 'Payment reference' : 'Nội dung chuyển khoản';
   String get serialFieldLabel => 'Serial';
   String get returnReasonFieldLabel =>
-      isEnglish ? 'Return reason' : 'L? do tr? h?ng';
+      isEnglish ? 'Return reason' : 'Lý do trả hàng';
   String get attachmentSectionLabel =>
-      isEnglish ? 'Evidence / attachments' : 'H?nh ?nh / ch?ng t?';
+      isEnglish ? 'Evidence / attachments' : 'Hình ảnh / chứng từ';
   String get addAttachmentAction =>
-      isEnglish ? 'Add attachment' : 'Th?m t?p ??nh k?m';
+      isEnglish ? 'Add attachment' : 'Thêm tệp đính kèm';
   String get uploadingAttachmentLabel =>
-      isEnglish ? 'Uploading...' : '?ang t?i...';
+      isEnglish ? 'Uploading...' : 'Đang tải...';
   String get attachmentHelper => isEnglish
       ? 'Attach screenshots or proof images to help support verify the issue faster.'
-      : '??nh k?m ?nh ch?p m?n h?nh ho?c ch?ng t? ?? ??i h? tr? ki?m tra nhanh h?n.';
+      : 'Đính kèm ảnh chụp màn hình hoặc chứng từ để đội hỗ trợ kiểm tra nhanh hơn.';
   String attachmentAddedMessage(String fileName) =>
-      isEnglish ? 'Attached $fileName.' : '?? ??nh k?m $fileName.';
+      isEnglish ? 'Attached $fileName.' : 'Đã đính kèm $fileName.';
   String attachmentUploadFailed(Object error) =>
       uploadServiceErrorMessage(error, isEnglish: isEnglish);
 }

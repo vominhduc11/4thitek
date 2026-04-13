@@ -956,96 +956,22 @@ class _OrdersScreenState extends State<OrdersScreen> {
                               ],
                             ),
                             const SizedBox(height: 14),
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: colors.surfaceContainerLow.withValues(
-                                  alpha: 0.76,
-                                ),
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(
-                                  color: colors.outlineVariant.withValues(
-                                    alpha: 0.3,
-                                  ),
-                                ),
-                              ),
-                              child: LayoutBuilder(
-                                builder: (context, constraints) {
-                                  final useThreeColumns =
-                                      constraints.maxWidth >= 380;
-                                  final spacing = 10.0;
-                                  final itemWidth = useThreeColumns
-                                      ? (constraints.maxWidth - spacing * 2) / 3
-                                      : (constraints.maxWidth - spacing) / 2;
-                                  final metrics = <Widget>[
-                                    SizedBox(
-                                      width: itemWidth,
-                                      child: _OrderMetricTile(
-                                        icon: _paymentMethodIcon(
-                                          order.paymentMethod,
-                                        ),
-                                        label: texts.paymentFilterLabel,
-                                        value: texts.paymentMethodLabel(
-                                          context,
-                                          order.paymentMethod,
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      width: itemWidth,
-                                      child: _OrderMetricTile(
-                                        icon: Icons.payments_outlined,
-                                        label: texts.amountPaidMetricLabel,
-                                        value: formatVnd(order.paidAmount),
-                                        accentColor: order.paidAmount > 0
-                                            ? colors.primary
-                                            : null,
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      width: itemWidth,
-                                      child: order.outstandingAmount > 0
-                                          ? _OrderMetricTile(
-                                              icon: Icons
-                                                  .account_balance_wallet_outlined,
-                                              label: texts
-                                                  .outstandingCriteriaLabel,
-                                              value: formatVnd(
-                                                order.outstandingAmount,
-                                              ),
-                                              accentColor: colors.error,
-                                            )
-                                          : _OrderMetricTile(
-                                              icon: _paymentStatusIcon(
-                                                order.paymentStatus,
-                                              ),
-                                              label: texts
-                                                  .paymentStatusMetricLabel,
-                                              value: texts
-                                                  .orderPaymentStatusLabel(
-                                                    order.paymentStatus,
-                                                  ),
-                                              accentColor:
-                                                  _paymentStatusTextColor(
-                                                    order.paymentStatus,
-                                                  ),
-                                            ),
-                                    ),
-                                  ];
-                                  return Wrap(
-                                    spacing: spacing,
-                                    runSpacing: spacing,
-                                    children: metrics,
-                                  );
-                                },
-                              ),
-                            ),
-                            const SizedBox(height: 12),
                             Wrap(
                               spacing: 8,
                               runSpacing: 8,
                               children: [
+                                _OrderMetaBadge(
+                                  icon: _paymentMethodIcon(order.paymentMethod),
+                                  label: texts.paymentMethodLabel(
+                                    context,
+                                    order.paymentMethod,
+                                  ),
+                                ),
+                                _OrderMetaBadge(
+                                  icon: Icons.payments_outlined,
+                                  label:
+                                      '${texts.amountPaidMetricLabel}: ${formatVnd(order.paidAmount)}',
+                                ),
                                 _PaymentStatusChip(
                                   paymentStatus: order.paymentStatus,
                                 ),
@@ -1887,66 +1813,6 @@ class _OrderMetaBadge extends StatelessWidget {
   }
 }
 
-class _OrderMetricTile extends StatelessWidget {
-  const _OrderMetricTile({
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.accentColor,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color? accentColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final effectiveAccent = accentColor ?? colors.primary;
-    return Container(
-      constraints: const BoxConstraints(minHeight: 84),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: colors.surface.withValues(alpha: 0.82),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colors.outlineVariant.withValues(alpha: 0.28),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 16, color: effectiveAccent),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  label,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: colors.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: accentColor ?? colors.onSurface,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _StatusChip extends StatelessWidget {
   const _StatusChip({required this.status});
 
@@ -2202,17 +2068,6 @@ IconData _paymentMethodIcon(OrderPaymentMethod method) {
   switch (method) {
     case OrderPaymentMethod.bankTransfer:
       return Icons.account_balance_outlined;
-  }
-}
-
-IconData _paymentStatusIcon(OrderPaymentStatus status) {
-  switch (status) {
-    case OrderPaymentStatus.cancelled:
-      return Icons.do_not_disturb_alt_outlined;
-    case OrderPaymentStatus.pending:
-      return Icons.schedule_rounded;
-    case OrderPaymentStatus.paid:
-      return Icons.verified_outlined;
   }
 }
 

@@ -66,6 +66,7 @@ class _InventoryProductDetailScreenState
   late final InventoryService _inventoryService;
   late final ReturnRequestService _returnRequestService;
   InventorySerialFilter _filter = InventorySerialFilter.all;
+  String _serialQuery = '';
   int _visibleSerialCount = _initialVisibleSerialCount;
   int _filteredSerialCount = 0;
   List<DealerInventorySerialRecord>? _remoteSerials;
@@ -208,6 +209,8 @@ class _InventoryProductDetailScreenState
     final filterReadyLabel = texts.filterReadyLabel(readyCount);
     final filterWarrantyLabel = texts.filterWarrantyLabel(warrantyCount);
     final filterIssueLabel = texts.filterIssueLabel(issueCount);
+    final normalizedQuery = _serialQuery.trim().toLowerCase();
+    final hasSearchQuery = normalizedQuery.isNotEmpty;
 
     final filtered = serialRecords
         .where((record) {
@@ -225,6 +228,17 @@ class _InventoryProductDetailScreenState
                   status == ImportedSerialStatus.warranty)) {
             return false;
           }
+          if (hasSearchQuery) {
+            final serialMatch = record.serial.toLowerCase().contains(
+              normalizedQuery,
+            );
+            final orderMatch = record.orderId.toLowerCase().contains(
+              normalizedQuery,
+            );
+            if (!serialMatch && !orderMatch) {
+              return false;
+            }
+          }
           return true;
         })
         .toList(growable: false);
@@ -233,6 +247,10 @@ class _InventoryProductDetailScreenState
         .take(_visibleSerialCount)
         .toList(growable: false);
     final hasMoreSerials = visibleSerials.length < _filteredSerialCount;
+    final visibleCount = visibleSerials.length;
+    final progressRatio = _filteredSerialCount <= 0
+        ? 0.0
+        : (visibleCount / _filteredSerialCount).clamp(0.0, 1.0);
     final mediaSize = MediaQuery.sizeOf(context);
     final isTablet = mediaSize.shortestSide >= AppBreakpoints.phone;
     final isWideLayout = mediaSize.width >= 960;
@@ -408,7 +426,7 @@ class _InventoryProductDetailScreenState
             textStyle: const TextStyle(fontWeight: FontWeight.w600),
           ),
           icon: const Icon(Icons.qr_code_scanner_outlined),
-          label: Text(texts.scanQrAction),
+          label: Text(texts.scanForExportAction),
         ),
       ],
     );
@@ -435,6 +453,13 @@ class _InventoryProductDetailScreenState
                   buildMetricsGrid(),
                   const SizedBox(height: _detailSectionSpacingLarge),
                   actionButtons,
+                  const SizedBox(height: 8),
+                  Text(
+                    texts.scanForExportHint,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                 ],
               );
 
@@ -467,7 +492,14 @@ class _InventoryProductDetailScreenState
     );
 
     return Scaffold(
-      appBar: AppBar(title: BrandAppBarTitle(texts.screenTitle)),
+      appBar: AppBar(
+        toolbarHeight: 72,
+        title: _InventoryDetailAppBarTitle(
+          screenTitle: texts.screenTitle,
+          productName: widget.product.name,
+          productSku: productSku,
+        ),
+      ),
       body: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
@@ -481,31 +513,73 @@ class _InventoryProductDetailScreenState
               children: [
                 summaryCard,
                 const SizedBox(height: _detailSectionSpacingLarge),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _SerialFilterChip(
-                      label: filterAllLabel,
-                      selected: _filter == InventorySerialFilter.all,
-                      onTap: () => _setFilter(InventorySerialFilter.all),
+                Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.6),
                     ),
-                    _SerialFilterChip(
-                      label: filterReadyLabel,
-                      selected: _filter == InventorySerialFilter.ready,
-                      onTap: () => _setFilter(InventorySerialFilter.ready),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TextField(
+                          onChanged: _setSerialQuery,
+                          textInputAction: TextInputAction.search,
+                          decoration: InputDecoration(
+                            prefixIcon: const Icon(Icons.search_rounded),
+                            suffixIcon: _serialQuery.trim().isEmpty
+                                ? null
+                                : IconButton(
+                                    tooltip: texts.clearSearchAction,
+                                    onPressed: () => _setSerialQuery(''),
+                                    icon: const Icon(Icons.close_rounded),
+                                  ),
+                            hintText: texts.searchSerialHint,
+                            isDense: true,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _SerialFilterChip(
+                              label: filterAllLabel,
+                              selected: _filter == InventorySerialFilter.all,
+                              onTap: () =>
+                                  _setFilter(InventorySerialFilter.all),
+                            ),
+                            _SerialFilterChip(
+                              label: filterReadyLabel,
+                              selected: _filter == InventorySerialFilter.ready,
+                              onTap: () =>
+                                  _setFilter(InventorySerialFilter.ready),
+                            ),
+                            _SerialFilterChip(
+                              label: filterWarrantyLabel,
+                              selected:
+                                  _filter == InventorySerialFilter.warranty,
+                              onTap: () =>
+                                  _setFilter(InventorySerialFilter.warranty),
+                            ),
+                            _SerialFilterChip(
+                              label: filterIssueLabel,
+                              selected: _filter == InventorySerialFilter.issue,
+                              onTap: () =>
+                                  _setFilter(InventorySerialFilter.issue),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    _SerialFilterChip(
-                      label: filterWarrantyLabel,
-                      selected: _filter == InventorySerialFilter.warranty,
-                      onTap: () => _setFilter(InventorySerialFilter.warranty),
-                    ),
-                    _SerialFilterChip(
-                      label: filterIssueLabel,
-                      selected: _filter == InventorySerialFilter.issue,
-                      onTap: () => _setFilter(InventorySerialFilter.issue),
-                    ),
-                  ],
+                  ),
                 ),
                 const SizedBox(height: _detailSectionSpacing),
                 if (_remoteLoadErrorMessage != null)
@@ -539,68 +613,60 @@ class _InventoryProductDetailScreenState
                 else if (filtered.isEmpty)
                   _SerialEmptyStateCard(
                     icon: Icons.filter_alt_off_outlined,
-                    message: texts.filterEmptyMessage,
-                    actionLabel: texts.clearFilterAction,
-                    onAction: () => _setFilter(InventorySerialFilter.all),
+                    message: hasSearchQuery
+                        ? texts.searchEmptyMessage
+                        : texts.filterEmptyMessage,
+                    actionLabel: hasSearchQuery
+                        ? texts.clearSearchAction
+                        : texts.clearFilterAction,
+                    onAction: hasSearchQuery
+                        ? () => _setSerialQuery('')
+                        : () => _setFilter(InventorySerialFilter.all),
                   )
                 else
-                  ...visibleSerials.map((record) {
-                    final status = serialStatuses[record.serial]!;
-                    final remoteRecord = remoteSerialByValue[record.serial];
-                    final returnIndicator = remoteRecord == null
-                        ? null
-                        : _returnIndicatorBySerialId[remoteRecord.id];
-                    return Padding(
-                      padding: const EdgeInsets.only(
-                        bottom: _detailItemSpacing,
-                      ),
-                      child: RepaintBoundary(
-                        child: _SerialTile(
-                          record: record,
-                          status: status,
-                          onOpenOrder: () =>
-                              context.pushDealerOrderDetail(record.orderId),
-                          onCopy: () => _copySerial(record.serial),
-                          returnIndicatorLabel: returnIndicator == null
-                              ? null
-                              : (returnIndicator.activeStatus == null
-                                    ? _returnEligibilityMessage(
-                                        returnIndicator.eligibility.reasonCode,
-                                        fallback: returnIndicator
-                                            .eligibility
-                                            .reasonMessage,
-                                        isEnglish: texts.isEnglish,
-                                      )
-                                    : dealerReturnStatusLabel(
-                                        returnIndicator.activeStatus!,
-                                        isEnglish: texts.isEnglish,
-                                      )),
-                          returnIndicatorColor: returnIndicator == null
-                              ? null
-                              : (returnIndicator.activeStatus == null
-                                    ? (returnIndicator.eligibility.eligible
-                                          ? colorScheme.tertiary
-                                          : colorScheme.error)
-                                    : dealerReturnStatusForeground(
-                                        returnIndicator.activeStatus!,
-                                      )),
-                          onViewTimeline: remoteRecord == null
-                              ? null
-                              : () => _openSerialTimeline(remoteRecord),
-                          onCheckReturnEligibility: remoteRecord == null
-                              ? null
-                              : () => _openReturnEligibilitySheet(remoteRecord),
+                  ..._buildSerialTiles(
+                    context: context,
+                    visibleSerials: visibleSerials,
+                    serialStatuses: serialStatuses,
+                    remoteSerialByValue: remoteSerialByValue,
+                    isWideLayout: isWideLayout,
+                    colorScheme: colorScheme,
+                    texts: texts,
+                  ),
+                if (filtered.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  _SerialProgressPanel(
+                    shownCount: visibleCount,
+                    filteredCount: _filteredSerialCount,
+                    totalCount: importedCount,
+                    progress: progressRatio,
+                    summaryLabel: texts.serialVisibilitySummary(
+                      visibleCount,
+                      _filteredSerialCount,
+                      importedCount,
+                    ),
+                    loadingHint: hasMoreSerials ? texts.loadingMoreHint : null,
+                  ),
+                ],
+                if (hasMoreSerials) ...[
+                  const SizedBox(height: 10),
+                  Center(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _visibleSerialCount =
+                              (_visibleSerialCount + _visibleSerialStep) >
+                                  _filteredSerialCount
+                              ? _filteredSerialCount
+                              : _visibleSerialCount + _visibleSerialStep;
+                        });
+                      },
+                      icon: const Icon(Icons.unfold_more_rounded),
+                      label: Text(
+                        texts.loadMoreSerialsAction(
+                          (_filteredSerialCount - visibleCount).clamp(0, 99999),
                         ),
                       ),
-                    );
-                  }),
-                if (hasMoreSerials) ...[
-                  const SizedBox(height: 8),
-                  const Center(
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                   ),
                 ],
@@ -612,9 +678,105 @@ class _InventoryProductDetailScreenState
     );
   }
 
+  List<Widget> _buildSerialTiles({
+    required BuildContext context,
+    required List<ImportedSerialRecord> visibleSerials,
+    required Map<String, ImportedSerialStatus> serialStatuses,
+    required Map<String, DealerInventorySerialRecord> remoteSerialByValue,
+    required bool isWideLayout,
+    required ColorScheme colorScheme,
+    required _InventoryProductDetailTexts texts,
+  }) {
+    final tiles = visibleSerials
+        .map((record) {
+          final status = serialStatuses[record.serial]!;
+          final remoteRecord = remoteSerialByValue[record.serial];
+          final returnIndicator = remoteRecord == null
+              ? null
+              : _returnIndicatorBySerialId[remoteRecord.id];
+          return RepaintBoundary(
+            child: _SerialTile(
+              record: record,
+              status: status,
+              onOpenOrder: () => context.pushDealerOrderDetail(record.orderId),
+              onCopy: () => _copySerial(record.serial),
+              returnIndicatorLabel: returnIndicator == null
+                  ? null
+                  : (returnIndicator.activeStatus == null
+                        ? _returnEligibilityMessage(
+                            returnIndicator.eligibility.reasonCode,
+                            fallback: returnIndicator.eligibility.reasonMessage,
+                            isEnglish: texts.isEnglish,
+                          )
+                        : dealerReturnStatusLabel(
+                            returnIndicator.activeStatus!,
+                            isEnglish: texts.isEnglish,
+                          )),
+              returnIndicatorColor: returnIndicator == null
+                  ? null
+                  : (returnIndicator.activeStatus == null
+                        ? (returnIndicator.eligibility.eligible
+                              ? colorScheme.tertiary
+                              : colorScheme.error)
+                        : dealerReturnStatusForeground(
+                            returnIndicator.activeStatus!,
+                          )),
+              onViewTimeline: remoteRecord == null
+                  ? null
+                  : () => _openSerialTimeline(remoteRecord),
+              onCheckReturnEligibility: remoteRecord == null
+                  ? null
+                  : () => _openReturnEligibilitySheet(remoteRecord),
+            ),
+          );
+        })
+        .toList(growable: false);
+
+    if (!isWideLayout) {
+      return tiles
+          .map(
+            (tile) => Padding(
+              padding: const EdgeInsets.only(bottom: _detailItemSpacing),
+              child: tile,
+            ),
+          )
+          .toList(growable: false);
+    }
+
+    return [
+      LayoutBuilder(
+        builder: (context, constraints) {
+          final columns = constraints.maxWidth >= 1200 ? 3 : 2;
+          const spacing = _detailItemSpacing;
+          final tileWidth =
+              (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+          return Wrap(
+            spacing: spacing,
+            runSpacing: spacing,
+            children: [
+              for (final tile in tiles) SizedBox(width: tileWidth, child: tile),
+            ],
+          );
+        },
+      ),
+    ];
+  }
+
   void _setFilter(InventorySerialFilter filter) {
     setState(() {
       _filter = filter;
+      _visibleSerialCount = _initialVisibleSerialCount;
+    });
+    _jumpToTop();
+  }
+
+  void _setSerialQuery(String value) {
+    final normalized = value.trimLeft();
+    if (normalized == _serialQuery) {
+      return;
+    }
+    setState(() {
+      _serialQuery = normalized;
       _visibleSerialCount = _initialVisibleSerialCount;
     });
     _jumpToTop();
@@ -1043,6 +1205,103 @@ class _InventoryMetric extends StatelessWidget {
   }
 }
 
+class _InventoryDetailAppBarTitle extends StatelessWidget {
+  const _InventoryDetailAppBarTitle({
+    required this.screenTitle,
+    required this.productName,
+    required this.productSku,
+  });
+
+  final String screenTitle;
+  final String productName;
+  final String productSku;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        BrandAppBarTitle(screenTitle),
+        Text(
+          productSku.isEmpty ? productName : '$productName • $productSku',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SerialProgressPanel extends StatelessWidget {
+  const _SerialProgressPanel({
+    required this.shownCount,
+    required this.filteredCount,
+    required this.totalCount,
+    required this.progress,
+    required this.summaryLabel,
+    this.loadingHint,
+  });
+
+  final int shownCount;
+  final int filteredCount;
+  final int totalCount;
+  final double progress;
+  final String summaryLabel;
+  final String? loadingHint;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.28),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.7),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            summaryLabel,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 6),
+          LinearProgressIndicator(value: progress),
+          if (loadingHint != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              loadingHint!,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: colorScheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+          const SizedBox(height: 2),
+          Text(
+            '$shownCount / $filteredCount (${totalCount.toString()} total)',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _SerialFilterChip extends StatelessWidget {
   const _SerialFilterChip({
     required this.label,
@@ -1128,6 +1387,8 @@ class _SerialTile extends StatelessWidget {
       ImportedSerialStatus.reserved => texts.reservedStatusLabel,
       ImportedSerialStatus.unknown => texts.unknownStatusLabel,
     };
+    final hasReturnIndicator =
+        returnIndicatorLabel != null && returnIndicatorLabel!.trim().isNotEmpty;
 
     return Card(
       elevation: 0,
@@ -1140,15 +1401,15 @@ class _SerialTile extends StatelessWidget {
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
-        child: Row(
+        padding: const EdgeInsets.fromLTRB(12, 12, 8, 10),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
                     record.serial,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1158,104 +1419,192 @@ class _SerialTile extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    statusLabel,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: color.withValues(alpha: 0.84),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                ),
+                const SizedBox(width: 8),
+                PopupMenuButton<String>(
+                  tooltip: texts.serialOptionsTooltip,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: _detailMinTapTarget,
+                    minHeight: _detailMinTapTarget,
+                  ),
+                  onSelected: (value) {
+                    if (value == 'copy') {
+                      onCopy();
+                    } else if (value == 'timeline') {
+                      onViewTimeline?.call();
+                    } else if (value == 'return-eligibility') {
+                      onCheckReturnEligibility?.call();
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    if (onViewTimeline != null)
+                      PopupMenuItem<String>(
+                        value: 'timeline',
+                        child: Text(texts.timelineAction),
+                      ),
+                    if (onCheckReturnEligibility != null)
+                      PopupMenuItem<String>(
+                        value: 'return-eligibility',
+                        child: Text(texts.returnEligibilityAction),
+                      ),
+                    PopupMenuItem<String>(
+                      value: 'copy',
+                      child: Text(texts.copySerialAction),
+                    ),
+                  ],
+                  child: Container(
+                    width: _detailMinTapTarget,
+                    height: _detailMinTapTarget,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.more_vert,
+                      color: color.withValues(alpha: 0.88),
+                      size: 20,
                     ),
                   ),
-                  if (returnIndicatorLabel != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: color.withValues(alpha: 0.4)),
+                  ),
+                  child: Text(
+                    statusLabel,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: color.withValues(alpha: 0.9),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                if (hasReturnIndicator)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: (returnIndicatorColor ?? colorScheme.tertiary)
+                          .withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: (returnIndicatorColor ?? colorScheme.tertiary)
+                            .withValues(alpha: 0.36),
+                      ),
+                    ),
+                    child: Text(
                       returnIndicatorLabel!,
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color:
                             returnIndicatorColor ??
-                            Theme.of(context).colorScheme.onSurfaceVariant,
+                            colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                  ],
-                  const SizedBox(height: 2),
-                  Text(
-                    texts.importedAtLabel(formatDateTime(record.importedAt)),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                      fontSize: 12,
-                    ),
                   ),
-                  const SizedBox(height: 2),
-                  TextButton(
-                    onPressed: onOpenOrder,
-                    style: TextButton.styleFrom(
-                      minimumSize: const Size(100, 48),
-                      alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.symmetric(horizontal: 0),
-                      foregroundColor: colorScheme.primary,
+              ],
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.schedule_outlined,
+                      size: 15,
+                      color: colorScheme.onSurfaceVariant,
                     ),
-                    child: Text(
-                      texts.orderLinkLabel(record.orderId),
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.primary,
-                        fontWeight: FontWeight.w600,
-                        decoration: TextDecoration.underline,
-                        decorationThickness: 1.2,
+                    const SizedBox(width: 4),
+                    Text(
+                      texts.importedAtLabel(formatDateTime(record.importedAt)),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 12,
                       ),
                     ),
+                  ],
+                ),
+                TextButton.icon(
+                  onPressed: onOpenOrder,
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(100, 40),
+                    padding: const EdgeInsets.symmetric(horizontal: 0),
+                    foregroundColor: colorScheme.primary,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
                   ),
-                ],
-              ),
-            ),
-            PopupMenuButton<String>(
-              tooltip: texts.serialOptionsTooltip,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(
-                minWidth: _detailMinTapTarget,
-                minHeight: _detailMinTapTarget,
-              ),
-              onSelected: (value) {
-                if (value == 'copy') {
-                  onCopy();
-                } else if (value == 'timeline') {
-                  onViewTimeline?.call();
-                } else if (value == 'return-eligibility') {
-                  onCheckReturnEligibility?.call();
-                }
-              },
-              itemBuilder: (_) => [
-                if (onViewTimeline != null)
-                  PopupMenuItem<String>(
-                    value: 'timeline',
-                    child: Text(texts.timelineAction),
+                  icon: const Icon(Icons.receipt_long_outlined, size: 16),
+                  label: Text(
+                    texts.orderLinkLabel(record.orderId),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                      decoration: TextDecoration.underline,
+                      decorationThickness: 1.2,
+                    ),
                   ),
-                if (onCheckReturnEligibility != null)
-                  PopupMenuItem<String>(
-                    value: 'return-eligibility',
-                    child: Text(texts.returnEligibilityAction),
-                  ),
-                PopupMenuItem<String>(
-                  value: 'copy',
-                  child: Text(texts.copySerialAction),
                 ),
               ],
-              child: Container(
-                width: _detailMinTapTarget,
-                height: _detailMinTapTarget,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                if (onCheckReturnEligibility != null)
+                  OutlinedButton.icon(
+                    onPressed: onCheckReturnEligibility,
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(120, 36),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    icon: const Icon(
+                      Icons.assignment_return_outlined,
+                      size: 16,
+                    ),
+                    label: Text(texts.returnEligibilityAction),
+                  ),
+                if (onViewTimeline != null)
+                  OutlinedButton.icon(
+                    onPressed: onViewTimeline,
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(110, 36),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    icon: const Icon(Icons.timeline_outlined, size: 16),
+                    label: Text(texts.timelineAction),
+                  ),
+                TextButton.icon(
+                  onPressed: onCopy,
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(88, 36),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  icon: const Icon(Icons.copy_outlined, size: 16),
+                  label: Text(texts.copySerialAction),
                 ),
-                child: Icon(
-                  Icons.more_vert,
-                  color: color.withValues(alpha: 0.88),
-                  size: 20,
-                ),
-              ),
+              ],
             ),
           ],
         ),
@@ -1399,12 +1748,35 @@ class _InventoryProductDetailTexts {
   String get issueMetricLabel => isEnglish ? 'Needs attention' : 'Cần xử lý';
   String get exportAction => isEnglish ? 'Export stock' : 'Xuất hàng';
   String get scanQrAction => isEnglish ? 'Scan QR' : 'Quét QR';
+  String get scanForExportAction =>
+      isEnglish ? 'Scan for export' : 'Quét mã để xuất hàng';
+  String get scanForExportHint => isEnglish
+      ? 'Scan validates the serial and opens export with serial prefilled.'
+      : 'Quét mã để kiểm tra serial và mở xuất hàng với serial điền sẵn.';
+  String get searchSerialHint =>
+      isEnglish ? 'Search serial or order id' : 'Tìm theo serial hoặc mã đơn';
+  String get clearSearchAction => isEnglish ? 'Clear search' : 'Xóa tìm kiếm';
+  String searchResultsLabel(int count) =>
+      isEnglish ? '$count result(s)' : '$count kết quả';
+  String serialVisibilitySummary(int shown, int filtered, int total) =>
+      isEnglish
+      ? 'Showing $shown of $filtered matching serial(s) from $total total.'
+      : 'Đang hiển thị $shown/$filtered serial phù hợp trên tổng $total serial.';
+  String get loadingMoreHint => isEnglish
+      ? 'More serials load automatically when you scroll down.'
+      : 'Danh sách sẽ tự tải thêm khi bạn kéo xuống.';
+  String loadMoreSerialsAction(int remaining) => isEnglish
+      ? 'Load more ($remaining remaining)'
+      : 'Tải thêm (còn $remaining)';
   String get noSerialsMessage => isEnglish
       ? 'This product does not have any serials yet.'
       : 'Sản phẩm này chưa có danh sách serial.';
   String get filterEmptyMessage => isEnglish
       ? 'No serial matches the selected filter.'
       : 'Không có serial phù hợp bộ lọc.';
+  String get searchEmptyMessage => isEnglish
+      ? 'No serial matches your search and filter.'
+      : 'Không có serial phù hợp từ tìm kiếm và bộ lọc.';
   String get clearFilterAction => isEnglish ? 'Clear filter' : 'Xóa bộ lọc';
   String get retryAction => isEnglish ? 'Retry' : 'Thử lại';
   String get invalidScannedCodeMessage =>

@@ -29,26 +29,26 @@ String resolveSupportServiceMessage(
   if (normalized == null || normalized.isEmpty) {
     return isEnglish
         ? 'Unable to sync support request.'
-        : 'Kh?ng th? ??ng b? y?u c?u h? tr?.';
+        : 'Không thể đồng bộ yêu cầu hỗ trợ.';
   }
 
   switch (normalized) {
     case 'support.message.unauthenticated':
       return isEnglish
           ? 'You need to sign in before contacting support.'
-          : 'B?n c?n ??ng nh?p tr??c khi li?n h? h? tr?.';
+          : 'Bạn cần đăng nhập trước khi liên hệ hỗ trợ.';
     case 'support.message.invalidTicketPayload':
       return isEnglish
           ? 'Support ticket data is invalid.'
-          : 'D? li?u ticket h? tr? kh?ng h?p l?.';
+          : 'Dữ liệu ticket hỗ trợ không hợp lệ.';
     case 'support.message.invalidTicketPagePayload':
       return isEnglish
           ? 'Support request history data is invalid.'
-          : 'D? li?u l?ch s? y?u c?u h? tr? kh?ng h?p l?.';
+          : 'Dữ liệu lịch sử yêu cầu hỗ trợ không hợp lệ.';
     case 'support.message.syncFailed':
       return isEnglish
           ? 'Unable to sync support request.'
-          : 'Kh?ng th? ??ng b? y?u c?u h? tr?.';
+          : 'Không thể đồng bộ yêu cầu hỗ trợ.';
     default:
       return normalized;
   }
@@ -210,7 +210,7 @@ class SupportService {
       DealerApiConfig.resolveApiUri('/dealer/support-tickets/latest'),
       headers: await _authorizedHeaders(),
     );
-    final payload = _decodeBody(response.body);
+    final payload = _decodeBody(response.bodyBytes);
     if (response.statusCode == HttpStatus.notFound) {
       debugPrint(
         'SupportService: fetchLatestTicket returned 404 (no tickets found)',
@@ -263,7 +263,7 @@ class SupportService {
       headers: await _authorizedJsonHeaders(),
       body: jsonEncode(body),
     );
-    final payload = _decodeBody(response.body);
+    final payload = _decodeBody(response.bodyBytes);
     if (response.statusCode >= 400) {
       throw SupportException(_extractErrorMessage(payload));
     }
@@ -286,7 +286,7 @@ class SupportService {
       ),
       headers: await _authorizedHeaders(),
     );
-    final payload = _decodeBody(response.body);
+    final payload = _decodeBody(response.bodyBytes);
     if (response.statusCode >= 400) {
       throw SupportException(_extractErrorMessage(payload));
     }
@@ -330,7 +330,7 @@ class SupportService {
       headers: await _authorizedJsonHeaders(),
       body: jsonEncode(body),
     );
-    final payload = _decodeBody(response.body);
+    final payload = _decodeBody(response.bodyBytes);
     if (response.statusCode >= 400) {
       throw SupportException(_extractErrorMessage(payload));
     }
@@ -376,11 +376,11 @@ class SupportService {
     return <String, String>{...headers, 'Content-Type': 'application/json'};
   }
 
-  Map<String, dynamic> _decodeBody(String body) {
-    if (body.trim().isEmpty) {
+  Map<String, dynamic> _decodeBody(List<int> bodyBytes) {
+    if (bodyBytes.isEmpty) {
       return const <String, dynamic>{};
     }
-    final decoded = jsonDecode(body);
+    final decoded = jsonDecode(utf8.decode(bodyBytes));
     if (decoded is Map<String, dynamic>) {
       return decoded;
     }
@@ -399,11 +399,15 @@ class SupportService {
     return DealerSupportTicketRecord(
       id: _parseInt(json['id']),
       ticketCode: json['ticketCode']?.toString() ?? '',
-      category: json['category']?.toString() ?? 'OTHER',
-      priority: json['priority']?.toString() ?? 'NORMAL',
-      status: json['status']?.toString() ?? 'OPEN',
-      subject: json['subject']?.toString() ?? '',
-      message: json['message']?.toString() ?? '',
+      category: _normalizePossibleMojibake(
+        json['category']?.toString() ?? 'OTHER',
+      ),
+      priority: _normalizePossibleMojibake(
+        json['priority']?.toString() ?? 'NORMAL',
+      ),
+      status: _normalizePossibleMojibake(json['status']?.toString() ?? 'OPEN'),
+      subject: _normalizePossibleMojibake(json['subject']?.toString() ?? ''),
+      message: _normalizePossibleMojibake(json['message']?.toString() ?? ''),
       contextData: _mapContextData(json['contextData']),
       assigneeId: _parseOptionalInt(json['assigneeId']),
       assigneeName: _parseOptionalString(json['assigneeName']),
@@ -412,10 +416,14 @@ class SupportService {
           .map(
             (message) => SupportTicketMessageRecord(
               id: _parseInt(message['id']),
-              authorRole: message['authorRole']?.toString() ?? 'system',
+              authorRole: _normalizePossibleMojibake(
+                message['authorRole']?.toString() ?? 'system',
+              ),
               authorName: _parseOptionalString(message['authorName']),
               internalNote: message['internalNote'] == true,
-              message: message['message']?.toString() ?? '',
+              message: _normalizePossibleMojibake(
+                message['message']?.toString() ?? '',
+              ),
               attachments: _mapAttachments(message['attachments']),
               createdAt:
                   parseApiDateTime(message['createdAt']) ?? DateTime.now(),
@@ -434,7 +442,7 @@ class SupportService {
     if (normalized == null || normalized.isEmpty) {
       return null;
     }
-    return normalized;
+    return _normalizePossibleMojibake(normalized);
   }
 
   int _parseInt(Object? value) {
@@ -490,10 +498,33 @@ String? _parseOptionalStringStatic(Object? value) {
   if (normalized == null || normalized.isEmpty) {
     return null;
   }
-  return normalized;
+  return _normalizePossibleMojibake(normalized);
 }
 
 bool _isBlank(String? value) => value == null || value.trim().isEmpty;
+
+String _normalizePossibleMojibake(String value) {
+  if (value.isEmpty || !_looksLikeMojibake(value)) {
+    return value;
+  }
+  try {
+    final repaired = utf8.decode(latin1.encode(value));
+    return _looksLikeMojibake(repaired) ? value : repaired;
+  } catch (_) {
+    return value;
+  }
+}
+
+bool _looksLikeMojibake(String value) {
+  return value.contains('Ã') ||
+      value.contains('Â') ||
+      value.contains('Ä') ||
+      value.contains('Å') ||
+      value.contains('Æ') ||
+      value.contains('áº') ||
+      value.contains('á»') ||
+      value.contains('â€');
+}
 
 class SupportException implements Exception {
   const SupportException(this.message);

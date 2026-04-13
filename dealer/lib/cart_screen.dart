@@ -422,8 +422,10 @@ class _CartScreenState extends State<CartScreen> {
 
     Widget buildCartList({required bool desktop}) {
       final children = <Widget>[
-        FadeSlideIn(child: buildOverviewCard(desktop: desktop)),
-        const SizedBox(height: 16),
+        if (desktop) ...[
+          FadeSlideIn(child: buildOverviewCard(desktop: true)),
+          const SizedBox(height: 16),
+        ],
         FadeSlideIn(
           delay: const Duration(milliseconds: 40),
           child: _CartSectionHeader(
@@ -465,19 +467,6 @@ class _CartScreenState extends State<CartScreen> {
         if (index != items.length - 1) {
           children.add(const SizedBox(height: 12));
         }
-      }
-
-      if (!desktop) {
-        children.addAll([
-          const SizedBox(height: 18),
-          FadeSlideIn(
-            delay: const Duration(milliseconds: 80),
-            child: buildSummaryPanel(
-              showCheckoutAction: false,
-              showSwipeHint: true,
-            ),
-          ),
-        ]);
       }
 
       return ListView(
@@ -1877,4 +1866,3 @@ class _CartTexts {
   String get continueShoppingButton =>
       isEnglish ? 'Continue shopping' : 'Tiếp tục mua hàng';
 }
-

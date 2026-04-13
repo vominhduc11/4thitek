@@ -534,8 +534,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 context,
               ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
             ),
-            const SizedBox(height: 12),
-            _StockBadge(remainingStock: remainingStock),
             const SizedBox(height: 14),
             Text(
               _currentProduct.shortDescription,
@@ -1815,65 +1813,6 @@ class _VideoDeferredPlaceholder extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _StockBadge extends StatelessWidget {
-  const _StockBadge({required this.remainingStock});
-
-  final int remainingStock;
-
-  @override
-  Widget build(BuildContext context) {
-    final texts = _productDetailTexts(context);
-    final colors = Theme.of(context).colorScheme;
-    final style = Theme.of(context).textTheme.bodySmall;
-    late final String label;
-    late final Color textColor;
-    late final Color background;
-    if (remainingStock <= 0) {
-      label = texts.outOfStockShortLabel;
-      textColor = colors.error;
-      background = colors.errorContainer.withValues(alpha: 0.42);
-    } else if (remainingStock <= 10) {
-      label = texts.lowStockBadge(remainingStock);
-      textColor = colors.tertiary;
-      background = colors.tertiaryContainer.withValues(alpha: 0.46);
-    } else {
-      label = texts.inStockBadge(remainingStock);
-      textColor = colors.primary;
-      background = colors.primaryContainer.withValues(alpha: 0.4);
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            remainingStock <= 0
-                ? Icons.error_outline
-                : remainingStock <= 10
-                ? Icons.schedule
-                : Icons.check_circle_outline,
-            size: 16,
-            color: textColor,
-          ),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: style?.copyWith(
-              color: textColor,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
       ),
     );
   }

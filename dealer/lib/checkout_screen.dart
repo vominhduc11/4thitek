@@ -357,24 +357,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ),
                     ),
                     const SizedBox(height: 14),
-                    _CheckoutFlowStep(
-                      index: 1,
-                      title: texts.paymentStepCreateTitle,
-                      description: texts.paymentStepCreateDescription,
-                    ),
-                    const SizedBox(height: 10),
-                    _CheckoutFlowStep(
-                      index: 2,
-                      title: texts.paymentStepTransferTitle,
-                      description: texts.paymentStepTransferDescription,
-                    ),
-                    const SizedBox(height: 10),
-                    _CheckoutFlowStep(
-                      index: 3,
-                      title: texts.paymentStepConfirmTitle,
-                      description: texts.paymentStepConfirmDescription,
-                    ),
-                    const SizedBox(height: 14),
                     if (_isLoadingBankTransferInstructions)
                       _CheckoutStatePanel(
                         icon: Icons.account_balance_outlined,
@@ -507,15 +489,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 label: texts.paymentStatusLabelTitle,
                 value: texts.paymentStatusLabel(_previewPaymentStatus),
               ),
-              if (_method == OrderPaymentMethod.bankTransfer) ...[
-                const SizedBox(height: 8),
-                _CheckoutStatePanel(
-                  icon: Icons.info_outline,
-                  message: texts.bankTransferSummaryHint,
-                  tone: _CheckoutStateTone.info,
-                  dense: true,
-                ),
-              ],
               const Divider(height: 20),
               _SummaryRow(
                 label: texts.totalLabel,
@@ -709,15 +682,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 buildOrderSummarySection(),
-                                if (_profileLoadError != null) ...[
-                                  const SizedBox(height: 12),
-                                  _CheckoutStatePanel(
-                                    icon: Icons.error_outline,
-                                    message: _profileLoadError!,
-                                    tone: _CheckoutStateTone.error,
-                                    dense: true,
-                                  ),
-                                ],
                                 const SizedBox(height: 16),
                                 buildSubmitAction(),
                               ],
@@ -741,16 +705,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     const SizedBox(height: 14),
                     buildOrderSummarySection(),
                     const SizedBox(height: 20),
-                    if (_profileLoadError != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _CheckoutStatePanel(
-                          icon: Icons.error_outline,
-                          message: _profileLoadError!,
-                          tone: _CheckoutStateTone.error,
-                          dense: true,
-                        ),
-                      ),
                     buildSubmitAction(),
                   ],
                 ),
@@ -1160,66 +1114,6 @@ class _CheckoutMethodBadge extends StatelessWidget {
           fontWeight: FontWeight.w800,
         ),
       ),
-    );
-  }
-}
-
-class _CheckoutFlowStep extends StatelessWidget {
-  const _CheckoutFlowStep({
-    required this.index,
-    required this.title,
-    required this.description,
-  });
-
-  final int index;
-  final String title;
-  final String description;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(
-            color: colors.primaryContainer,
-            borderRadius: BorderRadius.circular(999),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            '$index',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: colors.primary,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                description,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: colors.onSurfaceVariant,
-                  height: 1.45,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

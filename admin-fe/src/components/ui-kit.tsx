@@ -7,6 +7,7 @@ import type {
   InputHTMLAttributes,
   ReactNode,
 } from "react";
+import { useState } from "react";
 import { useLanguage } from "../context/LanguageContext";
 
 const cx = (...classes: Array<string | false | null | undefined>) =>
@@ -410,6 +411,69 @@ export const LoadingRows = ({ rows = 4 }: LoadingRowsProps) => {
         />
       ))}
     </div>
+  );
+};
+
+type CollapsibleSectionProps = {
+  id: string;
+  title: string;
+  description?: string;
+  defaultExpanded?: boolean;
+  actions?: ReactNode;
+  className?: string;
+  children: ReactNode;
+};
+
+export const CollapsibleSection = ({
+  id,
+  title,
+  description,
+  defaultExpanded = false,
+  actions,
+  className,
+  children,
+}: CollapsibleSectionProps) => {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  const panelId = `${id}-panel`;
+
+  return (
+    <section className={cx(sectionCardClass, className)} id={id}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <button
+          type="button"
+          className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
+          aria-expanded={expanded}
+          aria-controls={panelId}
+          onClick={() => setExpanded((current) => !current)}
+        >
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+            {title}
+          </p>
+          {description ? (
+            <p className="mt-1 text-sm text-[var(--muted)]">{description}</p>
+          ) : null}
+        </button>
+        <div className="flex items-center gap-2">
+          {actions}
+          <GhostButton
+            type="button"
+            className="min-h-9 rounded-xl px-3 py-1.5 text-xs"
+            aria-expanded={expanded}
+            aria-controls={panelId}
+            onClick={() => setExpanded((current) => !current)}
+          >
+            {expanded ? "Collapse" : "Expand"}
+          </GhostButton>
+        </div>
+      </div>
+      <div
+        id={panelId}
+        hidden={!expanded}
+        className={cx("mt-4", expanded ? "block" : "hidden")}
+      >
+        {children}
+      </div>
+    </section>
   );
 };
 

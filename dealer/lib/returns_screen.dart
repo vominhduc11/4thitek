@@ -187,94 +187,104 @@ class _DealerReturnsScreenState extends State<DealerReturnsScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child:
-                              DropdownButtonFormField<
-                                DealerReturnRequestStatus?
-                              >(
-                                initialValue: _statusFilter,
-                                decoration: InputDecoration(
-                                  labelText: texts.statusFilterLabel,
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final stacked = constraints.maxWidth < 620;
+                        final statusField =
+                            DropdownButtonFormField<DealerReturnRequestStatus?>(
+                              initialValue: _statusFilter,
+                              decoration: InputDecoration(
+                                labelText: texts.statusFilterLabel,
+                              ),
+                              items: [
+                                DropdownMenuItem<DealerReturnRequestStatus?>(
+                                  value: null,
+                                  child: Text(texts.allStatusesLabel),
                                 ),
-                                items: [
-                                  DropdownMenuItem<DealerReturnRequestStatus?>(
-                                    value: null,
-                                    child: Text(texts.allStatusesLabel),
-                                  ),
-                                  ...DealerReturnRequestStatus.values
-                                      .where(
-                                        (status) =>
-                                            status !=
-                                            DealerReturnRequestStatus.unknown,
-                                      )
-                                      .map(
-                                        (status) =>
-                                            DropdownMenuItem<
-                                              DealerReturnRequestStatus?
-                                            >(
-                                              value: status,
-                                              child: Text(
-                                                dealerReturnStatusLabel(
-                                                  status,
-                                                  isEnglish: texts.isEnglish,
-                                                ),
+                                ...DealerReturnRequestStatus.values
+                                    .where(
+                                      (status) =>
+                                          status !=
+                                          DealerReturnRequestStatus.unknown,
+                                    )
+                                    .map(
+                                      (status) =>
+                                          DropdownMenuItem<
+                                            DealerReturnRequestStatus?
+                                          >(
+                                            value: status,
+                                            child: Text(
+                                              dealerReturnStatusLabel(
+                                                status,
+                                                isEnglish: texts.isEnglish,
                                               ),
                                             ),
-                                      ),
-                                ],
-                                onChanged: (value) {
-                                  setState(() {
-                                    _statusFilter = value;
-                                  });
-                                  unawaited(_loadPage(reset: true));
-                                },
+                                          ),
+                                    ),
+                              ],
+                              onChanged: (value) {
+                                setState(() {
+                                  _statusFilter = value;
+                                });
+                                unawaited(_loadPage(reset: true));
+                              },
+                            );
+                        final typeField =
+                            DropdownButtonFormField<DealerReturnRequestType?>(
+                              initialValue: _typeFilter,
+                              decoration: InputDecoration(
+                                labelText: texts.typeFilterLabel,
                               ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child:
-                              DropdownButtonFormField<DealerReturnRequestType?>(
-                                initialValue: _typeFilter,
-                                decoration: InputDecoration(
-                                  labelText: texts.typeFilterLabel,
+                              items: [
+                                DropdownMenuItem<DealerReturnRequestType?>(
+                                  value: null,
+                                  child: Text(texts.allTypesLabel),
                                 ),
-                                items: [
-                                  DropdownMenuItem<DealerReturnRequestType?>(
-                                    value: null,
-                                    child: Text(texts.allTypesLabel),
-                                  ),
-                                  ...DealerReturnRequestType.values
-                                      .where(
-                                        (type) =>
-                                            type !=
-                                            DealerReturnRequestType.unknown,
-                                      )
-                                      .map(
-                                        (type) =>
-                                            DropdownMenuItem<
-                                              DealerReturnRequestType?
-                                            >(
-                                              value: type,
-                                              child: Text(
-                                                dealerReturnTypeLabel(
-                                                  type,
-                                                  isEnglish: texts.isEnglish,
-                                                ),
+                                ...DealerReturnRequestType.values
+                                    .where(
+                                      (type) =>
+                                          type !=
+                                          DealerReturnRequestType.unknown,
+                                    )
+                                    .map(
+                                      (type) =>
+                                          DropdownMenuItem<
+                                            DealerReturnRequestType?
+                                          >(
+                                            value: type,
+                                            child: Text(
+                                              dealerReturnTypeLabel(
+                                                type,
+                                                isEnglish: texts.isEnglish,
                                               ),
                                             ),
-                                      ),
-                                ],
-                                onChanged: (value) {
-                                  setState(() {
-                                    _typeFilter = value;
-                                  });
-                                  unawaited(_loadPage(reset: true));
-                                },
-                              ),
-                        ),
-                      ],
+                                          ),
+                                    ),
+                              ],
+                              onChanged: (value) {
+                                setState(() {
+                                  _typeFilter = value;
+                                });
+                                unawaited(_loadPage(reset: true));
+                              },
+                            );
+                        if (stacked) {
+                          return Column(
+                            children: [
+                              statusField,
+                              const SizedBox(height: 12),
+                              typeField,
+                            ],
+                          );
+                        }
+                        return Row(
+                          children: [
+                            Expanded(child: statusField),
+                            const SizedBox(width: 12),
+                            Expanded(child: typeField),
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: 12),
                     Align(

@@ -1,21 +1,8 @@
-import { ArrowLeft, RefreshCw } from "lucide-react";
+import { ArrowLeft, Link as LinkIcon, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import { useToast } from "../context/ToastContext";
 import {
-  completeAdminReturnRequest,
-  fetchAdminReturnDetail,
-  inspectAdminReturnItem,
-  receiveAdminReturnRequest,
-  reviewAdminReturnRequest,
-  type BackendAdminInspectReturnItemRequest,
-  type BackendReturnRequestDetailResponse,
-  type BackendReturnRequestItemFinalResolution,
-  type BackendRmaAction,
-} from "../lib/adminApi";
-import { formatDateTime } from "../lib/formatters";
-import {
+  CollapsibleSection,
   ErrorState,
   GhostButton,
   LoadingRows,
@@ -28,6 +15,23 @@ import {
   tableMetaClass,
   textareaClass,
 } from "../components/ui-kit";
+import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
+import {
+  completeAdminReturnRequest,
+  fetchAdminReturnDetail,
+  inspectAdminReturnItem,
+  receiveAdminReturnRequest,
+  reviewAdminReturnRequest,
+  type BackendAdminInspectReturnItemRequest,
+  type BackendReturnRequestAttachmentResponse,
+  type BackendReturnRequestDetailResponse,
+  type BackendReturnRequestEventResponse,
+  type BackendReturnRequestItemFinalResolution,
+  type BackendReturnRequestItemResponse,
+  type BackendRmaAction,
+} from "../lib/adminApi";
+import { formatDateTime } from "../lib/formatters";
 
 type ReviewDraft = {
   approved: boolean;
@@ -71,13 +75,164 @@ const itemStatusTone = {
   CREDITED: "neutral",
 } as const;
 
-const toDisplay = (value?: string | null) => (value ? value.replaceAll("_", " ") : "-");
+const toDisplay = (value?: string | null) =>
+  value ? value.replaceAll("_", " ") : "-";
 
 const parseAmount = (value: string) => {
   const trimmed = value.trim();
   if (!trimmed) return undefined;
   const parsed = Number(trimmed);
   return Number.isFinite(parsed) ? parsed : undefined;
+};
+
+const normalizeEventPayload = (payloadJson?: string | null) => {
+  if (!payloadJson) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(payloadJson) as Record<string, unknown>;
+    if (!parsed || typeof parsed !== "object") {
+      return null;
+    }
+    const entries = Object.entries(parsed).filter(([, value]) => value != null);
+    return entries.slice(0, 5);
+  } catch {
+    return null;
+  }
+};
+
+const inferResolutionFromAction = (
+  action: BackendRmaAction,
+): BackendReturnRequestItemFinalResolution | "" => {
+  if (action === "PASS_QC") return "RESTOCK";
+  if (action === "SCRAP") return "SCRAP";
+  return "";
+};
+
+const effectiveResolution = (
+  draft: InspectDraft,
+): BackendReturnRequestItemFinalResolution | "" =>
+  draft.finalResolution || inferResolutionFromAction(draft.rmaAction);
+
+const needsReplacementOrder = (
+  resolution: BackendReturnRequestItemFinalResolution | "",
+) => resolution === "REPLACE";
+
+const needsRefundAmount = (
+  resolution: BackendReturnRequestItemFinalResolution | "",
+) => resolution === "REFUND";
+
+const needsCreditAmount = (
+  resolution: BackendReturnRequestItemFinalResolution | "",
+) => resolution === "CREDIT_NOTE";
+
+type SectionLink = {
+  id: string;
+  label: string;
+};
+
+const STEP_LINKS: SectionLink[] = [
+  { id: "summary", label: "Summary" },
+  { id: "request-details", label: "Request details" },
+  { id: "attachments", label: "Attachments" },
+  { id: "review", label: "Review" },
+  { id: "receipt", label: "Receipt" },
+  { id: "inspection", label: "Inspection" },
+  { id: "complete", label: "Complete request" },
+  { id: "timeline", label: "Timeline" },
+];
+
+const DetailStatCard = ({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) => (
+  <article className={softCardClass}>
+    <p className={tableMetaClass}>{label}</p>
+    <p className="mt-2 font-semibold text-[var(--ink)]">{value}</p>
+  </article>
+);
+
+const KeyValueRow = ({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) => (
+  <div>
+    <p className={tableMetaClass}>{label}</p>
+    <p className="mt-1 text-sm text-[var(--ink)]">{value}</p>
+  </div>
+);
+
+const AttachmentCard = ({
+  attachment,
+}: {
+  attachment: BackendReturnRequestAttachmentResponse;
+}) => {
+  const label =
+    attachment.fileName?.trim() || attachment.url?.trim() || "Attachment";
+  return (
+    <article className="rounded-xl border border-[var(--border)] bg-[var(--surface-ghost)] p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate font-medium text-[var(--ink)]">{label}</p>
+          <p className={tableMetaClass}>{toDisplay(attachment.category)}</p>
+          {attachment.itemId ? (
+            <p className={tableMetaClass}>Linked item #{attachment.itemId}</p>
+          ) : null}
+        </div>
+        {attachment.url ? (
+          <a
+            href={attachment.url}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-[var(--border)] px-2 text-xs font-semibold text-[var(--ink)] hover:border-[var(--accent)] hover:text-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          >
+            <LinkIcon className="h-3.5 w-3.5" />
+            Open
+          </a>
+        ) : null}
+      </div>
+    </article>
+  );
+};
+
+const TimelineEventCard = ({ event }: { event: BackendReturnRequestEventResponse }) => {
+  const normalizedPayload = normalizeEventPayload(event.payloadJson);
+  return (
+    <article className="relative rounded-xl border border-[var(--border)] bg-[var(--surface-ghost)] px-4 py-3">
+      <span className="absolute -left-1.5 top-5 h-3 w-3 rounded-full bg-[var(--accent)]" />
+      <p className="font-semibold text-[var(--ink)]">{toDisplay(event.eventType)}</p>
+      <p className={tableMetaClass}>
+        {event.actorRole ?? "SYSTEM"} | {event.actor ?? "-"} |{" "}
+        {event.createdAt ? formatDateTime(event.createdAt) : "-"}
+      </p>
+      {normalizedPayload && normalizedPayload.length > 0 ? (
+        <dl className="mt-2 grid gap-1 text-xs text-[var(--muted)] sm:grid-cols-2">
+          {normalizedPayload.map(([key, value]) => (
+            <div key={`${event.id}-${key}`}>
+              <dt className="font-semibold text-[var(--ink)]">{key}</dt>
+              <dd className="break-words">{String(value)}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+      {event.payloadJson ? (
+        <details className="mt-3 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-2 py-2">
+          <summary className="cursor-pointer text-xs font-semibold text-[var(--muted)] focus-visible:outline-none">
+            Raw details
+          </summary>
+          <pre className="mt-2 overflow-x-auto whitespace-pre-wrap text-xs text-[var(--muted)]">
+            {event.payloadJson}
+          </pre>
+        </details>
+      ) : null}
+    </article>
+  );
 };
 
 function ReturnDetailPage() {
@@ -152,13 +307,16 @@ function ReturnDetailPage() {
   const reviewableItems = useMemo(
     () =>
       (detail?.items ?? []).filter(
-        (item) => item.id && (item.itemStatus === "REQUESTED" || item.itemStatus === "APPROVED"),
+        (item) =>
+          item.id &&
+          (item.itemStatus === "REQUESTED" || item.itemStatus === "APPROVED"),
       ),
     [detail?.items],
   );
 
   const receivableItems = useMemo(
-    () => (detail?.items ?? []).filter((item) => item.id && item.itemStatus === "APPROVED"),
+    () =>
+      (detail?.items ?? []).filter((item) => item.id && item.itemStatus === "APPROVED"),
     [detail?.items],
   );
 
@@ -250,6 +408,7 @@ function ReturnDetailPage() {
       return;
     }
 
+    const selectedResolution = effectiveResolution(draft);
     const requestPayload: BackendAdminInspectReturnItemRequest = {
       rmaAction: draft.rmaAction,
       reason: draft.reason.trim(),
@@ -257,12 +416,17 @@ function ReturnDetailPage() {
         .split(/[\n,]/g)
         .map((value) => value.trim())
         .filter((value) => value.length > 0),
-      finalResolution: draft.finalResolution || undefined,
-      replacementOrderId: draft.replacementOrderId.trim()
-        ? Number(draft.replacementOrderId.trim())
+      finalResolution: selectedResolution || undefined,
+      replacementOrderId:
+        needsReplacementOrder(selectedResolution) && draft.replacementOrderId.trim()
+          ? Number(draft.replacementOrderId.trim())
+          : undefined,
+      refundAmount: needsRefundAmount(selectedResolution)
+        ? parseAmount(draft.refundAmount)
         : undefined,
-      refundAmount: parseAmount(draft.refundAmount),
-      creditAmount: parseAmount(draft.creditAmount),
+      creditAmount: needsCreditAmount(selectedResolution)
+        ? parseAmount(draft.creditAmount)
+        : undefined,
     };
 
     setIsSaving(true);
@@ -330,11 +494,13 @@ function ReturnDetailPage() {
     );
   }
 
+  const requestStatus = detail.status ?? "SUBMITTED";
+
   return (
     <PagePanel>
       <PageHeader
         title={detail.requestCode ?? `Return #${detail.id}`}
-        subtitle={`Dealer: ${detail.dealerName ?? "-"} • Order: ${detail.orderCode ?? "-"}`}
+        subtitle={`Dealer: ${detail.dealerName ?? "-"} | Order: ${detail.orderCode ?? "-"}`}
         actions={
           <>
             <GhostButton
@@ -355,403 +521,418 @@ function ReturnDetailPage() {
         }
       />
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <article className={softCardClass}>
-          <p className={tableMetaClass}>Status</p>
-          <div className="mt-2">
-            <StatusBadge tone={statusTone[detail.status ?? "SUBMITTED"]}>
-              {toDisplay(detail.status)}
-            </StatusBadge>
+      <nav
+        aria-label="Return workflow sections"
+        className="mb-4 flex gap-2 overflow-x-auto pb-1"
+      >
+        {STEP_LINKS.map((step) => (
+          <a
+            key={step.id}
+            href={`#${step.id}`}
+            className="inline-flex min-h-9 items-center whitespace-nowrap rounded-full border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs font-semibold text-[var(--ink)] hover:border-[var(--accent)] hover:text-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          >
+            {step.label}
+          </a>
+        ))}
+      </nav>
+
+      <div className="space-y-4">
+        <CollapsibleSection id="summary" title="Summary" defaultExpanded>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <article className={softCardClass}>
+              <p className={tableMetaClass}>Status</p>
+              <div className="mt-2">
+                <StatusBadge tone={statusTone[requestStatus]}>
+                  {toDisplay(detail.status)}
+                </StatusBadge>
+              </div>
+            </article>
+            <DetailStatCard label="Type" value={toDisplay(detail.type)} />
+            <DetailStatCard
+              label="Requested resolution"
+              value={toDisplay(detail.requestedResolution)}
+            />
+            <DetailStatCard
+              label="Requested at"
+              value={detail.requestedAt ? formatDateTime(detail.requestedAt) : "-"}
+            />
           </div>
-        </article>
-        <article className={softCardClass}>
-          <p className={tableMetaClass}>Type</p>
-          <p className="mt-2 font-semibold text-[var(--ink)]">
-            {toDisplay(detail.type)}
-          </p>
-        </article>
-        <article className={softCardClass}>
-          <p className={tableMetaClass}>Requested Resolution</p>
-          <p className="mt-2 font-semibold text-[var(--ink)]">
-            {toDisplay(detail.requestedResolution)}
-          </p>
-        </article>
-        <article className={softCardClass}>
-          <p className={tableMetaClass}>Requested At</p>
-          <p className="mt-2 font-semibold text-[var(--ink)]">
-            {detail.requestedAt ? formatDateTime(detail.requestedAt) : "-"}
-          </p>
-        </article>
-      </div>
+        </CollapsibleSection>
 
-      <section className={`${softCardClass} mt-4`}>
-        <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
-          Request Details
-        </h3>
-        <div className="mt-3 grid gap-2 text-sm text-[var(--ink)] md:grid-cols-2">
-          <p>
-            <span className={tableMetaClass}>Reason code:</span>{" "}
-            {detail.reasonCode ?? "-"}
-          </p>
-          <p>
-            <span className={tableMetaClass}>Support ticket:</span>{" "}
-            {detail.supportTicketId ?? "-"}
-          </p>
-          <p className="md:col-span-2">
-            <span className={tableMetaClass}>Reason detail:</span>{" "}
-            {detail.reasonDetail ?? "-"}
-          </p>
-        </div>
-      </section>
+        <CollapsibleSection id="request-details" title="Request details" defaultExpanded>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <KeyValueRow label="Reason code" value={detail.reasonCode ?? "-"} />
+            <KeyValueRow label="Support ticket" value={String(detail.supportTicketId ?? "-")} />
+            <KeyValueRow label="Created by" value={detail.createdBy ?? "-"} />
+            <KeyValueRow
+              label="Created at"
+              value={detail.createdAt ? formatDateTime(detail.createdAt) : "-"}
+            />
+            <KeyValueRow
+              label="Updated at"
+              value={detail.updatedAt ? formatDateTime(detail.updatedAt) : "-"}
+            />
+            <KeyValueRow label="Updated by" value={detail.updatedBy ?? "-"} />
+            <div className="md:col-span-2 xl:col-span-3">
+              <KeyValueRow label="Reason detail" value={detail.reasonDetail ?? "-"} />
+            </div>
+          </div>
+        </CollapsibleSection>
 
-      <section className={`${softCardClass} mt-4`}>
-        <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
-          Attachments
-        </h3>
-        <div className="mt-3 space-y-2">
+        <CollapsibleSection
+          id="attachments"
+          title="Attachments"
+          description="Evidence and request files submitted by dealer/admin"
+          defaultExpanded
+        >
           {(detail.attachments ?? []).length === 0 ? (
             <p className={tableMetaClass}>No attachments.</p>
           ) : (
-            (detail.attachments ?? []).map((attachment) => (
-              <a
-                key={attachment.id}
-                href={attachment.url ?? "#"}
-                target="_blank"
-                rel="noreferrer"
-                className="block rounded-xl border border-[var(--border)] px-3 py-2 text-sm text-[var(--ink)] hover:border-[var(--accent)]"
-              >
-                {(attachment.fileName ?? attachment.url ?? "Attachment")} •{" "}
-                {toDisplay(attachment.category)}
-              </a>
-            ))
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {(detail.attachments ?? []).map((attachment) => (
+                <AttachmentCard key={attachment.id} attachment={attachment} />
+              ))}
+            </div>
           )}
-        </div>
-      </section>
+        </CollapsibleSection>
 
-      <section className={`${softCardClass} mt-4`}>
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
-            Review
-          </h3>
-          <label className="inline-flex items-center gap-2 text-sm text-[var(--ink)]">
-            <input
-              type="checkbox"
-              checked={awaitingReceipt}
-              onChange={(event) => setAwaitingReceipt(event.target.checked)}
-            />
-            Await physical receipt
-          </label>
-        </div>
-        <div className="mt-3 space-y-3">
-          {(detail.items ?? []).map((item) => {
-            if (!item.id) return null;
-            const draft = reviewDrafts[item.id] ?? { approved: true, note: "" };
-            const isReviewable =
-              item.itemStatus === "REQUESTED" || item.itemStatus === "APPROVED";
-            return (
-              <article
-                key={item.id}
-                className="rounded-xl border border-[var(--border)] px-3 py-3"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <p className="font-semibold text-[var(--ink)]">
-                      {item.serialSnapshot ?? `Item #${item.id}`}
-                    </p>
-                    <p className={tableMetaClass}>
-                      {item.productName ?? "-"} • {item.productSku ?? "-"}
-                    </p>
-                  </div>
-                  <StatusBadge tone={itemStatusTone[item.itemStatus ?? "REQUESTED"]}>
-                    {toDisplay(item.itemStatus)}
-                  </StatusBadge>
-                </div>
-                <div className="mt-3 grid gap-2 md:grid-cols-[12rem_1fr]">
-                  <select
-                    className={inputClass}
-                    value={draft.approved ? "APPROVE" : "REJECT"}
-                    disabled={!isReviewable}
-                    onChange={(event) =>
-                      setReviewDrafts((current) => ({
-                        ...current,
-                        [item.id!]: {
-                          ...draft,
-                          approved: event.target.value === "APPROVE",
-                        },
-                      }))
-                    }
-                  >
-                    <option value="APPROVE">Approve</option>
-                    <option value="REJECT">Reject</option>
-                  </select>
-                  <input
-                    className={inputClass}
-                    placeholder="Decision note"
-                    disabled={!isReviewable}
-                    value={draft.note}
-                    onChange={(event) =>
-                      setReviewDrafts((current) => ({
-                        ...current,
-                        [item.id!]: { ...draft, note: event.target.value },
-                      }))
-                    }
-                  />
-                </div>
-              </article>
-            );
-          })}
-        </div>
-        <div className="mt-3 flex justify-end">
-          <PrimaryButton
-            type="button"
-            disabled={isSaving || reviewableItems.length === 0}
-            onClick={() => void submitReview()}
-          >
-            Save Review
-          </PrimaryButton>
-        </div>
-      </section>
-
-      <section className={`${softCardClass} mt-4`}>
-        <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
-          Receipt
-        </h3>
-        <div className="mt-3 space-y-2">
-          {receivableItems.length === 0 ? (
-            <p className={tableMetaClass}>No approved items pending receipt.</p>
-          ) : (
-            receivableItems.map((item) => (
-              <label
-                key={item.id}
-                className="flex items-center gap-2 rounded-xl border border-[var(--border)] px-3 py-2 text-sm text-[var(--ink)]"
-              >
-                <input
-                  type="checkbox"
-                  checked={item.id ? receiveItemIds.has(item.id) : false}
-                  onChange={(event) =>
-                    setReceiveItemIds((current) => {
-                      const next = new Set(current);
-                      if (!item.id) return next;
-                      if (event.target.checked) {
-                        next.add(item.id);
-                      } else {
-                        next.delete(item.id);
-                      }
-                      return next;
-                    })
-                  }
-                />
-                {item.serialSnapshot ?? `Item #${item.id}`}
-              </label>
-            ))
-          )}
-        </div>
-        <div className="mt-3 flex justify-end">
-          <PrimaryButton
-            type="button"
-            disabled={isSaving || receivableItems.length === 0}
-            onClick={() => void submitReceive()}
-          >
-            Mark Received
-          </PrimaryButton>
-        </div>
-      </section>
-
-      <section className={`${softCardClass} mt-4`}>
-        <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
-          Inspection
-        </h3>
-        <div className="mt-3 space-y-4">
-          {inspectableItems.length === 0 ? (
-            <p className={tableMetaClass}>No items available for inspection.</p>
-          ) : (
-            inspectableItems.map((item) => {
+        <CollapsibleSection
+          id="review"
+          title="Review"
+          description="Approve or reject requested items"
+          defaultExpanded
+          actions={
+            <label className="inline-flex items-center gap-2 text-xs text-[var(--ink)]">
+              <input
+                type="checkbox"
+                checked={awaitingReceipt}
+                onChange={(event) => setAwaitingReceipt(event.target.checked)}
+              />
+              Await physical receipt
+            </label>
+          }
+        >
+          <div className="space-y-3">
+            {(detail.items ?? []).map((item) => {
               if (!item.id) return null;
-              const draft = inspectDrafts[item.id] ?? {
-                rmaAction: "START_INSPECTION",
-                reason: "",
-                proofUrls: "",
-                finalResolution: "",
-                replacementOrderId: "",
-                refundAmount: "",
-                creditAmount: "",
-              };
+              const draft = reviewDrafts[item.id] ?? { approved: true, note: "" };
+              const isReviewable =
+                item.itemStatus === "REQUESTED" || item.itemStatus === "APPROVED";
               return (
                 <article
                   key={item.id}
                   className="rounded-xl border border-[var(--border)] px-3 py-3"
                 >
-                  <p className="font-semibold text-[var(--ink)]">
-                    {item.serialSnapshot ?? `Item #${item.id}`}
-                  </p>
-                  <p className={tableMetaClass}>
-                    Current status: {toDisplay(item.itemStatus)}
-                  </p>
-                  <div className="mt-3 grid gap-2 md:grid-cols-2">
-                    <select
-                      className={inputClass}
-                      value={draft.rmaAction}
-                      onChange={(event) =>
-                        setInspectDrafts((current) => ({
-                          ...current,
-                          [item.id!]: {
-                            ...draft,
-                            rmaAction: event.target.value as BackendRmaAction,
-                          },
-                        }))
-                      }
-                    >
-                      <option value="START_INSPECTION">START INSPECTION</option>
-                      <option value="PASS_QC">PASS QC</option>
-                      <option value="SCRAP">SCRAP</option>
-                    </select>
-                    <select
-                      className={inputClass}
-                      value={draft.finalResolution}
-                      onChange={(event) =>
-                        setInspectDrafts((current) => ({
-                          ...current,
-                          [item.id!]: {
-                            ...draft,
-                            finalResolution:
-                              event.target.value as InspectDraft["finalResolution"],
-                          },
-                        }))
-                      }
-                    >
-                      <option value="">Auto from RMA action</option>
-                      <option value="RESTOCK">RESTOCK</option>
-                      <option value="REPLACE">REPLACE</option>
-                      <option value="CREDIT_NOTE">CREDIT NOTE</option>
-                      <option value="REFUND">REFUND</option>
-                      <option value="SCRAP">SCRAP</option>
-                    </select>
-                    <input
-                      className={inputClass}
-                      placeholder="Reason (required)"
-                      value={draft.reason}
-                      onChange={(event) =>
-                        setInspectDrafts((current) => ({
-                          ...current,
-                          [item.id!]: { ...draft, reason: event.target.value },
-                        }))
-                      }
-                    />
-                    <input
-                      className={inputClass}
-                      placeholder="Replacement order id"
-                      value={draft.replacementOrderId}
-                      onChange={(event) =>
-                        setInspectDrafts((current) => ({
-                          ...current,
-                          [item.id!]: {
-                            ...draft,
-                            replacementOrderId: event.target.value,
-                          },
-                        }))
-                      }
-                    />
-                    <input
-                      className={inputClass}
-                      placeholder="Refund amount"
-                      value={draft.refundAmount}
-                      onChange={(event) =>
-                        setInspectDrafts((current) => ({
-                          ...current,
-                          [item.id!]: { ...draft, refundAmount: event.target.value },
-                        }))
-                      }
-                    />
-                    <input
-                      className={inputClass}
-                      placeholder="Credit amount"
-                      value={draft.creditAmount}
-                      onChange={(event) =>
-                        setInspectDrafts((current) => ({
-                          ...current,
-                          [item.id!]: { ...draft, creditAmount: event.target.value },
-                        }))
-                      }
-                    />
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="font-semibold text-[var(--ink)]">
+                        {item.serialSnapshot ?? `Item #${item.id}`}
+                      </p>
+                      <p className={tableMetaClass}>
+                        {item.productName ?? "-"} | {item.productSku ?? "-"}
+                      </p>
+                    </div>
+                    <StatusBadge tone={itemStatusTone[item.itemStatus ?? "REQUESTED"]}>
+                      {toDisplay(item.itemStatus)}
+                    </StatusBadge>
                   </div>
-                  <textarea
-                    className={`${textareaClass} mt-2 min-h-[72px]`}
-                    placeholder="Proof URLs (comma or newline separated)"
-                    value={draft.proofUrls}
-                    onChange={(event) =>
-                      setInspectDrafts((current) => ({
-                        ...current,
-                        [item.id!]: { ...draft, proofUrls: event.target.value },
-                      }))
-                    }
-                  />
-                  <div className="mt-3 flex justify-end">
-                    <PrimaryButton
-                      type="button"
-                      disabled={isSaving}
-                      onClick={() => void submitInspect(item.id!)}
+                  <div className="mt-3 grid gap-2 md:grid-cols-[12rem_1fr]">
+                    <select
+                      className={inputClass}
+                      value={draft.approved ? "APPROVE" : "REJECT"}
+                      disabled={!isReviewable}
+                      onChange={(event) =>
+                        setReviewDrafts((current) => ({
+                          ...current,
+                          [item.id!]: {
+                            ...draft,
+                            approved: event.target.value === "APPROVE",
+                          },
+                        }))
+                      }
                     >
-                      Apply Inspection
-                    </PrimaryButton>
+                      <option value="APPROVE">Approve</option>
+                      <option value="REJECT">Reject</option>
+                    </select>
+                    <input
+                      className={inputClass}
+                      placeholder="Decision note"
+                      disabled={!isReviewable}
+                      value={draft.note}
+                      onChange={(event) =>
+                        setReviewDrafts((current) => ({
+                          ...current,
+                          [item.id!]: { ...draft, note: event.target.value },
+                        }))
+                      }
+                    />
                   </div>
                 </article>
               );
-            })
-          )}
-        </div>
-      </section>
+            })}
+          </div>
+          <div className="mt-3 flex justify-end">
+            <PrimaryButton
+              type="button"
+              disabled={isSaving || reviewableItems.length === 0}
+              onClick={() => void submitReview()}
+            >
+              Save Review
+            </PrimaryButton>
+          </div>
+        </CollapsibleSection>
 
-      <section className={`${softCardClass} mt-4`}>
-        <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
-          Complete Request
-        </h3>
-        <textarea
-          className={`${textareaClass} mt-3 min-h-[72px]`}
-          placeholder="Completion note"
-          value={completeNote}
-          onChange={(event) => setCompleteNote(event.target.value)}
-        />
-        <div className="mt-3 flex justify-end">
-          <PrimaryButton
-            type="button"
-            disabled={isSaving}
-            onClick={() => void submitComplete()}
-          >
-            Complete
-          </PrimaryButton>
-        </div>
-      </section>
+        <CollapsibleSection
+          id="receipt"
+          title="Receipt"
+          description="Confirm which approved items were physically received"
+          defaultExpanded={receivableItems.length > 0}
+        >
+          <div className="space-y-2">
+            {receivableItems.length === 0 ? (
+              <p className={tableMetaClass}>No approved items pending receipt.</p>
+            ) : (
+              receivableItems.map((item) => (
+                <label
+                  key={item.id}
+                  className="flex items-center gap-2 rounded-xl border border-[var(--border)] px-3 py-2 text-sm text-[var(--ink)]"
+                >
+                  <input
+                    type="checkbox"
+                    checked={item.id ? receiveItemIds.has(item.id) : false}
+                    onChange={(event) =>
+                      setReceiveItemIds((current) => {
+                        const next = new Set(current);
+                        if (!item.id) return next;
+                        if (event.target.checked) {
+                          next.add(item.id);
+                        } else {
+                          next.delete(item.id);
+                        }
+                        return next;
+                      })
+                    }
+                  />
+                  {item.serialSnapshot ?? `Item #${item.id}`}
+                </label>
+              ))
+            )}
+          </div>
+          <div className="mt-3 flex justify-end">
+            <PrimaryButton
+              type="button"
+              disabled={isSaving || receivableItems.length === 0}
+              onClick={() => void submitReceive()}
+            >
+              Mark Received
+            </PrimaryButton>
+          </div>
+        </CollapsibleSection>
 
-      <section className={`${softCardClass} mt-4`}>
-        <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
-          Timeline
-        </h3>
-        <div className="mt-3 space-y-2">
-          {(detail.events ?? []).length === 0 ? (
-            <p className={tableMetaClass}>No timeline events.</p>
-          ) : (
-            (detail.events ?? []).map((event) => (
-              <article
-                key={event.id}
-                className="rounded-xl border border-[var(--border)] px-3 py-3"
-              >
-                <p className="font-semibold text-[var(--ink)]">
-                  {event.eventType ?? "-"}
-                </p>
-                <p className={tableMetaClass}>
-                  {(event.actorRole ?? "SYSTEM")} • {event.actor ?? "-"} •{" "}
-                  {event.createdAt ? formatDateTime(event.createdAt) : "-"}
-                </p>
-                {event.payloadJson ? (
-                  <pre className="mt-2 overflow-x-auto whitespace-pre-wrap text-xs text-[var(--muted)]">
-                    {event.payloadJson}
-                  </pre>
-                ) : null}
-              </article>
-            ))
-          )}
-        </div>
-      </section>
+        <CollapsibleSection
+          id="inspection"
+          title="Inspection"
+          description="Apply RMA actions and final outcomes per item"
+          defaultExpanded={inspectableItems.length > 0}
+        >
+          <div className="space-y-4">
+            {inspectableItems.length === 0 ? (
+              <p className={tableMetaClass}>No items available for inspection.</p>
+            ) : (
+              inspectableItems.map((item: BackendReturnRequestItemResponse) => {
+                if (!item.id) return null;
+                const draft = inspectDrafts[item.id] ?? {
+                  rmaAction: "START_INSPECTION",
+                  reason: "",
+                  proofUrls: "",
+                  finalResolution: "",
+                  replacementOrderId: "",
+                  refundAmount: "",
+                  creditAmount: "",
+                };
+                const selectedResolution = effectiveResolution(draft);
+                return (
+                  <article
+                    key={item.id}
+                    className="rounded-xl border border-[var(--border)] px-3 py-3"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <p className="font-semibold text-[var(--ink)]">
+                          {item.serialSnapshot ?? `Item #${item.id}`}
+                        </p>
+                        <p className={tableMetaClass}>
+                          Current status: {toDisplay(item.itemStatus)}
+                        </p>
+                      </div>
+                      <StatusBadge tone={itemStatusTone[item.itemStatus ?? "REQUESTED"]}>
+                        {toDisplay(item.itemStatus)}
+                      </StatusBadge>
+                    </div>
+
+                    <div className="mt-3 grid gap-2 md:grid-cols-2">
+                      <select
+                        className={inputClass}
+                        value={draft.rmaAction}
+                        onChange={(event) =>
+                          setInspectDrafts((current) => ({
+                            ...current,
+                            [item.id!]: {
+                              ...draft,
+                              rmaAction: event.target.value as BackendRmaAction,
+                            },
+                          }))
+                        }
+                      >
+                        <option value="START_INSPECTION">Start inspection</option>
+                        <option value="PASS_QC">Pass QC</option>
+                        <option value="SCRAP">Scrap</option>
+                      </select>
+                      <select
+                        className={inputClass}
+                        value={draft.finalResolution}
+                        onChange={(event) =>
+                          setInspectDrafts((current) => ({
+                            ...current,
+                            [item.id!]: {
+                              ...draft,
+                              finalResolution:
+                                event.target.value as InspectDraft["finalResolution"],
+                            },
+                          }))
+                        }
+                      >
+                        <option value="">Auto from RMA action</option>
+                        <option value="RESTOCK">Restock</option>
+                        <option value="REPLACE">Replace</option>
+                        <option value="CREDIT_NOTE">Credit note</option>
+                        <option value="REFUND">Refund</option>
+                        <option value="SCRAP">Scrap</option>
+                      </select>
+                      <input
+                        className={inputClass}
+                        placeholder="Reason (required)"
+                        value={draft.reason}
+                        onChange={(event) =>
+                          setInspectDrafts((current) => ({
+                            ...current,
+                            [item.id!]: { ...draft, reason: event.target.value },
+                          }))
+                        }
+                      />
+
+                      {needsReplacementOrder(selectedResolution) ? (
+                        <input
+                          className={inputClass}
+                          placeholder="Replacement order id"
+                          value={draft.replacementOrderId}
+                          onChange={(event) =>
+                            setInspectDrafts((current) => ({
+                              ...current,
+                              [item.id!]: {
+                                ...draft,
+                                replacementOrderId: event.target.value,
+                              },
+                            }))
+                          }
+                        />
+                      ) : null}
+
+                      {needsRefundAmount(selectedResolution) ? (
+                        <input
+                          className={inputClass}
+                          placeholder="Refund amount"
+                          value={draft.refundAmount}
+                          onChange={(event) =>
+                            setInspectDrafts((current) => ({
+                              ...current,
+                              [item.id!]: { ...draft, refundAmount: event.target.value },
+                            }))
+                          }
+                        />
+                      ) : null}
+
+                      {needsCreditAmount(selectedResolution) ? (
+                        <input
+                          className={inputClass}
+                          placeholder="Credit amount"
+                          value={draft.creditAmount}
+                          onChange={(event) =>
+                            setInspectDrafts((current) => ({
+                              ...current,
+                              [item.id!]: { ...draft, creditAmount: event.target.value },
+                            }))
+                          }
+                        />
+                      ) : null}
+                    </div>
+                    <textarea
+                      className={`${textareaClass} mt-2 min-h-[72px]`}
+                      placeholder="Proof URLs (comma or newline separated)"
+                      value={draft.proofUrls}
+                      onChange={(event) =>
+                        setInspectDrafts((current) => ({
+                          ...current,
+                          [item.id!]: { ...draft, proofUrls: event.target.value },
+                        }))
+                      }
+                    />
+                    <div className="mt-3 flex justify-end">
+                      <PrimaryButton
+                        type="button"
+                        disabled={isSaving}
+                        onClick={() => void submitInspect(item.id!)}
+                      >
+                        Apply Inspection
+                      </PrimaryButton>
+                    </div>
+                  </article>
+                );
+              })
+            )}
+          </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          id="complete"
+          title="Complete request"
+          description="Finalize request after review, receipt, and inspection"
+          defaultExpanded={requestStatus !== "COMPLETED" && requestStatus !== "CANCELLED"}
+        >
+          <textarea
+            className={`${textareaClass} min-h-[72px]`}
+            placeholder="Completion note"
+            value={completeNote}
+            onChange={(event) => setCompleteNote(event.target.value)}
+          />
+          <div className="mt-3 flex justify-end">
+            <PrimaryButton
+              type="button"
+              disabled={isSaving}
+              onClick={() => void submitComplete()}
+            >
+              Complete
+            </PrimaryButton>
+          </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          id="timeline"
+          title="Timeline"
+          description="Operational history for this request"
+          defaultExpanded
+        >
+          <div className="relative space-y-3 border-l border-[var(--border)] pl-4">
+            {(detail.events ?? []).length === 0 ? (
+              <p className={tableMetaClass}>No timeline events.</p>
+            ) : (
+              (detail.events ?? []).map((event) => (
+                <TimelineEventCard key={event.id} event={event} />
+              ))
+            )}
+          </div>
+        </CollapsibleSection>
+      </div>
     </PagePanel>
   );
 }

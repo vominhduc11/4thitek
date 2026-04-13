@@ -2844,7 +2844,20 @@ String? _productNameForDiscountTarget(
   List<CartItem> items,
   BulkDiscountTarget target,
 ) {
-  return null;
+  if (items.isEmpty) {
+    return null;
+  }
+  CartItem? bestMatch;
+  for (final item in items) {
+    if (bestMatch == null || item.quantity > bestMatch.quantity) {
+      bestMatch = item;
+    }
+  }
+  final name = bestMatch?.product.name.trim();
+  if (name == null || name.isEmpty) {
+    return null;
+  }
+  return name;
 }
 
 extension _ProductListTextsUxStates on _ProductListTexts {

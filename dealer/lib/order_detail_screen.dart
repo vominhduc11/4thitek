@@ -525,7 +525,6 @@ class OrderDetailScreen extends StatelessWidget {
     required Order order,
     required CartController cart,
     required bool canProcessSerial,
-    required bool canCreateReturnRequest,
     required bool canCancel,
   }) {
     final texts = _orderDetailTexts(context);
@@ -538,8 +537,7 @@ class OrderDetailScreen extends StatelessWidget {
         order.paymentMethod != OrderPaymentMethod.bankTransfer &&
         order.outstandingAmount > 0;
     final paymentActionIsPrimary = canShowBankTransferInfo || canRecordPayment;
-    final processSerialIsPrimary =
-        !paymentActionIsPrimary && (canProcessSerial || canCreateReturnRequest);
+    final processSerialIsPrimary = !paymentActionIsPrimary && canProcessSerial;
 
     final actions = <Widget>[
       if (canReorder)
@@ -580,20 +578,6 @@ class OrderDetailScreen extends StatelessWidget {
             : OutlinedButton(
                 onPressed: () => context.pushDealerWarrantyActivation(order.id),
                 child: Text(texts.processSerialAction),
-              ),
-      if (canCreateReturnRequest)
-        processSerialIsPrimary
-            ? ElevatedButton.icon(
-                onPressed: () =>
-                    context.pushDealerCreateReturnRequest(order.id),
-                icon: const Icon(Icons.assignment_return_outlined, size: 18),
-                label: Text(texts.createReturnAction),
-              )
-            : OutlinedButton.icon(
-                onPressed: () =>
-                    context.pushDealerCreateReturnRequest(order.id),
-                icon: const Icon(Icons.assignment_return_outlined, size: 18),
-                label: Text(texts.createReturnAction),
               ),
       if (canCancel)
         TextButton(
@@ -685,7 +669,6 @@ class OrderDetailScreen extends StatelessWidget {
     }
 
     final canProcessSerial = order.status == OrderStatus.completed;
-    final canCreateReturnRequest = order.status == OrderStatus.completed;
     final canCancel =
         order.status == OrderStatus.pending ||
         order.status == OrderStatus.confirmed;
@@ -694,7 +677,6 @@ class OrderDetailScreen extends StatelessWidget {
       order: order,
       cart: cart,
       canProcessSerial: canProcessSerial,
-      canCreateReturnRequest: canCreateReturnRequest,
       canCancel: canCancel,
     );
     final payments = OrderScope.of(

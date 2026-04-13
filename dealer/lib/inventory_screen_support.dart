@@ -27,10 +27,10 @@ class _InventoryLayoutConfig {
           : isTablet
           ? 1120.0
           : double.infinity,
-      useGrid: size.width >= 720,
+      useGrid: size.width >= 980,
       gridMaxTileWidth: isWideDesktop ? 380.0 : 460.0,
       gridTileExtent: isWideDesktop ? 216.0 : 228.0,
-      showWideControls: size.width >= 920,
+      showWideControls: size.width >= 960,
       showInlineOverviewActions: size.width >= 1040,
     );
   }
@@ -109,7 +109,7 @@ List<InventoryProductItem> _filterAndSortItems({
           return true;
         }
         final blob =
-            '${item.product.name} ${item.product.sku} ${item.serialSearchIndex}'
+            '${item.product.name} ${item.product.sku} ${item.orderIds.join(' ')} ${item.serialSearchIndex}'
                 .toLowerCase();
         return blob.contains(keyword);
       })
@@ -130,20 +130,4 @@ List<InventoryProductItem> _filterAndSortItems({
     return sortAscending ? compare : -compare;
   });
   return filtered;
-}
-
-InventorySummary _buildSummary(List<InventoryProductItem> items) {
-  var totalQuantity = 0;
-  var lowStockProducts = 0;
-  for (final item in items) {
-    totalQuantity += item.readyQuantity;
-    if (item.stockStatus == InventoryStockStatus.lowStock) {
-      lowStockProducts++;
-    }
-  }
-  return InventorySummary(
-    totalProducts: items.length,
-    totalQuantity: totalQuantity,
-    lowStockProducts: lowStockProducts,
-  );
 }

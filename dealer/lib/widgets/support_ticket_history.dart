@@ -530,62 +530,62 @@ class _SupportHistoryTexts {
   final bool isEnglish;
 
   String get emptyTitle =>
-      isEnglish ? 'No support tickets yet' : 'Ch?a c? ticket h? tr?';
+      isEnglish ? 'No support tickets yet' : 'Chưa có ticket hỗ trợ';
   String get emptyMessage => isEnglish
       ? 'Create your first ticket to start tracking support updates here.'
-      : 'T?o ticket ??u ti?n ?? theo d?i to?n b? ph?n h?i h? tr? t?i ??y.';
+      : 'Tạo ticket đầu tiên để theo dõi toàn bộ phản hồi hỗ trợ tại đây.';
   String get createFirstTicketLabel =>
-      isEnglish ? 'Create first ticket' : 'T?o ticket ??u ti?n';
+      isEnglish ? 'Create first ticket' : 'Tạo ticket đầu tiên';
   String get errorTitle => isEnglish
       ? 'Could not load ticket inbox'
-      : 'Kh?ng th? t?i danh s?ch ticket';
-  String get retryLabel => isEnglish ? 'Retry' : 'Th? l?i';
+      : 'Không thể tải danh sách ticket';
+  String get retryLabel => isEnglish ? 'Retry' : 'Thử lại';
   String get loadMoreLabel =>
-      isEnglish ? 'Load more tickets' : 'Xem th?m ticket';
+      isEnglish ? 'Load more tickets' : 'Xem thêm ticket';
   String get loadingMoreLabel =>
-      isEnglish ? 'Loading more...' : '?ang t?i th?m...';
-  String get activeLabel => isEnglish ? 'Ticket selected' : 'Ticket ?ang ch?n';
-  String get selectedLabel => isEnglish ? 'Selected' : '?ang ch?n';
-  String get viewDetailsLabel => isEnglish ? 'View details' : 'Xem chi ti?t';
+      isEnglish ? 'Loading more...' : 'Đang tải thêm...';
+  String get activeLabel => isEnglish ? 'Ticket selected' : 'Ticket đang chọn';
+  String get selectedLabel => isEnglish ? 'Selected' : 'Đang chọn';
+  String get viewDetailsLabel => isEnglish ? 'View details' : 'Xem chi tiết';
   String get replyThisTicketLabel =>
-      isEnglish ? 'Reply to this ticket' : 'Ph?n h?i ticket n?y';
+      isEnglish ? 'Reply to this ticket' : 'Phản hồi ticket này';
   String get adminUpdatedLabel =>
-      isEnglish ? 'Admin replied' : 'Admin v?a ph?n h?i';
+      isEnglish ? 'Admin replied' : 'Admin vừa phản hồi';
   String get replyDisabledLabel =>
-      isEnglish ? 'Reply unavailable' : 'Kh?ng th? ph?n h?i';
+      isEnglish ? 'Reply unavailable' : 'Không thể phản hồi';
   String get inboxHelper => isEnglish
       ? 'Select a ticket to review the full thread and send a follow-up to the correct request.'
-      : 'Ch?n m?t ticket ?? xem ??y ?? di?n ti?n v? g?i b? sung ??ng y?u c?u ?ang x? l?.';
+      : 'Chọn một ticket để xem đầy đủ diễn tiến và gửi bổ sung đúng yêu cầu đang xử lý.';
 
   String ticketCodeLabel(String ticketCode) =>
       isEnglish ? 'Ticket #$ticketCode' : 'Ticket #$ticketCode';
 
   String lastUpdatedLabel(String value) =>
-      isEnglish ? 'Updated $value' : 'C?p nh?t $value';
+      isEnglish ? 'Updated $value' : 'Cập nhật $value';
 
   String statusLabel(String status) {
     switch (status.trim().toLowerCase()) {
       case 'resolved':
-        return isEnglish ? 'Resolved' : '?? x? l?';
+        return isEnglish ? 'Resolved' : 'Đã xử lý';
       case 'in_progress':
-        return isEnglish ? 'In progress' : '?ang x? l?';
+        return isEnglish ? 'In progress' : 'Đang xử lý';
       case 'closed':
-        return isEnglish ? 'Closed' : '?? ??ng';
+        return isEnglish ? 'Closed' : 'Đã đóng';
       case 'open':
       default:
-        return isEnglish ? 'Open' : '?ang m?';
+        return isEnglish ? 'Open' : 'Đang mở';
     }
   }
 
   String priorityValue(String priority) {
     switch (priority.trim().toLowerCase()) {
       case 'urgent':
-        return isEnglish ? 'Urgent' : 'Kh?n c?p';
+        return isEnglish ? 'Urgent' : 'Khẩn cấp';
       case 'high':
         return isEnglish ? 'High' : 'Cao';
       case 'normal':
       default:
-        return isEnglish ? 'Normal' : 'B?nh th??ng';
+        return isEnglish ? 'Normal' : 'Bình thường';
     }
   }
 }
