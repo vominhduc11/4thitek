@@ -57,6 +57,26 @@ void main() {
 
     expect(find.text('Confirm received'), findsNothing);
     expect(find.text('Confirm delivery received'), findsNothing);
+    expect(find.text('Create return request'), findsNothing);
+  });
+
+  testWidgets('Order detail exposes create return action for completed order', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+
+    await tester.pumpWidget(
+      await _buildApp(
+        const Locale('en'),
+        orderController: _FakeOrderController(
+          actionMessage: null,
+          order: _sampleOrder.copyWith(status: OrderStatus.completed),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Create return request'), findsOneWidget);
   });
 
   testWidgets('Order detail refreshes the current order on first open', (

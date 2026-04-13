@@ -7,6 +7,7 @@ class DealerRoutePath {
   static const String notifications = '/notifications';
   static const String products = '/products';
   static const String orders = '/orders';
+  static const String returns = '/returns';
   static const String support = '/support';
   static const String inventory = '/inventory';
   static const String warranty = '/warranty';
@@ -20,6 +21,18 @@ class DealerRoutePath {
 
   static String orderDetail(String orderId) =>
       '$orders/${Uri.encodeComponent(orderId)}';
+
+  static String returnDetail(int requestId) => '$returns/$requestId';
+
+  static String createReturnRequest(String orderId, {int? prefilledSerialId}) {
+    final queryParameters = <String, String>{
+      if (prefilledSerialId != null) 'serialId': '$prefilledSerialId',
+    };
+    return Uri(
+      path: '/orders/${Uri.encodeComponent(orderId)}/returns/new',
+      queryParameters: queryParameters.isEmpty ? null : queryParameters,
+    ).toString();
+  }
 
   static String warrantyActivation(
     String orderId, {
@@ -67,6 +80,7 @@ String? normalizeDealerInternalRoute(String? rawLink) {
 
   final normalizedPath = switch (path) {
     '/account/support' || '/dealer/support' => DealerRoutePath.support,
+    '/account/returns' || '/dealer/returns' => DealerRoutePath.returns,
     '/warranty-activation' => DealerRoutePath.warranty,
     _ => path,
   };
@@ -83,6 +97,7 @@ bool isDealerTopLevelRoute(String route) {
   return normalized == DealerRoutePath.home ||
       normalized == DealerRoutePath.products ||
       normalized == DealerRoutePath.orders ||
+      normalized == DealerRoutePath.returns ||
       normalized == DealerRoutePath.notifications ||
       normalized == DealerRoutePath.support ||
       normalized == DealerRoutePath.inventory ||

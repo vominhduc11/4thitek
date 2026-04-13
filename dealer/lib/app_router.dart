@@ -17,6 +17,9 @@ import 'orders_screen.dart';
 import 'product_catalog_controller.dart';
 import 'product_detail_screen.dart';
 import 'product_list_screen.dart';
+import 'return_create_screen.dart';
+import 'return_detail_screen.dart';
+import 'returns_screen.dart';
 import 'support_screen.dart';
 import 'warranty_activation_screen.dart';
 import 'warranty_export_screen.dart';
@@ -69,6 +72,21 @@ GoRouter buildDealerRouter({
         builder: (context, state) => const OrdersScreen(),
       ),
       GoRoute(
+        path: '/orders/:orderId/returns/new',
+        builder: (context, state) {
+          final orderId = state.pathParameters['orderId'];
+          if (orderId == null || orderId.isEmpty) {
+            return const OrdersScreen();
+          }
+          return DealerReturnCreateScreen(
+            orderId: orderId,
+            prefilledSerialId: int.tryParse(
+              state.uri.queryParameters['serialId'] ?? '',
+            ),
+          );
+        },
+      ),
+      GoRoute(
         path: '/orders/:orderId',
         builder: (context, state) {
           final orderId = state.pathParameters['orderId'];
@@ -76,6 +94,22 @@ GoRouter buildDealerRouter({
             return const OrdersScreen();
           }
           return OrderDetailScreen(orderId: orderId);
+        },
+      ),
+      GoRoute(
+        path: '/returns',
+        builder: (context, state) => const DealerReturnsScreen(),
+      ),
+      GoRoute(
+        path: '/returns/:requestId',
+        builder: (context, state) {
+          final requestId = int.tryParse(
+            state.pathParameters['requestId'] ?? '',
+          );
+          if (requestId == null || requestId <= 0) {
+            return const DealerReturnsScreen();
+          }
+          return DealerReturnDetailScreen(requestId: requestId);
         },
       ),
       GoRoute(

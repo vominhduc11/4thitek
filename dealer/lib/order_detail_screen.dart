@@ -13,6 +13,8 @@ import 'dealer_navigation.dart';
 import 'global_search.dart';
 import 'models.dart';
 import 'order_controller.dart';
+import 'return_request_service.dart';
+import 'return_request_ui_support.dart';
 import 'upload_service.dart';
 import 'utils.dart';
 import 'widgets/brand_identity.dart';
@@ -523,6 +525,7 @@ class OrderDetailScreen extends StatelessWidget {
     required Order order,
     required CartController cart,
     required bool canProcessSerial,
+    required bool canCreateReturnRequest,
     required bool canCancel,
   }) {
     final texts = _orderDetailTexts(context);
@@ -535,7 +538,8 @@ class OrderDetailScreen extends StatelessWidget {
         order.paymentMethod != OrderPaymentMethod.bankTransfer &&
         order.outstandingAmount > 0;
     final paymentActionIsPrimary = canShowBankTransferInfo || canRecordPayment;
-    final processSerialIsPrimary = !paymentActionIsPrimary && canProcessSerial;
+    final processSerialIsPrimary =
+        !paymentActionIsPrimary && (canProcessSerial || canCreateReturnRequest);
 
     final actions = <Widget>[
       if (canReorder)
@@ -576,6 +580,20 @@ class OrderDetailScreen extends StatelessWidget {
             : OutlinedButton(
                 onPressed: () => context.pushDealerWarrantyActivation(order.id),
                 child: Text(texts.processSerialAction),
+              ),
+      if (canCreateReturnRequest)
+        processSerialIsPrimary
+            ? ElevatedButton.icon(
+                onPressed: () =>
+                    context.pushDealerCreateReturnRequest(order.id),
+                icon: const Icon(Icons.assignment_return_outlined, size: 18),
+                label: Text(texts.createReturnAction),
+              )
+            : OutlinedButton.icon(
+                onPressed: () =>
+                    context.pushDealerCreateReturnRequest(order.id),
+                icon: const Icon(Icons.assignment_return_outlined, size: 18),
+                label: Text(texts.createReturnAction),
               ),
       if (canCancel)
         TextButton(
@@ -667,6 +685,7 @@ class OrderDetailScreen extends StatelessWidget {
     }
 
     final canProcessSerial = order.status == OrderStatus.completed;
+    final canCreateReturnRequest = order.status == OrderStatus.completed;
     final canCancel =
         order.status == OrderStatus.pending ||
         order.status == OrderStatus.confirmed;
@@ -675,6 +694,7 @@ class OrderDetailScreen extends StatelessWidget {
       order: order,
       cart: cart,
       canProcessSerial: canProcessSerial,
+      canCreateReturnRequest: canCreateReturnRequest,
       canCancel: canCancel,
     );
     final payments = OrderScope.of(
@@ -757,6 +777,13 @@ class OrderDetailScreen extends StatelessWidget {
                       ),
                     ),
                   ),
+                ),
+                const SizedBox(height: 14),
+              ],
+              if (order.status == OrderStatus.completed) ...[
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 50),
+                  child: _OrderReturnOverviewSection(orderId: order.id),
                 ),
                 const SizedBox(height: 14),
               ],
@@ -1016,6 +1043,306 @@ class _OrderDetailRefreshBoundaryState
   Widget build(BuildContext context) => widget.child;
 }
 
+class _OrderReturnOverviewSection extends StatefulWidget {
+  const _OrderReturnOverviewSection({required this.orderId});
+
+  final String orderId;
+
+  @override
+  State<_OrderReturnOverviewSection> createState() =>
+      _OrderReturnOverviewSectionState();
+}
+
+class _OrderReturnOverviewSectionState
+    extends State<_OrderReturnOverviewSection> {
+  late final ReturnRequestService _returnService;
+  bool _hasLoadedInitially = false;
+  List<DealerReturnEligibilityRecord> _eligibilities =
+      const <DealerReturnEligibilityRecord>[];
+  final Map<int, DealerReturnRequestStatus> _activeStatusByRequestId =
+      <int, DealerReturnRequestStatus>{};
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _returnService = ReturnRequestService();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_hasLoadedInitially) {
+      return;
+    }
+    _hasLoadedInitially = true;
+    unawaited(_load());
+  }
+
+  @override
+  void dispose() {
+    _returnService.close();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    final isEnglish = _orderDetailTexts(context).isEnglish;
+    try {
+      final orderController = OrderScope.of(context);
+      await orderController.refreshSingleOrder(widget.orderId);
+      final remoteOrderId = orderController.remoteOrderIdForOrderCode(
+        widget.orderId,
+      );
+      if (remoteOrderId == null || remoteOrderId <= 0) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _errorMessage = isEnglish
+              ? 'Unable to resolve this order for return eligibility.'
+              : 'Khong the anh xa don hang de kiem tra doi tra.';
+        });
+        return;
+      }
+
+      final eligibility = await _returnService.fetchOrderEligibleSerials(
+        remoteOrderId,
+      );
+      final activeRequestIds = eligibility
+          .map((item) => item.activeRequestId)
+          .whereType<int>()
+          .toSet()
+          .toList(growable: false);
+      final statusMap = <int, DealerReturnRequestStatus>{};
+      for (final requestId in activeRequestIds) {
+        try {
+          final detail = await _returnService.fetchDetail(requestId);
+          statusMap[requestId] = detail.status;
+        } on ReturnRequestException {
+          // Keep reason from eligibility API if detail lookup fails.
+        }
+      }
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _eligibilities = eligibility;
+        _activeStatusByRequestId
+          ..clear()
+          ..addAll(statusMap);
+      });
+    } on ReturnRequestException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _errorMessage = resolveReturnServiceMessage(
+          error.message,
+          isEnglish: isEnglish,
+        );
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final texts = _orderDetailTexts(context);
+    final eligibleCount = _eligibilities.where((item) => item.eligible).length;
+    final activeCount = _eligibilities
+        .where((item) => item.activeRequestId != null)
+        .length;
+    return SectionCard(
+      title: texts.returnOverviewTitle,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_isLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            )
+          else if (_errorMessage != null) ...[
+            Text(
+              _errorMessage!,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.error,
+              ),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton(onPressed: _load, child: Text(texts.retryAction)),
+          ] else ...[
+            Text(
+              texts.returnOverviewSummary(
+                eligibleCount,
+                activeCount,
+                _eligibilities.length,
+              ),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () =>
+                      context.pushDealerCreateReturnRequest(widget.orderId),
+                  icon: const Icon(Icons.assignment_return_outlined, size: 18),
+                  label: Text(texts.createReturnAction),
+                ),
+              ],
+            ),
+            if (_eligibilities.isEmpty) ...[
+              const SizedBox(height: 8),
+              Text(texts.returnNoSerialsMessage),
+            ] else ...[
+              const SizedBox(height: 10),
+              for (var index = 0; index < _eligibilities.length; index++) ...[
+                _OrderReturnSerialTile(
+                  eligibility: _eligibilities[index],
+                  activeStatus: _eligibilities[index].activeRequestId == null
+                      ? null
+                      : _activeStatusByRequestId[_eligibilities[index]
+                            .activeRequestId!],
+                ),
+                if (index != _eligibilities.length - 1)
+                  const Divider(height: 14),
+              ],
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _OrderReturnSerialTile extends StatelessWidget {
+  const _OrderReturnSerialTile({
+    required this.eligibility,
+    required this.activeStatus,
+  });
+
+  final DealerReturnEligibilityRecord eligibility;
+  final DealerReturnRequestStatus? activeStatus;
+
+  @override
+  Widget build(BuildContext context) {
+    final texts = _orderDetailTexts(context);
+    final productName = eligibility.productName ?? '-';
+    final productSku = eligibility.productSku ?? '-';
+    final statusText = activeStatus == null
+        ? _eligibilityReasonText(eligibility, isEnglish: texts.isEnglish)
+        : dealerReturnStatusLabel(activeStatus!, isEnglish: texts.isEnglish);
+    final statusColor = activeStatus == null
+        ? (eligibility.eligible
+              ? Theme.of(context).colorScheme.tertiary
+              : Theme.of(context).colorScheme.error)
+        : dealerReturnStatusForeground(activeStatus!);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          eligibility.serial,
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          '$productName - $productSku',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          statusText,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: statusColor,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            if (eligibility.eligible)
+              OutlinedButton(
+                onPressed:
+                    (eligibility.orderCode == null ||
+                        eligibility.orderCode!.trim().isEmpty)
+                    ? null
+                    : () => context.pushDealerCreateReturnRequest(
+                        eligibility.orderCode!,
+                        prefilledSerialId: eligibility.serialId,
+                      ),
+                child: Text(texts.createReturnForSerialAction),
+              ),
+            if (eligibility.activeRequestId != null)
+              OutlinedButton.icon(
+                onPressed: () => context.pushDealerReturnDetail(
+                  eligibility.activeRequestId!,
+                ),
+                icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                label: Text(texts.openReturnRequestAction),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+String _eligibilityReasonText(
+  DealerReturnEligibilityRecord eligibility, {
+  required bool isEnglish,
+}) {
+  final reason = eligibility.reasonCode.trim().toUpperCase();
+  switch (reason) {
+    case 'ELIGIBLE':
+      return isEnglish ? 'Eligible for return' : 'Du dieu kien doi tra';
+    case 'ORDER_NOT_COMPLETED':
+      return isEnglish
+          ? 'Order is not completed yet.'
+          : 'Don hang chua hoan tat.';
+    case 'SERIAL_STATUS_NOT_ELIGIBLE':
+      return isEnglish
+          ? 'Serial status is not eligible for return.'
+          : 'Trang thai serial khong cho phep doi tra.';
+    case 'ACTIVE_RETURN_REQUEST_EXISTS':
+      return isEnglish
+          ? 'This serial already has an active return request.'
+          : 'Serial nay da co yeu cau doi tra dang xu ly.';
+    default:
+      return eligibility.reasonMessage.isNotEmpty
+          ? eligibility.reasonMessage
+          : (isEnglish
+                ? 'Eligibility unavailable.'
+                : 'Khong xac dinh du dieu kien.');
+  }
+}
+
 class _OrderDetailTexts {
   const _OrderDetailTexts({required this.isEnglish});
 
@@ -1124,6 +1451,22 @@ class _OrderDetailTexts {
       isEnglish ? 'Record payment' : 'Ghi nhận thanh toán';
   String get processSerialAction =>
       isEnglish ? 'Process serials' : 'Xử lý serial';
+  String get createReturnAction =>
+      isEnglish ? 'Create return request' : 'Tạo yêu cầu đổi trả';
+  String get createReturnForSerialAction =>
+      isEnglish ? 'Create for this serial' : 'Tạo cho serial này';
+  String get openReturnRequestAction =>
+      isEnglish ? 'Open return request' : 'Mở yêu cầu đổi trả';
+  String get returnOverviewTitle =>
+      isEnglish ? 'Return eligibility' : 'Điều kiện đổi trả';
+  String returnOverviewSummary(int eligibleCount, int activeCount, int total) =>
+      isEnglish
+      ? '$eligibleCount of $total serial(s) are eligible. $activeCount serial(s) already have active return requests.'
+      : '$eligibleCount/$total serial đủ điều kiện. $activeCount serial đã có yêu cầu đang xử lý.';
+  String get returnNoSerialsMessage => isEnglish
+      ? 'No serials found for this order.'
+      : 'Không tìm thấy serial cho đơn hàng này.';
+  String get retryAction => isEnglish ? 'Retry' : 'Thử lại';
   String get serialProcessingLockedTitle => isEnglish
       ? 'Serial processing is almost ready'
       : 'Xử lý serial sắp khả dụng';

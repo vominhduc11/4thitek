@@ -8,21 +8,14 @@ import 'auth_storage.dart';
 import 'dealer_auth_client.dart';
 import 'utils.dart';
 
-enum ReturnMessageCode {
-  unauthenticated,
-  invalidPayload,
-  syncFailed,
-}
+enum ReturnMessageCode { unauthenticated, invalidPayload, syncFailed }
 
 const String _returnMessageTokenPrefix = 'returns.message.';
 
 String returnServiceMessageToken(ReturnMessageCode code) =>
     '$_returnMessageTokenPrefix${code.name}';
 
-String resolveReturnServiceMessage(
-  String? message, {
-  required bool isEnglish,
-}) {
+String resolveReturnServiceMessage(String? message, {required bool isEnglish}) {
   final normalized = message?.trim();
   if (normalized == null || normalized.isEmpty) {
     return isEnglish
@@ -44,6 +37,174 @@ String resolveReturnServiceMessage(
           : 'Khong the dong bo yeu cau doi tra luc nay.';
     default:
       return normalized;
+  }
+}
+
+enum DealerReturnRequestStatus {
+  submitted('SUBMITTED'),
+  underReview('UNDER_REVIEW'),
+  approved('APPROVED'),
+  rejected('REJECTED'),
+  awaitingReceipt('AWAITING_RECEIPT'),
+  received('RECEIVED'),
+  inspecting('INSPECTING'),
+  partiallyResolved('PARTIALLY_RESOLVED'),
+  completed('COMPLETED'),
+  cancelled('CANCELLED'),
+  unknown('UNKNOWN');
+
+  const DealerReturnRequestStatus(this.apiValue);
+
+  final String apiValue;
+
+  static DealerReturnRequestStatus fromApi(String? raw) {
+    final normalized = raw?.trim().toUpperCase();
+    for (final value in DealerReturnRequestStatus.values) {
+      if (value.apiValue == normalized) {
+        return value;
+      }
+    }
+    return DealerReturnRequestStatus.unknown;
+  }
+}
+
+enum DealerReturnRequestType {
+  commercialReturn('COMMERCIAL_RETURN'),
+  defectiveReturn('DEFECTIVE_RETURN'),
+  warrantyRma('WARRANTY_RMA'),
+  unknown('UNKNOWN');
+
+  const DealerReturnRequestType(this.apiValue);
+
+  final String apiValue;
+
+  static DealerReturnRequestType fromApi(String? raw) {
+    final normalized = raw?.trim().toUpperCase();
+    for (final value in DealerReturnRequestType.values) {
+      if (value.apiValue == normalized) {
+        return value;
+      }
+    }
+    return DealerReturnRequestType.unknown;
+  }
+}
+
+enum DealerReturnRequestResolution {
+  replace('REPLACE'),
+  creditNote('CREDIT_NOTE'),
+  refund('REFUND'),
+  inspectOnly('INSPECT_ONLY'),
+  unknown('UNKNOWN');
+
+  const DealerReturnRequestResolution(this.apiValue);
+
+  final String apiValue;
+
+  static DealerReturnRequestResolution fromApi(String? raw) {
+    final normalized = raw?.trim().toUpperCase();
+    for (final value in DealerReturnRequestResolution.values) {
+      if (value.apiValue == normalized) {
+        return value;
+      }
+    }
+    return DealerReturnRequestResolution.unknown;
+  }
+}
+
+enum DealerReturnRequestItemStatus {
+  requested('REQUESTED'),
+  approved('APPROVED'),
+  rejected('REJECTED'),
+  received('RECEIVED'),
+  inspecting('INSPECTING'),
+  qcPassed('QC_PASSED'),
+  qcFailed('QC_FAILED'),
+  restocked('RESTOCKED'),
+  scrapped('SCRAPPED'),
+  replaced('REPLACED'),
+  credited('CREDITED'),
+  unknown('UNKNOWN');
+
+  const DealerReturnRequestItemStatus(this.apiValue);
+
+  final String apiValue;
+
+  static DealerReturnRequestItemStatus fromApi(String? raw) {
+    final normalized = raw?.trim().toUpperCase();
+    for (final value in DealerReturnRequestItemStatus.values) {
+      if (value.apiValue == normalized) {
+        return value;
+      }
+    }
+    return DealerReturnRequestItemStatus.unknown;
+  }
+}
+
+enum DealerReturnRequestItemCondition {
+  sealed('SEALED'),
+  openBox('OPEN_BOX'),
+  used('USED'),
+  defective('DEFECTIVE'),
+  unknown('UNKNOWN');
+
+  const DealerReturnRequestItemCondition(this.apiValue);
+
+  final String apiValue;
+
+  static DealerReturnRequestItemCondition fromApi(String? raw) {
+    final normalized = raw?.trim().toUpperCase();
+    for (final value in DealerReturnRequestItemCondition.values) {
+      if (value.apiValue == normalized) {
+        return value;
+      }
+    }
+    return DealerReturnRequestItemCondition.unknown;
+  }
+}
+
+enum DealerReturnRequestItemFinalResolution {
+  restock('RESTOCK'),
+  replace('REPLACE'),
+  creditNote('CREDIT_NOTE'),
+  refund('REFUND'),
+  scrap('SCRAP'),
+  unknown('UNKNOWN');
+
+  const DealerReturnRequestItemFinalResolution(this.apiValue);
+
+  final String apiValue;
+
+  static DealerReturnRequestItemFinalResolution fromApi(String? raw) {
+    final normalized = raw?.trim().toUpperCase();
+    for (final value in DealerReturnRequestItemFinalResolution.values) {
+      if (value.apiValue == normalized) {
+        return value;
+      }
+    }
+    return DealerReturnRequestItemFinalResolution.unknown;
+  }
+}
+
+enum DealerReturnAttachmentCategory {
+  proof('PROOF'),
+  defectPhoto('DEFECT_PHOTO'),
+  receipt('RECEIPT'),
+  packing('PACKING'),
+  other('OTHER'),
+  unknown('UNKNOWN');
+
+  const DealerReturnAttachmentCategory(this.apiValue);
+
+  final String apiValue;
+
+  static DealerReturnAttachmentCategory fromApi(String? raw) {
+    final normalized = raw?.trim().toUpperCase();
+    for (final value in DealerReturnAttachmentCategory.values) {
+      if (value.apiValue == normalized) {
+        return value;
+      }
+    }
+    return DealerReturnAttachmentCategory.unknown;
   }
 }
 
@@ -81,9 +242,9 @@ class DealerReturnRequestSummaryRecord {
   final String requestCode;
   final int? orderId;
   final String orderCode;
-  final String type;
-  final String status;
-  final String requestedResolution;
+  final DealerReturnRequestType type;
+  final DealerReturnRequestStatus status;
+  final DealerReturnRequestResolution requestedResolution;
   final DateTime? requestedAt;
   final int totalItems;
   final int resolvedItems;
@@ -114,9 +275,9 @@ class DealerReturnRequestDetailRecord {
   final String requestCode;
   final int? orderId;
   final String orderCode;
-  final String type;
-  final String status;
-  final String requestedResolution;
+  final DealerReturnRequestType type;
+  final DealerReturnRequestStatus status;
+  final DealerReturnRequestResolution requestedResolution;
   final String? reasonCode;
   final String? reasonDetail;
   final int? supportTicketId;
@@ -151,11 +312,11 @@ class DealerReturnRequestItemRecord {
   final String productSku;
   final int? productSerialId;
   final String serialSnapshot;
-  final String itemStatus;
-  final String? conditionOnRequest;
+  final DealerReturnRequestItemStatus itemStatus;
+  final DealerReturnRequestItemCondition? conditionOnRequest;
   final String? adminDecisionNote;
   final String? inspectionNote;
-  final String? finalResolution;
+  final DealerReturnRequestItemFinalResolution? finalResolution;
   final int? replacementOrderId;
   final num? refundAmount;
   final num? creditAmount;
@@ -174,7 +335,7 @@ class DealerReturnRequestAttachmentRecord {
   final int? itemId;
   final String url;
   final String? fileName;
-  final String category;
+  final DealerReturnAttachmentCategory category;
 }
 
 class DealerReturnRequestEventRecord {
@@ -232,11 +393,11 @@ class DealerCreateReturnRequestItemPayload {
   });
 
   final int productSerialId;
-  final String conditionOnRequest;
+  final DealerReturnRequestItemCondition conditionOnRequest;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
     'productSerialId': productSerialId,
-    'conditionOnRequest': conditionOnRequest,
+    'conditionOnRequest': conditionOnRequest.apiValue,
   };
 }
 
@@ -251,20 +412,20 @@ class DealerCreateReturnRequestAttachmentPayload {
   final int? itemId;
   final String url;
   final String? fileName;
-  final String category;
+  final DealerReturnAttachmentCategory category;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
     if (itemId != null) 'itemId': itemId,
     'url': url.trim(),
     if (fileName != null && fileName!.trim().isNotEmpty)
       'fileName': fileName!.trim(),
-    'category': category,
+    'category': category.apiValue,
   };
 }
 
 class ReturnRequestService {
   ReturnRequestService({AuthStorage? authStorage, http.Client? client})
-      : _authStorage = authStorage ?? AuthStorage() {
+    : _authStorage = authStorage ?? AuthStorage() {
     _client = DealerAuthClient(
       authStorage: _authStorage,
       inner: client ?? http.Client(),
@@ -277,8 +438,8 @@ class ReturnRequestService {
   Future<DealerReturnRequestPage> fetchPage({
     int page = 0,
     int size = 20,
-    String? status,
-    String? type,
+    DealerReturnRequestStatus? status,
+    DealerReturnRequestType? type,
     String? orderCode,
     String? serial,
   }) async {
@@ -287,8 +448,10 @@ class ReturnRequestService {
         queryParameters: <String, String>{
           'page': '$page',
           'size': '$size',
-          if (status != null && status.trim().isNotEmpty) 'status': status,
-          if (type != null && type.trim().isNotEmpty) 'type': type,
+          if (status != null && status != DealerReturnRequestStatus.unknown)
+            'status': status.apiValue,
+          if (type != null && type != DealerReturnRequestType.unknown)
+            'type': type.apiValue,
           if (orderCode != null && orderCode.trim().isNotEmpty)
             'orderCode': orderCode.trim(),
           if (serial != null && serial.trim().isNotEmpty)
@@ -340,8 +503,8 @@ class ReturnRequestService {
 
   Future<DealerReturnRequestDetailRecord> createRequest({
     required int orderId,
-    required String type,
-    required String requestedResolution,
+    required DealerReturnRequestType type,
+    required DealerReturnRequestResolution requestedResolution,
     String? reasonCode,
     String? reasonDetail,
     required List<DealerCreateReturnRequestItemPayload> items,
@@ -353,8 +516,8 @@ class ReturnRequestService {
       headers: await _authorizedJsonHeaders(),
       body: jsonEncode(<String, dynamic>{
         'orderId': orderId,
-        'type': type,
-        'requestedResolution': requestedResolution,
+        'type': type.apiValue,
+        'requestedResolution': requestedResolution.apiValue,
         if (reasonCode != null && reasonCode.trim().isNotEmpty)
           'reasonCode': reasonCode.trim(),
         if (reasonDetail != null && reasonDetail.trim().isNotEmpty)
@@ -403,7 +566,9 @@ class ReturnRequestService {
     int orderId,
   ) async {
     final response = await _client.get(
-      DealerApiConfig.resolveApiUri('/dealer/orders/$orderId/return-eligible-serials'),
+      DealerApiConfig.resolveApiUri(
+        '/dealer/orders/$orderId/return-eligible-serials',
+      ),
       headers: await _authorizedHeaders(),
     );
     final payload = _decodeBody(response.body);
@@ -422,7 +587,9 @@ class ReturnRequestService {
         .toList(growable: false);
   }
 
-  Future<DealerReturnEligibilityRecord> fetchSerialEligibility(int serialId) async {
+  Future<DealerReturnEligibilityRecord> fetchSerialEligibility(
+    int serialId,
+  ) async {
     final response = await _client.get(
       DealerApiConfig.resolveApiUri(
         '/dealer/inventory/serials/$serialId/return-eligibility',
@@ -452,9 +619,11 @@ class ReturnRequestService {
       requestCode: (json['requestCode'] ?? '').toString(),
       orderId: _parseOptionalInt(json['orderId']),
       orderCode: (json['orderCode'] ?? '').toString(),
-      type: (json['type'] ?? '').toString(),
-      status: (json['status'] ?? '').toString(),
-      requestedResolution: (json['requestedResolution'] ?? '').toString(),
+      type: DealerReturnRequestType.fromApi(json['type']?.toString()),
+      status: DealerReturnRequestStatus.fromApi(json['status']?.toString()),
+      requestedResolution: DealerReturnRequestResolution.fromApi(
+        json['requestedResolution']?.toString(),
+      ),
       requestedAt: parseApiDateTime(json['requestedAt']),
       totalItems: _parseInt(json['totalItems']),
       resolvedItems: _parseInt(json['resolvedItems']),
@@ -467,9 +636,11 @@ class ReturnRequestService {
       requestCode: (json['requestCode'] ?? '').toString(),
       orderId: _parseOptionalInt(json['orderId']),
       orderCode: (json['orderCode'] ?? '').toString(),
-      type: (json['type'] ?? '').toString(),
-      status: (json['status'] ?? '').toString(),
-      requestedResolution: (json['requestedResolution'] ?? '').toString(),
+      type: DealerReturnRequestType.fromApi(json['type']?.toString()),
+      status: DealerReturnRequestStatus.fromApi(json['status']?.toString()),
+      requestedResolution: DealerReturnRequestResolution.fromApi(
+        json['requestedResolution']?.toString(),
+      ),
       reasonCode: _parseOptionalString(json['reasonCode']),
       reasonDetail: _parseOptionalString(json['reasonDetail']),
       supportTicketId: _parseOptionalInt(json['supportTicketId']),
@@ -486,11 +657,23 @@ class ReturnRequestService {
               productSku: (item['productSku'] ?? '').toString(),
               productSerialId: _parseOptionalInt(item['productSerialId']),
               serialSnapshot: (item['serialSnapshot'] ?? '').toString(),
-              itemStatus: (item['itemStatus'] ?? '').toString(),
-              conditionOnRequest: _parseOptionalString(item['conditionOnRequest']),
-              adminDecisionNote: _parseOptionalString(item['adminDecisionNote']),
+              itemStatus: DealerReturnRequestItemStatus.fromApi(
+                item['itemStatus']?.toString(),
+              ),
+              conditionOnRequest: item['conditionOnRequest'] == null
+                  ? null
+                  : DealerReturnRequestItemCondition.fromApi(
+                      item['conditionOnRequest']?.toString(),
+                    ),
+              adminDecisionNote: _parseOptionalString(
+                item['adminDecisionNote'],
+              ),
               inspectionNote: _parseOptionalString(item['inspectionNote']),
-              finalResolution: _parseOptionalString(item['finalResolution']),
+              finalResolution: item['finalResolution'] == null
+                  ? null
+                  : DealerReturnRequestItemFinalResolution.fromApi(
+                      item['finalResolution']?.toString(),
+                    ),
               replacementOrderId: _parseOptionalInt(item['replacementOrderId']),
               refundAmount: _parseOptionalNum(item['refundAmount']),
               creditAmount: _parseOptionalNum(item['creditAmount']),
@@ -505,7 +688,9 @@ class ReturnRequestService {
               itemId: _parseOptionalInt(attachment['itemId']),
               url: (attachment['url'] ?? '').toString(),
               fileName: _parseOptionalString(attachment['fileName']),
-              category: (attachment['category'] ?? '').toString(),
+              category: DealerReturnAttachmentCategory.fromApi(
+                attachment['category']?.toString(),
+              ),
             ),
           )
           .toList(growable: false),

@@ -18,11 +18,19 @@ void main() {
       );
     });
 
-    test('preserves order detail routes', () {
+    test('maps legacy returns routes to returns screen', () {
       expect(
-        normalizeDealerInternalRoute('/orders/ABC-1'),
-        '/orders/ABC-1',
+        normalizeDealerInternalRoute('/dealer/returns'),
+        DealerRoutePath.returns,
       );
+      expect(
+        normalizeDealerInternalRoute('/account/returns'),
+        DealerRoutePath.returns,
+      );
+    });
+
+    test('preserves order detail routes', () {
+      expect(normalizeDealerInternalRoute('/orders/ABC-1'), '/orders/ABC-1');
     });
 
     test('maps legacy warranty activation landing route to warranty hub', () {
@@ -44,8 +52,19 @@ void main() {
     test('identifies top level routes correctly', () {
       expect(isDealerTopLevelRoute(DealerRoutePath.home), isTrue);
       expect(isDealerTopLevelRoute(DealerRoutePath.support), isTrue);
+      expect(isDealerTopLevelRoute(DealerRoutePath.returns), isTrue);
       expect(isDealerTopLevelRoute('/orders/ABC-1'), isFalse);
       expect(isDealerTopLevelRoute('/warranty/export'), isFalse);
+    });
+  });
+
+  group('DealerRoutePath return helpers', () {
+    test('builds return detail and create routes', () {
+      expect(DealerRoutePath.returnDetail(42), '/returns/42');
+      expect(
+        DealerRoutePath.createReturnRequest('DH-001', prefilledSerialId: 9),
+        '/orders/DH-001/returns/new?serialId=9',
+      );
     });
   });
 }

@@ -90,6 +90,11 @@ class _AccountScreenState extends State<AccountScreen> {
     await context.pushDealerSupport();
   }
 
+  Future<void> _openReturns() async {
+    if (_isLoggingOut) return;
+    await context.pushDealerReturns();
+  }
+
   Future<void> _openWarrantyHub() async {
     if (_isLoggingOut) return;
     await Future.wait<void>([
@@ -759,6 +764,14 @@ class _AccountScreenState extends State<AccountScreen> {
             ? 'Open dealer support and operational assistance channels.'
             : 'Mở các kênh hỗ trợ đại lý và trợ giúp vận hành.',
         _isLoggingOut ? null : _openSupport,
+      ),
+      _actionTile(
+        Icons.assignment_return_outlined,
+        isEnglish ? 'Returns' : 'Đổi trả',
+        isEnglish
+            ? 'Review return requests and follow the latest processing status.'
+            : 'Theo dõi yêu cầu đổi trả và trạng thái xử lý mới nhất.',
+        _isLoggingOut ? null : _openReturns,
       ),
       _actionTile(
         Icons.verified_user_outlined,

@@ -8,6 +8,8 @@ import 'breakpoints.dart';
 import 'dealer_navigation.dart';
 import 'inventory_service.dart';
 import 'models.dart';
+import 'return_request_service.dart';
+import 'return_request_ui_support.dart';
 import 'serial_scan_screen.dart';
 import 'utils.dart';
 import 'warranty_controller.dart';
@@ -62,10 +64,13 @@ class _InventoryProductDetailScreenState
 
   final ScrollController _scrollController = ScrollController();
   late final InventoryService _inventoryService;
+  late final ReturnRequestService _returnRequestService;
   InventorySerialFilter _filter = InventorySerialFilter.all;
   int _visibleSerialCount = _initialVisibleSerialCount;
   int _filteredSerialCount = 0;
   List<DealerInventorySerialRecord>? _remoteSerials;
+  final Map<int, _SerialReturnIndicator> _returnIndicatorBySerialId =
+      <int, _SerialReturnIndicator>{};
   String? _remoteLoadErrorMessage;
   bool _isRemoteLoading = false;
 
@@ -73,6 +78,7 @@ class _InventoryProductDetailScreenState
   void initState() {
     super.initState();
     _inventoryService = widget.inventoryService ?? InventoryService();
+    _returnRequestService = ReturnRequestService();
     _scrollController.addListener(_handleSerialListScroll);
     unawaited(_loadRemoteSerials());
   }
@@ -82,6 +88,7 @@ class _InventoryProductDetailScreenState
     _scrollController
       ..removeListener(_handleSerialListScroll)
       ..dispose();
+    _returnRequestService.close();
     if (widget.inventoryService == null) {
       _inventoryService.close();
     }
@@ -104,6 +111,7 @@ class _InventoryProductDetailScreenState
         _remoteSerials = serials;
         _remoteLoadErrorMessage = null;
       });
+      unawaited(_prefetchReturnIndicators(serials.take(12).toList()));
     } on InventoryException catch (error) {
       if (!mounted) {
         return;
@@ -538,6 +546,10 @@ class _InventoryProductDetailScreenState
                 else
                   ...visibleSerials.map((record) {
                     final status = serialStatuses[record.serial]!;
+                    final remoteRecord = remoteSerialByValue[record.serial];
+                    final returnIndicator = remoteRecord == null
+                        ? null
+                        : _returnIndicatorBySerialId[remoteRecord.id];
                     return Padding(
                       padding: const EdgeInsets.only(
                         bottom: _detailItemSpacing,
@@ -549,12 +561,35 @@ class _InventoryProductDetailScreenState
                           onOpenOrder: () =>
                               context.pushDealerOrderDetail(record.orderId),
                           onCopy: () => _copySerial(record.serial),
-                          onViewTimeline:
-                              remoteSerialByValue[record.serial] == null
+                          returnIndicatorLabel: returnIndicator == null
                               ? null
-                              : () => _openSerialTimeline(
-                                  remoteSerialByValue[record.serial]!,
-                                ),
+                              : (returnIndicator.activeStatus == null
+                                    ? _returnEligibilityMessage(
+                                        returnIndicator.eligibility.reasonCode,
+                                        fallback: returnIndicator
+                                            .eligibility
+                                            .reasonMessage,
+                                        isEnglish: texts.isEnglish,
+                                      )
+                                    : dealerReturnStatusLabel(
+                                        returnIndicator.activeStatus!,
+                                        isEnglish: texts.isEnglish,
+                                      )),
+                          returnIndicatorColor: returnIndicator == null
+                              ? null
+                              : (returnIndicator.activeStatus == null
+                                    ? (returnIndicator.eligibility.eligible
+                                          ? colorScheme.tertiary
+                                          : colorScheme.error)
+                                    : dealerReturnStatusForeground(
+                                        returnIndicator.activeStatus!,
+                                      )),
+                          onViewTimeline: remoteRecord == null
+                              ? null
+                              : () => _openSerialTimeline(remoteRecord),
+                          onCheckReturnEligibility: remoteRecord == null
+                              ? null
+                              : () => _openReturnEligibilitySheet(remoteRecord),
                         ),
                       ),
                     );
@@ -695,12 +730,204 @@ class _InventoryProductDetailScreenState
     );
   }
 
+  Future<void> _prefetchReturnIndicators(
+    List<DealerInventorySerialRecord> serials,
+  ) async {
+    for (final serial in serials) {
+      if (!mounted) {
+        return;
+      }
+      if (_returnIndicatorBySerialId.containsKey(serial.id)) {
+        continue;
+      }
+      await _fetchReturnIndicator(serial, silent: true);
+    }
+  }
+
+  Future<_SerialReturnIndicator?> _fetchReturnIndicator(
+    DealerInventorySerialRecord serial, {
+    bool silent = false,
+  }) async {
+    final existing = _returnIndicatorBySerialId[serial.id];
+    if (existing != null) {
+      return existing;
+    }
+    try {
+      final eligibility = await _returnRequestService.fetchSerialEligibility(
+        serial.id,
+      );
+      DealerReturnRequestStatus? activeStatus;
+      final activeRequestId = eligibility.activeRequestId;
+      if (activeRequestId != null && activeRequestId > 0) {
+        try {
+          final detail = await _returnRequestService.fetchDetail(
+            activeRequestId,
+          );
+          activeStatus = detail.status;
+        } on ReturnRequestException {
+          // Keep fallback reason from eligibility endpoint.
+        }
+      }
+      final indicator = _SerialReturnIndicator(
+        eligibility: eligibility,
+        activeStatus: activeStatus,
+      );
+      if (!mounted) {
+        return indicator;
+      }
+      setState(() {
+        _returnIndicatorBySerialId[serial.id] = indicator;
+      });
+      return indicator;
+    } on ReturnRequestException catch (error) {
+      if (!silent && mounted) {
+        _showSnackBar(
+          resolveReturnServiceMessage(
+            error.message,
+            isEnglish: _inventoryProductDetailTexts(context).isEnglish,
+          ),
+        );
+      }
+      return null;
+    }
+  }
+
+  Future<void> _openReturnEligibilitySheet(
+    DealerInventorySerialRecord serial,
+  ) async {
+    final texts = _inventoryProductDetailTexts(context);
+    final indicator = await _fetchReturnIndicator(serial);
+    if (!mounted || indicator == null) {
+      return;
+    }
+
+    final eligibility = indicator.eligibility;
+    final activeRequestId = eligibility.activeRequestId;
+    final activeStatus = indicator.activeStatus;
+    final statusText = activeStatus == null
+        ? _returnEligibilityMessage(
+            eligibility.reasonCode,
+            fallback: eligibility.reasonMessage,
+            isEnglish: texts.isEnglish,
+          )
+        : dealerReturnStatusLabel(activeStatus, isEnglish: texts.isEnglish);
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  texts.returnEligibilityTitle(eligibility.serial),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  statusText,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: activeStatus == null
+                        ? (eligibility.eligible
+                              ? Theme.of(context).colorScheme.tertiary
+                              : Theme.of(context).colorScheme.error)
+                        : dealerReturnStatusForeground(activeStatus),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    if (eligibility.eligible &&
+                        (eligibility.orderCode != null &&
+                            eligibility.orderCode!.trim().isNotEmpty))
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.of(sheetContext).pop();
+                          context.pushDealerCreateReturnRequest(
+                            eligibility.orderCode!,
+                            prefilledSerialId: eligibility.serialId,
+                          );
+                        },
+                        icon: const Icon(Icons.assignment_return_outlined),
+                        label: Text(texts.createReturnAction),
+                      ),
+                    if (activeRequestId != null && activeRequestId > 0)
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.of(sheetContext).pop();
+                          context.pushDealerReturnDetail(activeRequestId);
+                        },
+                        icon: const Icon(Icons.open_in_new_rounded),
+                        label: Text(texts.openActiveReturnAction),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _showSnackBar(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
   }
+}
+
+String _returnEligibilityMessage(
+  String reasonCode, {
+  required String fallback,
+  required bool isEnglish,
+}) {
+  final normalized = reasonCode.trim().toUpperCase();
+  switch (normalized) {
+    case 'ELIGIBLE':
+      return isEnglish ? 'Eligible for return' : 'Đủ điều kiện đổi trả';
+    case 'ORDER_NOT_COMPLETED':
+      return isEnglish
+          ? 'Order must be completed before creating return request.'
+          : 'Đơn hàng phải hoàn tất trước khi tạo yêu cầu đổi trả.';
+    case 'SERIAL_STATUS_NOT_ELIGIBLE':
+      return isEnglish
+          ? 'Serial status is not eligible for return.'
+          : 'Trạng thái serial không cho phép đổi trả.';
+    case 'ACTIVE_RETURN_REQUEST_EXISTS':
+      return isEnglish
+          ? 'This serial already has an active return request.'
+          : 'Serial này đã có yêu cầu đổi trả đang xử lý.';
+    default:
+      return fallback.trim().isEmpty
+          ? (isEnglish
+                ? 'Return eligibility unavailable.'
+                : 'Không xác định điều kiện đổi trả.')
+          : fallback;
+  }
+}
+
+class _SerialReturnIndicator {
+  const _SerialReturnIndicator({
+    required this.eligibility,
+    required this.activeStatus,
+  });
+
+  final DealerReturnEligibilityRecord eligibility;
+  final DealerReturnRequestStatus? activeStatus;
 }
 
 class _SerialEmptyStateCard extends StatelessWidget {
@@ -860,14 +1087,20 @@ class _SerialTile extends StatelessWidget {
     required this.status,
     required this.onOpenOrder,
     required this.onCopy,
+    this.returnIndicatorLabel,
+    this.returnIndicatorColor,
     this.onViewTimeline,
+    this.onCheckReturnEligibility,
   });
 
   final ImportedSerialRecord record;
   final ImportedSerialStatus status;
   final VoidCallback onOpenOrder;
   final VoidCallback onCopy;
+  final String? returnIndicatorLabel;
+  final Color? returnIndicatorColor;
   final VoidCallback? onViewTimeline;
+  final VoidCallback? onCheckReturnEligibility;
 
   @override
   Widget build(BuildContext context) {
@@ -934,6 +1167,20 @@ class _SerialTile extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
+                  if (returnIndicatorLabel != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      returnIndicatorLabel!,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color:
+                            returnIndicatorColor ??
+                            Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 2),
                   Text(
                     texts.importedAtLabel(formatDateTime(record.importedAt)),
@@ -976,6 +1223,8 @@ class _SerialTile extends StatelessWidget {
                   onCopy();
                 } else if (value == 'timeline') {
                   onViewTimeline?.call();
+                } else if (value == 'return-eligibility') {
+                  onCheckReturnEligibility?.call();
                 }
               },
               itemBuilder: (_) => [
@@ -983,6 +1232,11 @@ class _SerialTile extends StatelessWidget {
                   PopupMenuItem<String>(
                     value: 'timeline',
                     child: Text(texts.timelineAction),
+                  ),
+                if (onCheckReturnEligibility != null)
+                  PopupMenuItem<String>(
+                    value: 'return-eligibility',
+                    child: Text(texts.returnEligibilityAction),
                   ),
                 PopupMenuItem<String>(
                   value: 'copy',
@@ -1177,6 +1431,15 @@ class _InventoryProductDetailTexts {
   String get copySerialAction => isEnglish ? 'Copy serial' : 'Sao chép serial';
   String get timelineAction =>
       isEnglish ? 'View timeline' : 'Xem dòng thời gian';
+  String get returnEligibilityAction =>
+      isEnglish ? 'Return eligibility' : 'Điều kiện đổi trả';
+  String returnEligibilityTitle(String serial) => isEnglish
+      ? 'Return eligibility • $serial'
+      : 'Điều kiện đổi trả • $serial';
+  String get createReturnAction =>
+      isEnglish ? 'Create return request' : 'Tạo yêu cầu đổi trả';
+  String get openActiveReturnAction =>
+      isEnglish ? 'Open active request' : 'Mở yêu cầu đang xử lý';
   String timelineTitle(String serial) => isEnglish
       ? 'Serial timeline • $serial'
       : 'Dòng thời gian serial • $serial';

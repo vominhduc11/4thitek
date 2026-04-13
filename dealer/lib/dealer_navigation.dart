@@ -24,6 +24,25 @@ extension DealerNavigationX on BuildContext {
   Future<T?> pushDealerOrderDetail<T extends Object?>(String orderId) =>
       push<T>(DealerRoutePath.orderDetail(orderId));
 
+  Future<T?> pushDealerReturns<T extends Object?>() =>
+      push<T>(DealerRoutePath.returns);
+
+  Future<T?> pushDealerReturnDetail<T extends Object?>(int requestId) =>
+      push<T>(DealerRoutePath.returnDetail(requestId));
+
+  void goToDealerReturnDetail(int requestId) =>
+      go(DealerRoutePath.returnDetail(requestId));
+
+  Future<T?> pushDealerCreateReturnRequest<T extends Object?>(
+    String orderId, {
+    int? prefilledSerialId,
+  }) => push<T>(
+    DealerRoutePath.createReturnRequest(
+      orderId,
+      prefilledSerialId: prefilledSerialId,
+    ),
+  );
+
   void goDealerOrderDetail(String orderId) =>
       go(DealerRoutePath.orderDetail(orderId));
 

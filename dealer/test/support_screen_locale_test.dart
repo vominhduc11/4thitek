@@ -155,7 +155,10 @@ class _FakeSupportService extends SupportService {
 
   @override
   Future<DealerSupportTicketRecord> submitTicket({
+    List<SupportTicketAttachmentRecord> attachments =
+        const <SupportTicketAttachmentRecord>[],
     required String category,
+    SupportTicketContextRecord? contextData,
     required String priority,
     required String subject,
     required String message,
