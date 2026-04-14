@@ -41,6 +41,7 @@ class InventoryProductDetailScreen extends StatefulWidget {
     required this.orderIds,
     required this.latestImportedAt,
     this.inventoryService,
+    this.returnRequestService,
   });
 
   final Product product;
@@ -51,6 +52,7 @@ class InventoryProductDetailScreen extends StatefulWidget {
   final List<String> orderIds;
   final DateTime latestImportedAt;
   final InventoryService? inventoryService;
+  final ReturnRequestService? returnRequestService;
 
   @override
   State<InventoryProductDetailScreen> createState() =>
@@ -79,7 +81,8 @@ class _InventoryProductDetailScreenState
   void initState() {
     super.initState();
     _inventoryService = widget.inventoryService ?? InventoryService();
-    _returnRequestService = ReturnRequestService();
+    _returnRequestService =
+        widget.returnRequestService ?? ReturnRequestService();
     _scrollController.addListener(_handleSerialListScroll);
     unawaited(_loadRemoteSerials());
   }
@@ -89,7 +92,9 @@ class _InventoryProductDetailScreenState
     _scrollController
       ..removeListener(_handleSerialListScroll)
       ..dispose();
-    _returnRequestService.close();
+    if (widget.returnRequestService == null) {
+      _returnRequestService.close();
+    }
     if (widget.inventoryService == null) {
       _inventoryService.close();
     }
@@ -386,44 +391,16 @@ class _InventoryProductDetailScreenState
       spacing: 8,
       runSpacing: 8,
       children: [
-        Semantics(
-          button: true,
-          enabled: canExport,
-          label: texts.exportAction,
-          child: ElevatedButton.icon(
-            onPressed: canExport
-                ? () {
-                    Navigator.of(this.context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const WarrantyExportScreen(),
-                      ),
-                    );
-                  }
-                : null,
-            style: ElevatedButton.styleFrom(
-              minimumSize: const Size(120, 48),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              textStyle: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-            icon: const Icon(Icons.local_shipping_outlined),
-            label: Text(texts.exportAction),
-          ),
-        ),
-        OutlinedButton.icon(
-          onPressed: () {
-            unawaited(_handleScanSerialForProduct(warrantyController));
-          },
-          style: OutlinedButton.styleFrom(
+        FilledButton.icon(
+          onPressed: canExport
+              ? () {
+                  unawaited(_handleScanSerialForProduct(warrantyController));
+                }
+              : null,
+          style: FilledButton.styleFrom(
             minimumSize: const Size(120, 48),
             padding: const EdgeInsets.symmetric(horizontal: 14),
-            foregroundColor: colorScheme.onSurfaceVariant,
-            side: BorderSide(
-              color: colorScheme.outlineVariant.withValues(alpha: 0.9),
-            ),
-            backgroundColor: colorScheme.surfaceContainerHighest.withValues(
-              alpha: 0.4,
-            ),
-            textStyle: const TextStyle(fontWeight: FontWeight.w600),
+            textStyle: const TextStyle(fontWeight: FontWeight.w700),
           ),
           icon: const Icon(Icons.qr_code_scanner_outlined),
           label: Text(texts.scanForExportAction),
