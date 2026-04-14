@@ -18,6 +18,15 @@ _DealerReturnDetailTexts _dealerReturnDetailTexts(BuildContext context) =>
       isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
     );
 
+void _leaveReturnDetail(BuildContext context) {
+  final navigator = Navigator.of(context);
+  if (navigator.canPop()) {
+    navigator.maybePop();
+    return;
+  }
+  context.goToDealerReturns();
+}
+
 class DealerReturnDetailScreen extends StatefulWidget {
   const DealerReturnDetailScreen({
     super.key,
@@ -163,10 +172,18 @@ class _DealerReturnDetailScreenState extends State<DealerReturnDetailScreen> {
     final detail = _detail;
     final reasonCode = detail?.reasonCode ?? '-';
     final reasonDetail = detail?.reasonDetail ?? '-';
+    final canPop = Navigator.of(context).canPop();
 
     return Scaffold(
       appBar: AppBar(
         title: BrandAppBarTitle(texts.screenTitle),
+        leading: canPop
+            ? null
+            : IconButton(
+                tooltip: texts.backAction,
+                onPressed: () => _leaveReturnDetail(context),
+                icon: const Icon(Icons.arrow_back_rounded),
+              ),
         actions: const [GlobalSearchIconButton()],
       ),
       body: RefreshIndicator(
@@ -676,6 +693,7 @@ class _DealerReturnDetailTexts {
 
   String get screenTitle =>
       isEnglish ? 'Return request detail' : 'Chi tiet yeu cau doi tra';
+  String get backAction => isEnglish ? 'Back' : 'Quay lai';
   String get loadFailedTitle => isEnglish
       ? 'Unable to load return request'
       : 'Khong the tai yeu cau doi tra';

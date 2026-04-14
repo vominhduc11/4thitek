@@ -83,7 +83,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           noticeCount: notices.length,
                           unreadCount: unreadCount,
                           hasUnread: hasUnread,
-                          notificationController: notificationController,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -206,7 +205,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     required int noticeCount,
     required int unreadCount,
     required bool hasUnread,
-    required NotificationController notificationController,
   }) {
     final isEnglish = Localizations.localeOf(context).languageCode == 'en';
     final colors = Theme.of(context).colorScheme;
@@ -268,17 +266,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               ),
             ),
           ),
-          if (hasUnread) ...[
-            const SizedBox(height: 14),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.tonalIcon(
-                onPressed: () => _markAllAsRead(notificationController),
-                icon: const Icon(Icons.done_all_outlined),
-                label: Text(l10n.notificationsMarkAllReadTooltip),
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -554,11 +541,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       return true;
     }
 
-    if (isDealerTopLevelRoute(normalizedRoute)) {
-      context.go(normalizedRoute);
-    } else {
-      await context.push(normalizedRoute);
-    }
+    await context.push(normalizedRoute);
     return true;
   }
 

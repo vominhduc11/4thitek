@@ -25,6 +25,15 @@ _OrderDetailTexts _orderDetailTexts(BuildContext context) => _OrderDetailTexts(
   isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
 );
 
+void _leaveOrderDetail(BuildContext context) {
+  final navigator = Navigator.of(context);
+  if (navigator.canPop()) {
+    navigator.maybePop();
+    return;
+  }
+  context.goToDealerOrders();
+}
+
 class OrderDetailScreen extends StatelessWidget {
   const OrderDetailScreen({super.key, required this.orderId});
 
@@ -609,10 +618,20 @@ class OrderDetailScreen extends StatelessWidget {
     final cart = CartScope.of(context);
     final isTablet = AppBreakpoints.isTablet(context);
     final contentMaxWidth = isTablet ? 860.0 : double.infinity;
+    final canPop = Navigator.of(context).canPop();
 
     if (order == null) {
       return Scaffold(
-        appBar: AppBar(title: BrandAppBarTitle(texts.screenTitle)),
+        appBar: AppBar(
+          title: BrandAppBarTitle(texts.screenTitle),
+          leading: canPop
+              ? null
+              : IconButton(
+                  tooltip: texts.backAction,
+                  onPressed: () => _leaveOrderDetail(context),
+                  icon: const Icon(Icons.arrow_back_rounded),
+                ),
+        ),
         body: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 560),
@@ -653,12 +672,6 @@ class OrderDetailScreen extends StatelessWidget {
                         height: 1.45,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    OutlinedButton.icon(
-                      onPressed: () => Navigator.of(context).maybePop(),
-                      icon: const Icon(Icons.arrow_back_rounded, size: 18),
-                      label: Text(texts.backAction),
-                    ),
                   ],
                 ),
               ),
@@ -690,6 +703,13 @@ class OrderDetailScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: BrandAppBarTitle(texts.screenTitle),
+        leading: canPop
+            ? null
+            : IconButton(
+                tooltip: texts.backAction,
+                onPressed: () => _leaveOrderDetail(context),
+                icon: const Icon(Icons.arrow_back_rounded),
+              ),
         actions: const [GlobalSearchIconButton()],
       ),
       bottomNavigationBar: stickyActionBar,

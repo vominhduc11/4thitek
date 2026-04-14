@@ -306,11 +306,7 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
       return;
     }
     _pendingPushRoute = null;
-    if (isDealerTopLevelRoute(route)) {
-      _router.go(route);
-      return;
-    }
-    _router.push(route);
+    unawaited(_router.push(route));
   }
 
   void _openNoticeDestination(DistributorNotice notice) {
@@ -321,11 +317,7 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
       _openNotificationsCenter();
       return;
     }
-    if (isDealerTopLevelRoute(normalizedRoute)) {
-      _router.go(normalizedRoute);
-      return;
-    }
-    _router.push(normalizedRoute);
+    unawaited(_router.push(normalizedRoute));
   }
 
   @override

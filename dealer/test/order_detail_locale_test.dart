@@ -1,11 +1,13 @@
 import 'package:dealer_hub/app_settings_controller.dart';
 import 'package:dealer_hub/cart_controller.dart';
+import 'package:dealer_hub/dealer_routes.dart';
 import 'package:dealer_hub/l10n/app_localizations.dart';
 import 'package:dealer_hub/models.dart';
 import 'package:dealer_hub/order_controller.dart';
 import 'package:dealer_hub/order_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -60,24 +62,25 @@ void main() {
     expect(find.text('Create return request'), findsNothing);
   });
 
-  testWidgets('Order detail exposes create return action for completed order', (
-    WidgetTester tester,
-  ) async {
-    SharedPreferences.setMockInitialValues(<String, Object>{});
+  testWidgets(
+    'Order detail shows return eligibility section for completed order',
+    (WidgetTester tester) async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
 
-    await tester.pumpWidget(
-      await _buildApp(
-        const Locale('en'),
-        orderController: _FakeOrderController(
-          actionMessage: null,
-          order: _sampleOrder.copyWith(status: OrderStatus.completed),
+      await tester.pumpWidget(
+        await _buildApp(
+          const Locale('en'),
+          orderController: _FakeOrderController(
+            actionMessage: null,
+            order: _sampleOrder.copyWith(status: OrderStatus.completed),
+          ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('Create return request'), findsOneWidget);
-  });
+      expect(find.text('Return eligibility'), findsOneWidget);
+    },
+  );
 
   testWidgets('Order detail refreshes the current order on first open', (
     WidgetTester tester,
@@ -91,6 +94,25 @@ void main() {
     await tester.pump();
 
     expect(controller.refreshedOrderIds, <String>['DH-001']);
+  });
+
+  testWidgets('Order detail falls back to orders when opened standalone', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+
+    await tester.pumpWidget(
+      await _buildRouterApp(
+        const Locale('en'),
+        orderController: _FakeOrderController(actionMessage: null),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.arrow_back_rounded).first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Orders landing'), findsOneWidget);
   });
 }
 
@@ -145,6 +167,51 @@ Future<Widget> _buildApp(
         child: OrderScope(
           controller: orderController,
           child: const OrderDetailScreen(orderId: 'DH-001'),
+        ),
+      ),
+    ),
+  );
+}
+
+Future<Widget> _buildRouterApp(
+  Locale locale, {
+  required OrderController orderController,
+}) async {
+  final settingsController = AppSettingsController();
+  await settingsController.setLocale(locale);
+
+  return AppSettingsScope(
+    controller: settingsController,
+    child: CartScope(
+      controller: _FakeCartController(),
+      child: OrderScope(
+        controller: orderController,
+        child: MaterialApp.router(
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          routerConfig: GoRouter(
+            initialLocation: DealerRoutePath.orderDetail('DH-001'),
+            routes: <RouteBase>[
+              GoRoute(
+                path: DealerRoutePath.orders,
+                builder: (context, state) =>
+                    const Scaffold(body: Text('Orders landing')),
+              ),
+              GoRoute(
+                path: '${DealerRoutePath.orders}/:orderId',
+                builder: (context, state) => OrderDetailScreen(
+                  orderId: state.pathParameters['orderId'] ?? 'DH-001',
+                ),
+              ),
+            ],
+          ),
+          builder: (context, child) {
+            final mediaQuery = MediaQuery.of(context);
+            return MediaQuery(
+              data: mediaQuery.copyWith(disableAnimations: true),
+              child: child!,
+            );
+          },
         ),
       ),
     ),

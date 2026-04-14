@@ -21,11 +21,15 @@ extension DealerNavigationX on BuildContext {
   Future<T?> pushDealerOrders<T extends Object?>() =>
       push<T>(DealerRoutePath.orders);
 
+  void goToDealerOrders() => go(DealerRoutePath.orders);
+
   Future<T?> pushDealerOrderDetail<T extends Object?>(String orderId) =>
       push<T>(DealerRoutePath.orderDetail(orderId));
 
   Future<T?> pushDealerReturns<T extends Object?>() =>
       push<T>(DealerRoutePath.returns);
+
+  void goToDealerReturns() => go(DealerRoutePath.returns);
 
   Future<T?> pushDealerReturnDetail<T extends Object?>(int requestId) =>
       push<T>(DealerRoutePath.returnDetail(requestId));
