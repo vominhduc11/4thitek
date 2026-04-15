@@ -1023,6 +1023,12 @@ export const fetchAdminOrdersPaged = (
     params,
   })
 
+export const fetchAdminOrderById = (token: string, id: number) =>
+  authorizedJsonRequest<BackendOrderResponse>({
+    path: `/admin/orders/${id}`,
+    token,
+  })
+
 export const fetchAdminOrderSummary = (token: string) =>
   authorizedJsonRequest<BackendOrderSummaryResponse>({
     path: '/admin/orders/summary',
@@ -1490,7 +1496,12 @@ export const fetchAdminUnmatchedPayments = (
 export const resolveAdminUnmatchedPayment = (
   token: string,
   id: number,
-  body: { status: BackendUnmatchedPaymentStatus; resolution?: string; matchedOrderId?: number },
+  body: {
+    status: BackendUnmatchedPaymentStatus
+    resolution?: string
+    matchedOrderId?: number
+    allocationAmount?: number
+  },
 ) =>
   authorizedJsonRequest<BackendUnmatchedPaymentResponse>({
     path: `/admin/unmatched-payments/${id}`,

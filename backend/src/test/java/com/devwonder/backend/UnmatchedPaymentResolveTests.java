@@ -35,11 +35,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-/**
- * Integration tests for BUSINESS_LOGIC.md UnmatchedPayment resolution:
- * status = MATCHED must create a real Payment record and recalculate
- * the target Order's financial state — not just update the unmatched_payments row.
- */
 @SpringBootTest
 class UnmatchedPaymentResolveTests {
 
@@ -98,10 +93,6 @@ class UnmatchedPaymentResolveTests {
         dealerRepository.deleteAll();
     }
 
-    /**
-     * MATCHED must create a real Payment record linked to the target order.
-     * BUSINESS_LOGIC.md: "MATCHED — gán thủ công vào order phù hợp (tạo payment record cho order đó)"
-     */
     @Test
     void matchedResolutionCreatesPaymentRecordOnTargetOrder() {
         Order order = orderRepository.save(createOrder("MATCH-ORDER-1", 100_000));
@@ -112,8 +103,9 @@ class UnmatchedPaymentResolveTests {
                 unmatched.getId(),
                 new AdminUpdateUnmatchedPaymentRequest(
                         UnmatchedPaymentStatus.MATCHED,
-                        "Amount matches order balance — applying manually",
-                        order.getId()
+                        "Amount matches order balance - applying manually",
+                        order.getId(),
+                        null
                 ),
                 "admin@example.com"
         );
@@ -126,10 +118,6 @@ class UnmatchedPaymentResolveTests {
         assertThat(payments.get(0).getTransactionCode()).isEqualTo("UNMATCHED_MATCH:" + unmatched.getId());
     }
 
-    /**
-     * MATCHED must recalculate the target order's paidAmount and paymentStatus.
-     * shippingFee = 100_000 → totalAmount = 100_000; after matching → paymentStatus = PAID.
-     */
     @Test
     void matchedResolutionRecalculatesOrderFinancialState() {
         Order order = orderRepository.save(createOrder("MATCH-ORDER-2", 100_000));
@@ -140,8 +128,9 @@ class UnmatchedPaymentResolveTests {
                 unmatched.getId(),
                 new AdminUpdateUnmatchedPaymentRequest(
                         UnmatchedPaymentStatus.MATCHED,
-                        "Correct amount — assigning to order",
-                        order.getId()
+                        "Correct amount - assigning to order",
+                        order.getId(),
+                        null
                 ),
                 "admin@example.com"
         );
@@ -150,16 +139,11 @@ class UnmatchedPaymentResolveTests {
         assertThat(updated.getPaidAmount()).isEqualByComparingTo(BigDecimal.valueOf(100_000));
         assertThat(updated.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
 
-        // UnmatchedPayment row itself must also be updated
         UnmatchedPayment resolved = unmatchedPaymentRepository.findById(unmatched.getId()).orElseThrow();
         assertThat(resolved.getStatus()).isEqualTo(UnmatchedPaymentStatus.MATCHED);
         assertThat(resolved.getMatchedOrderId()).isEqualTo(order.getId());
     }
 
-    /**
-     * Resolving the same MATCHED payment twice must NOT create a duplicate Payment record.
-     * The PENDING guard on the unmatched payment is the primary protection.
-     */
     @Test
     void resolveMatchedTwiceDoesNotCreateDuplicatePayment() {
         Order order = orderRepository.save(createOrder("MATCH-ORDER-3", 100_000));
@@ -170,33 +154,29 @@ class UnmatchedPaymentResolveTests {
                 unmatched.getId(),
                 new AdminUpdateUnmatchedPaymentRequest(
                         UnmatchedPaymentStatus.MATCHED,
-                        "First resolution — valid",
-                        order.getId()
+                        "First resolution - valid",
+                        order.getId(),
+                        null
                 ),
                 "admin@example.com"
         );
 
-        // Second attempt on the same unmatched payment must be rejected
         assertThatThrownBy(() -> adminFinancialService.resolveUnmatchedPayment(
                 unmatched.getId(),
                 new AdminUpdateUnmatchedPaymentRequest(
                         UnmatchedPaymentStatus.MATCHED,
-                        "Second resolution — duplicate attempt",
-                        order.getId()
+                        "Second resolution - duplicate attempt",
+                        order.getId(),
+                        null
                 ),
                 "admin@example.com"
         ))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("already resolved");
 
-        // Exactly one payment must exist on the order
         assertThat(paymentRepository.findByOrderIdOrderByPaidAtDescIdDesc(order.getId())).hasSize(1);
     }
 
-    /**
-     * REFUNDED resolution must NOT create any Payment record on an order.
-     * BUSINESS_LOGIC.md: "REFUNDED — đã hoàn tiền ngoài hệ thống" (external refund, no order impact).
-     */
     @Test
     void refundedResolutionDoesNotCreatePaymentOrTouchOrders() {
         Order order = orderRepository.save(createOrder("MATCH-ORDER-4", 100_000));
@@ -208,28 +188,20 @@ class UnmatchedPaymentResolveTests {
                 new AdminUpdateUnmatchedPaymentRequest(
                         UnmatchedPaymentStatus.REFUNDED,
                         "Refunded to sender outside the system",
+                        null,
                         null
                 ),
                 "admin@example.com"
         );
 
-        // No payment must have been created
         assertThat(paymentRepository.findAll()).isEmpty();
-
-        // Order financial state must be untouched
         Order unchanged = orderRepository.findById(order.getId()).orElseThrow();
         assertThat(unchanged.getPaidAmount()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(unchanged.getPaymentStatus()).isEqualTo(PaymentStatus.PENDING);
-
-        // UnmatchedPayment status updated correctly
         assertThat(unmatchedPaymentRepository.findById(unmatched.getId()).orElseThrow().getStatus())
                 .isEqualTo(UnmatchedPaymentStatus.REFUNDED);
     }
 
-    /**
-     * WRITTEN_OFF resolution must NOT create any Payment record.
-     * BUSINESS_LOGIC.md: "WRITTEN_OFF — xử lý ngoại lệ, ghi chú lý do".
-     */
     @Test
     void writtenOffResolutionDoesNotCreatePaymentOrTouchOrders() {
         Order order = orderRepository.save(createOrder("MATCH-ORDER-5", 100_000));
@@ -241,30 +213,23 @@ class UnmatchedPaymentResolveTests {
                 new AdminUpdateUnmatchedPaymentRequest(
                         UnmatchedPaymentStatus.WRITTEN_OFF,
                         "Small amount, written off as processing fee error",
+                        null,
                         null
                 ),
                 "admin@example.com"
         );
 
         assertThat(paymentRepository.findAll()).isEmpty();
-
         Order unchanged = orderRepository.findById(order.getId()).orElseThrow();
         assertThat(unchanged.getPaidAmount()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(unchanged.getPaymentStatus()).isEqualTo(PaymentStatus.PENDING);
-
         assertThat(unmatchedPaymentRepository.findById(unmatched.getId()).orElseThrow().getStatus())
                 .isEqualTo(UnmatchedPaymentStatus.WRITTEN_OFF);
     }
 
-    /**
-     * MATCHED against a partial amount (less than order total) must still apply and leave
-     * the order in PENDING status — paidAmount increases but does not reach total.
-     */
     @Test
     void matchedPartialPaymentLeavesOrderPending() {
-        // shippingFee=100_000 → totalAmount=100_000
         Order order = orderRepository.save(createOrder("MATCH-ORDER-6", 100_000));
-        // Only 40_000 from the unmatched payment
         UnmatchedPayment unmatched = unmatchedPaymentRepository.save(
                 createUnmatched("SEPAY:TX006", BigDecimal.valueOf(40_000)));
 
@@ -272,8 +237,9 @@ class UnmatchedPaymentResolveTests {
                 unmatched.getId(),
                 new AdminUpdateUnmatchedPaymentRequest(
                         UnmatchedPaymentStatus.MATCHED,
-                        "Partial payment — applying to order outstanding balance",
-                        order.getId()
+                        "Partial payment - applying to order outstanding balance",
+                        order.getId(),
+                        null
                 ),
                 "admin@example.com"
         );
@@ -281,12 +247,66 @@ class UnmatchedPaymentResolveTests {
         Order updated = orderRepository.findById(order.getId()).orElseThrow();
         assertThat(updated.getPaidAmount()).isEqualByComparingTo(BigDecimal.valueOf(40_000));
         assertThat(updated.getPaymentStatus()).isEqualTo(PaymentStatus.PENDING);
-
-        List<?> payments = paymentRepository.findByOrderIdOrderByPaidAtDescIdDesc(order.getId());
-        assertThat(payments).hasSize(1);
+        assertThat(paymentRepository.findByOrderIdOrderByPaidAtDescIdDesc(order.getId())).hasSize(1);
     }
 
-    // ---- Helpers ----
+    @Test
+    void matchedResolutionRejectsAllocationThatOverpaysOutstanding() {
+        Order order = orderRepository.save(createOrder("MATCH-ORDER-7", 100_000));
+        UnmatchedPayment unmatched = unmatchedPaymentRepository.save(
+                createUnmatched("SEPAY:TX007", BigDecimal.valueOf(120_000)));
+
+        assertThatThrownBy(() -> adminFinancialService.resolveUnmatchedPayment(
+                unmatched.getId(),
+                new AdminUpdateUnmatchedPaymentRequest(
+                        UnmatchedPaymentStatus.MATCHED,
+                        "Attempting to overpay target order",
+                        order.getId(),
+                        null
+                ),
+                "admin@example.com"
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("outstanding");
+
+        assertThat(paymentRepository.findByOrderIdOrderByPaidAtDescIdDesc(order.getId())).isEmpty();
+        assertThat(unmatchedPaymentRepository.findById(unmatched.getId()).orElseThrow().getStatus())
+                .isEqualTo(UnmatchedPaymentStatus.PENDING);
+    }
+
+    @Test
+    void matchedResolutionSupportsExplicitAllocationAndPreservesResidualUnmatchedAmount() {
+        Order order = orderRepository.save(createOrder("MATCH-ORDER-8", 100_000));
+        UnmatchedPayment unmatched = unmatchedPaymentRepository.save(
+                createUnmatched("SEPAY:TX008", BigDecimal.valueOf(120_000)));
+
+        adminFinancialService.resolveUnmatchedPayment(
+                unmatched.getId(),
+                new AdminUpdateUnmatchedPaymentRequest(
+                        UnmatchedPaymentStatus.MATCHED,
+                        "Allocate only the exact outstanding amount",
+                        order.getId(),
+                        BigDecimal.valueOf(100_000)
+                ),
+                "admin@example.com"
+        );
+
+        Order updated = orderRepository.findById(order.getId()).orElseThrow();
+        assertThat(updated.getPaidAmount()).isEqualByComparingTo(BigDecimal.valueOf(100_000));
+        assertThat(updated.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
+
+        UnmatchedPayment resolved = unmatchedPaymentRepository.findById(unmatched.getId()).orElseThrow();
+        assertThat(resolved.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(100_000));
+        assertThat(resolved.getStatus()).isEqualTo(UnmatchedPaymentStatus.MATCHED);
+        assertThat(resolved.getMatchedOrderId()).isEqualTo(order.getId());
+
+        List<UnmatchedPayment> residuals = unmatchedPaymentRepository.findAll().stream()
+                .filter(item -> !item.getId().equals(unmatched.getId()))
+                .toList();
+        assertThat(residuals).hasSize(1);
+        assertThat(residuals.get(0).getAmount()).isEqualByComparingTo(BigDecimal.valueOf(20_000));
+        assertThat(residuals.get(0).getStatus()).isEqualTo(UnmatchedPaymentStatus.PENDING);
+    }
 
     private Order createOrder(String orderCode, int shippingFee) {
         Dealer dealer = dealerRepository.save(createDealer(orderCode + "@test.com"));

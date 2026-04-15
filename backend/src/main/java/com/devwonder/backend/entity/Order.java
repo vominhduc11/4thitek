@@ -85,6 +85,30 @@ public class Order {
     @Column(name = "paid_amount")
     private BigDecimal paidAmount;
 
+    @Column(name = "subtotal_amount")
+    private BigDecimal subtotalAmount;
+
+    @Column(name = "discount_percent")
+    private Integer discountPercent;
+
+    @Column(name = "discount_amount")
+    private BigDecimal discountAmount;
+
+    @Column(name = "applied_discount_rule_id")
+    private Long appliedDiscountRuleId;
+
+    @Column(name = "applied_discount_rule_label")
+    private String appliedDiscountRuleLabel;
+
+    @Column(name = "vat_percent")
+    private Integer vatPercent;
+
+    @Column(name = "vat_amount")
+    private BigDecimal vatAmount;
+
+    @Column(name = "total_amount")
+    private BigDecimal totalAmount;
+
     @Column(name = "completed_at")
     private Instant completedAt;
 

@@ -71,6 +71,7 @@ import com.devwonder.backend.service.support.DealerPaymentSupport;
 import com.devwonder.backend.service.support.DealerAccountStatusTransitionPolicy;
 import com.devwonder.backend.service.support.DealerRequestSupport;
 import com.devwonder.backend.service.support.OrderInventorySupport;
+import com.devwonder.backend.service.support.OrderFinancialSnapshotService;
 import com.devwonder.backend.service.support.OrderPricingSupport;
 import com.devwonder.backend.service.support.OrderStatusTransitionPolicy;
 import com.devwonder.backend.service.support.ProductSerialOrderSupport;
@@ -134,6 +135,7 @@ public class AdminManagementService {
     private final PasswordResetService passwordResetService;
     private final EmailVerificationService emailVerificationService;
     private final OrderProperties orderProperties;
+    private final OrderFinancialSnapshotService orderFinancialSnapshotService;
 
     @Transactional(readOnly = true)
     public List<AdminProductResponse> getProducts() {
@@ -196,12 +198,14 @@ public class AdminManagementService {
         productRepository.save(product);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<AdminOrderResponse> getOrders() {
         List<BulkDiscount> activeDiscountRules = activeDiscountRules();
         int vatPercent = currentVatPercent();
         long confirmedShippingAlertHours = orderProperties.getConfirmedShippingAlertHours();
-        return orderRepository.findVisibleByCreatedAtDesc(Pageable.unpaged()).stream()
+        List<Order> orders = orderRepository.findVisibleByCreatedAtDesc(Pageable.unpaged()).getContent();
+        orderFinancialSnapshotService.ensureSnapshots(orders, activeDiscountRules, vatPercent);
+        return orders.stream()
                 .map(order -> AdminResponseMapper.toOrderResponse(
                         order,
                         activeDiscountRules,
@@ -211,17 +215,17 @@ public class AdminManagementService {
                 .toList();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public Page<AdminOrderResponse> getOrders(Pageable pageable) {
         return getOrders(pageable, null);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public Page<AdminOrderResponse> getOrders(Pageable pageable, OrderStatus status) {
         return getOrders(pageable, status, null);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public Page<AdminOrderResponse> getOrders(Pageable pageable, OrderStatus status, String query) {
         List<BulkDiscount> activeDiscountRules = activeDiscountRules();
         int vatPercent = currentVatPercent();
@@ -229,17 +233,34 @@ public class AdminManagementService {
         Pageable effectivePageable = pageable == null || pageable.isUnpaged()
                 ? PageRequest.of(0, 100)
                 : pageable;
-        return orderRepository.findVisibleByStatusAndQueryOrderByCreatedAtDesc(
+        Page<Order> orders = orderRepository.findVisibleByStatusAndQueryOrderByCreatedAtDesc(
                         status,
                         normalizeContainsQuery(query),
                         effectivePageable
-                )
+                );
+        orderFinancialSnapshotService.ensureSnapshots(orders.getContent(), activeDiscountRules, vatPercent);
+        return orders
                 .map(order -> AdminResponseMapper.toOrderResponse(
                         order,
                         activeDiscountRules,
                         vatPercent,
                         confirmedShippingAlertHours
                 ));
+    }
+
+    @Transactional
+    public AdminOrderResponse getOrder(Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+        List<BulkDiscount> activeDiscountRules = activeDiscountRules();
+        int vatPercent = currentVatPercent();
+        orderFinancialSnapshotService.ensureSnapshot(order, activeDiscountRules, vatPercent);
+        return AdminResponseMapper.toOrderResponse(
+                order,
+                activeDiscountRules,
+                vatPercent,
+                orderProperties.getConfirmedShippingAlertHours()
+        );
     }
 
     @Transactional(readOnly = true)
@@ -289,6 +310,7 @@ public class AdminManagementService {
         }
         List<BulkDiscount> activeDiscountRules = activeDiscountRules();
         int vatPercent = currentVatPercent();
+        orderFinancialSnapshotService.ensureSnapshot(order, activeDiscountRules, vatPercent);
         BigDecimal paidAmount = order.getPaidAmount() == null ? BigDecimal.ZERO : order.getPaidAmount();
         if (previousStatus != OrderStatus.CANCELLED && request.status() == OrderStatus.CANCELLED
                 && paidAmount.compareTo(BigDecimal.ZERO) > 0) {
@@ -511,21 +533,23 @@ public class AdminManagementService {
                 .toList();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<AdminDealerAccountResponse> getDealerAccounts() {
         List<BulkDiscount> activeDiscountRules = activeDiscountRules();
         int vatPercent = currentVatPercent();
-        return dealerRepository.findAllByOrderByCreatedAtDesc().stream()
+        List<Dealer> dealers = dealerRepository.findAllByOrderByCreatedAtDesc();
+        ensureDealerOrderSnapshots(dealers, activeDiscountRules, vatPercent);
+        return dealers.stream()
                 .map(dealer -> AdminResponseMapper.toDealerAccountResponse(dealer, activeDiscountRules, vatPercent))
                 .toList();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public Page<AdminDealerAccountResponse> getDealerAccounts(Pageable pageable) {
         return getDealerAccounts(pageable, null, null);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public Page<AdminDealerAccountResponse> getDealerAccounts(
             Pageable pageable,
             CustomerStatus status,
@@ -536,19 +560,22 @@ public class AdminManagementService {
         Pageable effectivePageable = pageable == null || pageable.isUnpaged()
                 ? PageRequest.of(0, 100)
                 : pageable;
-        return dealerRepository.findAllByCustomerStatusAndQueryOrderByCreatedAtDesc(
+        Page<Dealer> dealers = dealerRepository.findAllByCustomerStatusAndQueryOrderByCreatedAtDesc(
                         status,
                         normalizeContainsQuery(query),
                         effectivePageable
-                )
-                .map(dealer -> AdminResponseMapper.toDealerAccountResponse(dealer, activeDiscountRules, vatPercent));
+                );
+        ensureDealerOrderSnapshots(dealers.getContent(), activeDiscountRules, vatPercent);
+        return dealers.map(dealer -> AdminResponseMapper.toDealerAccountResponse(dealer, activeDiscountRules, vatPercent));
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AdminDealerAccountSummaryResponse getDealerAccountSummary() {
         List<BulkDiscount> activeDiscountRules = activeDiscountRules();
         int vatPercent = currentVatPercent();
-        java.math.BigDecimal totalRevenue = dealerRepository.findAllByOrderByCreatedAtDesc().stream()
+        List<Dealer> dealers = dealerRepository.findAllByOrderByCreatedAtDesc();
+        ensureDealerOrderSnapshots(dealers, activeDiscountRules, vatPercent);
+        java.math.BigDecimal totalRevenue = dealers.stream()
                 .map(dealer -> AdminResponseMapper.toDealerAccountResponse(dealer, activeDiscountRules, vatPercent).revenue())
                 .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
 
@@ -712,7 +739,7 @@ public class AdminManagementService {
         return AdminResponseMapper.toDiscountRuleResponse(bulkDiscountRepository.save(rule));
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AdminDashboardResponse getDashboard() {
         List<BulkDiscount> activeDiscountRules = activeDiscountRules();
         boolean inventoryAlertsEnabled = adminSettingsService.getEffectiveSettings().inventoryAlerts();
@@ -722,6 +749,7 @@ public class AdminManagementService {
                 .atStartOfDay(WarrantyDateSupport.APP_ZONE)
                 .toInstant();
         List<Order> revenueOrders = orderRepository.findRevenueOrdersFrom(dashboardStart);
+        orderFinancialSnapshotService.ensureSnapshots(revenueOrders, activeDiscountRules, currentVatPercent());
         List<AdminDashboardSupport.TopProductStat> topProducts = orderRepository.findTopProductsForDashboard(
                         OrderStatus.COMPLETED,
                         PageRequest.of(0, 5)
@@ -865,6 +893,22 @@ public class AdminManagementService {
 
     private int safeStock(Product product) {
         return product == null || product.getStock() == null ? 0 : Math.max(0, product.getStock());
+    }
+
+    private void ensureDealerOrderSnapshots(
+            Iterable<Dealer> dealers,
+            List<BulkDiscount> activeDiscountRules,
+            int vatPercent
+    ) {
+        if (dealers == null) {
+            return;
+        }
+        for (Dealer dealer : dealers) {
+            if (dealer == null || dealer.getOrders() == null) {
+                continue;
+            }
+            orderFinancialSnapshotService.ensureSnapshots(dealer.getOrders(), activeDiscountRules, vatPercent);
+        }
     }
 
     private void publishOrderStatusRealtime(Order order, OrderStatus previousStatus) {

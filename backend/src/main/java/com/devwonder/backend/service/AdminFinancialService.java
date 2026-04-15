@@ -29,8 +29,11 @@ import com.devwonder.backend.repository.OrderAdjustmentRepository;
 import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.PaymentRepository;
 import com.devwonder.backend.repository.UnmatchedPaymentRepository;
+import com.devwonder.backend.service.support.OrderFinancialSupport;
+import com.devwonder.backend.service.support.OrderFinancialSnapshotService;
 import com.devwonder.backend.service.support.OrderPricingSupport;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -60,6 +63,7 @@ public class AdminFinancialService {
     private final PaymentRepository paymentRepository;
     private final BulkDiscountRepository bulkDiscountRepository;
     private final AdminSettingsService adminSettingsService;
+    private final OrderFinancialSnapshotService orderFinancialSnapshotService;
 
     // ---- Recent payments ----
 
@@ -257,6 +261,7 @@ public class AdminFinancialService {
 
         List<BulkDiscount> activeDiscountRules = bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
         int vatPercent = adminSettingsService.getEffectiveSettings().vatPercent();
+        orderFinancialSnapshotService.ensureSnapshot(order, activeDiscountRules, vatPercent);
         order.setPaidAmount(newPaidAmount);
         order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules, vatPercent));
         orderRepository.save(order);
@@ -388,12 +393,27 @@ public class AdminFinancialService {
                 throw new BadRequestException("resolution is required");
             }
         }
+        BigDecimal unmatchedAmount = normalizePositiveWholeAmount(unmatchedPayment.getAmount(), "unmatched payment amount");
+        BigDecimal allocationAmount = null;
+        if (newStatus == UnmatchedPaymentStatus.MATCHED) {
+            allocationAmount = request.allocationAmount() == null
+                    ? unmatchedAmount
+                    : normalizePositiveWholeAmount(request.allocationAmount(), "allocationAmount");
+            if (allocationAmount.compareTo(unmatchedAmount) > 0) {
+                throw new BadRequestException("allocationAmount cannot exceed unmatched payment amount");
+            }
+        }
 
         // BUSINESS_LOGIC.md §3 (Unmatched transaction handling):
         // MATCHED = gán thủ công vào order phù hợp (tạo payment record cho order đó)
         // Must create a real Payment and recalculate Order financial state — not just update this row.
         if (newStatus == UnmatchedPaymentStatus.MATCHED) {
-            applyMatchedPaymentToOrder(id, unmatchedPayment, request.matchedOrderId());
+            applyMatchedPaymentToOrder(id, unmatchedPayment, request.matchedOrderId(), allocationAmount);
+            BigDecimal residualAmount = unmatchedAmount.subtract(allocationAmount);
+            if (residualAmount.compareTo(BigDecimal.ZERO) > 0) {
+                createResidualUnmatchedPayment(unmatchedPayment, residualAmount);
+            }
+            unmatchedPayment.setAmount(allocationAmount);
         }
 
         unmatchedPayment.setStatus(newStatus);
@@ -412,7 +432,12 @@ public class AdminFinancialService {
      * concurrent duplicate calls are rejected by the DB unique constraint — the same pattern
      * SepayService uses for webhook deduplication.
      */
-    private void applyMatchedPaymentToOrder(Long unmatchedPaymentId, UnmatchedPayment unmatchedPayment, Long matchedOrderId) {
+    private void applyMatchedPaymentToOrder(
+            Long unmatchedPaymentId,
+            UnmatchedPayment unmatchedPayment,
+            Long matchedOrderId,
+            BigDecimal allocationAmount
+    ) {
         // Pessimistic lock to prevent concurrent payment races on the same order
         Order order = orderRepository.findByIdForUpdate(matchedOrderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + matchedOrderId));
@@ -422,6 +447,17 @@ public class AdminFinancialService {
         }
         if (order.getStatus() == OrderStatus.CANCELLED) {
             throw new BadRequestException("Cannot match payment to a cancelled order");
+        }
+
+        List<BulkDiscount> activeDiscountRules = bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
+        int vatPercent = adminSettingsService.getEffectiveSettings().vatPercent();
+        orderFinancialSnapshotService.ensureSnapshot(order, activeDiscountRules, vatPercent);
+        BigDecimal outstandingAmount = OrderFinancialSupport.paymentDueAmount(order, activeDiscountRules, vatPercent);
+        if (outstandingAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BadRequestException("Target order is already fully paid");
+        }
+        if (allocationAmount.compareTo(outstandingAmount) > 0) {
+            throw new BadRequestException("allocationAmount exceeds target order outstanding balance");
         }
 
         // Stable, unique transaction code: idempotency guard at the DB level
@@ -434,7 +470,7 @@ public class AdminFinancialService {
 
         Payment payment = new Payment();
         payment.setOrder(order);
-        payment.setAmount(unmatchedPayment.getAmount());
+        payment.setAmount(allocationAmount);
         payment.setMethod(PaymentMethod.BANK_TRANSFER);
         payment.setStatus(PaymentStatus.PAID);
         payment.setChannel("admin-manual-match");
@@ -452,11 +488,35 @@ public class AdminFinancialService {
         BigDecimal paidFromAdjustments = orderAdjustmentRepository.sumAmountByOrderId(order.getId());
         BigDecimal newPaidAmount = paidFromPayments.add(paidFromAdjustments);
 
-        List<BulkDiscount> activeDiscountRules = bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
-        int vatPercent = adminSettingsService.getEffectiveSettings().vatPercent();
         order.setPaidAmount(newPaidAmount);
         order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules, vatPercent));
         orderRepository.save(order);
+    }
+
+    private BigDecimal normalizePositiveWholeAmount(BigDecimal rawAmount, String fieldName) {
+        if (rawAmount == null) {
+            throw new BadRequestException(fieldName + " is required");
+        }
+        BigDecimal normalized = rawAmount.setScale(0, RoundingMode.HALF_UP);
+        if (normalized.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BadRequestException(fieldName + " must be greater than 0");
+        }
+        return normalized;
+    }
+
+    private void createResidualUnmatchedPayment(UnmatchedPayment source, BigDecimal residualAmount) {
+        UnmatchedPayment residual = new UnmatchedPayment();
+        residual.setTransactionCode(source.getTransactionCode() == null
+                ? null
+                : source.getTransactionCode() + ":RESIDUAL:" + source.getId());
+        residual.setAmount(residualAmount);
+        residual.setSenderInfo(source.getSenderInfo());
+        residual.setContent(source.getContent());
+        residual.setOrderCodeHint(source.getOrderCodeHint());
+        residual.setReceivedAt(source.getReceivedAt());
+        residual.setReason(source.getReason());
+        residual.setStatus(UnmatchedPaymentStatus.PENDING);
+        unmatchedPaymentRepository.save(residual);
     }
 
     private AdminUnmatchedPaymentResponse toUnmatchedResponse(UnmatchedPayment p) {

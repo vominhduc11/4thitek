@@ -668,7 +668,7 @@ class DealerSerialWarrantyGuardTests {
     }
 
     @Test
-    void deletingWarrantyEvictsLookupAndRestoresSerialToSold() {
+    void dealerCannotDeleteActivatedWarrantyDirectly() {
         Dealer dealer = dealerRepository.save(createDealer("warranty-delete-guard@example.com"));
         Product product = productRepository.save(createProduct("SKU-WARRANTY-4", BigDecimal.valueOf(100_000)));
         Order order = orderRepository.save(createOrder(dealer, product, 1, "SERIAL-ORDER-4"));
@@ -694,16 +694,18 @@ class DealerSerialWarrantyGuardTests {
 
         assertThat(publicApiService.lookupWarranty(serial.getSerial()).status()).isEqualTo("ACTIVE");
 
-        dealerPortalService.deleteWarranty(dealer.getUsername(), warranty.id());
+        assertThatThrownBy(() -> dealerPortalService.deleteWarranty(dealer.getUsername(), warranty.id()))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("cannot be deleted directly");
 
-        assertThat(warrantyRegistrationRepository.findById(warranty.id())).isEmpty();
+        assertThat(warrantyRegistrationRepository.findById(warranty.id())).isPresent();
         assertThat(productSerialRepository.findById(serial.getId()).orElseThrow().getStatus())
-                .isEqualTo(ProductSerialStatus.ASSIGNED);
-        assertThat(publicApiService.lookupWarranty(serial.getSerial()).status()).isEqualTo("invalid");
+                .isEqualTo(ProductSerialStatus.WARRANTY);
+        assertThat(publicApiService.lookupWarranty(serial.getSerial()).status()).isEqualTo("ACTIVE");
     }
 
     @Test
-    void deletingWarrantyKeepsDefectiveSerialStatus() {
+    void dealerCannotDeleteActivatedWarrantyEvenWhenSerialIsDefective() {
         Dealer dealer = dealerRepository.save(createDealer("warranty-delete-defective@example.com"));
         Product product = productRepository.save(createProduct("SKU-WARRANTY-DELETE-DEFECTIVE", BigDecimal.valueOf(100_000)));
         Order order = orderRepository.save(createOrder(dealer, product, 1, "SERIAL-ORDER-DELETE-DEFECTIVE"));
@@ -731,14 +733,17 @@ class DealerSerialWarrantyGuardTests {
         warrantySerial.setStatus(ProductSerialStatus.DEFECTIVE);
         productSerialRepository.save(warrantySerial);
 
-        dealerPortalService.deleteWarranty(dealer.getUsername(), warranty.id());
+        assertThatThrownBy(() -> dealerPortalService.deleteWarranty(dealer.getUsername(), warranty.id()))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("cannot be deleted directly");
 
         assertThat(productSerialRepository.findById(serial.getId()).orElseThrow().getStatus())
                 .isEqualTo(ProductSerialStatus.DEFECTIVE);
+        assertThat(warrantyRegistrationRepository.findById(warranty.id())).isPresent();
     }
 
     @Test
-    void deletingWarrantyKeepsReturnedSerialStatus() {
+    void dealerCannotDeleteActivatedWarrantyEvenWhenSerialIsReturned() {
         Dealer dealer = dealerRepository.save(createDealer("warranty-delete-returned@example.com"));
         Product product = productRepository.save(createProduct("SKU-WARRANTY-DELETE-RETURNED", BigDecimal.valueOf(100_000)));
         Order order = orderRepository.save(createOrder(dealer, product, 1, "SERIAL-ORDER-DELETE-RETURNED"));
@@ -766,10 +771,63 @@ class DealerSerialWarrantyGuardTests {
         warrantySerial.setStatus(ProductSerialStatus.RETURNED);
         productSerialRepository.save(warrantySerial);
 
-        dealerPortalService.deleteWarranty(dealer.getUsername(), warranty.id());
+        assertThatThrownBy(() -> dealerPortalService.deleteWarranty(dealer.getUsername(), warranty.id()))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("cannot be deleted directly");
 
         assertThat(productSerialRepository.findById(serial.getId()).orElseThrow().getStatus())
                 .isEqualTo(ProductSerialStatus.RETURNED);
+        assertThat(warrantyRegistrationRepository.findById(warranty.id())).isPresent();
+    }
+
+    @Test
+    void dealerCannotRebindActivatedWarrantyToAnotherSerial() {
+        Dealer dealer = dealerRepository.save(createDealer("warranty-update-guard@example.com"));
+        Product product = productRepository.save(createProduct("SKU-WARRANTY-UPDATE", BigDecimal.valueOf(100_000)));
+        Order order = orderRepository.save(createOrder(dealer, product, 2, "SERIAL-ORDER-UPDATE"));
+        ProductSerial firstSerial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "SERIAL-WARRANTY-UPDATE-1",
+                ProductSerialStatus.ASSIGNED
+        ));
+        ProductSerial secondSerial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "SERIAL-WARRANTY-UPDATE-2",
+                ProductSerialStatus.ASSIGNED
+        ));
+        var warranty = dealerPortalService.activateWarranty(
+                dealer.getUsername(),
+                new CreateWarrantyRegistrationRequest(
+                        firstSerial.getId(),
+                        "Customer Update",
+                        "update@example.com",
+                        "0912345608",
+                        "508 Warranty Street",
+                        LocalDate.now()
+                )
+        );
+
+        assertThatThrownBy(() -> dealerPortalService.updateWarranty(
+                dealer.getUsername(),
+                warranty.id(),
+                new CreateWarrantyRegistrationRequest(
+                        secondSerial.getId(),
+                        "Customer Updated",
+                        "updated@example.com",
+                        "0912345609",
+                        "509 Warranty Street",
+                        LocalDate.now()
+                )
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("cannot be updated directly");
+
+        assertThat(productSerialRepository.findById(firstSerial.getId()).orElseThrow().getWarranty()).isNotNull();
+        assertThat(productSerialRepository.findById(secondSerial.getId()).orElseThrow().getWarranty()).isNull();
     }
 
     private Dealer createDealer(String username) {

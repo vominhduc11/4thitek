@@ -26,6 +26,7 @@ import com.devwonder.backend.repository.PaymentRepository;
 import com.devwonder.backend.repository.UnmatchedPaymentRepository;
 import com.devwonder.backend.service.support.AppMessageSupport;
 import com.devwonder.backend.service.support.OrderCodeSupport;
+import com.devwonder.backend.service.support.OrderFinancialSnapshotService;
 import com.devwonder.backend.service.support.OrderPricingSupport;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -65,6 +66,7 @@ public class SepayService {
     private final AdminSettingsService adminSettingsService;
     private final UnmatchedPaymentRepository unmatchedPaymentRepository;
     private final AdminRepository adminRepository;
+    private final OrderFinancialSnapshotService orderFinancialSnapshotService;
 
     @Transactional(readOnly = true)
     public DealerBankTransferInstructionResponse getBankTransferInstructions() {
@@ -157,6 +159,7 @@ public class SepayService {
         }
         var activeDiscountRules = bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
         int vatPercent = adminSettingsService.getVatPercent();
+        orderFinancialSnapshotService.ensureSnapshot(order, activeDiscountRules, vatPercent);
         BigDecimal totalAmount = OrderPricingSupport.computeTotalAmount(order, activeDiscountRules, vatPercent);
         BigDecimal outstandingAmount = remainingOutstandingAmount(order, totalAmount);
         log.info(

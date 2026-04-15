@@ -74,7 +74,7 @@ public final class AdminResponseMapper {
         List<AdminOrderItemResponse> orderItems = order.getOrderItems() == null
                 ? List.of()
                 : order.getOrderItems().stream()
-                        .filter(item -> item != null && item.getProduct() != null)
+                        .filter(Objects::nonNull)
                         .map(AdminResponseMapper::toOrderItemResponse)
                         .toList();
         return new AdminOrderResponse(
@@ -102,10 +102,18 @@ public final class AdminResponseMapper {
 
     private static AdminOrderItemResponse toOrderItemResponse(OrderItem item) {
         Product product = item.getProduct();
+        String productSku = DealerRequestSupport.defaultIfBlank(
+                item.getProductSkuSnapshot(),
+                product == null ? null : product.getSku()
+        );
+        String productName = DealerRequestSupport.defaultIfBlank(
+                item.getProductNameSnapshot(),
+                product == null ? null : product.getName()
+        );
         return new AdminOrderItemResponse(
-                product.getId(),
-                product.getSku(),
-                product.getName(),
+                product == null ? null : product.getId(),
+                productSku,
+                productName,
                 item.getQuantity(),
                 item.getUnitPrice()
         );

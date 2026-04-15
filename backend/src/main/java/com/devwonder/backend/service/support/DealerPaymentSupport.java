@@ -35,6 +35,7 @@ public class DealerPaymentSupport {
     private final OrderRepository orderRepository;
     private final DealerOrderNotificationSupport dealerOrderNotificationSupport;
     private final AdminSettingsService adminSettingsService;
+    private final OrderFinancialSnapshotService orderFinancialSnapshotService;
 
     public List<DealerPaymentResponse> getPayments(Long orderId) {
         return paymentRepository.findByOrderIdOrderByPaidAtDescIdDesc(orderId).stream()
@@ -66,6 +67,8 @@ public class DealerPaymentSupport {
             boolean allowManualBankTransfer,
             List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules
     ) {
+        int vatPercent = adminSettingsService.getVatPercent();
+        orderFinancialSnapshotService.ensureSnapshot(order, activeDiscountRules, vatPercent);
         if (!allowManualBankTransfer && isSepayEnabled()) {
             throw new BadRequestException("Bank transfer payments are confirmed by SePay webhook");
         }
@@ -77,7 +80,7 @@ public class DealerPaymentSupport {
         if (amount.compareTo(ONE_VND) < 0) {
             throw new BadRequestException("Payment amount must round to at least 1 VND");
         }
-        BigDecimal outstandingAmount = computeOutstandingAmount(order, activeDiscountRules);
+        BigDecimal outstandingAmount = computeOutstandingAmount(order, activeDiscountRules, vatPercent);
         if (outstandingAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BadRequestException("Order is already fully paid");
         }
@@ -124,7 +127,7 @@ public class DealerPaymentSupport {
 
         Payment savedPayment = paymentRepository.save(payment);
         order.setPaidAmount(DealerOrderSupport.zeroIfNull(order.getPaidAmount()).add(amount));
-        order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules, adminSettingsService.getVatPercent()));
+        order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules, vatPercent));
         orderRepository.save(order);
         if (dealer != null) {
             dealerOrderNotificationSupport.notifyPaymentRecorded(dealer, order, amount);
@@ -134,9 +137,10 @@ public class DealerPaymentSupport {
 
     private BigDecimal computeOutstandingAmount(
             Order order,
-            List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules
+            List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules,
+            int vatPercent
     ) {
-        return OrderFinancialSupport.paymentDueAmount(order, activeDiscountRules, adminSettingsService.getVatPercent());
+        return OrderFinancialSupport.paymentDueAmount(order, activeDiscountRules, vatPercent);
     }
 
     private boolean isSepayEnabled() {

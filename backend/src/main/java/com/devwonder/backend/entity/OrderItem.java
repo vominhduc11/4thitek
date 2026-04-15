@@ -31,6 +31,12 @@ public class OrderItem {
     @Column(name = "unit_price")
     private BigDecimal unitPrice;
 
+    @Column(name = "product_name_snapshot")
+    private String productNameSnapshot;
+
+    @Column(name = "product_sku_snapshot")
+    private String productSkuSnapshot;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_product")
     private Product product;

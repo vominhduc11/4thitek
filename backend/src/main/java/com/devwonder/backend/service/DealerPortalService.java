@@ -46,6 +46,7 @@ import com.devwonder.backend.service.support.DealerOrderWorkflowSupport;
 import com.devwonder.backend.service.support.DealerSerialSupport;
 import com.devwonder.backend.service.support.DealerWarrantySupport;
 import com.devwonder.backend.service.support.BulkDiscountTierSupport;
+import com.devwonder.backend.service.support.OrderFinancialSnapshotService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
@@ -70,6 +71,7 @@ public class DealerPortalService {
     private final DealerWarrantySupport dealerWarrantySupport;
     private final DealerNotificationSupport dealerNotificationSupport;
     private final DealerOrderWorkflowSupport dealerOrderWorkflowSupport;
+    private final OrderFinancialSnapshotService orderFinancialSnapshotService;
     private final PushTokenRegistrationService pushTokenRegistrationService;
     private final IdempotencyStore idempotencyStore;
     private final AdminSettingsService adminSettingsService;
@@ -109,32 +111,35 @@ public class DealerPortalService {
         );
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<DealerOrderResponse> getOrders(String username) {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
         var activeDiscountRules = bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
-        return orderRepository.findVisibleByDealerIdOrderByCreatedAtDesc(dealer.getId()).stream()
+        List<Order> orders = orderRepository.findVisibleByDealerIdOrderByCreatedAtDesc(dealer.getId());
+        orderFinancialSnapshotService.ensureSnapshots(orders, activeDiscountRules, activeVatPercent());
+        return orders.stream()
                 .map(order -> DealerPortalResponseMapper.toOrderResponse(order, activeDiscountRules, activeVatPercent()))
                 .toList();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public Page<DealerOrderResponse> getOrders(String username, Pageable pageable) {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
         var activeDiscountRules = bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
-        return orderRepository.findVisibleByDealerId(dealer.getId(), pageable)
+        Page<Order> orders = orderRepository.findVisibleByDealerId(dealer.getId(), pageable);
+        orderFinancialSnapshotService.ensureSnapshots(orders.getContent(), activeDiscountRules, activeVatPercent());
+        return orders
                 .map(order -> DealerPortalResponseMapper.toOrderResponse(order, activeDiscountRules, activeVatPercent()));
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public DealerOrderResponse getOrder(String username, Long orderId) {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
         Order order = dealerPortalLookupSupport.requireDealerOrder(dealer.getId(), orderId);
-        return DealerPortalResponseMapper.toOrderResponse(
-                order,
-                bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE),
-                activeVatPercent()
-        );
+        List<BulkDiscount> activeDiscountRules = bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
+        int vatPercent = activeVatPercent();
+        orderFinancialSnapshotService.ensureSnapshot(order, activeDiscountRules, vatPercent);
+        return DealerPortalResponseMapper.toOrderResponse(order, activeDiscountRules, vatPercent);
     }
 
     @Transactional
@@ -149,7 +154,10 @@ public class DealerPortalService {
         if (cachedOrderId.isPresent()) {
             Order cachedOrder = orderRepository.findById(cachedOrderId.get()).orElse(null);
             if (cachedOrder != null) {
-                return DealerPortalResponseMapper.toOrderResponse(cachedOrder, activeDiscountRules(), activeVatPercent());
+                List<BulkDiscount> activeDiscountRules = activeDiscountRules();
+                int vatPercent = activeVatPercent();
+                orderFinancialSnapshotService.ensureSnapshot(cachedOrder, activeDiscountRules, vatPercent);
+                return DealerPortalResponseMapper.toOrderResponse(cachedOrder, activeDiscountRules, vatPercent);
             }
             // If order was somehow deleted, fall through to create a new one
         }

@@ -1,17 +1,26 @@
 package com.devwonder.backend;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.devwonder.backend.dto.admin.UpdateAdminSettingsRequest;
+import com.devwonder.backend.dto.dealer.CreateDealerOrderItemRequest;
+import com.devwonder.backend.dto.dealer.CreateDealerOrderRequest;
 import com.devwonder.backend.dto.dealer.UpsertDealerCartItemRequest;
+import com.devwonder.backend.entity.BulkDiscount;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.ProductSerial;
 import com.devwonder.backend.entity.enums.CustomerStatus;
+import com.devwonder.backend.entity.enums.DiscountRuleStatus;
+import com.devwonder.backend.entity.enums.PaymentMethod;
 import com.devwonder.backend.entity.enums.ProductSerialStatus;
 import com.devwonder.backend.exception.BadRequestException;
+import com.devwonder.backend.repository.BulkDiscountRepository;
 import com.devwonder.backend.repository.DealerCartItemRepository;
 import com.devwonder.backend.repository.DealerRepository;
+import com.devwonder.backend.repository.NotifyRepository;
+import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.ProductOfCartRepository;
 import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
@@ -20,6 +29,7 @@ import com.devwonder.backend.service.DealerPortalService;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,11 +63,23 @@ class DealerCartValidationContractTests {
     @Autowired
     private ProductOfCartRepository productOfCartRepository;
 
+    @Autowired
+    private BulkDiscountRepository bulkDiscountRepository;
+
+    @Autowired
+    private OrderRepository orderRepository;
+
+    @Autowired
+    private NotifyRepository notifyRepository;
+
     @BeforeEach
     void setUp() {
         dealerCartItemRepository.deleteAll();
         productOfCartRepository.deleteAll();
+        notifyRepository.deleteAll();
         productSerialRepository.deleteAll();
+        orderRepository.deleteAll();
+        bulkDiscountRepository.deleteAll();
         productRepository.deleteAll();
         dealerRepository.deleteAll();
     }
@@ -131,6 +153,54 @@ class DealerCartValidationContractTests {
         org.assertj.core.api.Assertions.assertThat(summary.totalAmount()).isEqualByComparingTo("162000.00");
     }
 
+    @Test
+    void cartSummaryAndOrderCreationUseSameLivePricingLogic() {
+        adminSettingsService.updateSettings(new UpdateAdminSettingsRequest(
+                null,
+                null,
+                null,
+                null,
+                10,
+                null,
+                null,
+                null
+        ));
+        bulkDiscountRepository.save(createBulkDiscount(2, null, BigDecimal.valueOf(10)));
+        Dealer dealer = dealerRepository.save(createDealer("dealer-cart-consistency@example.com"));
+        Product product = saveProductWithSerials("SKU-CART-CONSISTENCY", 3, 3);
+
+        dealerPortalService.upsertCartItem(
+                dealer.getUsername(),
+                new UpsertDealerCartItemRequest(product.getId(), 2, null)
+        );
+
+        var cartItems = dealerPortalService.getCart(dealer.getUsername());
+        var summary = dealerPortalService.getCartPricingSummary(dealer.getUsername());
+        var createdOrder = dealerPortalService.createOrder(
+                dealer.getUsername(),
+                new CreateDealerOrderRequest(
+                        PaymentMethod.BANK_TRANSFER,
+                        "Dealer receiver",
+                        "123 Cart Consistency Street",
+                        "0900000000",
+                        0,
+                        "Cart consistency order",
+                        List.of(new CreateDealerOrderItemRequest(product.getId(), 2, product.getRetailPrice()))
+                ),
+                UUID.randomUUID().toString()
+        );
+
+        assertThat(cartItems).hasSize(1);
+        assertThat(cartItems.get(0).retailPrice()).isEqualByComparingTo(product.getRetailPrice());
+        assertThat(cartItems.get(0).priceSnapshot()).isEqualByComparingTo(product.getRetailPrice());
+        assertThat(summary.subtotal()).isEqualByComparingTo(createdOrder.subtotal());
+        assertThat(summary.discountPercent()).isEqualTo(createdOrder.discountPercent());
+        assertThat(summary.discountAmount()).isEqualByComparingTo(createdOrder.discountAmount());
+        assertThat(summary.vatPercent()).isEqualTo(createdOrder.vatPercent());
+        assertThat(summary.vatAmount()).isEqualByComparingTo(createdOrder.vatAmount());
+        assertThat(summary.totalAmount()).isEqualByComparingTo(createdOrder.totalAmount());
+    }
+
     private Dealer createDealer(String username) {
         Dealer dealer = new Dealer();
         dealer.setUsername(username);
@@ -170,5 +240,14 @@ class DealerCartValidationContractTests {
             serials.add(serial);
         }
         return serials;
+    }
+
+    private BulkDiscount createBulkDiscount(int fromQuantity, Integer toQuantity, BigDecimal percent) {
+        BulkDiscount discount = new BulkDiscount();
+        discount.setFromQuantity(fromQuantity);
+        discount.setToQuantity(toQuantity);
+        discount.setDiscountPercent(percent);
+        discount.setStatus(DiscountRuleStatus.ACTIVE);
+        return discount;
     }
 }

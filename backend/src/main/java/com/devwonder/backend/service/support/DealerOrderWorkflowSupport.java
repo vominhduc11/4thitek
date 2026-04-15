@@ -41,6 +41,7 @@ public class DealerOrderWorkflowSupport {
     private final DealerOrderNotificationSupport dealerOrderNotificationSupport;
     private final WebSocketEventPublisher webSocketEventPublisher;
     private final FinancialSettlementRepository financialSettlementRepository;
+    private final OrderFinancialSnapshotService orderFinancialSnapshotService;
 
     /**
      * Creates a dealer order and persists the idempotency key on the order record.
@@ -92,9 +93,15 @@ public class DealerOrderWorkflowSupport {
             item.setProduct(product);
             item.setQuantity(itemRequest.quantity());
             item.setUnitPrice(DealerOrderSupport.resolveUnitPrice(product));
+            item.setProductNameSnapshot(product.getName());
+            item.setProductSkuSnapshot(product.getSku());
             items.add(item);
         }
         order.setOrderItems(items);
+        OrderPricingSupport.applyPricingSnapshot(
+                order,
+                OrderPricingSupport.computePricingWithoutSnapshot(order, activeDiscountRules, vatPercent)
+        );
         order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules, vatPercent));
 
         Order saved = orderRepository.save(order);
@@ -128,6 +135,7 @@ public class DealerOrderWorkflowSupport {
             productSerialOrderSupport.releaseNonWarrantySerials(order);
             orderInventorySupport.restoreStock(order);
         }
+        orderFinancialSnapshotService.ensureSnapshot(order, activeDiscountRules, vatPercent);
         BigDecimal paidAmount = DealerOrderSupport.zeroIfNull(order.getPaidAmount());
         if (request.status() == OrderStatus.CANCELLED && paidAmount.compareTo(BigDecimal.ZERO) <= 0) {
             order.setPaymentStatus(PaymentStatus.CANCELLED);

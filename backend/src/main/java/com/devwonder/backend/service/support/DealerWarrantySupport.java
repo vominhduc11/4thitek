@@ -3,6 +3,8 @@ package com.devwonder.backend.service.support;
 import com.devwonder.backend.dto.warranty.CreateWarrantyRegistrationRequest;
 import com.devwonder.backend.dto.warranty.WarrantyRegistrationResponse;
 import com.devwonder.backend.entity.WarrantyRegistration;
+import com.devwonder.backend.entity.enums.WarrantyStatus;
+import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
 import com.devwonder.backend.service.DealerWarrantyManagementService;
@@ -50,14 +52,28 @@ public class DealerWarrantySupport {
     }
 
     public WarrantyRegistrationResponse updateWarranty(Long dealerId, Long id, CreateWarrantyRegistrationRequest request) {
-        warrantyRegistrationRepository.findByIdAndDealerId(id, dealerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Warranty registration not found"));
+        WarrantyRegistration registration = requireDealerWarranty(dealerId, id);
+        assertDealerCanMutateWarranty(registration, "update");
         return dealerWarrantyManagementService.update(id, dealerId, request);
     }
 
     public void deleteWarranty(Long dealerId, Long id) {
-        warrantyRegistrationRepository.findByIdAndDealerId(id, dealerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Warranty registration not found"));
+        WarrantyRegistration registration = requireDealerWarranty(dealerId, id);
+        assertDealerCanMutateWarranty(registration, "delete");
         dealerWarrantyManagementService.delete(id);
+    }
+
+    private WarrantyRegistration requireDealerWarranty(Long dealerId, Long id) {
+        return warrantyRegistrationRepository.findByIdAndDealerId(id, dealerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Warranty registration not found"));
+    }
+
+    private void assertDealerCanMutateWarranty(WarrantyRegistration registration, String action) {
+        WarrantyStatus effectiveStatus = WarrantyStatusSupport.resolveEffectiveStatus(registration);
+        if (effectiveStatus == WarrantyStatus.ACTIVE) {
+            throw new BadRequestException(
+                    "Activated warranty records cannot be " + action + "d directly. Please request an admin correction."
+            );
+        }
     }
 }

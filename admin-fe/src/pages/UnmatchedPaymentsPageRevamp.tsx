@@ -1,8 +1,10 @@
 ﻿import { CircleDollarSign, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  fetchAdminOrderById,
   fetchAdminUnmatchedPayments,
   resolveAdminUnmatchedPayment,
+  type BackendOrderResponse,
   type BackendUnmatchedPaymentReason,
   type BackendUnmatchedPaymentResponse,
   type BackendUnmatchedPaymentStatus,
@@ -88,6 +90,13 @@ const copyByLanguage = {
     receivedAt: "Nhận lúc",
     orderHint: "Đơn gợi ý",
     matchedOrder: "Đơn đã khớp",
+    matchedOrderIdInput: "Mã đơn để ghép",
+    allocationAmount: "Số tiền ghép",
+    allocationHint: "Để trống để ghép toàn bộ số tiền giao dịch.",
+    targetOrder: "Đơn mục tiêu",
+    orderTotal: "Tổng đơn",
+    orderPaid: "Đã thanh toán",
+    orderOutstanding: "Còn phải thu",
     resolvedBy: "Xử lý bởi",
     resolvedAt: "Xử lý lúc",
     resolution: "Ghi chú xử lý",
@@ -102,6 +111,9 @@ const copyByLanguage = {
     loadFallback: "Danh sách giao dịch chưa thể tải.",
     saveError: "Không lưu được thay đổi.",
     saveSuccess: "Đã cập nhật trạng thái giao dịch.",
+    loadOrderFailed: "Không tải được thông tin đơn hàng.",
+    matchOrderRequired: "Vui lòng nhập mã đơn cần ghép khi chọn trạng thái Đã khớp.",
+    invalidOrderId: "Mã đơn không hợp lệ.",
     noSelectionTitle: "Chưa chọn giao dịch nào",
     noSelectionMessage: "Hãy chọn một case ở danh sách bên trái để xem chi tiết và xử lý.",
     summaryOpen: "Case đang mở",
@@ -141,6 +153,13 @@ const copyByLanguage = {
     receivedAt: "Received at",
     orderHint: "Suggested order",
     matchedOrder: "Matched order",
+    matchedOrderIdInput: "Match to order ID",
+    allocationAmount: "Allocation amount",
+    allocationHint: "Leave empty to allocate the full unmatched amount.",
+    targetOrder: "Target order",
+    orderTotal: "Order total",
+    orderPaid: "Paid",
+    orderOutstanding: "Outstanding",
     resolvedBy: "Resolved by",
     resolvedAt: "Resolved at",
     resolution: "Resolution note",
@@ -155,6 +174,9 @@ const copyByLanguage = {
     loadFallback: "The unmatched payment list could not be loaded.",
     saveError: "Could not save changes.",
     saveSuccess: "Payment status updated.",
+    loadOrderFailed: "Could not load target order details.",
+    matchOrderRequired: "Please provide a target order id when status is Matched.",
+    invalidOrderId: "Invalid order id.",
     noSelectionTitle: "No payment selected",
     noSelectionMessage: "Choose a case from the list to inspect details and resolve it.",
     summaryOpen: "Open cases",
@@ -184,11 +206,17 @@ function UnmatchedPaymentsPageRevamp() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [statusDraft, setStatusDraft] = useState<BackendUnmatchedPaymentStatus>("MATCHED");
   const [resolutionDraft, setResolutionDraft] = useState("");
+  const [matchedOrderIdDraft, setMatchedOrderIdDraft] = useState("");
+  const [allocationAmountDraft, setAllocationAmountDraft] = useState("");
+  const [matchedOrderPreview, setMatchedOrderPreview] = useState<BackendOrderResponse | null>(null);
+  const [isOrderPreviewLoading, setIsOrderPreviewLoading] = useState(false);
+  const [matchedOrderPreviewError, setMatchedOrderPreviewError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const requestIdRef = useRef(0);
+  const orderPreviewRequestIdRef = useRef(0);
 
   const statusLabels: Record<BackendUnmatchedPaymentStatus, string> = {
     PENDING: copy.statusPending,
@@ -249,6 +277,38 @@ function UnmatchedPaymentsPageRevamp() {
     [accessToken, copy.loadFallback],
   );
 
+  const loadMatchedOrderPreview = useCallback(
+    async (orderId: number) => {
+      if (!accessToken || !Number.isInteger(orderId) || orderId <= 0) {
+        setMatchedOrderPreview(null);
+        setMatchedOrderPreviewError(null);
+        return;
+      }
+
+      const requestId = ++orderPreviewRequestIdRef.current;
+      setIsOrderPreviewLoading(true);
+      setMatchedOrderPreviewError(null);
+      try {
+        const order = await fetchAdminOrderById(accessToken, orderId);
+        if (orderPreviewRequestIdRef.current !== requestId) {
+          return;
+        }
+        setMatchedOrderPreview(order);
+      } catch (_) {
+        if (orderPreviewRequestIdRef.current !== requestId) {
+          return;
+        }
+        setMatchedOrderPreview(null);
+        setMatchedOrderPreviewError(copy.loadOrderFailed);
+      } finally {
+        if (orderPreviewRequestIdRef.current === requestId) {
+          setIsOrderPreviewLoading(false);
+        }
+      }
+    },
+    [accessToken, copy.loadOrderFailed],
+  );
+
   useEffect(() => {
     void loadPage(0, statusFilter, reasonFilter);
   }, [loadPage, reasonFilter, statusFilter]);
@@ -268,12 +328,44 @@ function UnmatchedPaymentsPageRevamp() {
     if (!selectedItem) {
       setStatusDraft("MATCHED");
       setResolutionDraft("");
+      setMatchedOrderIdDraft("");
+      setAllocationAmountDraft("");
+      setMatchedOrderPreview(null);
+      setMatchedOrderPreviewError(null);
       return;
     }
 
     setStatusDraft(selectedItem.status === "PENDING" ? "MATCHED" : selectedItem.status ?? "MATCHED");
     setResolutionDraft(selectedItem.resolution ?? "");
+    setMatchedOrderIdDraft(selectedItem.matchedOrderId ? String(selectedItem.matchedOrderId) : "");
+    setAllocationAmountDraft("");
   }, [selectedItem]);
+
+  useEffect(() => {
+    if (statusDraft !== "MATCHED") {
+      setMatchedOrderPreview(null);
+      setMatchedOrderPreviewError(null);
+      setIsOrderPreviewLoading(false);
+      return;
+    }
+
+    const normalized = matchedOrderIdDraft.trim();
+    if (!normalized) {
+      setMatchedOrderPreview(null);
+      setMatchedOrderPreviewError(null);
+      return;
+    }
+
+    const parsedOrderId = Number(normalized);
+    if (!Number.isInteger(parsedOrderId) || parsedOrderId <= 0) {
+      setMatchedOrderPreview(null);
+      setMatchedOrderPreviewError(copy.invalidOrderId);
+      setIsOrderPreviewLoading(false);
+      return;
+    }
+
+    void loadMatchedOrderPreview(parsedOrderId);
+  }, [statusDraft, matchedOrderIdDraft, loadMatchedOrderPreview, copy.invalidOrderId]);
 
   const pendingCount = useMemo(
     () => items.filter((item) => item.status === "PENDING").length,
@@ -287,6 +379,31 @@ function UnmatchedPaymentsPageRevamp() {
       return;
     }
 
+    const normalizedMatchedOrderId = matchedOrderIdDraft.trim();
+    const parsedMatchedOrderId =
+      statusDraft === "MATCHED" ? Number(normalizedMatchedOrderId) : undefined;
+    if (statusDraft === "MATCHED") {
+      if (!normalizedMatchedOrderId) {
+        setSaveError(copy.matchOrderRequired);
+        return;
+      }
+      if (!Number.isInteger(parsedMatchedOrderId) || (parsedMatchedOrderId ?? 0) <= 0) {
+        setSaveError(copy.invalidOrderId);
+        return;
+      }
+    }
+    const normalizedAllocation = allocationAmountDraft.trim();
+    const parsedAllocationAmount =
+      statusDraft === "MATCHED" && normalizedAllocation
+        ? Number(normalizedAllocation)
+        : undefined;
+    if (statusDraft === "MATCHED" && normalizedAllocation) {
+      if (!Number.isFinite(parsedAllocationAmount) || (parsedAllocationAmount ?? 0) <= 0) {
+        setSaveError(copy.allocationAmount);
+        return;
+      }
+    }
+
     setSaveError(null);
     setIsSaving(true);
 
@@ -294,6 +411,8 @@ function UnmatchedPaymentsPageRevamp() {
       const updated = await resolveAdminUnmatchedPayment(accessToken, selectedItem.id, {
         status: statusDraft,
         resolution: resolutionDraft.trim() || undefined,
+        matchedOrderId: statusDraft === "MATCHED" ? parsedMatchedOrderId : undefined,
+        allocationAmount: statusDraft === "MATCHED" ? parsedAllocationAmount : undefined,
       });
       setItems((current) => current.map((item) => (item.id === updated.id ? updated : item)));
       setSelectedId(updated.id);
@@ -521,6 +640,90 @@ function UnmatchedPaymentsPageRevamp() {
                         ))}
                       </select>
                     </div>
+                    {statusDraft === "MATCHED" ? (
+                      <>
+                        <div>
+                          <label
+                            htmlFor="unmatched-order-id"
+                            className="mb-1 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]"
+                          >
+                            {copy.matchedOrderIdInput}
+                          </label>
+                          <input
+                            id="unmatched-order-id"
+                            className={inputClass}
+                            inputMode="numeric"
+                            placeholder="12345"
+                            value={matchedOrderIdDraft}
+                            onChange={(event) => {
+                              setSaveError(null);
+                              setMatchedOrderIdDraft(event.target.value);
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label
+                            htmlFor="unmatched-allocation-amount"
+                            className="mb-1 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]"
+                          >
+                            {copy.allocationAmount}
+                          </label>
+                          <input
+                            id="unmatched-allocation-amount"
+                            className={inputClass}
+                            inputMode="decimal"
+                            placeholder={selectedItem.amount == null ? "0" : String(Number(selectedItem.amount))}
+                            value={allocationAmountDraft}
+                            onChange={(event) => {
+                              setSaveError(null);
+                              setAllocationAmountDraft(event.target.value);
+                            }}
+                          />
+                          <p className="mt-1 text-xs text-[var(--muted)]">{copy.allocationHint}</p>
+                        </div>
+                        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/70 p-3 text-sm">
+                          <p className="font-semibold text-[var(--ink)]">{copy.targetOrder}</p>
+                          {isOrderPreviewLoading ? (
+                            <p className="mt-2 text-[var(--muted)]">...</p>
+                          ) : matchedOrderPreview ? (
+                            <dl className="mt-2 space-y-1 text-xs text-[var(--muted)]">
+                              <div className="flex items-center justify-between gap-2">
+                                <dt>{copy.matchedOrder}</dt>
+                                <dd className="font-medium text-[var(--ink)]">{matchedOrderPreview.orderCode ?? `#${matchedOrderPreview.id}`}</dd>
+                              </div>
+                              <div className="flex items-center justify-between gap-2">
+                                <dt>{copy.orderTotal}</dt>
+                                <dd className="font-medium text-[var(--ink)]">
+                                  {matchedOrderPreview.totalAmount != null
+                                    ? formatCurrency(Number(matchedOrderPreview.totalAmount))
+                                    : copy.missing}
+                                </dd>
+                              </div>
+                              <div className="flex items-center justify-between gap-2">
+                                <dt>{copy.orderPaid}</dt>
+                                <dd className="font-medium text-[var(--ink)]">
+                                  {matchedOrderPreview.paidAmount != null
+                                    ? formatCurrency(Number(matchedOrderPreview.paidAmount))
+                                    : copy.missing}
+                                </dd>
+                              </div>
+                              <div className="flex items-center justify-between gap-2">
+                                <dt>{copy.orderOutstanding}</dt>
+                                <dd className="font-medium text-[var(--ink)]">
+                                  {matchedOrderPreview.outstandingAmount != null
+                                    ? formatCurrency(Number(matchedOrderPreview.outstandingAmount))
+                                    : copy.missing}
+                                </dd>
+                              </div>
+                            </dl>
+                          ) : (
+                            <p className="mt-2 text-xs text-[var(--muted)]">
+                              {matchedOrderPreviewError ?? copy.missing}
+                            </p>
+                          )}
+                        </div>
+                      </>
+                    ) : null}
                     <div>
                       <label htmlFor="unmatched-resolution" className="mb-1 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
                         {copy.resolutionNote}

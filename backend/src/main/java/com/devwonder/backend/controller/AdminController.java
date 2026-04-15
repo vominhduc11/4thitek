@@ -175,6 +175,11 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success(PagedResponse.from(result, "createdAt")));
     }
 
+    @GetMapping("/orders/{id}")
+    public ResponseEntity<ApiResponse<AdminOrderResponse>> orderDetail(@PathVariable("id") Long id) {
+        return ResponseEntity.ok(ApiResponse.success(adminManagementService.getOrder(id)));
+    }
+
     @GetMapping("/orders/summary")
     public ResponseEntity<ApiResponse<AdminOrderSummaryResponse>> orderSummary() {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.getOrderSummary()));

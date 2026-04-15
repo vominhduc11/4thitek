@@ -7,6 +7,7 @@ import com.devwonder.backend.dto.dealer.UpdateDealerOrderStatusRequest;
 import com.devwonder.backend.dto.dealer.CreateDealerOrderItemRequest;
 import com.devwonder.backend.dto.dealer.CreateDealerOrderRequest;
 import com.devwonder.backend.dto.dealer.RecordPaymentRequest;
+import com.devwonder.backend.dto.admin.UpdateAdminSettingsRequest;
 import com.devwonder.backend.entity.Admin;
 import com.devwonder.backend.entity.BulkDiscount;
 import com.devwonder.backend.entity.Dealer;
@@ -34,6 +35,7 @@ import com.devwonder.backend.repository.PaymentRepository;
 import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.service.AdminManagementService;
+import com.devwonder.backend.service.AdminSettingsService;
 import com.devwonder.backend.service.DealerPortalService;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -90,6 +92,9 @@ class OrderWorkflowLogicTests {
     @Autowired
     private PaymentRepository paymentRepository;
 
+    @Autowired
+    private AdminSettingsService adminSettingsService;
+
     @BeforeEach
     void setUp() {
         notifyRepository.deleteAll();
@@ -102,6 +107,16 @@ class OrderWorkflowLogicTests {
         productRepository.deleteAll();
         adminRepository.deleteAll();
         dealerRepository.deleteAll();
+        adminSettingsService.updateSettings(new UpdateAdminSettingsRequest(
+                null,
+                null,
+                null,
+                null,
+                10,
+                null,
+                null,
+                null
+        ));
     }
 
     @Test
@@ -324,6 +339,175 @@ class OrderWorkflowLogicTests {
 
         assertThat(response.discountPercent()).isEqualTo(15);
         assertThat(response.discountAmount()).isEqualByComparingTo("45000");
+    }
+
+    @Test
+    void existingOrderFinancialSnapshotRemainsStableAfterDiscountAndVatChanges() {
+        Dealer dealer = dealerRepository.save(createDealer("snapshot-stability@example.com"));
+        Product product = saveProduct("SKU-SNAPSHOT-1", BigDecimal.valueOf(100_000));
+        bulkDiscountRepository.save(createBulkDiscount(10, null, BigDecimal.valueOf(5)));
+
+        var createdOrder = dealerPortalService.createOrder(
+                dealer.getUsername(),
+                new CreateDealerOrderRequest(
+                        PaymentMethod.BANK_TRANSFER,
+                        "Dealer receiver",
+                        "123 Snapshot Street",
+                        "0900000000",
+                        0,
+                        "Snapshot stability check",
+                        List.of(new CreateDealerOrderItemRequest(product.getId(), 10, product.getRetailPrice()))
+                ),
+                UUID.randomUUID().toString()
+        );
+
+        Order persistedBeforeChange = orderRepository.findById(createdOrder.id()).orElseThrow();
+        BigDecimal baselineSubtotal = persistedBeforeChange.getSubtotalAmount();
+        Integer baselineDiscountPercent = persistedBeforeChange.getDiscountPercent();
+        BigDecimal baselineDiscountAmount = persistedBeforeChange.getDiscountAmount();
+        Integer baselineVatPercent = persistedBeforeChange.getVatPercent();
+        BigDecimal baselineVatAmount = persistedBeforeChange.getVatAmount();
+        BigDecimal baselineTotalAmount = persistedBeforeChange.getTotalAmount();
+        assertThat(baselineSubtotal).isNotNull();
+        assertThat(baselineDiscountPercent).isNotNull();
+        assertThat(baselineDiscountAmount).isNotNull();
+        assertThat(baselineVatPercent).isNotNull();
+        assertThat(baselineVatAmount).isNotNull();
+        assertThat(baselineTotalAmount).isNotNull();
+
+        bulkDiscountRepository.deleteAll();
+        bulkDiscountRepository.save(createBulkDiscount(10, null, BigDecimal.valueOf(10)));
+        adminSettingsService.updateSettings(new UpdateAdminSettingsRequest(
+                null,
+                null,
+                null,
+                null,
+                15,
+                null,
+                null,
+                null
+        ));
+
+        var dealerView = dealerPortalService.getOrder(dealer.getUsername(), createdOrder.id());
+        var adminView = adminManagementService.getOrder(createdOrder.id());
+        Order persistedAfterChange = orderRepository.findById(createdOrder.id()).orElseThrow();
+
+        assertThat(dealerView.subtotal()).isEqualByComparingTo(baselineSubtotal);
+        assertThat(dealerView.discountPercent()).isEqualTo(baselineDiscountPercent);
+        assertThat(dealerView.discountAmount()).isEqualByComparingTo(baselineDiscountAmount);
+        assertThat(dealerView.vatPercent()).isEqualTo(baselineVatPercent);
+        assertThat(dealerView.vatAmount()).isEqualByComparingTo(baselineVatAmount);
+        assertThat(dealerView.totalAmount()).isEqualByComparingTo(baselineTotalAmount);
+        assertThat(adminView.totalAmount()).isEqualByComparingTo(baselineTotalAmount);
+        assertThat(adminView.outstandingAmount()).isEqualByComparingTo(baselineTotalAmount);
+        assertThat(persistedAfterChange.getTotalAmount()).isEqualByComparingTo(baselineTotalAmount);
+    }
+
+    @Test
+    void paymentDueAndStatusStayConsistentWhenDiscountAndVatRulesChangeLater() {
+        Dealer dealer = dealerRepository.save(createDealer("snapshot-payment-consistency@example.com"));
+        Product product = saveProduct("SKU-SNAPSHOT-2", BigDecimal.valueOf(100_000));
+        bulkDiscountRepository.save(createBulkDiscount(10, null, BigDecimal.valueOf(5)));
+
+        var createdOrder = dealerPortalService.createOrder(
+                dealer.getUsername(),
+                new CreateDealerOrderRequest(
+                        PaymentMethod.BANK_TRANSFER,
+                        "Dealer receiver",
+                        "123 Snapshot Payment Street",
+                        "0900000000",
+                        0,
+                        "Snapshot payment consistency check",
+                        List.of(new CreateDealerOrderItemRequest(product.getId(), 10, product.getRetailPrice()))
+                ),
+                UUID.randomUUID().toString()
+        );
+        BigDecimal baselineTotal = createdOrder.totalAmount();
+
+        adminManagementService.recordOrderPayment(
+                createdOrder.id(),
+                new RecordPaymentRequest(
+                        BigDecimal.valueOf(500_000),
+                        PaymentMethod.BANK_TRANSFER,
+                        "Admin manual confirmation",
+                        "SNAPSHOT-PARTIAL-1",
+                        "Partial payment before pricing rule change",
+                        null,
+                        Instant.parse("2026-03-10T02:00:00Z")
+                )
+        );
+
+        bulkDiscountRepository.deleteAll();
+        bulkDiscountRepository.save(createBulkDiscount(10, null, BigDecimal.valueOf(10)));
+        adminSettingsService.updateSettings(new UpdateAdminSettingsRequest(
+                null,
+                null,
+                null,
+                null,
+                15,
+                null,
+                null,
+                null
+        ));
+
+        var afterConfigChange = dealerPortalService.getOrder(dealer.getUsername(), createdOrder.id());
+        BigDecimal expectedOutstanding = baselineTotal.subtract(BigDecimal.valueOf(500_000));
+        assertThat(afterConfigChange.totalAmount()).isEqualByComparingTo(baselineTotal);
+        assertThat(afterConfigChange.outstandingAmount()).isEqualByComparingTo(expectedOutstanding);
+        assertThat(afterConfigChange.paymentStatus()).isEqualTo(PaymentStatus.PENDING);
+
+        adminManagementService.recordOrderPayment(
+                createdOrder.id(),
+                new RecordPaymentRequest(
+                        expectedOutstanding,
+                        PaymentMethod.BANK_TRANSFER,
+                        "Admin manual confirmation",
+                        "SNAPSHOT-PARTIAL-2",
+                        "Settling remaining outstanding after pricing rule change",
+                        null,
+                        Instant.parse("2026-03-10T03:00:00Z")
+                )
+        );
+
+        Order settled = orderRepository.findById(createdOrder.id()).orElseThrow();
+        assertThat(settled.getPaidAmount()).isEqualByComparingTo(baselineTotal);
+        assertThat(settled.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
+    }
+
+    @Test
+    void orderItemProductIdentitySnapshotStaysStableAfterCatalogUpdate() {
+        Dealer dealer = dealerRepository.save(createDealer("item-snapshot@example.com"));
+        Product product = saveProduct("SKU-ITEM-SNAPSHOT-OLD", BigDecimal.valueOf(100_000));
+        String originalName = product.getName();
+        String originalSku = product.getSku();
+
+        var createdOrder = dealerPortalService.createOrder(
+                dealer.getUsername(),
+                new CreateDealerOrderRequest(
+                        PaymentMethod.BANK_TRANSFER,
+                        "Dealer receiver",
+                        "123 Item Snapshot Street",
+                        "0900000000",
+                        0,
+                        "Order item snapshot check",
+                        List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
+                ),
+                UUID.randomUUID().toString()
+        );
+
+        product.setName("Renamed catalog product");
+        product.setSku("SKU-ITEM-SNAPSHOT-NEW");
+        productRepository.save(product);
+
+        var dealerView = dealerPortalService.getOrder(dealer.getUsername(), createdOrder.id());
+        var adminView = adminManagementService.getOrder(createdOrder.id());
+
+        assertThat(dealerView.items()).hasSize(1);
+        assertThat(dealerView.items().get(0).productName()).isEqualTo(originalName);
+        assertThat(dealerView.items().get(0).productSku()).isEqualTo(originalSku);
+        assertThat(adminView.orderItems()).hasSize(1);
+        assertThat(adminView.orderItems().get(0).productName()).isEqualTo(originalName);
+        assertThat(adminView.orderItems().get(0).productSku()).isEqualTo(originalSku);
     }
 
     @Test

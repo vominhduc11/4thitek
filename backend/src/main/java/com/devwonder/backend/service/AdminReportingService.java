@@ -14,6 +14,7 @@ import com.devwonder.backend.repository.BulkDiscountRepository;
 import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
+import com.devwonder.backend.service.support.OrderFinancialSnapshotService;
 import com.devwonder.backend.service.support.OrderFinancialSupport;
 import com.devwonder.backend.service.support.OrderPricingSupport;
 import com.devwonder.backend.service.support.WarrantyDateSupport;
@@ -63,13 +64,14 @@ public class AdminReportingService {
     private final WarrantyRegistrationRepository warrantyRegistrationRepository;
     private final ProductSerialRepository productSerialRepository;
     private final AdminSettingsService adminSettingsService;
+    private final OrderFinancialSnapshotService orderFinancialSnapshotService;
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AdminReportExportResponse export(AdminReportExportType type, AdminReportFormat format) {
         return export(type, format, null, null);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AdminReportExportResponse export(
             AdminReportExportType type,
             AdminReportFormat format,
@@ -91,21 +93,28 @@ public class AdminReportingService {
 
     private TableReport buildReport(AdminReportExportType type, Instant from, Instant to) {
         List<BulkDiscount> activeDiscountRules = bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
+        int vatPercent = adminSettingsService.getVatPercent();
         return switch (type) {
-            case ORDERS -> buildOrdersReport(activeDiscountRules, from, to);
-            case REVENUE -> buildRevenueReport(activeDiscountRules, from, to);
+            case ORDERS -> buildOrdersReport(activeDiscountRules, vatPercent, from, to);
+            case REVENUE -> buildRevenueReport(activeDiscountRules, vatPercent, from, to);
             case WARRANTIES -> buildWarrantiesReport();
             case SERIALS -> buildSerialsReport();
         };
     }
 
-    private TableReport buildOrdersReport(List<BulkDiscount> activeDiscountRules, Instant from, Instant to) {
+    private TableReport buildOrdersReport(
+            List<BulkDiscount> activeDiscountRules,
+            int vatPercent,
+            Instant from,
+            Instant to
+    ) {
         List<Order> orders = orderRepository.findVisibleByCreatedAtDesc(org.springframework.data.domain.Pageable.unpaged())
                 .stream()
                 .filter(order -> from == null || (order.getCreatedAt() != null && !order.getCreatedAt().isBefore(from)))
                 .filter(order -> to == null || (order.getCreatedAt() != null && !order.getCreatedAt().isAfter(to)))
                 .sorted(Comparator.comparing(Order::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
                 .toList();
+        orderFinancialSnapshotService.ensureSnapshots(orders, activeDiscountRules, vatPercent);
 
         List<List<String>> rows = orders.stream()
                 .map(order -> List.of(
@@ -113,9 +122,9 @@ public class AdminReportingService {
                         dealerName(order.getDealer()),
                         safeEnum(order.getStatus()),
                         safeEnum(order.getPaymentStatus()),
-                        formatMoney(calculateTotalAmount(order, activeDiscountRules)),
+                        formatMoney(calculateTotalAmount(order, activeDiscountRules, vatPercent)),
                         formatMoney(order.getPaidAmount()),
-                        formatMoney(OrderFinancialSupport.paymentDueAmount(order, activeDiscountRules, adminSettingsService.getVatPercent())),
+                        formatMoney(OrderFinancialSupport.paymentDueAmount(order, activeDiscountRules, vatPercent)),
                         String.valueOf(order.getOrderItems() == null ? 0 : order.getOrderItems().size()),
                         formatDate(order.getCreatedAt())
                 ))
@@ -138,13 +147,20 @@ public class AdminReportingService {
         );
     }
 
-    private TableReport buildRevenueReport(List<BulkDiscount> activeDiscountRules, Instant from, Instant to) {
-        Map<String, DealerRevenueRow> summary = new LinkedHashMap<>();
-        for (Order order : orderRepository.findVisibleByCreatedAtDesc(org.springframework.data.domain.Pageable.unpaged())
+    private TableReport buildRevenueReport(
+            List<BulkDiscount> activeDiscountRules,
+            int vatPercent,
+            Instant from,
+            Instant to
+    ) {
+        List<Order> orders = orderRepository.findVisibleByCreatedAtDesc(org.springframework.data.domain.Pageable.unpaged())
                 .stream()
                 .filter(o -> from == null || (o.getCreatedAt() != null && !o.getCreatedAt().isBefore(from)))
                 .filter(o -> to == null || (o.getCreatedAt() != null && !o.getCreatedAt().isAfter(to)))
-                .toList()) {
+                .toList();
+        orderFinancialSnapshotService.ensureSnapshots(orders, activeDiscountRules, vatPercent);
+        Map<String, DealerRevenueRow> summary = new LinkedHashMap<>();
+        for (Order order : orders) {
             Dealer dealer = order.getDealer();
             String key = dealer == null ? "unassigned" : String.valueOf(dealer.getId());
             DealerRevenueRow row = summary.computeIfAbsent(key, ignored ->
@@ -156,7 +172,7 @@ public class AdminReportingService {
                             null
                     )
             );
-            row.totalAmount = row.totalAmount.add(calculateTotalAmount(order, activeDiscountRules));
+            row.totalAmount = row.totalAmount.add(calculateTotalAmount(order, activeDiscountRules, vatPercent));
             row.paidAmount = row.paidAmount.add(nullSafe(order.getPaidAmount()));
             row.orderCount += 1;
             if (order.getCreatedAt() != null && (row.lastOrderAt == null || order.getCreatedAt().isAfter(row.lastOrderAt))) {
@@ -331,8 +347,8 @@ public class AdminReportingService {
         return sanitized.length() <= 24 ? sanitized : sanitized.substring(0, 21) + "...";
     }
 
-    private BigDecimal calculateTotalAmount(Order order, List<BulkDiscount> activeDiscountRules) {
-        return OrderPricingSupport.computeTotalAmount(order, activeDiscountRules, adminSettingsService.getVatPercent())
+    private BigDecimal calculateTotalAmount(Order order, List<BulkDiscount> activeDiscountRules, int vatPercent) {
+        return OrderPricingSupport.computeTotalAmount(order, activeDiscountRules, vatPercent)
                 .setScale(2, RoundingMode.HALF_UP);
     }
 

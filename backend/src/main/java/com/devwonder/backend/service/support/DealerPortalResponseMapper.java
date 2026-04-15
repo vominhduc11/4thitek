@@ -104,6 +104,7 @@ public final class DealerPortalResponseMapper {
     public static DealerCartItemResponse toCartResponse(DealerCartItem item) {
         ProductOfCart productOfCart = item.getProductOfCart();
         Product product = productOfCart == null ? null : productOfCart.getProduct();
+        BigDecimal liveRetailPrice = product == null ? null : product.getRetailPrice();
         return new DealerCartItemResponse(
                 productOfCart == null ? null : productOfCart.getId(),
                 product == null ? null : product.getId(),
@@ -111,8 +112,8 @@ public final class DealerPortalResponseMapper {
                 product == null ? null : product.getSku(),
                 extractImage(product),
                 item.getQuantity(),
-                product == null ? null : product.getRetailPrice(),
-                productOfCart == null ? null : productOfCart.getPriceSnapshot(),
+                liveRetailPrice,
+                liveRetailPrice,
                 productOfCart == null ? null : productOfCart.getNote(),
                 item.getCreatedAt(),
                 item.getUpdatedAt()
@@ -123,10 +124,18 @@ public final class DealerPortalResponseMapper {
         Product product = item.getProduct();
         BigDecimal unitPrice = DealerOrderSupport.zeroIfNull(item.getUnitPrice());
         int quantity = item.getQuantity() == null ? 0 : item.getQuantity();
+        String productName = DealerRequestSupport.defaultIfBlank(
+                item.getProductNameSnapshot(),
+                product == null ? null : product.getName()
+        );
+        String productSku = DealerRequestSupport.defaultIfBlank(
+                item.getProductSkuSnapshot(),
+                product == null ? null : product.getSku()
+        );
         return new DealerOrderItemResponse(
                 product == null ? null : product.getId(),
-                product == null ? null : product.getName(),
-                product == null ? null : product.getSku(),
+                productName,
+                productSku,
                 quantity,
                 unitPrice,
                 unitPrice.multiply(BigDecimal.valueOf(quantity))

@@ -636,7 +636,7 @@ class CartController extends ChangeNotifier {
     final fallback = _findProductById(productId);
     final imageUrl = _normalizeString(json['image']) ?? fallback?.imageUrl;
     final price = _parsePrice(
-      json['priceSnapshot'] ?? json['retailPrice'],
+      json['retailPrice'] ?? json['priceSnapshot'],
       fallback: fallback?.price ?? 0,
     );
     final product = Product(

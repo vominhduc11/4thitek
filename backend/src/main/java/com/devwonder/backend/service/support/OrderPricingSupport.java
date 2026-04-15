@@ -81,11 +81,18 @@ public final class OrderPricingSupport {
     }
 
     public static PricingBreakdown computePricing(Order order, List<BulkDiscount> rules, int vatPercent) {
+        if (hasPricingSnapshot(order)) {
+            return snapshotBreakdown(order);
+        }
+        return computePricingWithoutSnapshot(order, rules, vatPercent);
+    }
+
+    public static PricingBreakdown computePricingWithoutSnapshot(Order order, List<BulkDiscount> rules, int vatPercent) {
         int normalizedVatPercent = normalizeVatPercent(vatPercent);
         BigDecimal subtotal = computeSubtotal(order);
         if (subtotal.compareTo(BigDecimal.ZERO) <= 0) {
             BigDecimal totalAmount = BigDecimal.valueOf(safeShippingFee(order == null ? null : order.getShippingFee()));
-            return new PricingBreakdown(BigDecimal.ZERO, 0, BigDecimal.ZERO, normalizedVatPercent, BigDecimal.ZERO, totalAmount);
+            return new PricingBreakdown(BigDecimal.ZERO, 0, BigDecimal.ZERO, normalizedVatPercent, BigDecimal.ZERO, totalAmount, null, null);
         }
 
         int totalItems = computeTotalQuantity(order);
@@ -99,7 +106,59 @@ public final class OrderPricingSupport {
         BigDecimal totalAmount = totalAfterDiscount
                 .add(vatAmount)
                 .add(BigDecimal.valueOf(safeShippingFee(order == null ? null : order.getShippingFee())));
-        return new PricingBreakdown(subtotal, effectiveDiscountPercent, discountAmount, normalizedVatPercent, vatAmount, totalAmount);
+        return new PricingBreakdown(
+                subtotal,
+                effectiveDiscountPercent,
+                discountAmount,
+                normalizedVatPercent,
+                vatAmount,
+                totalAmount,
+                matchedRule == null ? null : matchedRule.getId(),
+                matchedRule == null ? null : BulkDiscountTierSupport.buildRangeLabel(matchedRule)
+        );
+    }
+
+    public static boolean hasPricingSnapshot(Order order) {
+        return order != null
+                && order.getSubtotalAmount() != null
+                && order.getDiscountPercent() != null
+                && order.getDiscountAmount() != null
+                && order.getVatPercent() != null
+                && order.getVatAmount() != null
+                && order.getTotalAmount() != null;
+    }
+
+    public static void applyPricingSnapshot(Order order, PricingBreakdown pricing) {
+        if (order == null || pricing == null) {
+            return;
+        }
+        order.setSubtotalAmount(pricing.subtotal());
+        order.setDiscountPercent(pricing.discountPercent());
+        order.setDiscountAmount(pricing.discountAmount());
+        order.setVatPercent(pricing.vatPercent());
+        order.setVatAmount(pricing.vatAmount());
+        order.setTotalAmount(pricing.totalAmount());
+        order.setAppliedDiscountRuleId(pricing.appliedDiscountRuleId());
+        order.setAppliedDiscountRuleLabel(pricing.appliedDiscountRuleLabel());
+    }
+
+    private static PricingBreakdown snapshotBreakdown(Order order) {
+        BigDecimal subtotal = zeroIfNull(order.getSubtotalAmount());
+        int discountPercent = order.getDiscountPercent() == null ? 0 : Math.max(order.getDiscountPercent(), 0);
+        BigDecimal discountAmount = zeroIfNull(order.getDiscountAmount());
+        int vatPercent = normalizeVatPercent(order.getVatPercent());
+        BigDecimal vatAmount = zeroIfNull(order.getVatAmount());
+        BigDecimal totalAmount = zeroIfNull(order.getTotalAmount());
+        return new PricingBreakdown(
+                subtotal,
+                discountPercent,
+                discountAmount,
+                vatPercent,
+                vatAmount,
+                totalAmount,
+                order.getAppliedDiscountRuleId(),
+                order.getAppliedDiscountRuleLabel()
+        );
     }
 
     public static int normalizeVatPercent(Integer vatPercent) {
@@ -148,7 +207,9 @@ public final class OrderPricingSupport {
             BigDecimal discountAmount,
             int vatPercent,
             BigDecimal vatAmount,
-            BigDecimal totalAmount
+            BigDecimal totalAmount,
+            Long appliedDiscountRuleId,
+            String appliedDiscountRuleLabel
     ) {
     }
 }
