@@ -7,6 +7,7 @@ import com.devwonder.backend.exception.BadRequestException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.net.URI;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -64,7 +65,7 @@ public class SupportTicketPayloadSupport {
             if (!DealerRequestSupport.isValidUrlOrUploadPath(url)) {
                 throw new BadRequestException("attachment url is invalid");
             }
-            String fileName = DealerRequestSupport.normalize(attachment.fileName());
+            String fileName = normalizeAttachmentFileName(attachment.fileName(), url);
             normalizedByUrl.put(url, new SupportTicketAttachmentPayload(url, fileName));
         }
         if (normalizedByUrl.size() > MAX_ATTACHMENTS) {
@@ -140,5 +141,46 @@ public class SupportTicketPayloadSupport {
         } catch (JsonProcessingException ex) {
             throw new IllegalStateException("Unable to serialize support ticket payload", ex);
         }
+    }
+
+    private String normalizeAttachmentFileName(String rawFileName, String url) {
+        String normalized = DealerRequestSupport.normalize(rawFileName);
+        if (normalized != null) {
+            normalized = extractFileName(normalized);
+        }
+        if (normalized != null) {
+            return normalized;
+        }
+        return extractFileName(url);
+    }
+
+    private String extractFileName(String value) {
+        String normalized = DealerRequestSupport.normalize(value);
+        if (normalized == null) {
+            return null;
+        }
+
+        String pathCandidate = normalized;
+        if (normalized.startsWith("http://") || normalized.startsWith("https://")) {
+            try {
+                pathCandidate = URI.create(normalized).getPath();
+            } catch (IllegalArgumentException ignored) {
+                pathCandidate = normalized;
+            }
+        } else {
+            int queryIndex = pathCandidate.indexOf('?');
+            if (queryIndex >= 0) {
+                pathCandidate = pathCandidate.substring(0, queryIndex);
+            }
+            int fragmentIndex = pathCandidate.indexOf('#');
+            if (fragmentIndex >= 0) {
+                pathCandidate = pathCandidate.substring(0, fragmentIndex);
+            }
+        }
+
+        String slashNormalized = pathCandidate.replace('\\', '/');
+        int lastSlash = slashNormalized.lastIndexOf('/');
+        String fileName = lastSlash >= 0 ? slashNormalized.substring(lastSlash + 1) : slashNormalized;
+        return DealerRequestSupport.normalize(fileName);
     }
 }

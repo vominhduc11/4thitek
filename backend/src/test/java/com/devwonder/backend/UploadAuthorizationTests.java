@@ -117,7 +117,8 @@ class UploadAuthorizationTests {
                         .header("Authorization", "Bearer " + dealerToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.url").value(containsString("/api/v1/upload/avatars/dealers/")))
-                .andExpect(jsonPath("$.data.fileName").value(containsString("avatars/dealers/")));
+                .andExpect(jsonPath("$.data.fileName").value("dealer-avatar.png"))
+                .andExpect(jsonPath("$.data.storedPath").value(containsString("avatars/dealers/")));
     }
 
     @Test
@@ -152,7 +153,8 @@ class UploadAuthorizationTests {
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.url").value(containsString("/api/v1/upload/avatars/" + admin.getId() + "/")))
-                .andExpect(jsonPath("$.data.fileName").value(containsString("avatars/" + admin.getId() + "/")));
+                .andExpect(jsonPath("$.data.fileName").value("admin-avatar.png"))
+                .andExpect(jsonPath("$.data.storedPath").value(containsString("avatars/" + admin.getId() + "/")));
     }
 
     @Test
@@ -229,7 +231,21 @@ class UploadAuthorizationTests {
                         .header("Authorization", "Bearer " + dealerToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.url").value(containsString("/api/v1/upload/payments/proofs/dealers/")))
-                .andExpect(jsonPath("$.data.fileName").value(containsString(".pdf")));
+                .andExpect(jsonPath("$.data.fileName").value("proof.pdf"))
+                .andExpect(jsonPath("$.data.storedPath").value(containsString(".pdf")));
+    }
+
+    @Test
+    void supportUploadResponseSeparatesDisplayNameFromStoredPath() throws Exception {
+        String dealerToken = registerDealerAndExtractAccessToken("dealer-support-upload");
+
+        mockMvc.perform(multipart("/api/v1/upload/support-tickets")
+                        .file(sampleImage("evidence-proof.png"))
+                        .header("Authorization", "Bearer " + dealerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.url").value(containsString("/api/v1/upload/support/evidence/dealers/")))
+                .andExpect(jsonPath("$.data.fileName").value("evidence-proof.png"))
+                .andExpect(jsonPath("$.data.storedPath").value(containsString("support/evidence/dealers/")));
     }
 
     @Test

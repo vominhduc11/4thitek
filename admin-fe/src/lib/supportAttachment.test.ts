@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { isLikelyImageAttachment } from "./supportAttachment";
+import {
+  isLikelyImageAttachment,
+  normalizeSupportAttachment,
+  normalizeSupportAttachmentFileName,
+  resolveSupportAttachmentUrl,
+} from "./supportAttachment";
 
 describe("isLikelyImageAttachment", () => {
   it("detects image by file extension", () => {
@@ -21,5 +26,46 @@ describe("isLikelyImageAttachment", () => {
         url: "https://cdn.example.com/files/reconciliation.xlsx",
       }),
     ).toBe(false);
+  });
+});
+
+describe("support attachment normalization", () => {
+  it("normalizes private stored paths to the upload endpoint", () => {
+    const resolved = resolveSupportAttachmentUrl(
+      "support/evidence/dealers/1/9d0e914f-proof.jpg",
+    );
+
+    expect(resolved).toContain(
+      "/api/v1/upload/support/evidence/dealers/1/9d0e914f-proof.jpg",
+    );
+  });
+
+  it("keeps product assets on uploads path", () => {
+    const resolved = resolveSupportAttachmentUrl("products/catalog/hero.png");
+
+    expect(resolved).toContain("/uploads/products/catalog/hero.png");
+  });
+
+  it("sanitizes file names that were incorrectly stored as full paths", () => {
+    expect(
+      normalizeSupportAttachmentFileName(
+        "support/evidence/dealers/1/9d0e914f-proof.jpg",
+      ),
+    ).toBe("9d0e914f-proof.jpg");
+  });
+
+  it("builds normalized attachment metadata for rendering", () => {
+    const normalized = normalizeSupportAttachment({
+      url: "support/evidence/dealers/1/9d0e914f-proof.jpg",
+      fileName: "support/evidence/dealers/1/9d0e914f-proof.jpg",
+    });
+
+    expect(normalized).toEqual({
+      url: "support/evidence/dealers/1/9d0e914f-proof.jpg",
+      resolvedUrl: expect.stringContaining(
+        "/api/v1/upload/support/evidence/dealers/1/9d0e914f-proof.jpg",
+      ),
+      fileName: "9d0e914f-proof.jpg",
+    });
   });
 });

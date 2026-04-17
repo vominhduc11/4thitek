@@ -26,7 +26,11 @@ import { translateCopy } from "../lib/i18n";
 import { useToast } from "../context/ToastContext";
 import { formatDateTime } from "../lib/formatters";
 import { subscribeAdminSupportRefresh } from "../lib/adminRealtime";
-import { isLikelyImageAttachment } from "../lib/supportAttachment";
+import {
+  isLikelyImageAttachment,
+  normalizeSupportAttachment,
+  type NormalizedSupportAttachment,
+} from "../lib/supportAttachment";
 import { deleteStoredFileReference, storeFileReference } from "../lib/upload";
 import {
   EmptyState,
@@ -86,10 +90,7 @@ type TicketDraftState = {
   attachments: DraftAttachment[];
 };
 
-type DraftAttachment = {
-  url: string;
-  fileName?: string | null;
-};
+type DraftAttachment = NormalizedSupportAttachment;
 
 type ThreadItem = {
   key: string;
@@ -98,18 +99,12 @@ type ThreadItem = {
   internalNote: boolean;
   message: string;
   createdAt?: string | null;
-  attachments: Array<{
-    url: string;
-    fileName?: string | null;
-  }>;
+  attachments: NormalizedSupportAttachment[];
   syntheticRoot?: boolean;
 };
 
 type SupportAttachmentViewProps = {
-  attachment: {
-    url: string;
-    fileName?: string | null;
-  };
+  attachment: NormalizedSupportAttachment;
   t: (value: string) => string;
   removable?: boolean;
   onRemove?: () => void;
@@ -191,7 +186,14 @@ function buildThreadItems(ticket: BackendSupportTicketResponse): ThreadItem[] {
       message: message.message,
       createdAt: message.createdAt,
       attachments: Array.isArray(message.attachments)
-        ? message.attachments.filter((attachment) => !!attachment?.url)
+        ? message.attachments
+            .map((attachment) => normalizeSupportAttachment(attachment ?? {}))
+            .filter(
+              (
+                attachment,
+              ): attachment is NormalizedSupportAttachment =>
+                attachment !== null,
+            )
         : [],
     });
   }
@@ -208,6 +210,7 @@ export function SupportAttachmentView({
   const [imageFailed, setImageFailed] = useState(false);
   const isImage = isLikelyImageAttachment(attachment) && !imageFailed;
   const fileLabel = attachment.fileName || t("Tệp đính kèm");
+  const resolvedUrl = attachment.resolvedUrl || attachment.url;
 
   if (!isImage) {
     return (
@@ -218,7 +221,7 @@ export function SupportAttachmentView({
         ].join(" ")}
       >
         <a
-          href={attachment.url}
+          href={resolvedUrl}
           target="_blank"
           rel="noreferrer"
           className="inline-flex items-center gap-2 hover:text-[var(--accent)]"
@@ -248,14 +251,14 @@ export function SupportAttachmentView({
       ].join(" ")}
     >
       <a
-        href={attachment.url}
+        href={resolvedUrl}
         target="_blank"
         rel="noreferrer"
         className="block"
         aria-label={t("Mở ảnh đính kèm")}
       >
         <img
-          src={attachment.url}
+          src={resolvedUrl}
           alt={fileLabel}
           className="h-28 w-full object-cover"
           onError={() => setImageFailed(true)}
@@ -263,7 +266,7 @@ export function SupportAttachmentView({
       </a>
       <div className="flex items-center gap-2 px-3 py-2">
         <a
-          href={attachment.url}
+          href={resolvedUrl}
           target="_blank"
           rel="noreferrer"
           className="min-w-0 flex-1 text-xs text-[var(--ink)] hover:text-[var(--accent)]"
@@ -640,13 +643,24 @@ function SupportTicketsPageRevamp() {
         category: "support-tickets",
         accessToken,
       });
-      draftAttachmentUrlsRef.current.add(stored.url);
+      const normalizedAttachment = normalizeSupportAttachment({
+        url: stored.url,
+        fileName: stored.fileName || file.name,
+      });
+      if (!normalizedAttachment) {
+        throw new Error(t("Không thể xử lý URL tệp đính kèm."));
+      }
+      const draftAttachment: DraftAttachment = {
+        ...normalizedAttachment,
+        resolvedUrl: stored.previewUrl || normalizedAttachment.resolvedUrl,
+      };
+      draftAttachmentUrlsRef.current.add(draftAttachment.url);
       setDraftsByTicketId((current) => {
         const existingDraft =
           current[selectedTicket.id] ?? createDraft(selectedTicket);
         const attachments = [
           ...existingDraft.attachments,
-          { url: stored.url, fileName: stored.fileName || file.name },
+          draftAttachment,
         ];
         return {
           ...current,

@@ -1,3 +1,5 @@
+import { buildApiUrl, resolveBackendAssetUrl } from "./backendApi";
+
 const IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "gif"]);
 const IMAGE_QUERY_KEYS = new Set([
   "mime",
@@ -6,10 +8,18 @@ const IMAGE_QUERY_KEYS = new Set([
   "response-content-type",
 ]);
 const IMAGE_FORMAT_QUERY_KEYS = new Set(["format", "ext", "extension"]);
+const PUBLIC_UPLOAD_PREFIXES = ["products/", "blogs/"];
+const PRIVATE_UPLOAD_PREFIXES = ["avatars/", "payments/", "support/"];
 
 export type SupportAttachmentLike = {
   fileName?: string | null;
   url?: string | null;
+};
+
+export type NormalizedSupportAttachment = {
+  url: string;
+  resolvedUrl: string;
+  fileName?: string | null;
 };
 
 export function isLikelyImageAttachment(
@@ -57,6 +67,73 @@ function looksLikeImageValue(value: string | null | undefined): boolean {
   return IMAGE_EXTENSIONS.has(extension);
 }
 
+export function normalizeSupportAttachment(
+  attachment: SupportAttachmentLike,
+): NormalizedSupportAttachment | null {
+  const rawUrl = String(attachment.url ?? "").trim();
+  if (!rawUrl) {
+    return null;
+  }
+
+  const resolvedUrl = resolveSupportAttachmentUrl(rawUrl);
+  const fileName = normalizeSupportAttachmentFileName(attachment.fileName, rawUrl);
+
+  return {
+    url: rawUrl,
+    resolvedUrl,
+    fileName,
+  };
+}
+
+export function resolveSupportAttachmentUrl(rawUrl: string): string {
+  const normalized = rawUrl.trim();
+  if (!normalized) {
+    return "";
+  }
+
+  const lowered = normalized.toLowerCase();
+  if (
+    lowered.startsWith("http://") ||
+    lowered.startsWith("https://") ||
+    lowered.startsWith("data:") ||
+    lowered.startsWith("blob:")
+  ) {
+    return resolveBackendAssetUrl(normalized);
+  }
+
+  const withoutLeadingSlash = normalized.replace(/^\/+/, "");
+  if (withoutLeadingSlash.startsWith("api/") || withoutLeadingSlash.startsWith("uploads/")) {
+    return resolveBackendAssetUrl(`/${withoutLeadingSlash}`);
+  }
+
+  if (PUBLIC_UPLOAD_PREFIXES.some((prefix) => withoutLeadingSlash.startsWith(prefix))) {
+    return resolveBackendAssetUrl(`/uploads/${withoutLeadingSlash}`);
+  }
+
+  if (PRIVATE_UPLOAD_PREFIXES.some((prefix) => withoutLeadingSlash.startsWith(prefix))) {
+    return resolveBackendAssetUrl(buildApiUrl(`/upload/${withoutLeadingSlash}`));
+  }
+
+  return resolveBackendAssetUrl(normalized);
+}
+
+export function normalizeSupportAttachmentFileName(
+  value: string | null | undefined,
+  rawUrl?: string,
+): string | null {
+  const normalized = String(value ?? "").trim();
+  if (normalized) {
+    const extracted = extractLastSegment(normalized);
+    if (extracted) {
+      return extracted;
+    }
+  }
+  if (!rawUrl) {
+    return null;
+  }
+  return extractLastSegment(rawUrl);
+}
+
 function parseUrl(value: string): URL | null {
   try {
     return new URL(value);
@@ -70,4 +147,16 @@ function extractPath(value: string, parsed: URL | null): string {
     return parsed.pathname.toLowerCase();
   }
   return value.split("?")[0]?.split("#")[0] ?? value;
+}
+
+function extractLastSegment(value: string): string | null {
+  const normalized = String(value ?? "").trim();
+  if (!normalized) {
+    return null;
+  }
+
+  const parsed = parseUrl(normalized);
+  const path = extractPath(normalized, parsed).replace(/\\/g, "/").replace(/\/+$/, "");
+  const segment = path.slice(path.lastIndexOf("/") + 1).trim();
+  return segment || null;
 }

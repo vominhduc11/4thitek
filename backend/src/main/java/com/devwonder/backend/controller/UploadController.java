@@ -18,6 +18,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -50,11 +51,13 @@ public class UploadController {
             @RequestParam("file") MultipartFile file
     ) {
         UploadTarget uploadTarget = resolveUploadTarget(category, authentication);
-        String fileName = fileStorageService.store(file, uploadTarget.subfolder(), uploadTarget.allowedExtensions());
-        String url = buildPublicUrl(fileName);
+        String storedPath = fileStorageService.store(file, uploadTarget.subfolder(), uploadTarget.allowedExtensions());
+        String url = buildPublicUrl(storedPath);
+        String displayFileName = resolveDisplayFileName(file, storedPath);
         return ResponseEntity.ok(ApiResponse.success(Map.of(
                 "url", url,
-                "fileName", fileName
+                "fileName", displayFileName,
+                "storedPath", storedPath
         )));
     }
 
@@ -151,6 +154,26 @@ public class UploadController {
             baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
         }
         return baseUrl + "/" + normalizedPath;
+    }
+
+    private String resolveDisplayFileName(MultipartFile file, String storedPath) {
+        String originalFileName = StringUtils.cleanPath(file == null ? "" : file.getOriginalFilename());
+        if (StringUtils.hasText(originalFileName)) {
+            String extracted = StringUtils.getFilename(originalFileName);
+            if (StringUtils.hasText(extracted)) {
+                return extracted;
+            }
+        }
+
+        String normalizedStoredPath = fileStorageService.normalizeStoredPath(storedPath);
+        if (!StringUtils.hasText(normalizedStoredPath)) {
+            throw new BadRequestException("Invalid upload path");
+        }
+        String fallbackFileName = StringUtils.getFilename(normalizedStoredPath);
+        if (!StringUtils.hasText(fallbackFileName)) {
+            throw new BadRequestException("Invalid upload path");
+        }
+        return fallbackFileName;
     }
 
     private String resolveRelativePath(String value) {

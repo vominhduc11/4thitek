@@ -1,8 +1,9 @@
-﻿import {
+import {
   buildApiUrl,
   hasBackendApi,
   resolveBackendAssetUrl,
 } from "./backendApi";
+import { normalizeSupportAttachmentFileName } from "./supportAttachment";
 
 export type UploadCategory =
   | "products"
@@ -20,7 +21,8 @@ type ApiResponse<T> = {
 
 type UploadResponse = {
   url: string;
-  fileName: string;
+  fileName?: string;
+  storedPath?: string;
 };
 
 type DeleteUploadResponse = {
@@ -32,6 +34,7 @@ export type StoredAsset = {
   fileName: string;
   url: string;
   previewUrl: string;
+  storedPath?: string;
   storage: "remote";
 };
 
@@ -85,14 +88,20 @@ export const storeFileReference = async ({
   }
 
   const payload = (await response.json()) as ApiResponse<UploadResponse>;
-  if (!payload.success || !payload.data?.url || !payload.data?.fileName) {
+  if (!payload.success || !payload.data?.url) {
     throw new Error(payload.error || "Upload failed");
   }
 
+  const displayFileName =
+    normalizeSupportAttachmentFileName(payload.data.fileName, payload.data.url) ??
+    file.name;
+  const storedPath = payload.data.storedPath?.trim();
+
   return {
-    fileName: payload.data.fileName,
+    fileName: displayFileName,
     url: payload.data.url,
     previewUrl: resolveBackendAssetUrl(payload.data.url),
+    ...(storedPath ? { storedPath } : {}),
     storage: "remote",
   };
 };

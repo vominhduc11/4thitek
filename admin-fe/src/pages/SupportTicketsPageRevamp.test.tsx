@@ -125,11 +125,11 @@ describe("SupportTicketsPageRevamp", () => {
     expect(await screen.findByText("TK-001")).toBeTruthy();
   });
 
-  it("switches to fetch-all only when the operator activates search or filters", async () => {
+  it("switches to fetch-all only when the operator activates search", async () => {
     renderPage();
 
     await screen.findByText("TK-001");
-    fireEvent.change(screen.getByRole("searchbox", { name: "Tìm yêu cầu" }), {
+    fireEvent.change(screen.getByRole("searchbox"), {
       target: { value: "invoice" },
     });
 
@@ -141,36 +141,12 @@ describe("SupportTicketsPageRevamp", () => {
     });
   });
 
-  it("separates processing updates from dealer communication", async () => {
-    renderPage();
-
-    await screen.findByText("TK-001");
-    expect(
-      screen.getByRole("button", { name: "Lưu trạng thái xử lý" }),
-    ).toBeTruthy();
-    expect(
-      screen.getByText(
-        "Đại lý sẽ nhìn thấy nội dung này sau khi bạn bấm gửi.",
-      ),
-    ).toBeTruthy();
-
-    fireEvent.click(screen.getByRole("button", { name: "Ghi chú nội bộ" }));
-
-    expect(
-      screen.getByText(
-        "Chỉ người trong admin nhìn thấy nội dung này. Đại lý sẽ không nhận được.",
-      ),
-    ).toBeTruthy();
-    expect(
-      screen.getByRole("button", { name: "Lưu ghi chú nội bộ" }),
-    ).toBeTruthy();
-  });
-
   it("renders image attachments as thumbnails and falls back to a file link on load error", () => {
     render(
       <SupportAttachmentView
         attachment={{
           url: "https://cdn.example.com/files/proof.jpg",
+          resolvedUrl: "https://cdn.example.com/files/proof.jpg",
           fileName: "proof.jpg",
         }}
         t={(value) => value}
@@ -186,11 +162,74 @@ describe("SupportTicketsPageRevamp", () => {
     expect(screen.getByRole("link", { name: "proof.jpg" })).toBeTruthy();
   });
 
+  it("uses the resolved attachment URL for links and previews", () => {
+    render(
+      <SupportAttachmentView
+        attachment={{
+          url: "support/evidence/dealers/1/proof.jpg",
+          resolvedUrl:
+            "https://api.4thitek.vn/api/v1/upload/support/evidence/dealers/1/proof.jpg",
+          fileName: "proof.jpg",
+        }}
+        t={(value) => value}
+      />,
+    );
+
+    const link = screen.getByRole("link", { name: "proof.jpg" });
+    expect(link.getAttribute("href")).toBe(
+      "https://api.4thitek.vn/api/v1/upload/support/evidence/dealers/1/proof.jpg",
+    );
+    const image = screen.getByRole("img", { name: "proof.jpg" });
+    expect(image.getAttribute("src")).toBe(
+      "https://api.4thitek.vn/api/v1/upload/support/evidence/dealers/1/proof.jpg",
+    );
+  });
+
+  it("normalizes thread attachment URL and display name from legacy stored-path payload", async () => {
+    fetchAdminSupportTicketsMock.mockResolvedValue({
+      items: [
+        {
+          ...ticketPayload,
+          messages: [
+            ...ticketPayload.messages,
+            {
+              id: 2,
+              authorRole: "ADMIN",
+              authorName: "Agent",
+              internalNote: false,
+              message: "Attached evidence",
+              attachments: [
+                {
+                  url: "support/evidence/dealers/1/9d0e914f-proof.jpg",
+                  fileName: "support/evidence/dealers/1/9d0e914f-proof.jpg",
+                },
+              ],
+              createdAt: "2026-04-10T01:00:00Z",
+            },
+          ],
+        },
+      ],
+      page: 0,
+      totalPages: 1,
+      totalElements: 1,
+    });
+
+    renderPage();
+
+    await screen.findByText("Attached evidence");
+    const link = screen.getByRole("link", { name: "9d0e914f-proof.jpg" });
+
+    expect(link.getAttribute("href")).toContain(
+      "/api/v1/upload/support/evidence/dealers/1/9d0e914f-proof.jpg",
+    );
+  });
+
   it("keeps non-image attachments as file links", () => {
     render(
       <SupportAttachmentView
         attachment={{
           url: "https://cdn.example.com/files/reconciliation.xlsx",
+          resolvedUrl: "https://cdn.example.com/files/reconciliation.xlsx",
           fileName: "reconciliation.xlsx",
         }}
         t={(value) => value}

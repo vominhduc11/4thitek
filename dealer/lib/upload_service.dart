@@ -146,16 +146,20 @@ class UploadService {
       );
     }
 
-    final rawUrl = data['url']?.toString() ?? '';
-    final fileName = data['fileName']?.toString() ?? '';
-    if (rawUrl.isEmpty || fileName.isEmpty) {
+    final rawUrl = data['url']?.toString().trim() ?? '';
+    if (rawUrl.isEmpty) {
       throw UploadException(
         uploadServiceMessageToken(UploadMessageCode.missingMetadata),
       );
     }
+    final fileName = _resolveUploadedFileName(
+      data['fileName'],
+      fallbackName: file.name,
+      rawUrl: rawUrl,
+    );
 
     return UploadedFileRef(
-      url: DealerApiConfig.resolveUrl(rawUrl),
+      url: DealerApiConfig.resolveUploadUrl(rawUrl),
       fileName: fileName,
     );
   }
@@ -208,6 +212,44 @@ class UploadService {
   void close() {
     _client.close();
   }
+}
+
+String _resolveUploadedFileName(
+  Object? value, {
+  required String fallbackName,
+  required String rawUrl,
+}) {
+  final normalized = value?.toString().trim();
+  if (normalized != null && normalized.isNotEmpty) {
+    final extracted = _extractLastPathSegment(normalized);
+    if (extracted != null) {
+      return extracted;
+    }
+  }
+
+  final fromUrl = _extractLastPathSegment(rawUrl);
+  if (fromUrl != null) {
+    return fromUrl;
+  }
+
+  final fallback = fallbackName.trim();
+  return fallback.isEmpty ? 'attachment' : fallback;
+}
+
+String? _extractLastPathSegment(String? value) {
+  final normalized = value?.trim();
+  if (normalized == null || normalized.isEmpty) {
+    return null;
+  }
+  final uri = Uri.tryParse(normalized);
+  var path = uri?.path ?? normalized;
+  if (path.isEmpty) {
+    return null;
+  }
+  path = path.replaceAll('\\', '/').replaceAll(RegExp(r'/+$'), '');
+  final index = path.lastIndexOf('/');
+  final segment = (index >= 0 ? path.substring(index + 1) : path).trim();
+  return segment.isEmpty ? null : segment;
 }
 
 class UploadException implements Exception {

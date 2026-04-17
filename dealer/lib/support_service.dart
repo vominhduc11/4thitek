@@ -483,14 +483,51 @@ List<SupportTicketAttachmentRecord> _mapAttachments(Object? raw) {
   final entries = raw is List<dynamic> ? raw : const <dynamic>[];
   return entries
       .whereType<Map<String, dynamic>>()
-      .map(
-        (attachment) => SupportTicketAttachmentRecord(
-          url: attachment['url']?.toString().trim() ?? '',
-          fileName: _parseOptionalStringStatic(attachment['fileName']),
-        ),
-      )
+      .map((attachment) {
+        final rawUrl = attachment['url']?.toString().trim() ?? '';
+        final resolvedUrl = DealerApiConfig.resolveUploadUrl(rawUrl);
+        return SupportTicketAttachmentRecord(
+          url: resolvedUrl,
+          fileName: _normalizeAttachmentFileName(
+            attachment['fileName'],
+            fallbackUrl: resolvedUrl.isEmpty ? rawUrl : resolvedUrl,
+          ),
+        );
+      })
       .where((attachment) => attachment.url.isNotEmpty)
       .toList(growable: false);
+}
+
+String? _normalizeAttachmentFileName(
+  Object? value, {
+  required String fallbackUrl,
+}) {
+  final normalized = _parseOptionalStringStatic(value);
+  if (normalized != null) {
+    final extracted = _extractLastPathSegment(normalized);
+    if (extracted != null) {
+      return extracted;
+    }
+  }
+  return _extractLastPathSegment(fallbackUrl);
+}
+
+String? _extractLastPathSegment(String? value) {
+  final normalized = value?.trim();
+  if (normalized == null || normalized.isEmpty) {
+    return null;
+  }
+
+  final uri = Uri.tryParse(normalized);
+  var path = uri?.path ?? normalized;
+  if (path.isEmpty) {
+    return null;
+  }
+  path = path.replaceAll('\\', '/').replaceAll(RegExp(r'/+$'), '');
+  final lastSlash = path.lastIndexOf('/');
+  final segment = (lastSlash >= 0 ? path.substring(lastSlash + 1) : path)
+      .trim();
+  return segment.isEmpty ? null : segment;
 }
 
 String? _parseOptionalStringStatic(Object? value) {

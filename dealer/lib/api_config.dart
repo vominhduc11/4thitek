@@ -1,6 +1,21 @@
 import 'package:flutter/foundation.dart';
 
 class DealerApiConfig {
+  static final RegExp _legacyStorageHostPattern = RegExp(
+    r'(^|\.)storage\.4thitek\.vn$',
+    caseSensitive: false,
+  );
+  static const String _legacyStorageBucketPrefix = '/4thitek-uploads/';
+  static const List<String> _publicUploadPrefixes = <String>[
+    'products/',
+    'blogs/',
+  ];
+  static const List<String> _privateUploadPrefixes = <String>[
+    'avatars/',
+    'payments/',
+    'support/',
+  ];
+
   static const String _rawApiOrigin = String.fromEnvironment('API_ORIGIN');
   static const String _rawApiVersion = String.fromEnvironment(
     'API_VERSION',
@@ -128,6 +143,44 @@ class DealerApiConfig {
     return _resolveUrlWithBase(baseUrl, path);
   }
 
+  static String resolveUploadUrl(String path) {
+    final trimmed = path.trim();
+    if (trimmed.isEmpty ||
+        trimmed.startsWith('data:') ||
+        trimmed.startsWith('blob:')) {
+      return trimmed;
+    }
+
+    if (_isHttpUrl(trimmed)) {
+      final normalizedLegacyPath = _normalizeLegacyStorageUrl(trimmed);
+      if (normalizedLegacyPath != null) {
+        return resolveUrl(normalizedLegacyPath);
+      }
+      return trimmed;
+    }
+
+    final normalizedRelative = trimmed.replaceAll('\\', '/');
+    final withoutLeadingSlash = normalizedRelative.replaceFirst(
+      RegExp(r'^/+'),
+      '',
+    );
+    if (withoutLeadingSlash.startsWith('api/')) {
+      return resolveUrl('/$withoutLeadingSlash');
+    }
+    if (withoutLeadingSlash.startsWith('uploads/')) {
+      return resolveUrl('/$withoutLeadingSlash');
+    }
+
+    if (_hasPrefix(withoutLeadingSlash, _publicUploadPrefixes)) {
+      return resolveUrl('/uploads/$withoutLeadingSlash');
+    }
+    if (_hasPrefix(withoutLeadingSlash, _privateUploadPrefixes)) {
+      return resolveApiUrl('/upload/$withoutLeadingSlash');
+    }
+
+    return resolveUrl(normalizedRelative);
+  }
+
   static String _resolveUrlWithBase(String base, String path) {
     final trimmed = path.trim();
     if (trimmed.isEmpty ||
@@ -141,6 +194,38 @@ class DealerApiConfig {
       return '$normalizedBase$trimmed';
     }
     return '$normalizedBase/$trimmed';
+  }
+
+  static bool _isHttpUrl(String value) {
+    return value.startsWith('http://') || value.startsWith('https://');
+  }
+
+  static bool _hasPrefix(String value, List<String> prefixes) {
+    for (final prefix in prefixes) {
+      if (value.startsWith(prefix)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static String? _normalizeLegacyStorageUrl(String value) {
+    final parsed = Uri.tryParse(value);
+    if (parsed == null) {
+      return null;
+    }
+    if (!_legacyStorageHostPattern.hasMatch(parsed.host)) {
+      return null;
+    }
+    if (!parsed.path.startsWith(_legacyStorageBucketPrefix)) {
+      return null;
+    }
+    final normalizedPath = parsed.path.substring(
+      _legacyStorageBucketPrefix.length,
+    );
+    final query = parsed.hasQuery ? '?${parsed.query}' : '';
+    final fragment = parsed.hasFragment ? '#${parsed.fragment}' : '';
+    return '/uploads/$normalizedPath$query$fragment';
   }
 
   static String _sanitizeConfiguredBaseUrl(String value) {
