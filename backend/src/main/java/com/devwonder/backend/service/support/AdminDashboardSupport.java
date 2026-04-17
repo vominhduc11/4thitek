@@ -84,8 +84,8 @@ public final class AdminDashboardSupport {
                 countOrdersByStatus(activeOrders, OrderStatus.COMPLETED),
                 countOrdersByStatus(activeOrders, OrderStatus.CANCELLED),
                 activeProducts.size(),
-                Math.toIntExact(activeProducts.stream().filter(product -> safeInt(product.getStock()) < 10).count()),
-                Math.toIntExact(activeProducts.stream().filter(product -> safeInt(product.getStock()) < 5).count()),
+                Math.toIntExact(activeProducts.stream().filter(AdminDashboardSupport::isLowStockProduct).count()),
+                Math.toIntExact(activeProducts.stream().filter(AdminDashboardSupport::isUrgentRestockProduct).count()),
                 safeList(dealers).size(),
                 (int) safeList(dealers).stream()
                         .filter(dealer -> dealer.getCustomerStatus() == CustomerStatus.UNDER_REVIEW)
@@ -344,6 +344,16 @@ public final class AdminDashboardSupport {
 
     private static boolean isActiveProduct(Product product) {
         return product != null && !Boolean.TRUE.equals(product.getIsDeleted());
+    }
+
+    public static boolean isLowStockProduct(Product product) {
+        int stock = safeInt(product == null ? null : product.getStock());
+        return isActiveProduct(product) && stock > 0 && stock <= 10;
+    }
+
+    public static boolean isUrgentRestockProduct(Product product) {
+        int stock = safeInt(product == null ? null : product.getStock());
+        return isActiveProduct(product) && stock > 0 && stock < 5;
     }
 
     private static boolean isActiveBlog(Blog blog) {

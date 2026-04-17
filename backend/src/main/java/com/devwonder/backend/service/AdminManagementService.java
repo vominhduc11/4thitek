@@ -743,6 +743,15 @@ public class AdminManagementService {
     public AdminDashboardResponse getDashboard() {
         List<BulkDiscount> activeDiscountRules = activeDiscountRules();
         boolean inventoryAlertsEnabled = adminSettingsService.getEffectiveSettings().inventoryAlerts();
+        List<Product> inventoryAlertProducts = inventoryAlertsEnabled
+                ? productRepository.findAllActiveBelowStock(11)
+                : List.of();
+        int lowStockCount = Math.toIntExact(inventoryAlertProducts.stream()
+                .filter(AdminDashboardSupport::isLowStockProduct)
+                .count());
+        int urgentRestockCount = Math.toIntExact(inventoryAlertProducts.stream()
+                .filter(AdminDashboardSupport::isUrgentRestockProduct)
+                .count());
         Instant dashboardStart = YearMonth.now(WarrantyDateSupport.APP_ZONE)
                 .minusMonths(5)
                 .atDay(1)
@@ -767,8 +776,8 @@ public class AdminManagementService {
                 Math.toIntExact(orderRepository.countVisibleOrdersByStatus(OrderStatus.COMPLETED)),
                 Math.toIntExact(orderRepository.countVisibleOrdersByStatus(OrderStatus.CANCELLED)),
                 Math.toIntExact(productRepository.countActiveProducts()),
-                inventoryAlertsEnabled ? Math.toIntExact(productRepository.countActiveProductsBelowStock(10)) : 0,
-                inventoryAlertsEnabled ? Math.toIntExact(productRepository.countActiveProductsBelowStock(5)) : 0,
+                lowStockCount,
+                urgentRestockCount,
                 Math.toIntExact(dealerRepository.count()),
                 Math.toIntExact(dealerRepository.countByCustomerStatus(CustomerStatus.UNDER_REVIEW)),
                 Math.toIntExact(adminRepository.count()),

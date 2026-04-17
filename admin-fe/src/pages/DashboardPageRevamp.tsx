@@ -331,7 +331,7 @@ function DashboardPageRevamp() {
           />
         </Link>
         <Link
-          to="/orders?status=pending"
+          to="/orders"
           className="block rounded-3xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
           <StatCard
@@ -550,7 +550,7 @@ function DashboardPageRevamp() {
             )}
             {(dashboard.staleOrdersCount ?? 0) > 0 && (
               <Link
-                to="/orders"
+                to="/orders?status=pending"
                 className="block rounded-2xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
               >
                 <div className="rounded-2xl border border-[var(--destructive-border)] bg-[var(--destructive-soft)] px-4 py-3">
