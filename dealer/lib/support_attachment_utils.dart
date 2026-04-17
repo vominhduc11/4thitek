@@ -5,6 +5,17 @@ const Set<String> _imageExtensions = <String>{
   'webp',
   'gif',
 };
+const Set<String> _imageQueryKeys = <String>{
+  'mime',
+  'content-type',
+  'contenttype',
+  'response-content-type',
+};
+const Set<String> _imageFormatQueryKeys = <String>{
+  'format',
+  'ext',
+  'extension',
+};
 
 bool isLikelyImageAttachment({String? fileName, String? url}) {
   if (_looksLikeImage(fileName)) {
@@ -21,24 +32,30 @@ bool _looksLikeImage(String? value) {
   if (normalized.startsWith('data:image/')) {
     return true;
   }
-  if (normalized.contains('mime=image/') ||
-      normalized.contains('content-type=image/') ||
-      normalized.contains('format=jpg') ||
-      normalized.contains('format=jpeg') ||
-      normalized.contains('format=png') ||
-      normalized.contains('format=webp') ||
-      normalized.contains('format=gif') ||
-      normalized.contains('/image/') ||
-      normalized.contains('/images/')) {
-    return true;
-  }
 
   final uri = Uri.tryParse(normalized);
+  if (uri != null) {
+    for (final entry in uri.queryParameters.entries) {
+      final key = entry.key.trim().toLowerCase();
+      final queryValue = entry.value.trim().toLowerCase();
+      if (_imageQueryKeys.contains(key) && queryValue.startsWith('image/')) {
+        return true;
+      }
+      if (_imageFormatQueryKeys.contains(key) &&
+          _imageExtensions.contains(queryValue)) {
+        return true;
+      }
+    }
+  }
+
   final path = (uri?.path.isNotEmpty == true ? uri!.path : normalized)
       .split('?')
       .first
       .split('#')
       .first;
+  if (path.contains('/image/') || path.contains('/images/')) {
+    return true;
+  }
   final dotIndex = path.lastIndexOf('.');
   if (dotIndex < 0 || dotIndex == path.length - 1) {
     return false;

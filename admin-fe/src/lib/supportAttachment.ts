@@ -1,4 +1,11 @@
 const IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "gif"]);
+const IMAGE_QUERY_KEYS = new Set([
+  "mime",
+  "content-type",
+  "contenttype",
+  "response-content-type",
+]);
+const IMAGE_FORMAT_QUERY_KEYS = new Set(["format", "ext", "extension"]);
 
 export type SupportAttachmentLike = {
   fileName?: string | null;
@@ -21,21 +28,27 @@ function looksLikeImageValue(value: string | null | undefined): boolean {
   if (normalized.startsWith("data:image/")) {
     return true;
   }
-  if (
-    normalized.includes("mime=image/") ||
-    normalized.includes("content-type=image/") ||
-    normalized.includes("format=jpg") ||
-    normalized.includes("format=jpeg") ||
-    normalized.includes("format=png") ||
-    normalized.includes("format=webp") ||
-    normalized.includes("format=gif") ||
-    normalized.includes("/image/") ||
-    normalized.includes("/images/")
-  ) {
-    return true;
+  const parsed = parseUrl(normalized);
+  if (parsed) {
+    for (const [key, rawValue] of parsed.searchParams.entries()) {
+      const queryKey = key.trim().toLowerCase();
+      const queryValue = rawValue.trim().toLowerCase();
+      if (IMAGE_QUERY_KEYS.has(queryKey) && queryValue.startsWith("image/")) {
+        return true;
+      }
+      if (
+        IMAGE_FORMAT_QUERY_KEYS.has(queryKey) &&
+        IMAGE_EXTENSIONS.has(queryValue)
+      ) {
+        return true;
+      }
+    }
   }
 
-  const path = extractPath(normalized);
+  const path = extractPath(normalized, parsed);
+  if (path.includes("/image/") || path.includes("/images/")) {
+    return true;
+  }
   const lastDot = path.lastIndexOf(".");
   if (lastDot < 0 || lastDot === path.length - 1) {
     return false;
@@ -44,11 +57,17 @@ function looksLikeImageValue(value: string | null | undefined): boolean {
   return IMAGE_EXTENSIONS.has(extension);
 }
 
-function extractPath(value: string): string {
+function parseUrl(value: string): URL | null {
   try {
-    const parsed = new URL(value);
-    return parsed.pathname.toLowerCase();
+    return new URL(value);
   } catch {
-    return value.split("?")[0]?.split("#")[0] ?? value;
+    return null;
   }
+}
+
+function extractPath(value: string, parsed: URL | null): string {
+  if (parsed) {
+    return parsed.pathname.toLowerCase();
+  }
+  return value.split("?")[0]?.split("#")[0] ?? value;
 }
