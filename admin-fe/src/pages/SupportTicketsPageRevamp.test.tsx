@@ -1,8 +1,10 @@
-// @vitest-environment jsdom
+﻿// @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import SupportTicketsPageRevamp from "./SupportTicketsPageRevamp";
+import SupportTicketsPageRevamp, {
+  SupportAttachmentView,
+} from "./SupportTicketsPageRevamp";
 
 const {
   fetchAdminSupportTicketsMock,
@@ -143,9 +145,13 @@ describe("SupportTicketsPageRevamp", () => {
     renderPage();
 
     await screen.findByText("TK-001");
-    expect(screen.getByRole("button", { name: "Lưu trạng thái xử lý" })).toBeTruthy();
     expect(
-      screen.getByText("Đại lý sẽ nhìn thấy nội dung này sau khi bạn bấm gửi."),
+      screen.getByRole("button", { name: "Lưu trạng thái xử lý" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Đại lý sẽ nhìn thấy nội dung này sau khi bạn bấm gửi.",
+      ),
     ).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Ghi chú nội bộ" }));
@@ -155,6 +161,45 @@ describe("SupportTicketsPageRevamp", () => {
         "Chỉ người trong admin nhìn thấy nội dung này. Đại lý sẽ không nhận được.",
       ),
     ).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Lưu ghi chú nội bộ" })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Lưu ghi chú nội bộ" }),
+    ).toBeTruthy();
+  });
+
+  it("renders image attachments as thumbnails and falls back to a file link on load error", () => {
+    render(
+      <SupportAttachmentView
+        attachment={{
+          url: "https://cdn.example.com/files/proof.jpg",
+          fileName: "proof.jpg",
+        }}
+        t={(value) => value}
+      />,
+    );
+
+    const image = screen.getByRole("img", { name: "proof.jpg" });
+    expect(image).toBeTruthy();
+
+    fireEvent.error(image);
+
+    expect(screen.queryByRole("img", { name: "proof.jpg" })).toBeNull();
+    expect(screen.getByRole("link", { name: "proof.jpg" })).toBeTruthy();
+  });
+
+  it("keeps non-image attachments as file links", () => {
+    render(
+      <SupportAttachmentView
+        attachment={{
+          url: "https://cdn.example.com/files/reconciliation.xlsx",
+          fileName: "reconciliation.xlsx",
+        }}
+        t={(value) => value}
+      />,
+    );
+
+    expect(screen.queryByRole("img")).toBeNull();
+    expect(
+      screen.getByRole("link", { name: "reconciliation.xlsx" }),
+    ).toBeTruthy();
   });
 });

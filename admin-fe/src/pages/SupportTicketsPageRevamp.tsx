@@ -199,7 +199,7 @@ function buildThreadItems(ticket: BackendSupportTicketResponse): ThreadItem[] {
   return thread;
 }
 
-function SupportAttachmentView({
+export function SupportAttachmentView({
   attachment,
   t,
   removable = false,
