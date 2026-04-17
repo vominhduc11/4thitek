@@ -93,6 +93,8 @@ const copyByLanguage = {
     summaryResolved: "Đã giải quyết",
     pendingBanner: "Mục này vẫn đang chờ quyết định",
     pendingHint: "Luôn ghi rõ lý do để đội vận hành theo dõi lại sau này.",
+    resolvedBanner: "Mục này đã được chốt kết quả",
+    resolvedHint: "Thông tin bên dưới chỉ còn để tra cứu. Muốn thay đổi kết quả cần backend hỗ trợ luồng riêng.",
     typeCancellationRefund: "Hoàn hoặc điều chỉnh khi hủy đơn",
     typeStaleOrderReview: "Rà soát đơn quá hạn",
     previousLabel: "Trước",
@@ -141,6 +143,8 @@ const copyByLanguage = {
     summaryResolved: "Resolved",
     pendingBanner: "This item still needs a decision",
     pendingHint: "Always record the reasoning so operations can review it later.",
+    resolvedBanner: "This item has already been resolved",
+    resolvedHint: "The fields below are now read-only. Changing the outcome would require a separate backend flow.",
     typeCancellationRefund: "Cancellation refund or adjustment",
     typeStaleOrderReview: "Stale order review",
     previousLabel: "Previous",
@@ -267,12 +271,11 @@ function FinancialSettlementsPageRevamp() {
     setIsSaving(true);
 
     try {
-      const updated = await resolveAdminFinancialSettlement(accessToken, selectedItem.id, {
+      await resolveAdminFinancialSettlement(accessToken, selectedItem.id, {
         status: statusDraft,
         resolution: trimmedResolution,
       });
-      setItems((current) => current.map((item) => (item.id === updated.id ? updated : item)));
-      setSelectedId(updated.id);
+      await load(statusFilter);
       notify(copy.saveSuccess, { title: copy.title, variant: "success" });
     } catch (nextError) {
       setSaveError(copy.saveError);
@@ -432,47 +435,54 @@ function FinancialSettlementsPageRevamp() {
                     ))}
                   </dl>
 
-                  <div className="mt-5 space-y-3 border-t border-[var(--border)] pt-5">
-                    <div>
-                      <label htmlFor="settlement-status" className="mb-1 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
-                        {copy.newStatus}
-                      </label>
-                      <select
-                        id="settlement-status"
-                        className={`${tableActionSelectClass} w-full`}
-                        value={statusDraft}
-                        onChange={(event) => {
-                          setSaveError(null);
-                          setStatusDraft(event.target.value as BackendFinancialSettlementStatus);
-                        }}
-                      >
-                        {RESOLUTION_OPTIONS.map((status) => (
-                          <option key={status} value={status}>
-                            {statusLabels[status]}
-                          </option>
-                        ))}
-                      </select>
+                  {selectedItem.status === "PENDING" ? (
+                    <div className="mt-5 space-y-3 border-t border-[var(--border)] pt-5">
+                      <div>
+                        <label htmlFor="settlement-status" className="mb-1 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+                          {copy.newStatus}
+                        </label>
+                        <select
+                          id="settlement-status"
+                          className={`${tableActionSelectClass} w-full`}
+                          value={statusDraft}
+                          onChange={(event) => {
+                            setSaveError(null);
+                            setStatusDraft(event.target.value as BackendFinancialSettlementStatus);
+                          }}
+                        >
+                          {RESOLUTION_OPTIONS.map((status) => (
+                            <option key={status} value={status}>
+                              {statusLabels[status]}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label htmlFor="settlement-resolution" className="mb-1 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+                          {copy.resolutionNote}
+                        </label>
+                        <textarea
+                          id="settlement-resolution"
+                          className={textareaClass}
+                          placeholder={copy.resolutionPlaceholder}
+                          value={resolutionDraft}
+                          onChange={(event) => {
+                            setSaveError(null);
+                            setResolutionDraft(event.target.value);
+                          }}
+                        />
+                      </div>
+                      {saveError ? <FieldErrorMessage message={saveError} /> : null}
+                      <PrimaryButton className="w-full" disabled={isSaving} onClick={() => void handleSave()} type="button">
+                        {isSaving ? "..." : copy.save}
+                      </PrimaryButton>
                     </div>
-                    <div>
-                      <label htmlFor="settlement-resolution" className="mb-1 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
-                        {copy.resolutionNote}
-                      </label>
-                      <textarea
-                        id="settlement-resolution"
-                        className={textareaClass}
-                        placeholder={copy.resolutionPlaceholder}
-                        value={resolutionDraft}
-                        onChange={(event) => {
-                          setSaveError(null);
-                          setResolutionDraft(event.target.value);
-                        }}
-                      />
+                  ) : (
+                    <div className="mt-5 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+                      <p className="text-sm font-semibold text-[var(--ink)]">{copy.resolvedBanner}</p>
+                      <p className="mt-1 text-sm text-[var(--muted)]">{copy.resolvedHint}</p>
                     </div>
-                    {saveError ? <FieldErrorMessage message={saveError} /> : null}
-                    <PrimaryButton className="w-full" disabled={isSaving} onClick={() => void handleSave()} type="button">
-                      {isSaving ? "..." : copy.save}
-                    </PrimaryButton>
-                  </div>
+                  )}
                 </>
               ) : (
                 <EmptyState title={copy.noSelectionTitle} message={copy.noSelectionMessage} />
