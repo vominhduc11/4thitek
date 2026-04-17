@@ -15,6 +15,7 @@ import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/section_card.dart';
 import 'widgets/support_ticket_history.dart';
+import 'support_screen_diagnostics.dart';
 
 enum SupportCategory { order, warranty, product, payment, returnOrder, other }
 
@@ -41,6 +42,7 @@ class _SupportScreenState extends State<SupportScreen> {
   final _detailSectionKey = GlobalKey();
   final _composerSectionKey = GlobalKey();
   late final SupportService _supportService;
+  NotificationController? _notificationController;
   int? _pendingInitialTicketId;
 
   SupportCategory _category = SupportCategory.order;
@@ -85,6 +87,7 @@ class _SupportScreenState extends State<SupportScreen> {
     super.initState();
     _supportService = widget.supportService ?? SupportService();
     _pendingInitialTicketId = widget.initialTicketId;
+    SupportScreenDiagnostics.instance.attach();
     _loadLatestTicket();
     _loadTicketHistory();
   }
@@ -93,16 +96,39 @@ class _SupportScreenState extends State<SupportScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final notificationController = NotificationScope.of(context);
-    final version = notificationController.incomingSupportEventVersion;
-    if (version != _handledSupportEventVersion) {
-      _handledSupportEventVersion = version;
-      _loadLatestTicket();
-      _loadTicketHistory();
+    if (!identical(_notificationController, notificationController)) {
+      _notificationController?.incomingSupportEvents.removeListener(
+        _handleIncomingSupportEvent,
+      );
+      _notificationController = notificationController;
+      _notificationController!.incomingSupportEvents.addListener(
+        _handleIncomingSupportEvent,
+      );
+      _handleIncomingSupportEvent();
     }
+  }
+
+  void _handleIncomingSupportEvent() {
+    final notificationController = _notificationController;
+    if (notificationController == null) {
+      return;
+    }
+    SupportScreenDiagnostics.instance.recordSupportEvent();
+    final version = notificationController.incomingSupportEventVersion;
+    if (version == _handledSupportEventVersion) {
+      return;
+    }
+    _handledSupportEventVersion = version;
+    _loadLatestTicket();
+    _loadTicketHistory();
   }
 
   @override
   void dispose() {
+    SupportScreenDiagnostics.instance.detach();
+    _notificationController?.incomingSupportEvents.removeListener(
+      _handleIncomingSupportEvent,
+    );
     _subjectController.dispose();
     _createMessageController.dispose();
     _followUpMessageController.dispose();
@@ -119,6 +145,7 @@ class _SupportScreenState extends State<SupportScreen> {
   }
 
   Future<void> _loadLatestTicket() async {
+    final stopwatch = Stopwatch()..start();
     try {
       final ticket = await _supportService.fetchLatestTicket();
       if (!mounted) {
@@ -140,6 +167,11 @@ class _SupportScreenState extends State<SupportScreen> {
           isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
         );
       });
+    } finally {
+      if (stopwatch.isRunning) {
+        stopwatch.stop();
+        SupportScreenDiagnostics.instance.recordLatestReload(stopwatch.elapsed);
+      }
     }
   }
 
@@ -167,6 +199,7 @@ class _SupportScreenState extends State<SupportScreen> {
     } else {
       setState(() => _isHistoryLoading = true);
     }
+    final stopwatch = Stopwatch()..start();
 
     try {
       final pageToLoad = loadMore ? _ticketPage + 1 : 0;
@@ -222,12 +255,19 @@ class _SupportScreenState extends State<SupportScreen> {
           _isHistoryLoading = false;
           _isLoadingMoreTickets = false;
         });
+        if (stopwatch.isRunning) {
+          stopwatch.stop();
+          SupportScreenDiagnostics.instance.recordHistoryReload(
+            stopwatch.elapsed,
+          );
+        }
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    SupportScreenDiagnostics.instance.recordSupportScreenBuild();
     final appSettings = AppSettingsScope.of(context);
     final texts = _SupportTexts(
       isEnglish: appSettings.locale.languageCode == 'en',
@@ -240,6 +280,8 @@ class _SupportScreenState extends State<SupportScreen> {
         : isTablet
         ? 860.0
         : double.infinity;
+    final animateSections = isWideLayout;
+    final denseSectionLayout = !isWideLayout;
     final selectedTicket = _selectedTicketForReply;
     final shouldShowComposer =
         _interactionMode != SupportInteractionMode.viewing;
@@ -250,6 +292,7 @@ class _SupportScreenState extends State<SupportScreen> {
     final summarySection = RepaintBoundary(
       key: _ticketSummaryKey,
       child: FadeSlideIn(
+        animate: animateSections,
         child: _SupportHeroSection(
           texts: texts,
           ticketCode: _lastTicketId,
@@ -276,8 +319,10 @@ class _SupportScreenState extends State<SupportScreen> {
 
     final historySection = RepaintBoundary(
       child: FadeSlideIn(
+        animate: animateSections,
         delay: const Duration(milliseconds: 70),
         child: SectionCard(
+          dense: denseSectionLayout,
           title: texts.ticketInboxTitle,
           child: SupportTicketHistory(
             isEnglish: texts.isEnglish,
@@ -285,6 +330,7 @@ class _SupportScreenState extends State<SupportScreen> {
             isLoading: _isHistoryLoading,
             isLoadingMore: _isLoadingMoreTickets,
             hasMore: _hasMoreTickets,
+            dense: denseSectionLayout,
             selectedTicketId: selectedTicket?.id,
             onSelectTicket: _handleTicketSelected,
             errorMessage: _ticketHistoryLoadErrorMessage == null
@@ -301,16 +347,26 @@ class _SupportScreenState extends State<SupportScreen> {
     final detailSection = RepaintBoundary(
       key: _detailSectionKey,
       child: FadeSlideIn(
+        animate: animateSections,
         delay: const Duration(milliseconds: 110),
-        child: _buildTicketDetailSection(texts, selectedTicket),
+        child: _buildTicketDetailSection(
+          texts,
+          selectedTicket,
+          dense: denseSectionLayout,
+        ),
       ),
     );
 
     final composerSection = RepaintBoundary(
       key: _composerSectionKey,
       child: FadeSlideIn(
+        animate: animateSections,
         delay: const Duration(milliseconds: 150),
-        child: _buildComposerSection(texts, selectedTicket),
+        child: _buildComposerSection(
+          texts,
+          selectedTicket,
+          dense: denseSectionLayout,
+        ),
       ),
     );
 
@@ -326,66 +382,76 @@ class _SupportScreenState extends State<SupportScreen> {
           constraints: BoxConstraints(maxWidth: contentMaxWidth),
           child: RefreshIndicator(
             onRefresh: _handleRefresh,
-            child: ListView(
-              key: const ValueKey<String>('support-scroll-view'),
-              controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: EdgeInsets.fromLTRB(
-                isTablet ? 24 : 16,
-                16,
-                isTablet ? 24 : 16,
-                24,
-              ),
-              children: isWideLayout
-                  ? [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            flex: 5,
-                            child: Column(
-                              children: [
-                                summarySection,
-                                const SizedBox(height: 14),
-                                historySection,
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            flex: 7,
-                            child: Column(
-                              children: [
-                                detailSection,
-                                if (shouldShowComposer) ...[
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                SupportScreenDiagnostics.instance.recordScrollNotification(
+                  notification,
+                );
+                return false;
+              },
+              child: ListView(
+                key: const ValueKey<String>('support-scroll-view'),
+                controller: _scrollController,
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(
+                  isTablet ? 24 : 16,
+                  16,
+                  isTablet ? 24 : 16,
+                  24,
+                ),
+                children: isWideLayout
+                    ? [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 5,
+                              child: Column(
+                                children: [
+                                  summarySection,
                                   const SizedBox(height: 14),
-                                  composerSection,
+                                  historySection,
                                 ],
-                                if (shouldShowGuideCard) ...[
-                                  const SizedBox(height: 14),
-                                  _SupportGuideCard(texts: texts),
-                                ],
-                              ],
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              flex: 7,
+                              child: Column(
+                                children: [
+                                  detailSection,
+                                  if (shouldShowComposer) ...[
+                                    const SizedBox(height: 14),
+                                    composerSection,
+                                  ],
+                                  if (shouldShowGuideCard) ...[
+                                    const SizedBox(height: 14),
+                                    _SupportGuideCard(texts: texts),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ]
+                    : [
+                        summarySection,
+                        const SizedBox(height: 14),
+                        historySection,
+                        const SizedBox(height: 14),
+                        detailSection,
+                        if (shouldShowComposer) ...[
+                          const SizedBox(height: 14),
+                          composerSection,
                         ],
-                      ),
-                    ]
-                  : [
-                      summarySection,
-                      const SizedBox(height: 14),
-                      historySection,
-                      const SizedBox(height: 14),
-                      detailSection,
-                      if (shouldShowComposer) ...[
-                        const SizedBox(height: 14),
-                        composerSection,
+                        if (shouldShowGuideCard) ...[
+                          const SizedBox(height: 14),
+                          _SupportGuideCard(texts: texts),
+                        ],
                       ],
-                      if (shouldShowGuideCard) ...[
-                        const SizedBox(height: 14),
-                        _SupportGuideCard(texts: texts),
-                      ],
-                    ],
+              ),
             ),
           ),
         ),
@@ -394,6 +460,7 @@ class _SupportScreenState extends State<SupportScreen> {
   }
 
   Future<void> _scrollToTicketCard() async {
+    SupportScreenDiagnostics.instance.recordAutoScroll('ticket_card');
     if (!mounted) {
       return;
     }
@@ -422,6 +489,7 @@ class _SupportScreenState extends State<SupportScreen> {
   bool _isSingleColumnLayout() => MediaQuery.sizeOf(context).width < 1080;
 
   Future<void> _scrollToDetailSection() async {
+    SupportScreenDiagnostics.instance.recordAutoScroll('detail_section');
     if (!mounted) {
       return;
     }
@@ -444,6 +512,7 @@ class _SupportScreenState extends State<SupportScreen> {
   }
 
   Future<void> _scrollToComposeSection() async {
+    SupportScreenDiagnostics.instance.recordAutoScroll('compose_section');
     if (!mounted) {
       return;
     }
@@ -717,6 +786,9 @@ class _SupportScreenState extends State<SupportScreen> {
                         (attachment) => _DraftAttachmentPreview(
                           attachment: attachment,
                           openLabel: texts.openAttachmentAction,
+                          downloadLabel: texts.downloadAttachmentAction,
+                          onDownload: (attachment, asset) =>
+                              _downloadAttachment(attachment, asset, texts),
                           onRemove: _isSubmitting
                               ? null
                               : () => _removeDraftAttachment(attachment),
@@ -734,10 +806,12 @@ class _SupportScreenState extends State<SupportScreen> {
 
   Widget _buildTicketDetailSection(
     _SupportTexts texts,
-    DealerSupportTicketRecord? ticket,
-  ) {
+    DealerSupportTicketRecord? ticket, {
+    required bool dense,
+  }) {
     if (ticket == null) {
       return SectionCard(
+        dense: dense,
         title: texts.ticketDetailTitle,
         child: _TicketDetailEmptyState(
           title: texts.emptyDetailTitle,
@@ -750,6 +824,7 @@ class _SupportScreenState extends State<SupportScreen> {
 
     final threadItems = _buildThreadItems(ticket);
     return SectionCard(
+      dense: dense,
       title: texts.ticketDetailTitle,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -795,7 +870,11 @@ class _SupportScreenState extends State<SupportScreen> {
                   .map(
                     (item) => Padding(
                       padding: const EdgeInsets.only(bottom: 12),
-                      child: _TicketThreadBubble(item: item, texts: texts),
+                      child: _TicketThreadBubble(
+                        item: item,
+                        texts: texts,
+                        onDownload: _downloadAttachment,
+                      ),
                     ),
                   )
                   .toList(growable: false),
@@ -808,12 +887,14 @@ class _SupportScreenState extends State<SupportScreen> {
 
   Widget _buildComposerSection(
     _SupportTexts texts,
-    DealerSupportTicketRecord? selectedTicket,
-  ) {
+    DealerSupportTicketRecord? selectedTicket, {
+    required bool dense,
+  }) {
     final isCreateMode = _interactionMode == SupportInteractionMode.creating;
     final contextFields = _buildContextFields(texts);
     final canReply = selectedTicket != null && !_isTicketClosed(selectedTicket);
     return SectionCard(
+      dense: dense,
       title: isCreateMode ? texts.submitRequestTitle : texts.followUpModeTitle,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -909,6 +990,7 @@ class _SupportScreenState extends State<SupportScreen> {
               minLines: 5,
               maxLines: 9,
               maxLength: _messageMax,
+              scrollPhysics: const NeverScrollableScrollPhysics(),
               buildCounter: _buildCounter,
               decoration: InputDecoration(
                 labelText: texts.descriptionFieldLabel,
@@ -974,6 +1056,7 @@ class _SupportScreenState extends State<SupportScreen> {
                 minLines: 4,
                 maxLines: 8,
                 maxLength: _messageMax,
+                scrollPhysics: const NeverScrollableScrollPhysics(),
                 buildCounter: _buildCounter,
                 onChanged: (_) => _persistFollowUpDraftForSelectedTicket(),
                 decoration: InputDecoration(
@@ -1402,6 +1485,33 @@ class _SupportScreenState extends State<SupportScreen> {
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
   }
+
+  Future<void> _downloadAttachment(
+    SupportTicketAttachmentRecord attachment,
+    SupportAttachmentAsset asset,
+    _SupportTexts texts,
+  ) async {
+    try {
+      final savedPath = await saveSupportAttachmentAssetToDevice(
+        asset: asset,
+        preferredFileName: attachment.fileName,
+        sourceUrl: attachment.url,
+      );
+      if (!mounted || savedPath == null) {
+        return;
+      }
+      _showSnackBar(
+        texts.attachmentDownloadedMessage(
+          attachment.fileName ?? attachment.url,
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      _showSnackBar(texts.attachmentDownloadFailedMessage(error));
+    }
+  }
 }
 
 class _SupportTexts {
@@ -1699,6 +1809,12 @@ extension _SupportTextsSupportExtras on _SupportTexts {
   }
 
   String get openAttachmentAction => isEnglish ? 'Open' : 'Mở';
+  String get downloadAttachmentAction => isEnglish ? 'Download' : 'Tải xuống';
+  String attachmentDownloadedMessage(String fileName) =>
+      isEnglish ? 'Saved $fileName.' : 'Đã tải xuống $fileName.';
+  String attachmentDownloadFailedMessage(Object error) => isEnglish
+      ? 'Unable to save the file right now.'
+      : 'Không thể tải tệp xuống lúc này.';
 
   String get newRequestModeTitle =>
       isEnglish ? 'Create a new support request' : 'Tạo yêu cầu hỗ trợ mới';
@@ -2142,6 +2258,7 @@ class _SupportGuideCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SectionCard(
+      dense: MediaQuery.sizeOf(context).width < 1080,
       title: texts.quickTipsTitle,
       child: Column(
         children: [
@@ -2396,10 +2513,20 @@ class _TicketContextPanel extends StatelessWidget {
 }
 
 class _TicketThreadBubble extends StatelessWidget {
-  const _TicketThreadBubble({required this.item, required this.texts});
+  const _TicketThreadBubble({
+    required this.item,
+    required this.texts,
+    required this.onDownload,
+  });
 
   final _TicketThreadItem item;
   final _SupportTexts texts;
+  final Future<void> Function(
+    SupportTicketAttachmentRecord attachment,
+    SupportAttachmentAsset asset,
+    _SupportTexts texts,
+  )
+  onDownload;
 
   @override
   Widget build(BuildContext context) {
@@ -2492,6 +2619,9 @@ class _TicketThreadBubble extends StatelessWidget {
                         (attachment) => _ThreadAttachmentPreview(
                           attachment: attachment,
                           openLabel: texts.openAttachmentAction,
+                          downloadLabel: texts.downloadAttachmentAction,
+                          onDownload: (attachment, asset) =>
+                              onDownload(attachment, asset, texts),
                         ),
                       )
                       .toList(growable: false),
@@ -2506,16 +2636,29 @@ class _TicketThreadBubble extends StatelessWidget {
 }
 
 class _ThreadAttachmentPreview extends StatelessWidget {
-  const _ThreadAttachmentPreview({required this.attachment, this.openLabel});
+  const _ThreadAttachmentPreview({
+    required this.attachment,
+    this.openLabel,
+    this.downloadLabel,
+    this.onDownload,
+  });
 
   final SupportTicketAttachmentRecord attachment;
   final String? openLabel;
+  final String? downloadLabel;
+  final Future<void> Function(
+    SupportTicketAttachmentRecord attachment,
+    SupportAttachmentAsset asset,
+  )?
+  onDownload;
 
   @override
   Widget build(BuildContext context) {
     return _AttachmentPreviewCard(
       attachment: attachment,
       openLabel: openLabel,
+      downloadLabel: downloadLabel,
+      onDownload: onDownload,
       previewHeight: 136,
       semanticLabel: 'Xem tệp đính kèm',
       thumbnailWidth: 220,
@@ -2730,11 +2873,19 @@ class _DraftAttachmentPreview extends StatelessWidget {
     required this.attachment,
     this.onRemove,
     this.openLabel,
+    this.downloadLabel,
+    this.onDownload,
   });
 
   final SupportTicketAttachmentRecord attachment;
   final VoidCallback? onRemove;
   final String? openLabel;
+  final String? downloadLabel;
+  final Future<void> Function(
+    SupportTicketAttachmentRecord attachment,
+    SupportAttachmentAsset asset,
+  )?
+  onDownload;
 
   @override
   Widget build(BuildContext context) {
@@ -2744,6 +2895,8 @@ class _DraftAttachmentPreview extends StatelessWidget {
         _AttachmentPreviewCard(
           attachment: attachment,
           openLabel: openLabel,
+          downloadLabel: downloadLabel,
+          onDownload: onDownload,
           previewHeight: 112,
           semanticLabel: 'Xem ảnh đính kèm',
           thumbnailWidth: 152,
@@ -2777,6 +2930,8 @@ class _AttachmentPreviewCard extends StatefulWidget {
     required this.previewHeight,
     required this.semanticLabel,
     this.openLabel,
+    this.downloadLabel,
+    this.onDownload,
     this.thumbnailWidth = 220,
   });
 
@@ -2785,6 +2940,12 @@ class _AttachmentPreviewCard extends StatefulWidget {
   final double thumbnailWidth;
   final String semanticLabel;
   final String? openLabel;
+  final String? downloadLabel;
+  final Future<void> Function(
+    SupportTicketAttachmentRecord attachment,
+    SupportAttachmentAsset asset,
+  )?
+  onDownload;
 
   @override
   State<_AttachmentPreviewCard> createState() => _AttachmentPreviewCardState();
@@ -2809,10 +2970,6 @@ class _AttachmentPreviewCardState extends State<_AttachmentPreviewCard> {
 
   @override
   Widget build(BuildContext context) {
-    final isImage = isLikelyImageAttachment(
-      fileName: widget.attachment.fileName,
-      url: widget.attachment.url,
-    );
     return FutureBuilder<SupportAttachmentAsset>(
       future: _loadFuture,
       builder: (context, snapshot) {
@@ -2826,10 +2983,19 @@ class _AttachmentPreviewCardState extends State<_AttachmentPreviewCard> {
         }
 
         final asset = snapshot.data;
+        final isImage =
+            asset != null &&
+            (isLikelyImageAttachment(
+                  fileName: widget.attachment.fileName,
+                  url: widget.attachment.url,
+                ) ||
+                asset.mimeType.startsWith('image/'));
         if (asset == null) {
           return _FileAttachmentCard(
             attachment: widget.attachment,
             openLabel: widget.openLabel,
+            downloadLabel: widget.downloadLabel,
+            onDownload: widget.onDownload,
             semanticLabel: widget.semanticLabel,
             maxWidth: widget.thumbnailWidth,
             asset: null,
@@ -2851,6 +3017,8 @@ class _AttachmentPreviewCardState extends State<_AttachmentPreviewCard> {
           attachment: widget.attachment,
           asset: asset,
           openLabel: widget.openLabel,
+          downloadLabel: widget.downloadLabel,
+          onDownload: widget.onDownload,
           semanticLabel: widget.semanticLabel,
           maxWidth: widget.thumbnailWidth,
         );
@@ -2943,12 +3111,14 @@ class _ImageAttachmentCard extends StatelessWidget {
   }
 }
 
-class _FileAttachmentCard extends StatelessWidget {
+class _FileAttachmentCard extends StatefulWidget {
   const _FileAttachmentCard({
     required this.attachment,
     required this.semanticLabel,
     required this.asset,
     this.openLabel,
+    this.downloadLabel,
+    this.onDownload,
     this.maxWidth = 220,
   });
 
@@ -2956,13 +3126,41 @@ class _FileAttachmentCard extends StatelessWidget {
   final SupportAttachmentAsset? asset;
   final String semanticLabel;
   final String? openLabel;
+  final String? downloadLabel;
+  final Future<void> Function(
+    SupportTicketAttachmentRecord attachment,
+    SupportAttachmentAsset asset,
+  )?
+  onDownload;
   final double maxWidth;
 
   @override
+  State<_FileAttachmentCard> createState() => _FileAttachmentCardState();
+}
+
+class _FileAttachmentCardState extends State<_FileAttachmentCard> {
+  bool _isDownloading = false;
+
+  Future<void> _handleDownload(SupportAttachmentAsset asset) async {
+    final onDownload = widget.onDownload;
+    if (onDownload == null || _isDownloading) {
+      return;
+    }
+    setState(() => _isDownloading = true);
+    try {
+      await onDownload(widget.attachment, asset);
+    } finally {
+      if (mounted) {
+        setState(() => _isDownloading = false);
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final asset = this.asset;
+    final asset = widget.asset;
     return Semantics(
-      label: semanticLabel,
+      label: widget.semanticLabel,
       button: true,
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
@@ -2970,7 +3168,7 @@ class _FileAttachmentCard extends StatelessWidget {
             ? null
             : () => _openAttachmentDataUri(asset.dataUri),
         child: Container(
-          constraints: BoxConstraints(maxWidth: maxWidth),
+          constraints: BoxConstraints(maxWidth: widget.maxWidth),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
@@ -2981,32 +3179,64 @@ class _FileAttachmentCard extends StatelessWidget {
               ).colorScheme.outlineVariant.withValues(alpha: 0.45),
             ),
           ),
-          child: Row(
+          child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.attach_file_outlined, size: 18),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      attachment.fileName ?? attachment.url,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.attach_file_outlined, size: 18),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      widget.attachment.fileName ?? widget.attachment.url,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    if (openLabel != null)
-                      Text(
-                        openLabel!,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
+                  ),
+                ],
+              ),
+              if (asset != null) ...[
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    if (widget.openLabel != null)
+                      TextButton(
+                        onPressed: () => _openAttachmentDataUri(asset.dataUri),
+                        child: Text(widget.openLabel!),
+                      ),
+                    if (widget.downloadLabel != null &&
+                        widget.onDownload != null)
+                      OutlinedButton.icon(
+                        onPressed: _isDownloading
+                            ? null
+                            : () => _handleDownload(asset),
+                        icon: _isDownloading
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.download_outlined, size: 18),
+                        label: Text(widget.downloadLabel!),
                       ),
                   ],
                 ),
-              ),
+              ] else if (widget.openLabel != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  widget.openLabel!,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ],
           ),
         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../support_service.dart';
+import '../support_screen_diagnostics.dart';
 import 'skeleton_box.dart';
 
 class SupportTicketHistory extends StatelessWidget {
@@ -17,6 +18,7 @@ class SupportTicketHistory extends StatelessWidget {
     required this.onLoadMore,
     this.onRetry,
     this.onCreateTicket,
+    this.dense = false,
   });
 
   final bool isEnglish;
@@ -30,9 +32,11 @@ class SupportTicketHistory extends StatelessWidget {
   final Future<void> Function() onLoadMore;
   final Future<void> Function()? onRetry;
   final VoidCallback? onCreateTicket;
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
+    SupportScreenDiagnostics.instance.recordSupportHistoryBuild();
     final texts = _SupportHistoryTexts(isEnglish: isEnglish);
     final colors = Theme.of(context).colorScheme;
 
@@ -97,6 +101,7 @@ class SupportTicketHistory extends StatelessWidget {
           _HistoryCard(
             item: item,
             texts: texts,
+            dense: dense,
             isSelected: item.id == selectedTicketId,
             onSelect: onSelectTicket == null
                 ? null
@@ -136,16 +141,19 @@ class _HistoryCard extends StatelessWidget {
     required this.item,
     required this.texts,
     required this.isSelected,
+    required this.dense,
     this.onSelect,
   });
 
   final DealerSupportTicketRecord item;
   final _SupportHistoryTexts texts;
   final bool isSelected;
+  final bool dense;
   final VoidCallback? onSelect;
 
   @override
   Widget build(BuildContext context) {
+    SupportScreenDiagnostics.instance.recordSupportHistoryCardBuild();
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final latestAdminMessage = _resolveLatestAdminMessage(item);
@@ -157,7 +165,7 @@ class _HistoryCard extends StatelessWidget {
         onTap: onSelect,
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(dense ? 14 : 16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(22),
             border: Border.all(
@@ -169,7 +177,7 @@ class _HistoryCard extends StatelessWidget {
             color: isSelected
                 ? colors.primary.withValues(alpha: 0.07)
                 : colors.surfaceContainerLowest,
-            boxShadow: isSelected
+            boxShadow: isSelected && !dense
                 ? [
                     BoxShadow(
                       color: colors.primary.withValues(alpha: 0.08),

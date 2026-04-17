@@ -264,6 +264,35 @@ class UploadAuthorizationTests {
     }
 
     @Test
+    void dealerCanReadAdminSupportEvidenceUploads() throws Exception {
+        String adminToken = login("upload.admin@example.com", "ChangedPass#456");
+        String dealerToken = registerDealerAndExtractAccessToken("dealer-support-read");
+
+        MvcResult uploadResult = mockMvc.perform(multipart("/api/v1/upload/support-tickets")
+                        .file(sampleImage("admin-support-image.png"))
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode uploadPayload = objectMapper.readTree(uploadResult.getResponse().getContentAsString());
+        String uploadedUrl = uploadPayload.path("data").path("url").asText();
+
+        mockMvc.perform(get(uploadedUrl)
+                        .header("Authorization", "Bearer " + dealerToken))
+                .andExpect(status().isOk())
+                .andExpect(content().bytes(SAMPLE_PNG_BYTES));
+    }
+
+    @Test
+    void dealerCannotReadAnotherDealersSupportEvidencePath() throws Exception {
+        String dealerToken = registerDealerAndExtractAccessToken("dealer-support-private");
+
+        mockMvc.perform(get("/api/v1/upload/support/evidence/dealers/999/private-proof.png")
+                        .header("Authorization", "Bearer " + dealerToken))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void suspendedDealerCannotReadOrDeleteOwnUploadAfterSuspension() throws Exception {
         Dealer dealer = registerDealer("dealer-suspended-upload", CustomerStatus.ACTIVE);
         String dealerToken = login(dealer.getEmail(), "Dealer#123");
@@ -359,3 +388,4 @@ class UploadAuthorizationTests {
         return payload.path("data").path("accessToken").asText();
     }
 }
+

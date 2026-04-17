@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:http/http.dart' as http;
 
 import 'api_config.dart';
@@ -16,6 +17,21 @@ class SupportAttachmentAsset {
   final Uint8List bytes;
   final String dataUri;
   final String mimeType;
+}
+
+Future<String?> saveSupportAttachmentAssetToDevice({
+  required SupportAttachmentAsset asset,
+  String? preferredFileName,
+  String? sourceUrl,
+}) async {
+  final fileName = resolveSupportAttachmentFileName(
+    preferredFileName: preferredFileName,
+    sourceUrl: sourceUrl,
+    mimeType: asset.mimeType,
+  );
+  return FlutterFileDialog.saveFile(
+    params: SaveFileDialogParams(data: asset.bytes, fileName: fileName),
+  );
 }
 
 Future<SupportAttachmentAsset> loadSupportAttachmentAsset(
@@ -41,9 +57,7 @@ Future<SupportAttachmentAsset> loadSupportAttachmentAsset(
 
     final response = await transport.get(
       Uri.parse(resolvedUrl),
-      headers: <String, String>{
-        'accept': '*/*',
-      },
+      headers: <String, String>{'accept': '*/*'},
     );
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception('Attachment download failed (${response.statusCode})');
@@ -54,10 +68,7 @@ Future<SupportAttachmentAsset> loadSupportAttachmentAsset(
       response.headers['content-type'],
       resolvedUrl,
     );
-    final dataUri = UriData.fromBytes(
-      bytes,
-      mimeType: mimeType,
-    ).uri.toString();
+    final dataUri = UriData.fromBytes(bytes, mimeType: mimeType).uri.toString();
     return SupportAttachmentAsset(
       bytes: bytes,
       dataUri: dataUri,
@@ -102,7 +113,68 @@ String? _extractFileName(String value) {
   }
   path = path.replaceAll('\\', '/').replaceAll(RegExp(r'/+$'), '');
   final segmentIndex = path.lastIndexOf('/');
-  final segment =
-      (segmentIndex >= 0 ? path.substring(segmentIndex + 1) : path).trim();
+  final segment = (segmentIndex >= 0 ? path.substring(segmentIndex + 1) : path)
+      .trim();
   return segment.isEmpty ? null : segment;
+}
+
+String resolveSupportAttachmentFileName({
+  String? preferredFileName,
+  String? sourceUrl,
+  String? mimeType,
+}) {
+  final mimeExtension = _extensionForMimeType(mimeType);
+  final candidates = <String?>[
+    preferredFileName,
+    _extractFileName(sourceUrl ?? ''),
+  ];
+  for (final candidate in candidates) {
+    final normalized = _sanitizeFileName(candidate);
+    if (normalized == null || normalized.isEmpty) {
+      continue;
+    }
+    if (normalized.contains('.')) {
+      return normalized;
+    }
+    if (mimeExtension != null && mimeExtension.isNotEmpty) {
+      return '$normalized.$mimeExtension';
+    }
+    return normalized;
+  }
+  return mimeExtension == null || mimeExtension.isEmpty
+      ? 'attachment.bin'
+      : 'attachment.$mimeExtension';
+}
+
+String? _sanitizeFileName(String? value) {
+  final normalized = value?.trim();
+  if (normalized == null || normalized.isEmpty) {
+    return null;
+  }
+  final fileName = normalized.split(RegExp(r'[\\/]+')).last;
+  final sanitized = fileName.replaceAll(RegExp(r'[:*?"<>|]+'), '_');
+  return sanitized.trim();
+}
+
+String? _extensionForMimeType(String? mimeType) {
+  final normalized = mimeType?.split(';').first.trim().toLowerCase();
+  if (normalized == null || normalized.isEmpty) {
+    return null;
+  }
+  return switch (normalized) {
+    'image/jpeg' => 'jpg',
+    'image/png' => 'png',
+    'image/gif' => 'gif',
+    'image/webp' => 'webp',
+    'application/pdf' => 'pdf',
+    'text/plain' => 'txt',
+    'application/json' => 'json',
+    'application/msword' => 'doc',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document' =>
+      'docx',
+    'application/vnd.ms-excel' => 'xls',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' =>
+      'xlsx',
+    _ => null,
+  };
 }

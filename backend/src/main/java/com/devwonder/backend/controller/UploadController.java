@@ -244,7 +244,9 @@ public class UploadController {
                 return;
             }
             requireDealerPortalAccess(account);
-            requireOwnedPath(normalized, actorScopedFolder("support/evidence/dealers", account));
+            if (normalized.startsWith("support/evidence/dealers/")) {
+                requireOwnedPath(normalized, actorScopedFolder("support/evidence/dealers", account));
+            }
             return;
         }
 
