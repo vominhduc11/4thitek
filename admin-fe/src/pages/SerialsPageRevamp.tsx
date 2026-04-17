@@ -14,7 +14,14 @@ import {
   X,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+} from "react";
 import {
   fetchAllAdminSerials,
   fetchAdminSerialsPaged,
@@ -35,6 +42,12 @@ import { useToast } from "../context/ToastContext";
 import { formatDateTime } from "../lib/formatters";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { buildSkippedSerialRetryValue } from "./serialImportViewState";
+import {
+  isValidSerialFormat,
+  parseSerialImportFile,
+  splitSerialTextValues,
+  type SerialImportFileParseResult,
+} from "../lib/serialImportFile";
 import {
   EmptyState,
   ErrorState,
@@ -97,8 +110,6 @@ function getSerialBadge(
   return { tone: statusTone[status], label: statusLabels[status] };
 }
 
-const SERIAL_FORMAT = /^[A-Z0-9][A-Z0-9-_.]{3,63}$/i;
-
 const copyKeys = {
   title: "Serial",
   description:
@@ -128,6 +139,21 @@ const copyKeys = {
   loadFallback: "Hệ thống chưa lấy được danh sách serial.",
   importTitle: "Import danh sách serial",
   serialList: "Danh sách serial",
+  importFromFile: "Import từ file",
+  chooseFile: "Chọn file",
+  clearFile: "Xóa file",
+  selectedFile: "File đã chọn",
+  importFileTotalRows: "Tổng dòng",
+  importFileValid: "Hợp lệ",
+  importFileDuplicate: "Trùng trong file",
+  importFileInvalid: "Không hợp lệ",
+  fillImportList: "Đổ vào danh sách import",
+  parsingFile: "Đang đọc file...",
+  parseFailed:
+    "Không thể đọc file import serial. Vui lòng kiểm tra định dạng và nội dung file.",
+  parseSummary:
+    "Đã đọc {fileName}: {valid} hợp lệ, {duplicate} trùng, {invalid} không hợp lệ.",
+  noValidSerialsInFile: "File không có serial hợp lệ để đổ vào danh sách import.",
   serialsPlaceholder:
     "Mỗi dòng một serial, hoặc phân cách bằng dấu phẩy.\nVí dụ:\nSN001\nSN002\nSN003",
   save: "Thực hiện import",
@@ -232,6 +258,11 @@ function SerialsPageRevamp() {
     productId: "",
     serials: "",
   });
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [isParsingFile, setIsParsingFile] = useState(false);
+  const [selectedFileName, setSelectedFileName] = useState("");
+  const [parsedFileResult, setParsedFileResult] =
+    useState<SerialImportFileParseResult | null>(null);
 
   useBodyScrollLock(Boolean(qrItem || rmaModal));
   useOverlaySurface({
@@ -341,13 +372,85 @@ function SerialsPageRevamp() {
     await Promise.all([loadData(page), loadAllItems()]);
   }, [loadAllItems, loadData, page]);
 
+  const resetImportFileState = useCallback(() => {
+    setIsParsingFile(false);
+    setSelectedFileName("");
+    setParsedFileResult(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }, []);
+
+  const closeImportForm = useCallback(() => {
+    setShowImport(false);
+    setLastImportResult(null);
+    resetImportFileState();
+  }, [resetImportFileState]);
+
+  const handleImportFileChange = async (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const selectedFile = event.currentTarget.files?.[0];
+    if (!selectedFile) {
+      resetImportFileState();
+      return;
+    }
+
+    setSelectedFileName(selectedFile.name);
+    setIsParsingFile(true);
+    setLastImportResult(null);
+    try {
+      const parseResult = await parseSerialImportFile(selectedFile);
+      setParsedFileResult(parseResult);
+      notify(
+        copy.parseSummary
+          .replace("{fileName}", parseResult.fileName)
+          .replace("{valid}", String(parseResult.validSerials.length))
+          .replace("{duplicate}", String(parseResult.duplicateSerials.length))
+          .replace("{invalid}", String(parseResult.invalidSerials.length)),
+        {
+          title: copy.importTitle,
+          variant: "success",
+        },
+      );
+    } catch (parseError) {
+      setParsedFileResult(null);
+      setSelectedFileName("");
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      notify(
+        parseError instanceof Error ? parseError.message : copy.parseFailed,
+        {
+          title: copy.importTitle,
+          variant: "error",
+        },
+      );
+    } finally {
+      setIsParsingFile(false);
+    }
+  };
+
+  const handleFillImportFromFile = () => {
+    if (!parsedFileResult || parsedFileResult.validSerials.length === 0) {
+      notify(copy.noValidSerialsInFile, {
+        title: copy.importTitle,
+        variant: "error",
+      });
+      return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      serials: parsedFileResult.validSerials.join("\n"),
+    }));
+    setLastImportResult(null);
+  };
+
   const handleImport = async () => {
     if (!accessToken) return;
     const productId = Number(form.productId);
-    const serials = form.serials
-      .split(/[\n,]+/)
-      .map((value) => value.trim())
-      .filter(Boolean);
+    const serials = splitSerialTextValues(form.serials);
 
     if (
       !form.productId ||
@@ -359,7 +462,7 @@ function SerialsPageRevamp() {
       return;
     }
 
-    if (serials.some((value) => !SERIAL_FORMAT.test(value))) {
+    if (serials.some((value) => !isValidSerialFormat(value))) {
       notify(copy.formatError, { title: copy.title, variant: "error" });
       return;
     }
@@ -370,14 +473,14 @@ function SerialsPageRevamp() {
         productId,
         serials,
       });
-      setLastImportResult(importResult);
       if (importResult.skippedCount === 0) {
         setForm({
           productId: "",
           serials: "",
         });
-        setShowImport(false);
+        closeImportForm();
       } else {
+        setLastImportResult(importResult);
         setForm((current) => ({
           ...current,
           serials: buildSkippedSerialRetryValue(importResult.skippedItems),
@@ -604,7 +707,11 @@ function SerialsPageRevamp() {
               aria-label={copy.import}
               icon={<Upload className="h-4 w-4" />}
               onClick={() => {
-                setShowImport((current) => !current);
+                if (showImport) {
+                  closeImportForm();
+                  return;
+                }
+                setShowImport(true);
                 setLastImportResult(null);
               }}
               type="button"
@@ -676,6 +783,75 @@ function SerialsPageRevamp() {
                 ))}
               </select>
             </label>
+            <div className="space-y-2 md:col-span-2">
+              <span className={labelClass}>{copy.importFromFile}</span>
+              <input
+                ref={fileInputRef}
+                accept=".csv,.txt,.xlsx,.xls"
+                className="hidden"
+                onChange={(event) => void handleImportFileChange(event)}
+                type="file"
+              />
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <PrimaryButton
+                  className="w-full sm:w-auto"
+                  disabled={isImporting || isParsingFile}
+                  onClick={() => fileInputRef.current?.click()}
+                  type="button"
+                >
+                  {isParsingFile ? copy.parsingFile : copy.chooseFile}
+                </PrimaryButton>
+                <GhostButton
+                  className="w-full sm:w-auto"
+                  disabled={!selectedFileName && !parsedFileResult}
+                  onClick={resetImportFileState}
+                  type="button"
+                >
+                  {copy.clearFile}
+                </GhostButton>
+              </div>
+              {selectedFileName ? (
+                <p className={tableMetaClass}>
+                  {copy.selectedFile}: {selectedFileName}
+                </p>
+              ) : null}
+              {parsedFileResult ? (
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+                  <div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-4">
+                    <p className={tableMetaClass}>
+                      {copy.importFileTotalRows}: {parsedFileResult.totalRows}
+                    </p>
+                    <p className={tableMetaClass}>
+                      {copy.importFileValid}: {parsedFileResult.validSerials.length}
+                    </p>
+                    <p className={tableMetaClass}>
+                      {copy.importFileDuplicate}:{" "}
+                      {parsedFileResult.duplicateSerials.length}
+                    </p>
+                    <p className={tableMetaClass}>
+                      {copy.importFileInvalid}: {parsedFileResult.invalidSerials.length}
+                    </p>
+                  </div>
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <PrimaryButton
+                      className="w-full sm:w-auto"
+                      disabled={parsedFileResult.validSerials.length === 0}
+                      onClick={handleFillImportFromFile}
+                      type="button"
+                    >
+                      {copy.fillImportList}
+                    </PrimaryButton>
+                    <GhostButton
+                      className="w-full sm:w-auto"
+                      onClick={resetImportFileState}
+                      type="button"
+                    >
+                      {copy.clearFile}
+                    </GhostButton>
+                  </div>
+                </div>
+              ) : null}
+            </div>
             <label className="space-y-2 md:col-span-2">
               <span className={labelClass}>{copy.serialList}</span>
               <textarea
@@ -703,10 +879,7 @@ function SerialsPageRevamp() {
             </PrimaryButton>
             <GhostButton
               className="w-full sm:w-auto"
-              onClick={() => {
-                setShowImport(false);
-                setLastImportResult(null);
-              }}
+              onClick={closeImportForm}
               type="button"
             >
               {copy.cancel}
