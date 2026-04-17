@@ -35,6 +35,8 @@ type ReportDefinition = {
   icon: typeof ShoppingCart;
 };
 
+const REPORT_QUERY_OFFSET = "+07:00";
+
 const downloadFile = (fileName: string, blob: Blob) => {
   const url = window.URL.createObjectURL(blob);
   const anchor = document.createElement("a");
@@ -42,6 +44,19 @@ const downloadFile = (fileName: string, blob: Blob) => {
   anchor.download = fileName;
   anchor.click();
   window.URL.revokeObjectURL(url);
+};
+
+const buildReportDateRange = (dateFrom: string, dateTo: string) => {
+  if (!dateFrom && !dateTo) {
+    return undefined;
+  }
+
+  return {
+    from: dateFrom
+      ? `${dateFrom}T00:00:00.000${REPORT_QUERY_OFFSET}`
+      : undefined,
+    to: dateTo ? `${dateTo}T23:59:59.999${REPORT_QUERY_OFFSET}` : undefined,
+  };
 };
 
 const copyKeys = {
@@ -125,10 +140,7 @@ function ReportsPageRevamp() {
     const jobKey = `${type}-${format}`;
     setActiveJob(jobKey);
 
-    const dateRange =
-      dateFrom || dateTo
-        ? { from: dateFrom || undefined, to: dateTo || undefined }
-        : undefined;
+    const dateRange = buildReportDateRange(dateFrom, dateTo);
 
     try {
       const response = await exportAdminReport(accessToken, type, format, dateRange);
