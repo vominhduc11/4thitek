@@ -14,7 +14,6 @@ class SupportTicketHistory extends StatelessWidget {
     this.errorMessage,
     this.selectedTicketId,
     this.onSelectTicket,
-    this.onReplyToTicket,
     required this.onLoadMore,
     this.onRetry,
     this.onCreateTicket,
@@ -28,7 +27,6 @@ class SupportTicketHistory extends StatelessWidget {
   final String? errorMessage;
   final int? selectedTicketId;
   final ValueChanged<DealerSupportTicketRecord>? onSelectTicket;
-  final ValueChanged<DealerSupportTicketRecord>? onReplyToTicket;
   final Future<void> Function() onLoadMore;
   final Future<void> Function()? onRetry;
   final VoidCallback? onCreateTicket;
@@ -103,9 +101,6 @@ class SupportTicketHistory extends StatelessWidget {
             onSelect: onSelectTicket == null
                 ? null
                 : () => onSelectTicket!(item),
-            onReply: onReplyToTicket == null || _isClosed(item)
-                ? null
-                : () => onReplyToTicket!(item),
           ),
           const SizedBox(height: 12),
         ],
@@ -134,9 +129,6 @@ class SupportTicketHistory extends StatelessWidget {
       ],
     );
   }
-
-  static bool _isClosed(DealerSupportTicketRecord item) =>
-      item.status.trim().toLowerCase() == 'closed';
 }
 
 class _HistoryCard extends StatelessWidget {
@@ -145,25 +137,18 @@ class _HistoryCard extends StatelessWidget {
     required this.texts,
     required this.isSelected,
     this.onSelect,
-    this.onReply,
   });
 
   final DealerSupportTicketRecord item;
   final _SupportHistoryTexts texts;
   final bool isSelected;
   final VoidCallback? onSelect;
-  final VoidCallback? onReply;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final isClosed = item.status.trim().toLowerCase() == 'closed';
-    final hasAdminUpdate = item.messages.any(
-      (message) =>
-          !message.internalNote &&
-          message.authorRole.trim().toLowerCase() == 'admin',
-    );
+    final latestAdminMessage = _resolveLatestAdminMessage(item);
 
     return Material(
       color: Colors.transparent,
@@ -232,60 +217,60 @@ class _HistoryCard extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   _MetaChip(
-                    icon: Icons.flag_outlined,
-                    label: texts.priorityValue(item.priority),
-                  ),
-                  _MetaChip(
                     icon: Icons.schedule_outlined,
                     label: texts.lastUpdatedLabel(
                       _formatDateTime(item.updatedAt),
                     ),
                   ),
-                  if (hasAdminUpdate)
-                    _MetaChip(
-                      icon: Icons.mark_email_unread_outlined,
-                      label: texts.adminUpdatedLabel,
-                      highlighted: true,
-                    ),
                   if (isSelected)
                     _MetaChip(
                       icon: Icons.check_circle_outline,
                       label: texts.selectedLabel,
                       highlighted: true,
                     ),
-                  if (isClosed)
-                    _MetaChip(
-                      icon: Icons.lock_outline,
-                      label: texts.replyDisabledLabel,
-                    ),
                 ],
               ),
-              const SizedBox(height: 10),
-              Text(
-                item.message,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  height: 1.45,
-                  color: colors.onSurface.withValues(alpha: 0.88),
+              if (latestAdminMessage != null) ...[
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    color: colors.surfaceContainerLow,
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.mark_email_read_outlined,
+                        size: 16,
+                        color: colors.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          texts.adminPreviewLabel(latestAdminMessage),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            height: 1.4,
+                            color: colors.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
               const SizedBox(height: 14),
-              Wrap(
-                spacing: 10,
-                runSpacing: 8,
+              Row(
                 children: [
                   if (onSelect != null)
                     OutlinedButton.icon(
                       onPressed: onSelect,
                       icon: const Icon(Icons.visibility_outlined, size: 18),
                       label: Text(texts.viewDetailsLabel),
-                    ),
-                  if (onReply != null)
-                    FilledButton.tonalIcon(
-                      onPressed: onReply,
-                      icon: const Icon(Icons.reply_outlined, size: 18),
-                      label: Text(texts.replyThisTicketLabel),
                     ),
                 ],
               ),
@@ -302,6 +287,20 @@ class _HistoryCard extends StatelessWidget {
     final hour = value.hour.toString().padLeft(2, '0');
     final minute = value.minute.toString().padLeft(2, '0');
     return '$day/$month/${value.year} $hour:$minute';
+  }
+
+  static String? _resolveLatestAdminMessage(DealerSupportTicketRecord item) {
+    for (final message in item.messages.reversed) {
+      if (message.internalNote ||
+          message.authorRole.trim().toLowerCase() != 'admin') {
+        continue;
+      }
+      final normalized = message.message.trim();
+      if (normalized.isNotEmpty) {
+        return normalized;
+      }
+    }
+    return null;
   }
 }
 
@@ -547,12 +546,9 @@ class _SupportHistoryTexts {
   String get activeLabel => isEnglish ? 'Request selected' : 'Yêu cầu đang xem';
   String get selectedLabel => isEnglish ? 'Viewing' : 'Đang xem';
   String get viewDetailsLabel => isEnglish ? 'View details' : 'Xem chi tiết';
-  String get replyThisTicketLabel =>
-      isEnglish ? 'Add details to this request' : 'Bổ sung cho yêu cầu này';
-  String get adminUpdatedLabel =>
-      isEnglish ? 'Support response available' : 'Đã có phản hồi từ đội hỗ trợ';
-  String get replyDisabledLabel =>
-      isEnglish ? 'No more updates allowed' : 'Không thể bổ sung thêm';
+  String adminPreviewLabel(String message) => isEnglish
+      ? 'Latest support update: $message'
+      : 'Cập nhật mới nhất từ hỗ trợ: $message';
   String get inboxHelper => isEnglish
       ? 'Select a request to review the full conversation and add more details in the right place.'
       : 'Chọn một yêu cầu để xem toàn bộ trao đổi và bổ sung thông tin đúng chỗ.';
@@ -574,18 +570,6 @@ class _SupportHistoryTexts {
       case 'open':
       default:
         return isEnglish ? 'Open' : 'Mới gửi';
-    }
-  }
-
-  String priorityValue(String priority) {
-    switch (priority.trim().toLowerCase()) {
-      case 'urgent':
-        return isEnglish ? 'Urgent' : 'Khẩn cấp';
-      case 'high':
-        return isEnglish ? 'High' : 'Cao';
-      case 'normal':
-      default:
-        return isEnglish ? 'Normal' : 'Bình thường';
     }
   }
 }

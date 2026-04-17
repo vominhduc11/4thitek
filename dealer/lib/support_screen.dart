@@ -20,7 +20,7 @@ enum SupportCategory { order, warranty, product, payment, returnOrder, other }
 
 enum SupportPriority { normal, high, urgent }
 
-enum SupportComposerMode { create, followUp }
+enum SupportInteractionMode { viewing, creating, followingUp }
 
 class SupportScreen extends StatefulWidget {
   const SupportScreen({super.key, this.supportService, this.initialTicketId});
@@ -48,10 +48,8 @@ class _SupportScreenState extends State<SupportScreen> {
   int? _lastTicketNumericId;
   String? _lastTicketId;
   DateTime? _lastSubmittedAt;
-  SupportCategory? _lastCategory;
   SupportPriority? _lastPriority;
   String? _lastStatus;
-  String? _lastAdminUpdate;
   String? _latestTicketLoadErrorMessage;
   String? _ticketHistoryLoadErrorMessage;
   final List<DealerSupportTicketRecord> _ticketHistory = [];
@@ -73,7 +71,7 @@ class _SupportScreenState extends State<SupportScreen> {
   bool _isSubmitting = false;
   bool _isUploadingAttachment = false;
   int _handledSupportEventVersion = 0;
-  SupportComposerMode _composerMode = SupportComposerMode.create;
+  SupportInteractionMode _interactionMode = SupportInteractionMode.viewing;
 
   static const _hotline = BusinessProfile.contactPhone;
   static const _supportEmail = BusinessProfile.contactEmail;
@@ -150,12 +148,10 @@ class _SupportScreenState extends State<SupportScreen> {
       _lastTicketNumericId = ticket.id;
       _lastTicketId = ticket.ticketCode;
       _lastSubmittedAt = ticket.createdAt;
-      _lastCategory = _parseCategory(ticket.category);
       _lastPriority = _parsePriority(ticket.priority);
       _lastStatus = ticket.status;
-      _lastAdminUpdate = _resolveLatestPublicAdminMessage(ticket);
       _selectedTicketForReply = _resolveSelectedTicket(ticket.id) ?? ticket;
-      if (_composerMode == SupportComposerMode.followUp) {
+      if (_interactionMode == SupportInteractionMode.followingUp) {
         _followUpMessageController.text =
             _followUpDraftsByTicketId[ticket.id] ?? '';
       }
@@ -204,7 +200,7 @@ class _SupportScreenState extends State<SupportScreen> {
             preferredInitial ??
             _resolveSelectedTicket(_lastTicketNumericId) ??
             (_ticketHistory.isNotEmpty ? _ticketHistory.first : null);
-        if (_composerMode == SupportComposerMode.followUp &&
+        if (_interactionMode == SupportInteractionMode.followingUp &&
             _selectedTicketForReply != null) {
           _followUpMessageController.text =
               _followUpDraftsByTicketId[_selectedTicketForReply!.id] ?? '';
@@ -245,6 +241,11 @@ class _SupportScreenState extends State<SupportScreen> {
         ? 860.0
         : double.infinity;
     final selectedTicket = _selectedTicketForReply;
+    final shouldShowComposer =
+        _interactionMode != SupportInteractionMode.viewing;
+    final shouldShowGuideCard =
+        _interactionMode == SupportInteractionMode.creating ||
+        (!_isHistoryLoading && _ticketHistory.isEmpty);
 
     final summarySection = RepaintBoundary(
       key: _ticketSummaryKey,
@@ -253,25 +254,14 @@ class _SupportScreenState extends State<SupportScreen> {
           texts: texts,
           ticketCode: _lastTicketId,
           latestStatus: _lastStatus,
-          latestAdminUpdate: _lastAdminUpdate,
           submittedAt: _lastSubmittedAt,
-          categoryLabel: _lastCategory == null
-              ? null
-              : texts.categoryLabel(_lastCategory!),
-          priorityLabel: _lastPriority == null
-              ? null
-              : texts.priorityLabel(_lastPriority!),
           slaLabel: texts.slaText(_lastPriority ?? _priority),
           hasLatestError: _latestTicketLoadErrorMessage != null,
           onRetryLatest: _loadLatestTicket,
-          onCreateTicket: () =>
-              _setComposerMode(SupportComposerMode.create, shouldScroll: true),
+          onCreateTicket: () => _openCreateComposer(shouldScroll: true),
           onOpenReply: selectedTicket == null || _isTicketClosed(selectedTicket)
               ? null
-              : () => _setComposerMode(
-                  SupportComposerMode.followUp,
-                  shouldScroll: true,
-                ),
+              : () => _openFollowUpComposer(shouldScroll: true),
           onCallHotline: () => _launchHotline(_hotline, texts),
           onSendEmail: () => _launchSupportEmail(_supportEmail, texts),
           onCopyHotline: () =>
@@ -297,17 +287,12 @@ class _SupportScreenState extends State<SupportScreen> {
             hasMore: _hasMoreTickets,
             selectedTicketId: selectedTicket?.id,
             onSelectTicket: _handleTicketSelected,
-            onReplyToTicket: (ticket) =>
-                _handleTicketSelected(ticket, switchToFollowUp: true),
             errorMessage: _ticketHistoryLoadErrorMessage == null
                 ? null
                 : texts.historyLoadWarning,
             onLoadMore: () => _loadTicketHistory(loadMore: true),
             onRetry: _loadTicketHistory,
-            onCreateTicket: () => _setComposerMode(
-              SupportComposerMode.create,
-              shouldScroll: true,
-            ),
+            onCreateTicket: () => _openCreateComposer(shouldScroll: true),
           ),
         ),
       ),
@@ -372,10 +357,14 @@ class _SupportScreenState extends State<SupportScreen> {
                             child: Column(
                               children: [
                                 detailSection,
-                                const SizedBox(height: 14),
-                                composerSection,
-                                const SizedBox(height: 14),
-                                _SupportGuideCard(texts: texts),
+                                if (shouldShowComposer) ...[
+                                  const SizedBox(height: 14),
+                                  composerSection,
+                                ],
+                                if (shouldShowGuideCard) ...[
+                                  const SizedBox(height: 14),
+                                  _SupportGuideCard(texts: texts),
+                                ],
                               ],
                             ),
                           ),
@@ -388,10 +377,14 @@ class _SupportScreenState extends State<SupportScreen> {
                       historySection,
                       const SizedBox(height: 14),
                       detailSection,
-                      const SizedBox(height: 14),
-                      composerSection,
-                      const SizedBox(height: 14),
-                      _SupportGuideCard(texts: texts),
+                      if (shouldShowComposer) ...[
+                        const SizedBox(height: 14),
+                        composerSection,
+                      ],
+                      if (shouldShowGuideCard) ...[
+                        const SizedBox(height: 14),
+                        _SupportGuideCard(texts: texts),
+                      ],
                     ],
             ),
           ),
@@ -424,6 +417,30 @@ class _SupportScreenState extends State<SupportScreen> {
 
   Future<void> _handleRefresh() async {
     await Future.wait<void>([_loadLatestTicket(), _loadTicketHistory()]);
+  }
+
+  bool _isSingleColumnLayout() => MediaQuery.sizeOf(context).width < 1080;
+
+  Future<void> _scrollToDetailSection() async {
+    if (!mounted) {
+      return;
+    }
+    final targetContext = _detailSectionKey.currentContext;
+    if (targetContext != null) {
+      await Scrollable.ensureVisible(
+        targetContext,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+      return;
+    }
+    if (_scrollController.hasClients) {
+      await _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent * 0.24,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   Future<void> _scrollToComposeSection() async {
@@ -460,63 +477,65 @@ class _SupportScreenState extends State<SupportScreen> {
     return null;
   }
 
-  String? _resolveLatestPublicAdminMessage(DealerSupportTicketRecord ticket) {
-    for (final message in ticket.messages.reversed) {
-      if (!message.internalNote &&
-          message.authorRole.trim().toLowerCase() == 'admin') {
-        final normalized = message.message.trim();
-        if (normalized.isNotEmpty) {
-          return normalized;
-        }
-      }
-    }
-    return null;
-  }
-
-  void _handleTicketSelected(
-    DealerSupportTicketRecord ticket, {
-    bool switchToFollowUp = false,
-  }) {
+  void _handleTicketSelected(DealerSupportTicketRecord ticket) {
     _persistFollowUpDraftForSelectedTicket();
     setState(() {
       _selectedTicketForReply = ticket;
-      if (switchToFollowUp && !_isTicketClosed(ticket)) {
-        _composerMode = SupportComposerMode.followUp;
+      if (_interactionMode == SupportInteractionMode.creating) {
+        _interactionMode = SupportInteractionMode.viewing;
+      } else if (_interactionMode == SupportInteractionMode.followingUp &&
+          _isTicketClosed(ticket)) {
+        _interactionMode = SupportInteractionMode.viewing;
       }
-      _followUpMessageController.text =
-          _followUpDraftsByTicketId[ticket.id] ?? '';
+      if (_interactionMode == SupportInteractionMode.followingUp) {
+        _followUpMessageController.text =
+            _followUpDraftsByTicketId[ticket.id] ?? '';
+      }
     });
-    if (switchToFollowUp) {
-      final texts = _SupportTexts(
-        isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
-      );
-      _showSnackBar(texts.replyTargetChangedMessage(ticket.ticketCode));
+    if (_isSingleColumnLayout()) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollToComposeSection();
+        _scrollToDetailSection();
       });
     }
   }
 
-  void _setComposerMode(SupportComposerMode mode, {bool shouldScroll = false}) {
+  void _openCreateComposer({bool shouldScroll = false}) {
     _persistFollowUpDraftForSelectedTicket();
-    if (mode == SupportComposerMode.followUp &&
-        (_selectedTicketForReply == null ||
-            _isTicketClosed(_selectedTicketForReply!))) {
-      return;
-    }
     setState(() {
-      _composerMode = mode;
-      if (mode == SupportComposerMode.followUp &&
-          _selectedTicketForReply != null) {
-        _followUpMessageController.text =
-            _followUpDraftsByTicketId[_selectedTicketForReply!.id] ?? '';
-      }
+      _interactionMode = SupportInteractionMode.creating;
     });
     if (shouldScroll) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _scrollToComposeSection();
       });
     }
+  }
+
+  void _openFollowUpComposer({bool shouldScroll = false}) {
+    _persistFollowUpDraftForSelectedTicket();
+    if (_selectedTicketForReply == null ||
+        _isTicketClosed(_selectedTicketForReply!)) {
+      return;
+    }
+    setState(() {
+      _interactionMode = SupportInteractionMode.followingUp;
+      _followUpMessageController.text =
+          _followUpDraftsByTicketId[_selectedTicketForReply!.id] ?? '';
+    });
+    if (shouldScroll) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToComposeSection();
+      });
+    }
+  }
+
+  void _setViewingMode() {
+    if (_interactionMode == SupportInteractionMode.viewing) {
+      return;
+    }
+    setState(() {
+      _interactionMode = SupportInteractionMode.viewing;
+    });
   }
 
   bool _isTicketClosed(DealerSupportTicketRecord ticket) =>
@@ -531,7 +550,7 @@ class _SupportScreenState extends State<SupportScreen> {
   }
 
   List<SupportTicketAttachmentRecord> _activeDraftAttachments() {
-    if (_composerMode == SupportComposerMode.create) {
+    if (_interactionMode == SupportInteractionMode.creating) {
       return _createDraftAttachments;
     }
     final ticketId = _selectedTicketForReply?.id;
@@ -724,8 +743,7 @@ class _SupportScreenState extends State<SupportScreen> {
           title: texts.emptyDetailTitle,
           description: texts.emptyDetailDescription,
           ctaLabel: texts.startFirstTicketAction,
-          onPressed: () =>
-              _setComposerMode(SupportComposerMode.create, shouldScroll: true),
+          onPressed: () => _openCreateComposer(shouldScroll: true),
         ),
       );
     }
@@ -741,10 +759,7 @@ class _SupportScreenState extends State<SupportScreen> {
             texts: texts,
             onReply: _isTicketClosed(ticket)
                 ? null
-                : () => _setComposerMode(
-                    SupportComposerMode.followUp,
-                    shouldScroll: true,
-                  ),
+                : () => _openFollowUpComposer(shouldScroll: true),
           ),
           if (ticket.contextData != null) ...[
             const SizedBox(height: 14),
@@ -795,21 +810,25 @@ class _SupportScreenState extends State<SupportScreen> {
     _SupportTexts texts,
     DealerSupportTicketRecord? selectedTicket,
   ) {
-    final isCreateMode = _composerMode == SupportComposerMode.create;
+    final isCreateMode = _interactionMode == SupportInteractionMode.creating;
     final contextFields = _buildContextFields(texts);
     final canReply = selectedTicket != null && !_isTicketClosed(selectedTicket);
     return SectionCard(
-      title: texts.composerTitle,
+      title: isCreateMode ? texts.submitRequestTitle : texts.followUpModeTitle,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _ComposerModeSwitcher(
-            texts: texts,
-            mode: _composerMode,
-            canReply: canReply,
-            onModeSelected: _setComposerMode,
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: _isSubmitting || _isUploadingAttachment
+                  ? null
+                  : _setViewingMode,
+              icon: const Icon(Icons.visibility_off_outlined, size: 18),
+              label: Text(texts.hideAction),
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           if (isCreateMode) ...[
             _ComposerBanner(
               icon: Icons.add_circle_outline,
@@ -1024,7 +1043,7 @@ class _SupportScreenState extends State<SupportScreen> {
   }
 
   Future<void> _handleAddAttachment(_SupportTexts texts) async {
-    if (_composerMode == SupportComposerMode.followUp &&
+    if (_interactionMode == SupportInteractionMode.followingUp &&
         _selectedTicketForReply == null) {
       _showSnackBar(texts.selectTicketToReplyMessage);
       return;
@@ -1196,7 +1215,7 @@ class _SupportScreenState extends State<SupportScreen> {
       _createMessageController.clear();
       _clearContextDraft();
       _clearCreateDraftAttachments();
-      _setComposerMode(SupportComposerMode.followUp);
+      _setViewingMode();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _scrollToTicketCard();
       });
@@ -1243,6 +1262,7 @@ class _SupportScreenState extends State<SupportScreen> {
       _followUpDraftsByTicketId.remove(ticket.id);
       _clearFollowUpDraftAttachments(ticket.id);
       _showSnackBar(texts.followUpSubmittedMessage(updatedTicket.ticketCode));
+      _setViewingMode();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _scrollToTicketCard();
       });
@@ -1282,27 +1302,6 @@ class _SupportScreenState extends State<SupportScreen> {
         return 'HIGH';
       case SupportPriority.urgent:
         return 'URGENT';
-    }
-  }
-
-  SupportCategory _parseCategory(String? raw) {
-    switch ((raw ?? '').trim().toLowerCase()) {
-      case 'order':
-        return SupportCategory.order;
-      case 'warranty':
-        return SupportCategory.warranty;
-      case 'product':
-        return SupportCategory.product;
-      case 'payment':
-        return SupportCategory.payment;
-      case 'return':
-      case 'returnorder':
-      case 'return_order':
-      case 'return-order':
-        return SupportCategory.returnOrder;
-      case 'other':
-      default:
-        return SupportCategory.other;
     }
   }
 
@@ -1701,12 +1700,6 @@ extension _SupportTextsSupportExtras on _SupportTexts {
 
   String get openAttachmentAction => isEnglish ? 'Open' : 'Mở';
 
-  String get composerTitle => isEnglish
-      ? 'Create request or add details'
-      : 'Tạo yêu cầu hoặc bổ sung thông tin';
-  String get createModeLabel => isEnglish ? 'New request' : 'Yêu cầu mới';
-  String get followUpModeLabel =>
-      isEnglish ? 'Add details' : 'Bổ sung thông tin';
   String get newRequestModeTitle =>
       isEnglish ? 'Create a new support request' : 'Tạo yêu cầu hỗ trợ mới';
   String get newRequestModeDescription => isEnglish
@@ -1771,10 +1764,6 @@ extension _SupportTextsSupportExtras on _SupportTexts {
       ? 'Adding details to request #$ticketCode - $subject'
       : 'Đang bổ sung cho yêu cầu #$ticketCode - $subject';
 
-  String replyTargetChangedMessage(String ticketCode) => isEnglish
-      ? 'Now adding details to request #$ticketCode.'
-      : 'Đã chuyển sang yêu cầu #$ticketCode để bổ sung thông tin.';
-
   String get orderCodeFieldLabel => isEnglish ? 'Order code' : 'Mã đơn hàng';
   String get transactionCodeFieldLabel =>
       isEnglish ? 'Transaction code' : 'Mã giao dịch';
@@ -1823,10 +1812,7 @@ class _SupportHeroSection extends StatelessWidget {
     required this.texts,
     required this.ticketCode,
     required this.latestStatus,
-    required this.latestAdminUpdate,
     required this.submittedAt,
-    required this.categoryLabel,
-    required this.priorityLabel,
     required this.slaLabel,
     required this.hasLatestError,
     required this.onRetryLatest,
@@ -1841,10 +1827,7 @@ class _SupportHeroSection extends StatelessWidget {
   final _SupportTexts texts;
   final String? ticketCode;
   final String? latestStatus;
-  final String? latestAdminUpdate;
   final DateTime? submittedAt;
-  final String? categoryLabel;
-  final String? priorityLabel;
   final String slaLabel;
   final bool hasLatestError;
   final Future<void> Function() onRetryLatest;
@@ -1892,10 +1875,10 @@ class _SupportHeroSection extends StatelessWidget {
               texts.supportCenterDescription,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: colors.onSurfaceVariant,
-                height: 1.45,
+                height: 1.4,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
@@ -1952,61 +1935,18 @@ class _SupportHeroSection extends StatelessWidget {
                           value: ticketCode!,
                         ),
                         _MetaPill(
+                          label: texts.submittedAtLabel,
+                          value: _formatDateTime(submittedAt!),
+                        ),
+                        _MetaPill(
                           label: texts.responseSlaLabel,
                           value: slaLabel,
                         ),
-                        if (categoryLabel != null)
-                          _MetaPill(
-                            label: texts.categorySummaryLabel,
-                            value: categoryLabel!,
-                          ),
-                        if (priorityLabel != null)
-                          _MetaPill(
-                            label: texts.prioritySummaryLabel,
-                            value: priorityLabel!,
-                          ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      '${texts.submittedAtLabel}: ${_formatDateTime(submittedAt!)}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colors.onSurfaceVariant,
-                      ),
-                    ),
-                    if (latestAdminUpdate != null) ...[
-                      const SizedBox(height: 12),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: colors.surfaceContainerLow,
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              texts.adminReplyLabel,
-                              style: theme.textTheme.labelMedium?.copyWith(
-                                color: colors.onSurfaceVariant,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              latestAdminUpdate!,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                height: 1.45,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
                   ] else
                     Text(
-                      texts.emptyDetailDescription,
+                      texts.noActiveTicketSummary,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: colors.onSurfaceVariant,
                         height: 1.45,
@@ -2023,41 +1963,12 @@ class _SupportHeroSection extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                _QuickContactAction(
-                  icon: Icons.phone_in_talk_outlined,
-                  title: texts.hotlineLabel,
-                  value: BusinessProfile.contactPhone,
-                  primaryAction: texts.callHotlineAction,
-                  secondaryAction: texts.copyAction,
-                  onPrimaryTap: onCallHotline,
-                  onSecondaryTap: onCopyHotline,
-                ),
-                _QuickContactAction(
-                  icon: Icons.alternate_email_outlined,
-                  title: texts.emailLabel,
-                  value: BusinessProfile.contactEmail,
-                  primaryAction: texts.sendEmailAction,
-                  secondaryAction: texts.copyAction,
-                  onPrimaryTap: onSendEmail,
-                  onSecondaryTap: onCopyEmail,
-                ),
-                _QuickContactAction(
-                  icon: Icons.schedule_outlined,
-                  title: texts.supportHoursLabel,
-                  value: texts.supportHours,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             Row(
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
+                    key: const ValueKey<String>('support-open-create-button'),
                     onPressed: onCreateTicket,
                     icon: const Icon(Icons.add_circle_outline),
                     label: Text(texts.startNewTicketAction),
@@ -2067,6 +1978,9 @@ class _SupportHeroSection extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: OutlinedButton.icon(
+                      key: const ValueKey<String>(
+                        'support-open-followup-button',
+                      ),
                       onPressed: onOpenReply,
                       icon: const Icon(Icons.reply_outlined),
                       label: Text(texts.replyActiveTicketAction),
@@ -2075,8 +1989,146 @@ class _SupportHeroSection extends StatelessWidget {
                 ],
               ],
             ),
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: colors.surface.withValues(alpha: 0.82),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: colors.outlineVariant.withValues(alpha: 0.32),
+                ),
+              ),
+              child: Theme(
+                data: theme.copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  childrenPadding: const EdgeInsets.only(bottom: 8),
+                  collapsedShape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                  ),
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                  ),
+                  title: Text(
+                    texts.quickContactTitle,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  subtitle: Text(
+                    texts.supportHours,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
+                  children: [
+                    _CompactContactRow(
+                      icon: Icons.phone_in_talk_outlined,
+                      title: texts.hotlineLabel,
+                      value: BusinessProfile.contactPhone,
+                      primaryAction: texts.callHotlineAction,
+                      secondaryAction: texts.copyAction,
+                      onPrimaryTap: onCallHotline,
+                      onSecondaryTap: onCopyHotline,
+                    ),
+                    const SizedBox(height: 8),
+                    _CompactContactRow(
+                      icon: Icons.alternate_email_outlined,
+                      title: texts.emailLabel,
+                      value: BusinessProfile.contactEmail,
+                      primaryAction: texts.sendEmailAction,
+                      secondaryAction: texts.copyAction,
+                      onPrimaryTap: onSendEmail,
+                      onSecondaryTap: onCopyEmail,
+                    ),
+                    const SizedBox(height: 8),
+                    _CompactContactRow(
+                      icon: Icons.schedule_outlined,
+                      title: texts.supportHoursLabel,
+                      value: texts.supportHours,
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _CompactContactRow extends StatelessWidget {
+  const _CompactContactRow({
+    required this.icon,
+    required this.title,
+    required this.value,
+    this.primaryAction,
+    this.secondaryAction,
+    this.onPrimaryTap,
+    this.onSecondaryTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String value;
+  final String? primaryAction;
+  final String? secondaryAction;
+  final VoidCallback? onPrimaryTap;
+  final VoidCallback? onSecondaryTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: colors.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 4),
+                Text(value, style: Theme.of(context).textTheme.bodyMedium),
+                if (onPrimaryTap != null || onSecondaryTap != null) ...[
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (onPrimaryTap != null && primaryAction != null)
+                        FilledButton.tonal(
+                          onPressed: onPrimaryTap,
+                          child: Text(primaryAction!),
+                        ),
+                      if (onSecondaryTap != null && secondaryAction != null)
+                        OutlinedButton(
+                          onPressed: onSecondaryTap,
+                          child: Text(secondaryAction!),
+                        ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -2272,6 +2324,7 @@ class _TicketHeadlineCard extends StatelessWidget {
             Align(
               alignment: Alignment.centerLeft,
               child: OutlinedButton.icon(
+                key: const ValueKey<String>('support-detail-followup-button'),
                 onPressed: onReply,
                 icon: const Icon(Icons.reply_outlined),
                 label: Text(texts.replyThisTicketAction),
@@ -2466,104 +2519,6 @@ class _ThreadAttachmentPreview extends StatelessWidget {
       previewHeight: 136,
       semanticLabel: 'Xem tệp đính kèm',
       thumbnailWidth: 220,
-    );
-  }
-}
-
-class _ComposerModeSwitcher extends StatelessWidget {
-  const _ComposerModeSwitcher({
-    required this.texts,
-    required this.mode,
-    required this.canReply,
-    required this.onModeSelected,
-  });
-
-  final _SupportTexts texts;
-  final SupportComposerMode mode;
-  final bool canReply;
-  final void Function(SupportComposerMode mode, {bool shouldScroll})
-  onModeSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _ModeChoiceButton(
-              label: texts.createModeLabel,
-              selected: mode == SupportComposerMode.create,
-              onTap: () => onModeSelected(
-                SupportComposerMode.create,
-                shouldScroll: false,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _ModeChoiceButton(
-              label: texts.followUpModeLabel,
-              selected: mode == SupportComposerMode.followUp,
-              enabled: canReply,
-              onTap: canReply
-                  ? () => onModeSelected(
-                      SupportComposerMode.followUp,
-                      shouldScroll: false,
-                    )
-                  : null,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ModeChoiceButton extends StatelessWidget {
-  const _ModeChoiceButton({
-    required this.label,
-    required this.selected,
-    this.enabled = true,
-    this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final bool enabled;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Material(
-      color: selected
-          ? colors.primary.withValues(alpha: 0.12)
-          : Colors.transparent,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: enabled ? onTap : null,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          child: Center(
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: enabled
-                    ? (selected ? colors.primary : colors.onSurface)
-                    : colors.onSurfaceVariant,
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
@@ -3011,7 +2966,9 @@ class _FileAttachmentCard extends StatelessWidget {
       button: true,
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        onTap: asset == null ? null : () => _openAttachmentDataUri(asset.dataUri),
+        onTap: asset == null
+            ? null
+            : () => _openAttachmentDataUri(asset.dataUri),
         child: Container(
           constraints: BoxConstraints(maxWidth: maxWidth),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -3100,11 +3057,7 @@ class _AttachmentLoadingCard extends StatelessWidget {
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
               const SizedBox(height: 10),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+              Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
             ],
           ),
         ),
@@ -3181,89 +3134,6 @@ class _CompactStatusBadge extends StatelessWidget {
         style: Theme.of(context).textTheme.labelLarge?.copyWith(
           color: foreground,
           fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-  }
-}
-
-class _QuickContactAction extends StatelessWidget {
-  const _QuickContactAction({
-    required this.icon,
-    required this.title,
-    required this.value,
-    this.primaryAction,
-    this.secondaryAction,
-    this.onPrimaryTap,
-    this.onSecondaryTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String value;
-  final String? primaryAction;
-  final String? secondaryAction;
-  final VoidCallback? onPrimaryTap;
-  final VoidCallback? onSecondaryTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 220, maxWidth: 320),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: colors.surface.withValues(alpha: 0.82),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: colors.outlineVariant.withValues(alpha: 0.42),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, size: 18, color: colors.primary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              value,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            if (onPrimaryTap != null || onSecondaryTap != null) ...[
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  if (onPrimaryTap != null && primaryAction != null)
-                    FilledButton.tonal(
-                      onPressed: onPrimaryTap,
-                      child: Text(primaryAction!),
-                    ),
-                  if (onSecondaryTap != null && secondaryAction != null)
-                    OutlinedButton(
-                      onPressed: onSecondaryTap,
-                      child: Text(secondaryAction!),
-                    ),
-                ],
-              ),
-            ],
-          ],
         ),
       ),
     );

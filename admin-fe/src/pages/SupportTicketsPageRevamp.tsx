@@ -1,4 +1,6 @@
 import {
+  ChevronDown,
+  ChevronUp,
   LifeBuoy,
   MessageSquareMore,
   Paperclip,
@@ -408,8 +410,19 @@ function SupportTicketsPageRevamp() {
   const [staffUsers, setStaffUsers] = useState<BackendStaffUserResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFilterLoading, setIsFilterLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isSavingProcessing, setIsSavingProcessing] = useState(false);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+  const [processingActionError, setProcessingActionError] = useState<
+    string | null
+  >(null);
+  const [messageActionError, setMessageActionError] = useState<string | null>(
+    null,
+  );
+  const [showQuickStats, setShowQuickStats] = useState(false);
+  const [isComposerExpanded, setIsComposerExpanded] = useState(false);
+  const [isContextExpanded, setIsContextExpanded] = useState(false);
+  const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const draftAttachmentUrlsRef = useRef<Set<string>>(new Set());
   const hasAppliedTicketQueryRef = useRef(false);
@@ -652,6 +665,36 @@ function SupportTicketsPageRevamp() {
     [selectedTicket],
   );
 
+  useEffect(() => {
+    if (!selectedTicket) {
+      setIsComposerExpanded(false);
+      setIsContextExpanded(false);
+      setIsTimelineExpanded(false);
+      setProcessingActionError(null);
+      setMessageActionError(null);
+      return;
+    }
+    const selectedDraftState =
+      draftsByTicketId[selectedTicket.id] ?? createDraft(selectedTicket);
+    const hasPendingComposerDraft =
+      selectedDraftState.replyDraft.trim().length > 0 ||
+      selectedDraftState.attachments.length > 0;
+    setIsComposerExpanded(hasPendingComposerDraft);
+    setIsContextExpanded(false);
+    setIsTimelineExpanded(false);
+    setProcessingActionError(null);
+    setMessageActionError(null);
+  }, [draftsByTicketId, selectedTicket]);
+
+  const openReplyComposer = useCallback(
+    (internalNote: boolean) => {
+      updateSelectedDraft({ internalNote });
+      setMessageActionError(null);
+      setIsComposerExpanded(true);
+    },
+    [updateSelectedDraft],
+  );
+
   const allowedStatusOptions = useMemo(
     () =>
       STATUS_TRANSITIONS[selectedTicket?.status ?? "open"] ?? STATUS_OPTIONS,
@@ -696,7 +739,8 @@ function SupportTicketsPageRevamp() {
 
   const handleSave = async () => {
     if (!accessToken || !selectedTicket || !selectedDraft) return;
-    setIsSaving(true);
+    setIsSavingProcessing(true);
+    setProcessingActionError(null);
     try {
       const updated = await updateAdminSupportTicket(
         accessToken,
@@ -715,15 +759,18 @@ function SupportTicketsPageRevamp() {
         variant: "success",
       });
     } catch (saveError) {
+      const message =
+        saveError instanceof Error ? saveError.message : copy.loadFallback;
+      setProcessingActionError(message);
       notify(
-        saveError instanceof Error ? saveError.message : copy.loadFallback,
+        message,
         {
           title: copy.title,
           variant: "error",
         },
       );
     } finally {
-      setIsSaving(false);
+      setIsSavingProcessing(false);
     }
   };
 
@@ -810,7 +857,8 @@ function SupportTicketsPageRevamp() {
     if (!accessToken || !selectedTicket || !selectedDraft?.replyDraft.trim()) {
       return;
     }
-    setIsSaving(true);
+    setIsSendingMessage(true);
+    setMessageActionError(null);
     try {
       const updated = await createAdminSupportTicketMessage(
         accessToken,
@@ -839,6 +887,7 @@ function SupportTicketsPageRevamp() {
           assigneeDraft: updated.assigneeId ?? "",
         },
       }));
+      setIsComposerExpanded(false);
       notify(
         selectedDraft.internalNote
           ? t("Đã lưu ghi chú nội bộ.")
@@ -849,15 +898,18 @@ function SupportTicketsPageRevamp() {
         },
       );
     } catch (saveError) {
+      const message =
+        saveError instanceof Error ? saveError.message : copy.loadFallback;
+      setMessageActionError(message);
       notify(
-        saveError instanceof Error ? saveError.message : copy.loadFallback,
+        message,
         {
           title: copy.title,
           variant: "error",
         },
       );
     } finally {
-      setIsSaving(false);
+      setIsSendingMessage(false);
     }
   };
 
@@ -985,25 +1037,42 @@ function SupportTicketsPageRevamp() {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-3">
-        <StatCard
-          icon={LifeBuoy}
-          label={copy.open}
-          value={stats.open}
-          tone="warning"
-        />
-        <StatCard
-          icon={MessageSquareMore}
-          label={copy.processing}
-          value={stats.progress}
-          tone="info"
-        />
-        <StatCard
-          icon={LifeBuoy}
-          label={copy.resolved}
-          value={stats.resolved}
-          tone="success"
-        />
+      <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between gap-3 text-left"
+          onClick={() => setShowQuickStats((current) => !current)}
+          aria-expanded={showQuickStats}
+        >
+          <span>
+            <p className={tableMetaClass}>{t("Tổng quan nhanh")}</p>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              {t(
+                "Dùng để nắm nhanh khối lượng ticket, ưu tiên xử lý các yêu cầu bên dưới.",
+              )}
+            </p>
+          </span>
+          <span className="text-sm font-medium text-[var(--accent)]">
+            {showQuickStats ? t("Ẩn") : t("Xem")}
+          </span>
+        </button>
+        {showQuickStats ? (
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            <StatCard icon={LifeBuoy} label={copy.open} value={stats.open} tone="warning" />
+            <StatCard
+              icon={MessageSquareMore}
+              label={copy.processing}
+              value={stats.progress}
+              tone="info"
+            />
+            <StatCard
+              icon={LifeBuoy}
+              label={copy.resolved}
+              value={stats.resolved}
+              tone="success"
+            />
+          </div>
+        ) : null}
       </div>
 
       {showEmptyWorkspace ? (
@@ -1092,6 +1161,22 @@ function SupportTicketsPageRevamp() {
                       selectedTicket.createdAt ?? new Date().toISOString(),
                     )}
                   </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="rounded-full border border-[var(--accent)] bg-[var(--accent-soft)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:border-[var(--accent)]"
+                      onClick={() => openReplyComposer(false)}
+                    >
+                      {copy.sendReply}
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-900 hover:border-amber-400"
+                      onClick={() => openReplyComposer(true)}
+                    >
+                      {copy.saveInternal}
+                    </button>
+                  </div>
                 </div>
 
                 {selectedTicket.contextData ? (

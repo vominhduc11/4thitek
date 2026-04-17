@@ -1,4 +1,4 @@
-﻿import 'package:dealer_hub/app_settings_controller.dart';
+import 'package:dealer_hub/app_settings_controller.dart';
 import 'package:dealer_hub/notification_controller.dart';
 import 'package:dealer_hub/support_screen.dart';
 import 'package:dealer_hub/support_service.dart';
@@ -27,6 +27,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.tap(
+      find.byKey(const ValueKey<String>('support-open-create-button')),
+    );
+    await tester.pumpAndSettle();
+
     final submitButton = find.byKey(
       const ValueKey<String>('support-submit-button'),
     );
@@ -41,9 +46,9 @@ void main() {
           .first,
     );
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField).at(1), 'Need help soon');
+    await tester.enterText(_textFieldByLabel('Subject'), 'Need help soon');
     await tester.enterText(
-      find.byType(TextField).at(2),
+      _textFieldByLabel('Description'),
       'Order status has been stuck for two days and needs support.',
     );
     await tester.ensureVisible(submitButton);
@@ -74,6 +79,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.tap(
+      find.byKey(const ValueKey<String>('support-open-create-button')),
+    );
+    await tester.pumpAndSettle();
+
     final submitButton = find.byKey(
       const ValueKey<String>('support-submit-button'),
     );
@@ -88,9 +98,9 @@ void main() {
           .first,
     );
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField).at(1), 'Cần hỗ trợ gấp');
+    await tester.enterText(_textFieldByLabel('Tiêu đề'), 'Cần hỗ trợ gấp');
     await tester.enterText(
-      find.byType(TextField).at(2),
+      _textFieldByLabel('Nội dung'),
       'Đơn hàng bị trễ quá lâu và cần được kiểm tra ngay hôm nay.',
     );
     await tester.ensureVisible(submitButton);
@@ -152,33 +162,19 @@ void main() {
     expect(find.textContaining('Yêu cầu đang xem'), findsWidgets);
     expect(find.textContaining('Mã yêu cầu'), findsWidgets);
     expect(find.textContaining('Phản hồi dự kiến'), findsWidgets);
-    expect(find.text('Cập nhật mới nhất từ đội hỗ trợ'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('support-submit-button')),
+      findsNothing,
+    );
+    expect(find.text('Chọn ảnh từ thư viện'), findsNothing);
+    expect(find.text('Cập nhật mới nhất từ đội hỗ trợ'), findsNothing);
     expect(find.text('Danh sách ticket'), findsNothing);
     expect(find.text('Admin vừa phản hồi'), findsNothing);
     expect(find.textContaining('SLA phản hồi'), findsNothing);
-
-    final scrollable = find
-        .descendant(
-          of: find.byKey(const ValueKey<String>('support-scroll-view')),
-          matching: find.byType(Scrollable),
-        )
-        .first;
-    await tester.scrollUntilVisible(
-      find.text('Chọn ảnh từ thư viện'),
-      300,
-      scrollable: scrollable,
-    );
-    await tester.pumpAndSettle();
+    expect(find.text('Gợi ý trước khi gửi'), findsNothing);
 
     expect(
-      find.textContaining('Tạo yêu cầu hoặc bổ sung thông tin'),
-      findsOneWidget,
-    );
-    expect(find.text('Chọn ảnh từ thư viện'), findsOneWidget);
-    expect(
-      find.text(
-        'Hiện bạn có thể đính kèm ảnh từ thư viện, như ảnh chụp màn hình hoặc ảnh minh chứng.',
-      ),
+      find.byKey(const ValueKey<String>('support-open-create-button')),
       findsOneWidget,
     );
   });
@@ -268,5 +264,9 @@ class _FakeSupportService extends SupportService {
   void close() {}
 }
 
-
-
+Finder _textFieldByLabel(String label) => find.byWidgetPredicate(
+  (widget) =>
+      widget is TextField &&
+      widget.decoration != null &&
+      widget.decoration!.labelText == label,
+);
