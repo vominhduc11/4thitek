@@ -1,6 +1,4 @@
 import {
-  ChevronDown,
-  ChevronUp,
   LifeBuoy,
   MessageSquareMore,
   Paperclip,
@@ -413,20 +411,12 @@ function SupportTicketsPageRevamp() {
   const [isSavingProcessing, setIsSavingProcessing] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
-  const [processingActionError, setProcessingActionError] = useState<
-    string | null
-  >(null);
-  const [messageActionError, setMessageActionError] = useState<string | null>(
-    null,
-  );
   const [showQuickStats, setShowQuickStats] = useState(false);
-  const [isComposerExpanded, setIsComposerExpanded] = useState(false);
-  const [isContextExpanded, setIsContextExpanded] = useState(false);
-  const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const draftAttachmentUrlsRef = useRef<Set<string>>(new Set());
   const hasAppliedTicketQueryRef = useRef(false);
   const hasActiveFilters = query.trim().length > 0 || statusFilter !== "all";
+  const isSaving = isSavingProcessing || isSendingMessage;
   const queryTicketId = useMemo(() => {
     const raw = new URLSearchParams(location.search).get("ticketId");
     if (!raw) return null;
@@ -667,11 +657,6 @@ function SupportTicketsPageRevamp() {
 
   useEffect(() => {
     if (!selectedTicket) {
-      setIsComposerExpanded(false);
-      setIsContextExpanded(false);
-      setIsTimelineExpanded(false);
-      setProcessingActionError(null);
-      setMessageActionError(null);
       return;
     }
     const selectedDraftState =
@@ -679,18 +664,12 @@ function SupportTicketsPageRevamp() {
     const hasPendingComposerDraft =
       selectedDraftState.replyDraft.trim().length > 0 ||
       selectedDraftState.attachments.length > 0;
-    setIsComposerExpanded(hasPendingComposerDraft);
-    setIsContextExpanded(false);
-    setIsTimelineExpanded(false);
-    setProcessingActionError(null);
-    setMessageActionError(null);
+    void hasPendingComposerDraft;
   }, [draftsByTicketId, selectedTicket]);
 
   const openReplyComposer = useCallback(
     (internalNote: boolean) => {
       updateSelectedDraft({ internalNote });
-      setMessageActionError(null);
-      setIsComposerExpanded(true);
     },
     [updateSelectedDraft],
   );
@@ -740,7 +719,6 @@ function SupportTicketsPageRevamp() {
   const handleSave = async () => {
     if (!accessToken || !selectedTicket || !selectedDraft) return;
     setIsSavingProcessing(true);
-    setProcessingActionError(null);
     try {
       const updated = await updateAdminSupportTicket(
         accessToken,
@@ -761,7 +739,6 @@ function SupportTicketsPageRevamp() {
     } catch (saveError) {
       const message =
         saveError instanceof Error ? saveError.message : copy.loadFallback;
-      setProcessingActionError(message);
       notify(
         message,
         {
@@ -858,7 +835,6 @@ function SupportTicketsPageRevamp() {
       return;
     }
     setIsSendingMessage(true);
-    setMessageActionError(null);
     try {
       const updated = await createAdminSupportTicketMessage(
         accessToken,
@@ -887,7 +863,6 @@ function SupportTicketsPageRevamp() {
           assigneeDraft: updated.assigneeId ?? "",
         },
       }));
-      setIsComposerExpanded(false);
       notify(
         selectedDraft.internalNote
           ? t("Đã lưu ghi chú nội bộ.")
@@ -900,7 +875,6 @@ function SupportTicketsPageRevamp() {
     } catch (saveError) {
       const message =
         saveError instanceof Error ? saveError.message : copy.loadFallback;
-      setMessageActionError(message);
       notify(
         message,
         {
