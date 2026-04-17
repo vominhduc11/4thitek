@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import SupportTicketsPageRevamp from "./SupportTicketsPageRevamp";
 
@@ -50,7 +51,12 @@ vi.mock("../lib/adminApi", async () => {
   };
 });
 
-const renderPage = () => render(<SupportTicketsPageRevamp />);
+const renderPage = () =>
+  render(
+    <MemoryRouter>
+      <SupportTicketsPageRevamp />
+    </MemoryRouter>,
+  );
 
 const ticketPayload = {
   id: 101,
@@ -121,7 +127,7 @@ describe("SupportTicketsPageRevamp", () => {
     renderPage();
 
     await screen.findByText("TK-001");
-    fireEvent.change(screen.getByRole("searchbox", { name: "Tìm ticket" }), {
+    fireEvent.change(screen.getByRole("searchbox", { name: "Tìm yêu cầu" }), {
       target: { value: "invoice" },
     });
 
@@ -131,5 +137,24 @@ describe("SupportTicketsPageRevamp", () => {
         100,
       );
     });
+  });
+
+  it("separates processing updates from dealer communication", async () => {
+    renderPage();
+
+    await screen.findByText("TK-001");
+    expect(screen.getByRole("button", { name: "Lưu trạng thái xử lý" })).toBeTruthy();
+    expect(
+      screen.getByText("Đại lý sẽ nhìn thấy nội dung này sau khi bạn bấm gửi."),
+    ).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Ghi chú nội bộ" }));
+
+    expect(
+      screen.getByText(
+        "Chỉ người trong admin nhìn thấy nội dung này. Đại lý sẽ không nhận được.",
+      ),
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Lưu ghi chú nội bộ" })).toBeTruthy();
   });
 });

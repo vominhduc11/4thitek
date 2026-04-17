@@ -107,33 +107,33 @@ type ThreadItem = {
 const copyKeys = {
   title: "Hỗ trợ",
   description:
-    "Theo dõi ticket từ đại lý, điều phối trạng thái và phản hồi trực tiếp trong admin.",
-  searchLabel: "Tìm ticket",
-  searchPlaceholder: "Tìm mã ticket, đại lý, chủ đề...",
+    "Theo dõi yêu cầu hỗ trợ từ đại lý, cập nhật người xử lý và phản hồi ngay trong admin.",
+  searchLabel: "Tìm yêu cầu",
+  searchPlaceholder: "Tìm mã yêu cầu, đại lý, chủ đề...",
   status: "Trạng thái",
   all: "Tất cả",
-  open: "Đang mở",
+  open: "Mới tiếp nhận",
   processing: "Đang xử lý",
-  resolved: "Đã xử lý",
-  selected: "Ticket đang chọn",
-  timeline: "Dòng thời gian",
-  reply: "Nội dung phản hồi",
-  save: "Lưu cập nhật",
-  sendReply: "Gửi phản hồi công khai",
+  resolved: "Đã xử lý xong",
+  selected: "Yêu cầu đang xem",
+  timeline: "Mốc xử lý",
+  reply: "Nội dung gửi đại lý",
+  save: "Lưu trạng thái xử lý",
+  sendReply: "Gửi cho đại lý",
   saveInternal: "Lưu ghi chú nội bộ",
   assignee: "Người phụ trách",
-  created: "Tạo lúc",
-  updated: "Cập nhật",
-  closed: "Đóng",
+  created: "Tiếp nhận lúc",
+  updated: "Cập nhật gần nhất",
+  closed: "Đã đóng lúc",
   next: "Tiếp",
   previous: "Trước",
-  emptyTitle: "Chưa có ticket hỗ trợ",
-  emptyMessage: "Ticket từ đại lý sẽ xuất hiện ở đây khi có yêu cầu mới.",
-  emptyDetailTitle: "Chọn một ticket để xem chi tiết",
+  emptyTitle: "Chưa có yêu cầu hỗ trợ",
+  emptyMessage: "Yêu cầu từ đại lý sẽ xuất hiện ở đây khi có trao đổi mới.",
+  emptyDetailTitle: "Chọn một yêu cầu để xem chi tiết",
   emptyDetailMessage:
-    "Khi ticket từ đại lý xuất hiện, bạn sẽ xem được toàn bộ cuộc hội thoại tại đây.",
-  loadTitle: "Không tải được ticket",
-  loadFallback: "Danh sách ticket chưa thể tải.",
+    "Khi có yêu cầu từ đại lý, bạn sẽ xem toàn bộ trao đổi tại đây.",
+  loadTitle: "Không tải được yêu cầu hỗ trợ",
+  loadFallback: "Danh sách yêu cầu hỗ trợ chưa thể tải.",
   reload: "Tải lại",
 } as const;
 
@@ -426,6 +426,19 @@ function SupportTicketsPageRevamp() {
   const selectedDraft = selectedTicket
     ? (draftsByTicketId[selectedTicket.id] ?? createDraft(selectedTicket))
     : null;
+  const isInternalNoteDraft = selectedDraft?.internalNote === true;
+  const composerTitle = isInternalNoteDraft
+    ? t("Ghi chú nội bộ")
+    : t("Trao đổi với đại lý");
+  const composerLabel = isInternalNoteDraft
+    ? t("Nội dung ghi chú nội bộ")
+    : t("Nội dung gửi đại lý");
+  const composerHint = isInternalNoteDraft
+    ? t("Chỉ người trong admin nhìn thấy nội dung này. Đại lý sẽ không nhận được.")
+    : t("Đại lý sẽ nhìn thấy nội dung này sau khi bạn bấm gửi.");
+  const composerPlaceholder = isInternalNoteDraft
+    ? t("Nhập ghi chú chỉ dành cho người xử lý...")
+    : t("Nhập nội dung cần gửi cho đại lý...");
 
   const updateSelectedDraft = useCallback(
     (patch: Partial<TicketDraftState>) => {
@@ -501,7 +514,7 @@ function SupportTicketsPageRevamp() {
         },
       );
       replaceTicket(updated);
-      notify(t("Đã lưu cập nhật ticket."), {
+      notify(t("Đã lưu trạng thái xử lý."), {
         title: copy.title,
         variant: "success",
       });
@@ -550,7 +563,7 @@ function SupportTicketsPageRevamp() {
       notify(
         uploadError instanceof Error
           ? uploadError.message
-          : t("Khong the tai tep dinh kem."),
+          : t("Không thể tải tệp đính kèm."),
         {
           title: copy.title,
           variant: "error",
@@ -622,7 +635,7 @@ function SupportTicketsPageRevamp() {
       notify(
         selectedDraft.internalNote
           ? t("Đã lưu ghi chú nội bộ.")
-          : t("Đã gửi phản hồi tới đại lý."),
+          : t("Đã gửi nội dung cho đại lý."),
         {
           title: copy.title,
           variant: "success",
@@ -647,12 +660,12 @@ function SupportTicketsPageRevamp() {
         case "in_progress":
           return t("Đang xử lý");
         case "resolved":
-          return t("Đã xử lý");
+          return t("Đã xử lý xong");
         case "closed":
           return t("Đã đóng");
         case "open":
         default:
-          return t("Đang mở");
+          return t("Mới tiếp nhận");
       }
     },
     [t],
@@ -877,7 +890,7 @@ function SupportTicketsPageRevamp() {
                 {selectedTicket.contextData ? (
                   <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
                     <p className={`${tableMetaClass} mb-2`}>
-                      {t("Ngữ cảnh ticket")}
+                      {t("Thông tin liên quan")}
                     </p>
                     <div className="grid gap-2 text-sm text-[var(--ink)] sm:grid-cols-2">
                       {selectedTicket.contextData.orderCode ? (
@@ -930,244 +943,295 @@ function SupportTicketsPageRevamp() {
                   </div>
                 ) : null}
 
-                <div className="space-y-3">
-                  {threadItems.map((message) => (
-                    <div
-                      key={message.key}
-                      className={[
-                        "rounded-2xl border px-4 py-3",
-                        message.internalNote
-                          ? "border-[var(--border)] bg-[var(--surface-muted)]"
-                          : message.authorRole === "admin"
-                            ? "border-[var(--accent)] bg-[var(--accent-soft)]"
-                            : message.syntheticRoot
-                              ? "border-[var(--accent)]/40 bg-[var(--surface)]"
-                              : "border-[var(--border)] bg-[var(--surface)]",
-                      ].join(" ")}
+                <div>
+                  <p className={tableMetaClass}>{t("Trao đổi trước đó")}</p>
+                  <div className="mt-3 space-y-3">
+                    {threadItems.map((message) => (
+                      <div
+                        key={message.key}
+                        className={[
+                          "rounded-2xl border px-4 py-3",
+                          message.internalNote
+                            ? "border-[var(--border)] bg-[var(--surface-muted)]"
+                            : message.authorRole === "admin"
+                              ? "border-[var(--accent)] bg-[var(--accent-soft)]"
+                              : message.syntheticRoot
+                                ? "border-[var(--accent)]/40 bg-[var(--surface)]"
+                                : "border-[var(--border)] bg-[var(--surface)]",
+                        ].join(" ")}
+                      >
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                          {message.authorRole === "dealer"
+                            ? (message.authorName ??
+                              selectedTicket.dealerName ??
+                              t("Đại lý"))
+                            : message.authorRole === "admin"
+                              ? (message.authorName ?? "Admin")
+                              : (message.authorName ?? t("Hệ thống"))}
+                          {message.syntheticRoot
+                            ? ` • ${t("Nội dung ban đầu")}`
+                            : ""}
+                          {message.internalNote
+                            ? ` • ${t("Chỉ nội bộ")}`
+                            : ""}
+                        </p>
+                        <p className="whitespace-pre-wrap text-sm text-[var(--ink)]">
+                          {message.message}
+                        </p>
+                        {message.attachments.length > 0 ? (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {message.attachments.map((attachment, index) => (
+                              <a
+                                key={`${message.key}-attachment-${index}`}
+                                href={attachment.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-xs text-[var(--ink)] hover:border-[var(--accent)]"
+                              >
+                                {attachment.fileName || t("Tệp đính kèm")}
+                              </a>
+                            ))}
+                          </div>
+                        ) : null}
+                        {message.createdAt ? (
+                          <p className="mt-2 text-xs text-[var(--muted)]">
+                            {formatDateTime(message.createdAt)}
+                          </p>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className={tableMetaClass}>{t("Cập nhật xử lý")}</p>
+                      <p className="mt-1 text-sm text-[var(--muted)]">
+                        {t(
+                          "Chỉ lưu trạng thái và người phụ trách. Không gửi nội dung cho đại lý.",
+                        )}
+                      </p>
+                    </div>
+                    <PrimaryButton
+                      disabled={isSaving}
+                      onClick={() => void handleSave()}
+                      type="button"
                     >
-                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-                        {message.authorRole === "dealer"
-                          ? (message.authorName ??
-                            selectedTicket.dealerName ??
-                            t("Đại lý"))
-                          : message.authorRole === "admin"
-                            ? (message.authorName ?? "Admin")
-                            : (message.authorName ?? t("Hệ thống"))}
-                        {message.syntheticRoot ? ` • ${t("Yêu cầu gốc")}` : ""}
-                        {message.internalNote
-                          ? ` • ${t("Ghi chú nội bộ")}`
-                          : ""}
-                      </p>
-                      <p className="whitespace-pre-wrap text-sm text-[var(--ink)]">
-                        {message.message}
-                      </p>
-                      {message.attachments.length > 0 ? (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {message.attachments.map((attachment, index) => (
+                      {isSaving ? `${copy.save}...` : copy.save}
+                    </PrimaryButton>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <label className="text-sm text-[var(--ink)]">
+                      <span className={tableMetaClass}>{copy.status}</span>
+                      <select
+                        className={`mt-2 w-full ${tableActionSelectClass}`}
+                        value={selectedDraft.statusDraft}
+                        onChange={(event) =>
+                          updateSelectedDraft({
+                            statusDraft: event.target
+                              .value as BackendSupportTicketStatus,
+                          })
+                        }
+                      >
+                        {allowedStatusOptions.map((status) => (
+                          <option key={status} value={status}>
+                            {statusLabel(status)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="text-sm text-[var(--ink)]">
+                      <span className={tableMetaClass}>{copy.assignee}</span>
+                      <select
+                        className={`mt-2 w-full ${tableActionSelectClass}`}
+                        value={selectedDraft.assigneeDraft}
+                        onChange={(event) =>
+                          updateSelectedDraft({
+                            assigneeDraft: event.target.value
+                              ? Number(event.target.value)
+                              : "",
+                          })
+                        }
+                      >
+                        <option value="">{t("Chưa gán")}</option>
+                        {staffUsers.map((user) => (
+                          <option key={user.id} value={user.id}>
+                            {user.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <div className="text-sm text-[var(--ink)] sm:col-span-2">
+                      <span className={tableMetaClass}>{copy.timeline}</span>
+                      <div className="mt-2 rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 text-xs text-[var(--muted)]">
+                        <p>
+                          {copy.created}:{" "}
+                          {formatDateTime(
+                            selectedTicket.createdAt ?? new Date().toISOString(),
+                          )}
+                        </p>
+                        <p>
+                          {copy.updated}:{" "}
+                          {formatDateTime(
+                            selectedTicket.updatedAt ??
+                              selectedTicket.createdAt ??
+                              new Date().toISOString(),
+                          )}
+                        </p>
+                        <p>
+                          {copy.resolved}:{" "}
+                          {selectedTicket.resolvedAt
+                            ? formatDateTime(selectedTicket.resolvedAt)
+                            : "-"}
+                        </p>
+                        <p>
+                          {copy.closed}:{" "}
+                          {selectedTicket.closedAt
+                            ? formatDateTime(selectedTicket.closedAt)
+                            : "-"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4">
+                  <div>
+                    <p className={tableMetaClass}>{composerTitle}</p>
+                    <p className="mt-1 text-sm text-[var(--muted)]">
+                      {t(
+                        "Chọn rõ nội dung gửi cho đại lý hay chỉ lưu lại cho người xử lý.",
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="mt-4 inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-muted)] p-1">
+                    <button
+                      type="button"
+                      className={[
+                        "rounded-full px-4 py-2 text-sm font-medium transition",
+                        !isInternalNoteDraft
+                          ? "bg-[var(--accent)] text-white"
+                          : "text-[var(--muted)] hover:text-[var(--ink)]",
+                      ].join(" ")}
+                      disabled={isSaving}
+                      onClick={() => updateSelectedDraft({ internalNote: false })}
+                    >
+                      {t("Gửi cho đại lý")}
+                    </button>
+                    <button
+                      type="button"
+                      className={[
+                        "rounded-full px-4 py-2 text-sm font-medium transition",
+                        isInternalNoteDraft
+                          ? "bg-amber-500 text-white"
+                          : "text-[var(--muted)] hover:text-[var(--ink)]",
+                      ].join(" ")}
+                      disabled={isSaving}
+                      onClick={() => updateSelectedDraft({ internalNote: true })}
+                    >
+                      {t("Ghi chú nội bộ")}
+                    </button>
+                  </div>
+
+                  <div
+                    className={[
+                      "mt-4 rounded-2xl border px-4 py-3 text-sm",
+                      isInternalNoteDraft
+                        ? "border-amber-200 bg-amber-50 text-amber-900"
+                        : "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--ink)]",
+                    ].join(" ")}
+                  >
+                    <p className="font-medium">{composerTitle}</p>
+                    <p className="mt-1">{composerHint}</p>
+                  </div>
+
+                  <label className="mt-4 block text-sm text-[var(--ink)]">
+                    <span className={tableMetaClass}>{composerLabel}</span>
+                    <textarea
+                      className={`${textareaClass} mt-2 min-h-[120px]`}
+                      value={selectedDraft.replyDraft}
+                      onChange={(event) =>
+                        updateSelectedDraft({ replyDraft: event.target.value })
+                      }
+                      placeholder={composerPlaceholder}
+                    />
+                  </label>
+
+                  <div className="mt-4 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <span className={tableMetaClass}>
+                        {t("Tệp đính kèm cho nội dung này")}
+                      </span>
+                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--ink)] hover:border-[var(--accent)]">
+                        <Upload className="h-4 w-4" />
+                        <span>
+                          {isUploadingAttachment
+                            ? t("Đang tải tệp...")
+                            : t("Tải tệp minh chứng")}
+                        </span>
+                        <input
+                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                          className="hidden"
+                          disabled={isUploadingAttachment || isSaving}
+                          onChange={(event) => {
+                            const file = event.target.files?.[0] ?? null;
+                            void handleAttachmentUpload(file);
+                            event.currentTarget.value = "";
+                          }}
+                          type="file"
+                        />
+                      </label>
+                    </div>
+                    {selectedDraft.attachments.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {selectedDraft.attachments.map((attachment, index) => (
+                          <div
+                            key={`${attachment.url}-${index}`}
+                            className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--ink)]"
+                          >
                             <a
-                              key={`${message.key}-attachment-${index}`}
                               href={attachment.url}
                               target="_blank"
                               rel="noreferrer"
-                              className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-xs text-[var(--ink)] hover:border-[var(--accent)]"
+                              className="inline-flex items-center gap-2 hover:text-[var(--accent)]"
                             >
-                              {attachment.fileName || t("Tệp đính kèm")}
+                              <Paperclip className="h-4 w-4" />
+                              <span>
+                                {attachment.fileName || t("Tệp đính kèm")}
+                              </span>
                             </a>
-                          ))}
-                        </div>
-                      ) : null}
-                      {message.createdAt ? (
-                        <p className="mt-2 text-xs text-[var(--muted)]">
-                          {formatDateTime(message.createdAt)}
-                        </p>
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="text-sm text-[var(--ink)]">
-                    <span className={tableMetaClass}>{copy.status}</span>
-                    <select
-                      className={`mt-2 w-full ${tableActionSelectClass}`}
-                      value={selectedDraft.statusDraft}
-                      onChange={(event) =>
-                        updateSelectedDraft({
-                          statusDraft: event.target
-                            .value as BackendSupportTicketStatus,
-                        })
-                      }
-                    >
-                      {allowedStatusOptions.map((status) => (
-                        <option key={status} value={status}>
-                          {statusLabel(status)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="text-sm text-[var(--ink)]">
-                    <span className={tableMetaClass}>{copy.assignee}</span>
-                    <select
-                      className={`mt-2 w-full ${tableActionSelectClass}`}
-                      value={selectedDraft.assigneeDraft}
-                      onChange={(event) =>
-                        updateSelectedDraft({
-                          assigneeDraft: event.target.value
-                            ? Number(event.target.value)
-                            : "",
-                        })
-                      }
-                    >
-                      <option value="">{t("Chưa gán")}</option>
-                      {staffUsers.map((user) => (
-                        <option key={user.id} value={user.id}>
-                          {user.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <div className="text-sm text-[var(--ink)] sm:col-span-2">
-                    <span className={tableMetaClass}>{copy.timeline}</span>
-                    <div className="mt-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-xs text-[var(--muted)]">
-                      <p>
-                        {copy.created}:{" "}
-                        {formatDateTime(
-                          selectedTicket.createdAt ?? new Date().toISOString(),
-                        )}
+                            <button
+                              type="button"
+                              className="text-[var(--muted)] hover:text-[var(--danger)]"
+                              onClick={() =>
+                                void removeDraftAttachment(attachment.url)
+                              }
+                              aria-label={t("Xóa tệp đính kèm")}
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-[var(--muted)]">
+                        {t("Chưa có tệp đính kèm cho nội dung này.")}
                       </p>
-                      <p>
-                        {copy.updated}:{" "}
-                        {formatDateTime(
-                          selectedTicket.updatedAt ??
-                            selectedTicket.createdAt ??
-                            new Date().toISOString(),
-                        )}
-                      </p>
-                      <p>
-                        {copy.resolved}:{" "}
-                        {selectedTicket.resolvedAt
-                          ? formatDateTime(selectedTicket.resolvedAt)
-                          : "-"}
-                      </p>
-                      <p>
-                        {copy.closed}:{" "}
-                        {selectedTicket.closedAt
-                          ? formatDateTime(selectedTicket.closedAt)
-                          : "-"}
-                      </p>
-                    </div>
+                    )}
                   </div>
-                </div>
 
-                <label className="block text-sm text-[var(--ink)]">
-                  <span className={tableMetaClass}>{copy.reply}</span>
-                  <textarea
-                    className={`${textareaClass} mt-2 min-h-[120px]`}
-                    value={selectedDraft.replyDraft}
-                    onChange={(event) =>
-                      updateSelectedDraft({ replyDraft: event.target.value })
-                    }
-                    placeholder={
-                      selectedDraft.internalNote
-                        ? t("Nhập ghi chú nội bộ chỉ dành cho admin...")
-                        : t("Nhập phản hồi sẽ được gửi tới đại lý...")
-                    }
-                  />
-                </label>
-
-                <div className="space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <span className={tableMetaClass}>
-                      {t("Tep dinh kem cho phan hoi")}
-                    </span>
-                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--ink)] hover:border-[var(--accent)]">
-                      <Upload className="h-4 w-4" />
-                      <span>
-                        {isUploadingAttachment
-                          ? t("Dang tai tep...")
-                          : t("Tai tep minh chung")}
-                      </span>
-                      <input
-                        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
-                        className="hidden"
-                        disabled={isUploadingAttachment || isSaving}
-                        onChange={(event) => {
-                          const file = event.target.files?.[0] ?? null;
-                          void handleAttachmentUpload(file);
-                          event.currentTarget.value = "";
-                        }}
-                        type="file"
-                      />
-                    </label>
+                  <div className="mt-4 flex flex-wrap justify-end gap-3">
+                    <GhostButton
+                      disabled={isSaving || !selectedDraft.replyDraft.trim()}
+                      onClick={() => void handleSendMessage()}
+                      type="button"
+                    >
+                      {isInternalNoteDraft ? copy.saveInternal : copy.sendReply}
+                    </GhostButton>
                   </div>
-                  {selectedDraft.attachments.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {selectedDraft.attachments.map((attachment, index) => (
-                        <div
-                          key={`${attachment.url}-${index}`}
-                          className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--ink)]"
-                        >
-                          <a
-                            href={attachment.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-2 hover:text-[var(--accent)]"
-                          >
-                            <Paperclip className="h-4 w-4" />
-                            <span>
-                              {attachment.fileName || t("Tep dinh kem")}
-                            </span>
-                          </a>
-                          <button
-                            type="button"
-                            className="text-[var(--muted)] hover:text-[var(--danger)]"
-                            onClick={() =>
-                              void removeDraftAttachment(attachment.url)
-                            }
-                            aria-label={t("Xoa tep dinh kem")}
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-[var(--muted)]">
-                      {t("Chua co tep dinh kem cho phan hoi nay.")}
-                    </p>
-                  )}
-                </div>
-
-                <label className="flex items-center gap-2 text-sm text-[var(--muted)]">
-                  <input
-                    type="checkbox"
-                    checked={selectedDraft.internalNote}
-                    onChange={(event) =>
-                      updateSelectedDraft({
-                        internalNote: event.target.checked,
-                      })
-                    }
-                  />
-                  {t("Gửi dưới dạng ghi chú nội bộ")}
-                </label>
-
-                <div className="flex flex-wrap justify-end gap-3">
-                  <GhostButton
-                    disabled={isSaving || !selectedDraft.replyDraft.trim()}
-                    onClick={() => void handleSendMessage()}
-                    type="button"
-                  >
-                    {selectedDraft.internalNote
-                      ? copy.saveInternal
-                      : copy.sendReply}
-                  </GhostButton>
-                  <PrimaryButton
-                    disabled={isSaving}
-                    onClick={() => void handleSave()}
-                    type="button"
-                  >
-                    {isSaving ? `${copy.save}...` : copy.save}
-                  </PrimaryButton>
                 </div>
               </div>
             ) : (
