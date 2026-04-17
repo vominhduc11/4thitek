@@ -114,11 +114,14 @@ const copyByLanguage = {
     loadOrderFailed: "Không tải được thông tin đơn hàng.",
     matchOrderRequired: "Vui lòng nhập mã đơn cần ghép khi chọn trạng thái Đã khớp.",
     invalidOrderId: "Mã đơn không hợp lệ.",
+    resolutionRequired: "Vui lòng nhập ghi chú xử lý trước khi lưu.",
+    invalidAllocationAmount: "Số tiền ghép phải là một số lớn hơn 0.",
+    allocationExceedsPayment: "Số tiền ghép không được vượt quá số tiền của giao dịch này.",
     noSelectionTitle: "Chưa chọn giao dịch nào",
     noSelectionMessage: "Hãy chọn một case ở danh sách bên trái để xem chi tiết và xử lý.",
-    summaryOpen: "Case đang mở",
+    summaryOpen: "Tổng case",
     summaryPending: "Cần xử lý",
-    summaryResolved: "Đã xử lý trên trang này",
+    summaryResolved: "Đã xử lý",
     reviewBanner: "Case đang chờ xử lý",
     reviewSubtle: "Ưu tiên xác nhận lại đơn gợi ý trước khi chốt kết quả.",
     listStatusTitle: "Trạng thái hiện tại",
@@ -177,11 +180,14 @@ const copyByLanguage = {
     loadOrderFailed: "Could not load target order details.",
     matchOrderRequired: "Please provide a target order id when status is Matched.",
     invalidOrderId: "Invalid order id.",
+    resolutionRequired: "Please provide a resolution note before saving.",
+    invalidAllocationAmount: "Allocation amount must be a number greater than 0.",
+    allocationExceedsPayment: "Allocation amount cannot exceed this payment amount.",
     noSelectionTitle: "No payment selected",
     noSelectionMessage: "Choose a case from the list to inspect details and resolve it.",
-    summaryOpen: "Open cases",
+    summaryOpen: "Total cases",
     summaryPending: "Pending",
-    summaryResolved: "Resolved on this page",
+    summaryResolved: "Resolved",
     reviewBanner: "This case still needs resolution",
     reviewSubtle: "Confirm the suggested order before finalizing the result.",
     listStatusTitle: "Current status",
@@ -201,6 +207,7 @@ function UnmatchedPaymentsPageRevamp() {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
+  const [summaryPendingCount, setSummaryPendingCount] = useState(0);
   const [statusFilter, setStatusFilter] = useState<"ALL" | BackendUnmatchedPaymentStatus>("ALL");
   const [reasonFilter, setReasonFilter] = useState<"ALL" | BackendUnmatchedPaymentReason>("ALL");
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -244,21 +251,39 @@ function UnmatchedPaymentsPageRevamp() {
       setSaveError(null);
 
       try {
-        const response = await fetchAdminUnmatchedPayments(accessToken, {
-          page: nextPage,
-          size: PAGE_SIZE,
-          status: nextStatus === "ALL" ? undefined : nextStatus,
-          reason: nextReason === "ALL" ? undefined : nextReason,
-        });
+        const [response, pendingSummaryResponse] = await Promise.all([
+          fetchAdminUnmatchedPayments(accessToken, {
+            page: nextPage,
+            size: PAGE_SIZE,
+            status: nextStatus === "ALL" ? undefined : nextStatus,
+            reason: nextReason === "ALL" ? undefined : nextReason,
+          }),
+          nextStatus === "ALL"
+            ? fetchAdminUnmatchedPayments(accessToken, {
+                page: 0,
+                size: 1,
+                status: "PENDING",
+                reason: nextReason === "ALL" ? undefined : nextReason,
+              })
+            : Promise.resolve(null),
+        ]);
 
         if (requestIdRef.current !== requestId) {
           return;
         }
 
+        const nextPendingCount =
+          nextStatus === "PENDING"
+            ? response.totalElements
+            : nextStatus === "ALL"
+              ? pendingSummaryResponse?.totalElements ?? 0
+              : 0;
+
         setItems(response.items);
         setPage(response.page);
         setTotalPages(response.totalPages);
         setTotalItems(response.totalElements);
+        setSummaryPendingCount(nextPendingCount);
         setSelectedId((current) =>
           response.items.find((item) => item.id === current)?.id ?? response.items[0]?.id ?? null,
         );
@@ -367,12 +392,10 @@ function UnmatchedPaymentsPageRevamp() {
     void loadMatchedOrderPreview(parsedOrderId);
   }, [statusDraft, matchedOrderIdDraft, loadMatchedOrderPreview, copy.invalidOrderId]);
 
-  const pendingCount = useMemo(
-    () => items.filter((item) => item.status === "PENDING").length,
-    [items],
+  const resolvedCount = useMemo(
+    () => Math.max(totalItems - summaryPendingCount, 0),
+    [summaryPendingCount, totalItems],
   );
-
-  const resolvedCount = useMemo(() => Math.max(items.length - pendingCount, 0), [items.length, pendingCount]);
 
   const handleSave = async () => {
     if (!accessToken || !selectedItem) {
@@ -392,6 +415,14 @@ function UnmatchedPaymentsPageRevamp() {
         return;
       }
     }
+    const normalizedResolution = resolutionDraft.trim();
+    if (!normalizedResolution) {
+      setSaveError(copy.resolutionRequired);
+      return;
+    }
+
+    const selectedAmount =
+      selectedItem.amount == null ? null : Number(selectedItem.amount);
     const normalizedAllocation = allocationAmountDraft.trim();
     const parsedAllocationAmount =
       statusDraft === "MATCHED" && normalizedAllocation
@@ -399,7 +430,15 @@ function UnmatchedPaymentsPageRevamp() {
         : undefined;
     if (statusDraft === "MATCHED" && normalizedAllocation) {
       if (!Number.isFinite(parsedAllocationAmount) || (parsedAllocationAmount ?? 0) <= 0) {
-        setSaveError(copy.allocationAmount);
+        setSaveError(copy.invalidAllocationAmount);
+        return;
+      }
+      if (
+        selectedAmount != null &&
+        Number.isFinite(selectedAmount) &&
+        (parsedAllocationAmount ?? 0) > selectedAmount
+      ) {
+        setSaveError(copy.allocationExceedsPayment);
         return;
       }
     }
@@ -408,14 +447,13 @@ function UnmatchedPaymentsPageRevamp() {
     setIsSaving(true);
 
     try {
-      const updated = await resolveAdminUnmatchedPayment(accessToken, selectedItem.id, {
+      await resolveAdminUnmatchedPayment(accessToken, selectedItem.id, {
         status: statusDraft,
-        resolution: resolutionDraft.trim() || undefined,
+        resolution: normalizedResolution,
         matchedOrderId: statusDraft === "MATCHED" ? parsedMatchedOrderId : undefined,
         allocationAmount: statusDraft === "MATCHED" ? parsedAllocationAmount : undefined,
       });
-      setItems((current) => current.map((item) => (item.id === updated.id ? updated : item)));
-      setSelectedId(updated.id);
+      await loadPage(0, statusFilter, reasonFilter);
       notify(copy.saveSuccess, { title: copy.title, variant: "success" });
     } catch (nextError) {
       setSaveError(copy.saveError);
@@ -495,7 +533,7 @@ function UnmatchedPaymentsPageRevamp() {
 
       <div className="grid gap-3 md:grid-cols-3">
         <StatCard icon={CircleDollarSign} label={copy.summaryOpen} value={String(totalItems)} tone="info" />
-        <StatCard icon={CircleDollarSign} label={copy.summaryPending} value={String(pendingCount)} tone="warning" />
+        <StatCard icon={CircleDollarSign} label={copy.summaryPending} value={String(summaryPendingCount)} tone="warning" />
         <StatCard icon={CircleDollarSign} label={copy.summaryResolved} value={String(resolvedCount)} tone="success" />
       </div>
 
@@ -514,7 +552,7 @@ function UnmatchedPaymentsPageRevamp() {
                   </p>
                   <p className={bodyTextClass}>{copy.queueHint}</p>
                 </div>
-                <StatusBadge tone="warning">{pendingCount} {copy.statusPending}</StatusBadge>
+                <StatusBadge tone="warning">{summaryPendingCount} {copy.statusPending}</StatusBadge>
               </div>
               <div className="mt-4 divide-y divide-[var(--border)]">
                 {items.map((item) => {
