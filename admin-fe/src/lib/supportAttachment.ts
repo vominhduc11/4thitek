@@ -102,6 +102,13 @@ export function resolveSupportAttachmentUrl(rawUrl: string): string {
   }
 
   const withoutLeadingSlash = normalized.replace(/^\/+/, "");
+  const privateUploadPrefix = findPrivateUploadPrefix(withoutLeadingSlash);
+  if (privateUploadPrefix) {
+    const stripped = withoutLeadingSlash.startsWith("uploads/")
+      ? withoutLeadingSlash.slice("uploads/".length)
+      : withoutLeadingSlash;
+    return resolveBackendAssetUrl(buildApiUrl(`/upload/${stripped}`));
+  }
   if (withoutLeadingSlash.startsWith("api/") || withoutLeadingSlash.startsWith("uploads/")) {
     return resolveBackendAssetUrl(`/${withoutLeadingSlash}`);
   }
@@ -159,4 +166,16 @@ function extractLastSegment(value: string): string | null {
   const path = extractPath(normalized, parsed).replace(/\\/g, "/").replace(/\/+$/, "");
   const segment = path.slice(path.lastIndexOf("/") + 1).trim();
   return segment || null;
+}
+
+function findPrivateUploadPrefix(value: string): string | null {
+  for (const prefix of PRIVATE_UPLOAD_PREFIXES) {
+    if (value.startsWith(prefix)) {
+      return prefix;
+    }
+    if (value.startsWith(`uploads/${prefix}`)) {
+      return `uploads/${prefix}`;
+    }
+  }
+  return null;
 }

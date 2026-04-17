@@ -164,6 +164,13 @@ class DealerApiConfig {
       RegExp(r'^/+'),
       '',
     );
+    final privateUploadPrefix = _findPrivateUploadPrefix(withoutLeadingSlash);
+    if (privateUploadPrefix != null) {
+      final stripped = withoutLeadingSlash.startsWith('uploads/')
+          ? withoutLeadingSlash.substring('uploads/'.length)
+          : withoutLeadingSlash;
+      return resolveApiUrl('/upload/$stripped');
+    }
     if (withoutLeadingSlash.startsWith('api/')) {
       return resolveUrl('/$withoutLeadingSlash');
     }
@@ -207,6 +214,18 @@ class DealerApiConfig {
       }
     }
     return false;
+  }
+
+  static String? _findPrivateUploadPrefix(String value) {
+    for (final prefix in _privateUploadPrefixes) {
+      if (value.startsWith(prefix)) {
+        return prefix;
+      }
+      if (value.startsWith('uploads/$prefix')) {
+        return 'uploads/$prefix';
+      }
+    }
+    return null;
   }
 
   static String? _normalizeLegacyStorageUrl(String value) {

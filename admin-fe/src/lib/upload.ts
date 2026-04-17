@@ -1,9 +1,11 @@
 import {
   buildApiUrl,
   hasBackendApi,
-  resolveBackendAssetUrl,
 } from "./backendApi";
-import { normalizeSupportAttachmentFileName } from "./supportAttachment";
+import {
+  normalizeSupportAttachmentFileName,
+  resolveSupportAttachmentUrl,
+} from "./supportAttachment";
 
 export type UploadCategory =
   | "products"
@@ -100,7 +102,7 @@ export const storeFileReference = async ({
   return {
     fileName: displayFileName,
     url: payload.data.url,
-    previewUrl: resolveBackendAssetUrl(payload.data.url),
+    previewUrl: resolveSupportAttachmentUrl(payload.data.url),
     ...(storedPath ? { storedPath } : {}),
     storage: "remote",
   };

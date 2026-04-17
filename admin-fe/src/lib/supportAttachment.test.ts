@@ -40,6 +40,16 @@ describe("support attachment normalization", () => {
     );
   });
 
+  it("rewrites legacy uploads-prefixed support paths to the authenticated upload endpoint", () => {
+    const resolved = resolveSupportAttachmentUrl(
+      "/uploads/support/evidence/dealers/1/9d0e914f-proof.jpg",
+    );
+
+    expect(resolved).toContain(
+      "/api/v1/upload/support/evidence/dealers/1/9d0e914f-proof.jpg",
+    );
+  });
+
   it("keeps product assets on uploads path", () => {
     const resolved = resolveSupportAttachmentUrl("products/catalog/hero.png");
 

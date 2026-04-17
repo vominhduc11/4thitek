@@ -67,6 +67,18 @@ void main() {
     },
   );
 
+  test(
+    'DealerApiConfig rewrites uploads-prefixed support attachment keys to the authenticated upload endpoint',
+    () {
+      expect(
+        DealerApiConfig.resolveUploadUrl(
+          '/uploads/support/evidence/1/638c7523-2267-4c58-b7aa-dd94042fe9e1.png',
+        ),
+        'https://api.4thitek.vn/api/v1/upload/support/evidence/1/638c7523-2267-4c58-b7aa-dd94042fe9e1.png',
+      );
+    },
+  );
+
   test('DealerApiConfig keeps products/blog keys under /uploads', () {
     expect(
       DealerApiConfig.resolveUploadUrl('products/catalog/hero.png'),
