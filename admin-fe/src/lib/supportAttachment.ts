@@ -22,6 +22,25 @@ export type NormalizedSupportAttachment = {
   fileName?: string | null;
 };
 
+export function isPrivateSupportAttachmentUrl(value: string | null | undefined): boolean {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+  const stripped = normalized.replace(/^https?:\/\/[^/]+/i, "");
+  return (
+    stripped.startsWith("/api/v1/upload/support/") ||
+    stripped.startsWith("/api/v1/upload/payments/") ||
+    stripped.startsWith("/api/v1/upload/avatars/") ||
+    stripped.startsWith("/uploads/support/") ||
+    stripped.startsWith("/uploads/payments/") ||
+    stripped.startsWith("/uploads/avatars/") ||
+    stripped.startsWith("support/") ||
+    stripped.startsWith("payments/") ||
+    stripped.startsWith("avatars/")
+  );
+}
+
 export function isLikelyImageAttachment(
   attachment: SupportAttachmentLike,
 ): boolean {

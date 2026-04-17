@@ -108,6 +108,7 @@ describe("SupportTicketsPageRevamp", () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     cleanup();
   });
 
@@ -162,7 +163,23 @@ describe("SupportTicketsPageRevamp", () => {
     expect(screen.getByRole("link", { name: "proof.jpg" })).toBeTruthy();
   });
 
-  it("uses the resolved attachment URL for links and previews", () => {
+  it("downloads private support image attachments with auth before rendering previews", async () => {
+    const blobUrl = "blob:proof-image";
+    const createObjectURLMock = vi
+      .spyOn(URL, "createObjectURL")
+      .mockReturnValue(blobUrl);
+    const revokeObjectURLMock = vi
+      .spyOn(URL, "revokeObjectURL")
+      .mockImplementation(() => {});
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(
+        new Response(new Blob(["proof"], { type: "image/jpeg" }), {
+          status: 200,
+          headers: { "Content-Type": "image/jpeg" },
+        }),
+      );
+
     render(
       <SupportAttachmentView
         attachment={{
@@ -171,21 +188,100 @@ describe("SupportTicketsPageRevamp", () => {
             "https://api.4thitek.vn/api/v1/upload/support/evidence/dealers/1/proof.jpg",
           fileName: "proof.jpg",
         }}
+        accessToken="admin-token"
+        t={(value) => value}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "https://api.4thitek.vn/api/v1/upload/support/evidence/dealers/1/proof.jpg",
+        {
+          headers: {
+            Authorization: "Bearer admin-token",
+          },
+        },
+      );
+    });
+
+    const image = await screen.findByRole("img", { name: "proof.jpg" });
+    expect(image.getAttribute("src")).toBe(blobUrl);
+    expect(createObjectURLMock).toHaveBeenCalledTimes(1);
+    expect(revokeObjectURLMock).not.toHaveBeenCalled();
+  });
+
+  it("uses the direct URL for public attachments", () => {
+    render(
+      <SupportAttachmentView
+        attachment={{
+          url: "support/evidence/dealers/1/proof.jpg",
+          resolvedUrl: "https://cdn.example.com/files/proof.jpg",
+          fileName: "proof.jpg",
+        }}
         t={(value) => value}
       />,
     );
 
     const link = screen.getByRole("link", { name: "proof.jpg" });
     expect(link.getAttribute("href")).toBe(
-      "https://api.4thitek.vn/api/v1/upload/support/evidence/dealers/1/proof.jpg",
+      "https://cdn.example.com/files/proof.jpg",
     );
     const image = screen.getByRole("img", { name: "proof.jpg" });
     expect(image.getAttribute("src")).toBe(
-      "https://api.4thitek.vn/api/v1/upload/support/evidence/dealers/1/proof.jpg",
+      "https://cdn.example.com/files/proof.jpg",
     );
   });
 
+  it("downloads private support file attachments with auth before opening them", async () => {
+    const blobUrl = "blob:proof-file";
+    vi.spyOn(URL, "createObjectURL").mockReturnValue(blobUrl);
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(new Blob(["proof"], { type: "application/pdf" }), {
+        status: 200,
+        headers: { "Content-Type": "application/pdf" },
+      }),
+    );
+
+    render(
+      <SupportAttachmentView
+        attachment={{
+          url: "support/evidence/dealers/1/proof.pdf",
+          resolvedUrl:
+            "https://api.4thitek.vn/api/v1/upload/support/evidence/dealers/1/proof.pdf",
+          fileName: "proof.pdf",
+        }}
+        accessToken="admin-token"
+        t={(value) => value}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "https://api.4thitek.vn/api/v1/upload/support/evidence/dealers/1/proof.pdf",
+        {
+          headers: {
+            Authorization: "Bearer admin-token",
+          },
+        },
+      );
+    });
+
+    const link = await screen.findByRole("link", { name: "proof.pdf" });
+    expect(link.getAttribute("href")).toBe(blobUrl);
+  });
+
   it("normalizes thread attachment URL and display name from legacy stored-path payload", async () => {
+    const blobUrl = "blob:thread-proof";
+    vi.spyOn(URL, "createObjectURL").mockReturnValue(blobUrl);
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(new Blob(["proof"], { type: "image/jpeg" }), {
+        status: 200,
+        headers: { "Content-Type": "image/jpeg" },
+      }),
+    );
+
     fetchAdminSupportTicketsMock.mockResolvedValue({
       items: [
         {
@@ -217,11 +313,19 @@ describe("SupportTicketsPageRevamp", () => {
     renderPage();
 
     await screen.findByText("Attached evidence");
-    const link = screen.getByRole("link", { name: "9d0e914f-proof.jpg" });
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "https://api.4thitek.vn/api/v1/upload/support/evidence/dealers/1/9d0e914f-proof.jpg",
+        {
+          headers: {
+            Authorization: "Bearer admin-token",
+          },
+        },
+      );
+    });
+    const link = await screen.findByRole("link", { name: "9d0e914f-proof.jpg" });
 
-    expect(link.getAttribute("href")).toContain(
-      "/api/v1/upload/support/evidence/dealers/1/9d0e914f-proof.jpg",
-    );
+    expect(link.getAttribute("href")).toBe(blobUrl);
   });
 
   it("keeps non-image attachments as file links", () => {

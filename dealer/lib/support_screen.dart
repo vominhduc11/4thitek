@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'app_settings_controller.dart';
 import 'business_profile.dart';
 import 'breakpoints.dart';
+import 'support_attachment_download.dart';
 import 'notification_controller.dart';
 import 'support_attachment_utils.dart';
 import 'support_service.dart';
@@ -2815,7 +2816,7 @@ class _DraftAttachmentPreview extends StatelessWidget {
   }
 }
 
-class _AttachmentPreviewCard extends StatelessWidget {
+class _AttachmentPreviewCard extends StatefulWidget {
   const _AttachmentPreviewCard({
     required this.attachment,
     required this.previewHeight,
@@ -2831,25 +2832,74 @@ class _AttachmentPreviewCard extends StatelessWidget {
   final String? openLabel;
 
   @override
+  State<_AttachmentPreviewCard> createState() => _AttachmentPreviewCardState();
+}
+
+class _AttachmentPreviewCardState extends State<_AttachmentPreviewCard> {
+  late Future<SupportAttachmentAsset> _loadFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFuture = loadSupportAttachmentAsset(widget.attachment.url);
+  }
+
+  @override
+  void didUpdateWidget(covariant _AttachmentPreviewCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.attachment.url != widget.attachment.url) {
+      _loadFuture = loadSupportAttachmentAsset(widget.attachment.url);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isImage = isLikelyImageAttachment(
-      fileName: attachment.fileName,
-      url: attachment.url,
+      fileName: widget.attachment.fileName,
+      url: widget.attachment.url,
     );
-    if (isImage) {
-      return _ImageAttachmentCard(
-        attachment: attachment,
-        openLabel: openLabel,
-        previewHeight: previewHeight,
-        thumbnailWidth: thumbnailWidth,
-        semanticLabel: semanticLabel,
-      );
-    }
-    return _FileAttachmentCard(
-      attachment: attachment,
-      openLabel: openLabel,
-      semanticLabel: semanticLabel,
-      maxWidth: thumbnailWidth,
+    return FutureBuilder<SupportAttachmentAsset>(
+      future: _loadFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return _AttachmentLoadingCard(
+            semanticLabel: widget.semanticLabel,
+            previewHeight: widget.previewHeight,
+            thumbnailWidth: widget.thumbnailWidth,
+            label: widget.attachment.fileName ?? widget.attachment.url,
+          );
+        }
+
+        final asset = snapshot.data;
+        if (asset == null) {
+          return _FileAttachmentCard(
+            attachment: widget.attachment,
+            openLabel: widget.openLabel,
+            semanticLabel: widget.semanticLabel,
+            maxWidth: widget.thumbnailWidth,
+            asset: null,
+          );
+        }
+
+        if (isImage) {
+          return _ImageAttachmentCard(
+            attachment: widget.attachment,
+            asset: asset,
+            openLabel: widget.openLabel,
+            previewHeight: widget.previewHeight,
+            thumbnailWidth: widget.thumbnailWidth,
+            semanticLabel: widget.semanticLabel,
+          );
+        }
+
+        return _FileAttachmentCard(
+          attachment: widget.attachment,
+          asset: asset,
+          openLabel: widget.openLabel,
+          semanticLabel: widget.semanticLabel,
+          maxWidth: widget.thumbnailWidth,
+        );
+      },
     );
   }
 }
@@ -2857,6 +2907,7 @@ class _AttachmentPreviewCard extends StatelessWidget {
 class _ImageAttachmentCard extends StatelessWidget {
   const _ImageAttachmentCard({
     required this.attachment,
+    required this.asset,
     required this.previewHeight,
     required this.thumbnailWidth,
     required this.semanticLabel,
@@ -2864,6 +2915,7 @@ class _ImageAttachmentCard extends StatelessWidget {
   });
 
   final SupportTicketAttachmentRecord attachment;
+  final SupportAttachmentAsset asset;
   final double previewHeight;
   final double thumbnailWidth;
   final String semanticLabel;
@@ -2879,7 +2931,7 @@ class _ImageAttachmentCard extends StatelessWidget {
         button: true,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: () => _openAttachmentUrl(attachment.url),
+          onTap: () => _openAttachmentDataUri(asset.dataUri),
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
@@ -2894,19 +2946,11 @@ class _ImageAttachmentCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Image.network(
-                    attachment.url,
+                  Image.memory(
+                    asset.bytes,
                     height: previewHeight,
                     width: double.infinity,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return _FileAttachmentCard(
-                        attachment: attachment,
-                        openLabel: openLabel,
-                        semanticLabel: semanticLabel,
-                        maxWidth: thumbnailWidth,
-                      );
-                    },
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
@@ -2948,23 +2992,26 @@ class _FileAttachmentCard extends StatelessWidget {
   const _FileAttachmentCard({
     required this.attachment,
     required this.semanticLabel,
+    required this.asset,
     this.openLabel,
     this.maxWidth = 220,
   });
 
   final SupportTicketAttachmentRecord attachment;
+  final SupportAttachmentAsset? asset;
   final String semanticLabel;
   final String? openLabel;
   final double maxWidth;
 
   @override
   Widget build(BuildContext context) {
+    final asset = this.asset;
     return Semantics(
       label: semanticLabel,
       button: true,
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        onTap: () => _openAttachmentUrl(attachment.url),
+        onTap: asset == null ? null : () => _openAttachmentDataUri(asset.dataUri),
         child: Container(
           constraints: BoxConstraints(maxWidth: maxWidth),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -3011,8 +3058,63 @@ class _FileAttachmentCard extends StatelessWidget {
   }
 }
 
-Future<void> _openAttachmentUrl(String url) async {
-  final uri = Uri.tryParse(url);
+class _AttachmentLoadingCard extends StatelessWidget {
+  const _AttachmentLoadingCard({
+    required this.semanticLabel,
+    required this.previewHeight,
+    required this.thumbnailWidth,
+    required this.label,
+  });
+
+  final String semanticLabel;
+  final double previewHeight;
+  final double thumbnailWidth;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: semanticLabel,
+      button: false,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: thumbnailWidth),
+        child: Container(
+          height: previewHeight,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            color: Theme.of(context).colorScheme.surface,
+            border: Border.all(
+              color: Theme.of(
+                context,
+              ).colorScheme.outlineVariant.withValues(alpha: 0.45),
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> _openAttachmentDataUri(String dataUri) async {
+  final uri = Uri.tryParse(dataUri);
   if (uri != null) {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }

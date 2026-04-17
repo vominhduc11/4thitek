@@ -28,6 +28,7 @@ import { formatDateTime } from "../lib/formatters";
 import { subscribeAdminSupportRefresh } from "../lib/adminRealtime";
 import {
   isLikelyImageAttachment,
+  isPrivateSupportAttachmentUrl,
   normalizeSupportAttachment,
   type NormalizedSupportAttachment,
 } from "../lib/supportAttachment";
@@ -106,6 +107,7 @@ type ThreadItem = {
 type SupportAttachmentViewProps = {
   attachment: NormalizedSupportAttachment;
   t: (value: string) => string;
+  accessToken?: string | null;
   removable?: boolean;
   onRemove?: () => void;
 };
@@ -204,13 +206,82 @@ function buildThreadItems(ticket: BackendSupportTicketResponse): ThreadItem[] {
 export function SupportAttachmentView({
   attachment,
   t,
+  accessToken,
   removable = false,
   onRemove,
 }: SupportAttachmentViewProps) {
   const [imageFailed, setImageFailed] = useState(false);
+  const [resolvedAssetUrl, setResolvedAssetUrl] = useState<string>("");
+  const [resolutionFailed, setResolutionFailed] = useState(false);
+  const isPrivateAttachment = isPrivateSupportAttachmentUrl(
+    attachment.resolvedUrl || attachment.url,
+  );
   const isImage = isLikelyImageAttachment(attachment) && !imageFailed;
   const fileLabel = attachment.fileName || t("Tệp đính kèm");
   const resolvedUrl = attachment.resolvedUrl || attachment.url;
+
+  useEffect(() => {
+    let active = true;
+    let objectUrl: string | null = null;
+
+    setImageFailed(false);
+    setResolutionFailed(false);
+
+    if (!resolvedUrl) {
+      setResolvedAssetUrl("");
+      return undefined;
+    }
+
+    if (!isPrivateAttachment) {
+      setResolvedAssetUrl(resolvedUrl);
+      return undefined;
+    }
+
+    if (!accessToken) {
+      setResolvedAssetUrl("");
+      setResolutionFailed(true);
+      return undefined;
+    }
+
+    setResolvedAssetUrl("");
+
+    void (async () => {
+      try {
+        const response = await fetch(resolvedUrl, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+        if (!response.ok) {
+          throw new Error(`Attachment download failed (${response.status})`);
+        }
+        const blob = await response.blob();
+        objectUrl = URL.createObjectURL(blob);
+        if (active) {
+          setResolvedAssetUrl(objectUrl);
+        } else if (objectUrl) {
+          URL.revokeObjectURL(objectUrl);
+        }
+      } catch {
+        if (active) {
+          setResolutionFailed(true);
+          setResolvedAssetUrl("");
+        }
+      }
+    })();
+
+    return () => {
+      active = false;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [accessToken, isPrivateAttachment, resolvedUrl]);
+
+  const displayUrl = isPrivateAttachment ? resolvedAssetUrl : resolvedUrl;
+  const canOpenAttachment = isPrivateAttachment
+    ? Boolean(displayUrl) && !resolutionFailed
+    : Boolean(displayUrl);
 
   if (!isImage) {
     return (
@@ -220,15 +291,22 @@ export function SupportAttachmentView({
           removable ? "max-w-full" : "",
         ].join(" ")}
       >
-        <a
-          href={resolvedUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-2 hover:text-[var(--accent)]"
-        >
-          <Paperclip className="h-4 w-4" />
-          <span className="max-w-[220px] truncate">{fileLabel}</span>
-        </a>
+        {canOpenAttachment ? (
+          <a
+            href={displayUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 hover:text-[var(--accent)]"
+          >
+            <Paperclip className="h-4 w-4" />
+            <span className="max-w-[220px] truncate">{fileLabel}</span>
+          </a>
+        ) : (
+          <span className="inline-flex items-center gap-2 text-[var(--muted)]">
+            <Paperclip className="h-4 w-4" />
+            <span className="max-w-[220px] truncate">{fileLabel}</span>
+          </span>
+        )}
         {removable && onRemove ? (
           <button
             type="button"
@@ -250,29 +328,47 @@ export function SupportAttachmentView({
         removable ? "w-40" : "w-44",
       ].join(" ")}
     >
-      <a
-        href={resolvedUrl}
-        target="_blank"
-        rel="noreferrer"
-        className="block"
-        aria-label={t("Mở ảnh đính kèm")}
-      >
-        <img
-          src={resolvedUrl}
-          alt={fileLabel}
-          className="h-28 w-full object-cover"
-          onError={() => setImageFailed(true)}
-        />
-      </a>
-      <div className="flex items-center gap-2 px-3 py-2">
+      {canOpenAttachment ? (
         <a
-          href={resolvedUrl}
+          href={displayUrl}
           target="_blank"
           rel="noreferrer"
-          className="min-w-0 flex-1 text-xs text-[var(--ink)] hover:text-[var(--accent)]"
+          className="block"
+          aria-label={t("Mở ảnh đính kèm")}
         >
-          <span className="block truncate">{fileLabel}</span>
+          <img
+            src={displayUrl}
+            alt={fileLabel}
+            className="h-28 w-full object-cover"
+            onError={() => setImageFailed(true)}
+          />
         </a>
+      ) : (
+        <div className="flex h-28 w-full items-center justify-center bg-[var(--surface-muted)] text-[var(--muted)]">
+          <span className="px-3 text-center text-xs">
+            {resolutionFailed
+              ? t("Không tải được tệp đính kèm")
+              : isPrivateAttachment
+                ? t("Đang tải tệp đính kèm...")
+                : t("Tệp đính kèm")}
+          </span>
+        </div>
+      )}
+      <div className="flex items-center gap-2 px-3 py-2">
+        {canOpenAttachment ? (
+          <a
+            href={displayUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="min-w-0 flex-1 text-xs text-[var(--ink)] hover:text-[var(--accent)]"
+          >
+            <span className="block truncate">{fileLabel}</span>
+          </a>
+        ) : (
+          <span className="min-w-0 flex-1 text-xs text-[var(--muted)]">
+            <span className="block truncate">{fileLabel}</span>
+          </span>
+        )}
         {removable && onRemove ? (
           <button
             type="button"
@@ -1096,6 +1192,7 @@ function SupportTicketsPageRevamp() {
                                 key={`${message.key}-attachment-${index}`}
                                 attachment={attachment}
                                 t={t}
+                                accessToken={accessToken}
                               />
                             ))}
                           </div>
@@ -1299,6 +1396,7 @@ function SupportTicketsPageRevamp() {
                             key={`${attachment.url}-${index}`}
                             attachment={attachment}
                             t={t}
+                            accessToken={accessToken}
                             removable
                             onRemove={() =>
                               void removeDraftAttachment(attachment.url)
