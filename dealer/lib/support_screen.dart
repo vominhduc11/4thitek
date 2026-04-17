@@ -21,11 +21,7 @@ enum SupportPriority { normal, high, urgent }
 enum SupportComposerMode { create, followUp }
 
 class SupportScreen extends StatefulWidget {
-  const SupportScreen({
-    super.key,
-    this.supportService,
-    this.initialTicketId,
-  });
+  const SupportScreen({super.key, this.supportService, this.initialTicketId});
 
   final SupportService? supportService;
   final int? initialTicketId;
@@ -195,7 +191,9 @@ class _SupportScreenState extends State<SupportScreen> {
         }
         _ticketPage = response.page;
         _hasMoreTickets = response.page + 1 < response.totalPages;
-        final preferredInitial = _resolveSelectedTicket(_pendingInitialTicketId);
+        final preferredInitial = _resolveSelectedTicket(
+          _pendingInitialTicketId,
+        );
         if (preferredInitial != null) {
           _pendingInitialTicketId = null;
         }
@@ -1450,8 +1448,8 @@ class _SupportTexts {
   String get submitRequestAction =>
       isEnglish ? 'Submit request' : 'Gửi yêu cầu';
   String get followUpAction => isEnglish
-      ? 'Send reply to selected ticket'
-      : 'Gửi phản hồi vào ticket đang chọn';
+      ? 'Send details for this request'
+      : 'Gửi bổ sung cho yêu cầu này';
   String get cancelAction => isEnglish ? 'Cancel' : 'Hủy';
   String get cannotOpenDialerMessage => isEnglish
       ? 'Cannot open dialer. Number has been copied.'
@@ -1478,22 +1476,24 @@ class _SupportTexts {
       : 'Vui lòng nhập tiêu đề và nội dung.';
   String get messageOnlyRequiredMessage => isEnglish
       ? 'Please enter the follow-up message.'
-      : 'Vui lòng nhập nội dung phản hồi.';
+      : 'Vui lòng nhập nội dung bổ sung.';
   String requestSubmittedMessage(String ticketCode) => isEnglish
       ? 'Request #$ticketCode has been submitted.'
       : 'Yêu cầu #$ticketCode đã được gửi.';
   String followUpSubmittedMessage(String ticketCode) => isEnglish
-      ? 'Follow-up sent to ticket #$ticketCode.'
-      : 'Đã gửi phản hồi vào ticket #$ticketCode.';
+      ? 'Additional details sent to request #$ticketCode.'
+      : 'Đã gửi bổ sung cho yêu cầu #$ticketCode.';
   String get requestSubmittedTitle =>
       isEnglish ? 'Request submitted' : 'Yêu cầu đã gửi';
   String get hideAction => isEnglish ? 'Hide' : 'Ẩn';
-  String get ticketIdLabel => isEnglish ? 'Ticket ID' : 'Mã ticket';
+  String get ticketIdLabel => isEnglish ? 'Request ID' : 'Mã yêu cầu';
   String get submittedAtLabel => isEnglish ? 'Submitted at' : 'Thời gian gửi';
-  String get responseSlaLabel => isEnglish ? 'Response SLA' : 'SLA phản hồi';
+  String get responseSlaLabel =>
+      isEnglish ? 'Expected response' : 'Phản hồi dự kiến';
   String get statusSummaryLabel => isEnglish ? 'Status' : 'Trạng thái';
-  String get adminReplyLabel =>
-      isEnglish ? 'Latest admin update' : 'Cập nhật mới nhất từ admin';
+  String get adminReplyLabel => isEnglish
+      ? 'Latest support team update'
+      : 'Cập nhật mới nhất từ đội hỗ trợ';
 
   String categoryLabel(SupportCategory category) {
     switch (category) {
@@ -1537,13 +1537,13 @@ class _SupportTexts {
   String statusLabel(String status) {
     switch (status.trim().toLowerCase()) {
       case 'open':
-        return isEnglish ? 'Open' : 'Mở';
+        return isEnglish ? 'Open' : 'Mới gửi';
       case 'in_progress':
         return isEnglish ? 'In progress' : 'Đang xử lý';
       case 'resolved':
-        return isEnglish ? 'Resolved' : 'Đã xử lý';
+        return isEnglish ? 'Resolved' : 'Đã xử lý xong';
       case 'closed':
-        return isEnglish ? 'Closed' : 'Đóng';
+        return isEnglish ? 'Closed' : 'Đã kết thúc';
       default:
         return status;
     }
@@ -1629,41 +1629,42 @@ extension _SupportTextsSupportExtras on _SupportTexts {
   String get supportCenterTitle =>
       isEnglish ? 'Dealer support center' : 'Trung tâm hỗ trợ đại lý';
   String get supportCenterDescription => isEnglish
-      ? 'Track every support request in one place, review updates, and send follow-ups to the correct ticket.'
-      : 'Theo dõi toàn bộ yêu cầu hỗ trợ tại một nơi, xem cập nhật mới nhất và gửi bổ sung đúng ticket cần xử lý.';
+      ? 'Track every support request in one place, review updates, and add more information to the right request.'
+      : 'Theo dõi toàn bộ yêu cầu hỗ trợ tại một nơi, xem cập nhật mới nhất và bổ sung thông tin đúng yêu cầu đang xử lý.';
   String get statusSummaryTitle =>
       isEnglish ? 'Support status summary' : 'Tóm tắt trạng thái hỗ trợ';
   String statusSummarySubtitle(String ticketCode) => isEnglish
-      ? 'Selected ticket: #$ticketCode'
-      : 'Ticket đang chọn: #$ticketCode';
+      ? 'Request in view: #$ticketCode'
+      : 'Yêu cầu đang xem: #$ticketCode';
   String get noActiveTicketSummary => isEnglish
-      ? 'No active ticket yet. Create a new request whenever you need support.'
-      : 'Hiện chưa có ticket đang theo dõi. Bạn có thể tạo yêu cầu mới bất cứ lúc nào.';
+      ? 'No request is being tracked yet. Create a new request whenever you need support.'
+      : 'Hiện chưa có yêu cầu nào đang theo dõi. Bạn có thể tạo yêu cầu mới bất cứ lúc nào.';
   String get supportHoursLabel =>
       isEnglish ? 'Support hours' : 'Khung giờ hỗ trợ';
   String get startNewTicketAction =>
-      isEnglish ? 'Create new ticket' : 'Tạo ticket mới';
-  String get replyActiveTicketAction =>
-      isEnglish ? 'Reply selected ticket' : 'Phản hồi ticket đang chọn';
-  String get activeLabel => isEnglish ? 'Selected ticket' : 'Ticket đang chọn';
+      isEnglish ? 'Create new request' : 'Tạo yêu cầu mới';
+  String get replyActiveTicketAction => isEnglish
+      ? 'Add details to current request'
+      : 'Bổ sung cho yêu cầu đang xem';
+  String get activeLabel => isEnglish ? 'Request in view' : 'Yêu cầu đang xem';
   String get ticketInboxTitle =>
-      isEnglish ? 'Ticket inbox' : 'Danh sách ticket';
+      isEnglish ? 'Request list' : 'Danh sách yêu cầu';
   String get ticketDetailTitle =>
-      isEnglish ? 'Ticket detail' : 'Chi tiết ticket';
+      isEnglish ? 'Request details' : 'Chi tiết yêu cầu';
   String get emptyDetailTitle => isEnglish
-      ? 'Choose a ticket to view the full thread'
-      : 'Chọn một ticket để xem đầy đủ trao đổi';
+      ? 'Choose a request to view the full conversation'
+      : 'Chọn một yêu cầu để xem toàn bộ trao đổi';
   String get emptyDetailDescription => isEnglish
-      ? 'Once you select a ticket, you will see its status, context, and conversation timeline here.'
-      : 'Khi chọn một ticket, bạn sẽ xem được trạng thái, thông tin liên quan và toàn bộ diễn tiến trao đổi tại đây.';
+      ? 'Once you select a request, you will see its status, related information, and full conversation here.'
+      : 'Khi chọn một yêu cầu, bạn sẽ xem được trạng thái, thông tin liên quan và toàn bộ trao đổi tại đây.';
   String get startFirstTicketAction =>
-      isEnglish ? 'Create your first ticket' : 'Tạo ticket đầu tiên';
+      isEnglish ? 'Create your first request' : 'Tạo yêu cầu đầu tiên';
   String get threadTitle =>
-      isEnglish ? 'Conversation thread' : 'Luồng trao đổi';
+      isEnglish ? 'Conversation history' : 'Lịch sử trao đổi';
   String threadCountLabel(int count) =>
       isEnglish ? '$count updates' : '$count cập nhật';
   String get rootMessageLabel =>
-      isEnglish ? 'Original request' : 'Yêu cầu ban đầu';
+      isEnglish ? 'Original request' : 'Nội dung bạn đã gửi';
   String threadAuthorLabel(String authorRole, String? authorName) {
     switch (authorRole.trim().toLowerCase()) {
       case 'admin':
@@ -1683,7 +1684,7 @@ extension _SupportTextsSupportExtras on _SupportTexts {
 
   String threadRoleLabel(String authorRole, {required bool isRootMessage}) {
     if (isRootMessage) {
-      return isEnglish ? 'Opened by dealer' : 'Đại lý tạo ticket';
+      return isEnglish ? 'Sent by you' : 'Bạn đã gửi yêu cầu này';
     }
     switch (authorRole.trim().toLowerCase()) {
       case 'admin':
@@ -1697,49 +1698,51 @@ extension _SupportTextsSupportExtras on _SupportTexts {
 
   String get openAttachmentAction => isEnglish ? 'Open' : 'Mở';
 
-  String get composerTitle =>
-      isEnglish ? 'Create or follow up' : 'Tạo mới hoặc phản hồi';
-  String get createModeLabel => isEnglish ? 'New ticket' : 'Ticket mới';
+  String get composerTitle => isEnglish
+      ? 'Create request or add details'
+      : 'Tạo yêu cầu hoặc bổ sung thông tin';
+  String get createModeLabel => isEnglish ? 'New request' : 'Yêu cầu mới';
   String get followUpModeLabel =>
-      isEnglish ? 'Reply ticket' : 'Phản hồi ticket';
+      isEnglish ? 'Add details' : 'Bổ sung thông tin';
   String get newRequestModeTitle =>
-      isEnglish ? 'Create a new support ticket' : 'Tạo ticket hỗ trợ mới';
+      isEnglish ? 'Create a new support request' : 'Tạo yêu cầu hỗ trợ mới';
   String get newRequestModeDescription => isEnglish
-      ? 'Use this form for a brand-new issue. Your request will appear in the ticket inbox right after submission.'
-      : 'Dùng biểu mẫu này khi bạn cần mở một yêu cầu mới. Ticket sẽ xuất hiện ngay trong danh sách sau khi gửi.';
-  String get followUpModeTitle =>
-      isEnglish ? 'Reply to the selected ticket' : 'Phản hồi ticket đang chọn';
+      ? 'Use this form for a brand-new issue. Your request will appear in the request list right after submission.'
+      : 'Dùng biểu mẫu này khi bạn cần gửi một yêu cầu mới. Yêu cầu sẽ xuất hiện ngay trong danh sách sau khi gửi.';
+  String get followUpModeTitle => isEnglish
+      ? 'Add details to the current request'
+      : 'Bổ sung cho yêu cầu đang xem';
   String get followUpModeUnavailableTitle =>
-      isEnglish ? 'No ticket selected' : 'Chưa chọn ticket';
+      isEnglish ? 'No request selected' : 'Chưa chọn yêu cầu';
   String get followUpModeUnavailable => isEnglish
-      ? 'Select an active ticket from the list above to send more details.'
-      : 'Hãy chọn một ticket đang mở ở phía trên để gửi thêm thông tin.';
+      ? 'Select an active request from the list above to send more details.'
+      : 'Hãy chọn một yêu cầu đang xử lý ở phía trên để gửi thêm thông tin.';
   String get selectTicketToReplyMessage => isEnglish
-      ? 'Please choose a ticket before sending a follow-up.'
-      : 'Vui lòng chọn ticket trước khi gửi phản hồi.';
+      ? 'Please choose a request before sending more details.'
+      : 'Vui lòng chọn yêu cầu trước khi gửi bổ sung.';
   String get closedTicketReplyTitle =>
-      isEnglish ? 'Ticket is closed' : 'Ticket đã đóng';
+      isEnglish ? 'Request is closed' : 'Yêu cầu đã kết thúc';
   String get closedTicketReplyMessage => isEnglish
-      ? 'This ticket is already closed. Create a new ticket if you still need assistance.'
-      : 'Ticket này đã đóng. Hãy tạo ticket mới nếu bạn vẫn cần hỗ trợ.';
+      ? 'This request is already closed. Create a new request if you still need assistance.'
+      : 'Yêu cầu này đã kết thúc. Hãy tạo yêu cầu mới nếu bạn vẫn cần hỗ trợ.';
   String get followUpFieldLabel =>
-      isEnglish ? 'Reply message' : 'Nội dung phản hồi';
+      isEnglish ? 'Additional details' : 'Nội dung bổ sung';
   String get followUpHint => isEnglish
-      ? 'Share the latest update, evidence, or any extra details for this ticket.'
-      : 'Mô tả cập nhật mới nhất, bổ sung bằng chứng hoặc thông tin cần làm rõ cho ticket này.';
+      ? 'Share the latest update, proof, or any extra details for this request.'
+      : 'Mô tả cập nhật mới nhất, bổ sung bằng chứng hoặc thông tin cần làm rõ cho yêu cầu này.';
   String get followUpHelper => isEnglish
-      ? 'Your message will be added to the conversation thread of the selected ticket.'
-      : 'Nội dung này sẽ được thêm vào luồng trao đổi của ticket đang chọn.';
+      ? 'Your message will be added to the conversation history of the selected request.'
+      : 'Nội dung này sẽ được thêm vào lịch sử trao đổi của yêu cầu đang xem.';
   String get contextSectionTitle =>
       isEnglish ? 'Related information' : 'Thông tin liên quan';
   String get contextSectionDescription => isEnglish
-      ? 'Add the order code, payment reference, serial, or return reason so support can handle the ticket faster.'
+      ? 'Add the order code, payment reference, serial, or return reason so support can handle the request faster.'
       : 'Bổ sung mã đơn, giao dịch, serial hoặc lý do trả hàng để đội hỗ trợ xử lý nhanh hơn.';
   String get contextSummaryTitle =>
-      isEnglish ? 'Ticket context' : 'Thông tin liên quan';
-  String get createdLabel => isEnglish ? 'Created' : 'Tạo lúc';
-  String get resolvedLabel => isEnglish ? 'Resolved' : 'Đã xử lý';
-  String get closedLabel => isEnglish ? 'Closed' : 'Đã đóng';
+      isEnglish ? 'Related information' : 'Thông tin liên quan';
+  String get createdLabel => isEnglish ? 'Submitted' : 'Gửi lúc';
+  String get resolvedLabel => isEnglish ? 'Resolved' : 'Xử lý xong lúc';
+  String get closedLabel => isEnglish ? 'Closed' : 'Kết thúc lúc';
   String get quickTipsTitle =>
       isEnglish ? 'Quick tips before sending' : 'Gợi ý trước khi gửi';
   String get quickTipOneTitle => isEnglish
@@ -1754,20 +1757,20 @@ extension _SupportTextsSupportExtras on _SupportTexts {
       ? 'Screenshots, payment proof, or serial labels usually shorten the processing time.'
       : 'Ảnh chụp màn hình, chứng từ chuyển khoản hoặc tem serial thường giúp rút ngắn thời gian xử lý.';
   String get quickTipThreeTitle => isEnglish
-      ? 'Reply inside the same ticket'
-      : 'Phản hồi ngay trong ticket đang chọn';
+      ? 'Add details inside the same request'
+      : 'Bổ sung ngay trong yêu cầu đang xem';
   String get quickTipThreeBody => isEnglish
-      ? 'When support asks for more information, reply in the same ticket so the thread stays complete.'
-      : 'Khi cần bổ sung thông tin, hãy phản hồi ngay trong ticket đang chọn để luồng trao đổi luôn đầy đủ.';
+      ? 'When support asks for more information, add it to the same request so the conversation stays complete.'
+      : 'Khi cần bổ sung thông tin, hãy bổ sung ngay trong yêu cầu đang xem để lịch sử trao đổi luôn đầy đủ.';
   String get replyThisTicketAction =>
-      isEnglish ? 'Reply to this ticket' : 'Phản hồi ticket này';
+      isEnglish ? 'Add details to this request' : 'Bổ sung cho yêu cầu này';
   String followUpTargetLabel(String ticketCode, String subject) => isEnglish
-      ? 'Reply target: #$ticketCode - $subject'
-      : 'Đang phản hồi ticket #$ticketCode - $subject';
+      ? 'Adding details to request #$ticketCode - $subject'
+      : 'Đang bổ sung cho yêu cầu #$ticketCode - $subject';
 
   String replyTargetChangedMessage(String ticketCode) => isEnglish
-      ? 'Reply target changed to ticket #$ticketCode.'
-      : 'Đã chuyển sang phản hồi ticket #$ticketCode.';
+      ? 'Now adding details to request #$ticketCode.'
+      : 'Đã chuyển sang yêu cầu #$ticketCode để bổ sung thông tin.';
 
   String get orderCodeFieldLabel => isEnglish ? 'Order code' : 'Mã đơn hàng';
   String get transactionCodeFieldLabel =>
@@ -1780,16 +1783,16 @@ extension _SupportTextsSupportExtras on _SupportTexts {
   String get returnReasonFieldLabel =>
       isEnglish ? 'Return reason' : 'Lý do trả hàng';
   String get attachmentSectionLabel =>
-      isEnglish ? 'Evidence / attachments' : 'Hình ảnh / chứng từ';
+      isEnglish ? 'Attachments' : 'Tệp đính kèm';
   String get addAttachmentAction =>
-      isEnglish ? 'Add attachment' : 'Thêm tệp đính kèm';
+      isEnglish ? 'Choose image from gallery' : 'Chọn ảnh từ thư viện';
   String get uploadingAttachmentLabel =>
-      isEnglish ? 'Uploading...' : 'Đang tải...';
+      isEnglish ? 'Uploading image...' : 'Đang tải ảnh...';
   String get attachmentHelper => isEnglish
-      ? 'Attach screenshots or proof images to help support verify the issue faster.'
-      : 'Đính kèm ảnh chụp màn hình hoặc chứng từ để đội hỗ trợ kiểm tra nhanh hơn.';
+      ? 'You can currently attach images from your gallery, such as screenshots or proof photos.'
+      : 'Hiện bạn có thể đính kèm ảnh từ thư viện, như ảnh chụp màn hình hoặc ảnh minh chứng.';
   String attachmentAddedMessage(String fileName) =>
-      isEnglish ? 'Attached $fileName.' : 'Đã đính kèm $fileName.';
+      isEnglish ? 'Added image $fileName.' : 'Đã thêm ảnh $fileName.';
   String attachmentUploadFailed(Object error) =>
       uploadServiceErrorMessage(error, isEnglish: isEnglish);
 }

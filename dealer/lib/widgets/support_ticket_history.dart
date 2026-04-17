@@ -530,35 +530,35 @@ class _SupportHistoryTexts {
   final bool isEnglish;
 
   String get emptyTitle =>
-      isEnglish ? 'No support tickets yet' : 'Chưa có ticket hỗ trợ';
+      isEnglish ? 'No support requests yet' : 'Chưa có yêu cầu hỗ trợ';
   String get emptyMessage => isEnglish
-      ? 'Create your first ticket to start tracking support updates here.'
-      : 'Tạo ticket đầu tiên để theo dõi toàn bộ phản hồi hỗ trợ tại đây.';
+      ? 'Create your first request to start tracking support updates here.'
+      : 'Tạo yêu cầu đầu tiên để theo dõi phản hồi hỗ trợ tại đây.';
   String get createFirstTicketLabel =>
-      isEnglish ? 'Create first ticket' : 'Tạo ticket đầu tiên';
+      isEnglish ? 'Create first request' : 'Tạo yêu cầu đầu tiên';
   String get errorTitle => isEnglish
-      ? 'Could not load ticket inbox'
-      : 'Không thể tải danh sách ticket';
+      ? 'Could not load request list'
+      : 'Không thể tải danh sách yêu cầu';
   String get retryLabel => isEnglish ? 'Retry' : 'Thử lại';
   String get loadMoreLabel =>
-      isEnglish ? 'Load more tickets' : 'Xem thêm ticket';
+      isEnglish ? 'Load more requests' : 'Xem thêm yêu cầu';
   String get loadingMoreLabel =>
       isEnglish ? 'Loading more...' : 'Đang tải thêm...';
-  String get activeLabel => isEnglish ? 'Ticket selected' : 'Ticket đang chọn';
-  String get selectedLabel => isEnglish ? 'Selected' : 'Đang chọn';
+  String get activeLabel => isEnglish ? 'Request selected' : 'Yêu cầu đang xem';
+  String get selectedLabel => isEnglish ? 'Viewing' : 'Đang xem';
   String get viewDetailsLabel => isEnglish ? 'View details' : 'Xem chi tiết';
   String get replyThisTicketLabel =>
-      isEnglish ? 'Reply to this ticket' : 'Phản hồi ticket này';
+      isEnglish ? 'Add details to this request' : 'Bổ sung cho yêu cầu này';
   String get adminUpdatedLabel =>
-      isEnglish ? 'Admin replied' : 'Admin vừa phản hồi';
+      isEnglish ? 'Support response available' : 'Đã có phản hồi từ đội hỗ trợ';
   String get replyDisabledLabel =>
-      isEnglish ? 'Reply unavailable' : 'Không thể phản hồi';
+      isEnglish ? 'No more updates allowed' : 'Không thể bổ sung thêm';
   String get inboxHelper => isEnglish
-      ? 'Select a ticket to review the full thread and send a follow-up to the correct request.'
-      : 'Chọn một ticket để xem đầy đủ diễn tiến và gửi bổ sung đúng yêu cầu đang xử lý.';
+      ? 'Select a request to review the full conversation and add more details in the right place.'
+      : 'Chọn một yêu cầu để xem toàn bộ trao đổi và bổ sung thông tin đúng chỗ.';
 
   String ticketCodeLabel(String ticketCode) =>
-      isEnglish ? 'Ticket #$ticketCode' : 'Ticket #$ticketCode';
+      isEnglish ? 'Request #$ticketCode' : 'Mã yêu cầu #$ticketCode';
 
   String lastUpdatedLabel(String value) =>
       isEnglish ? 'Updated $value' : 'Cập nhật $value';
@@ -566,14 +566,14 @@ class _SupportHistoryTexts {
   String statusLabel(String status) {
     switch (status.trim().toLowerCase()) {
       case 'resolved':
-        return isEnglish ? 'Resolved' : 'Đã xử lý';
+        return isEnglish ? 'Resolved' : 'Đã xử lý xong';
       case 'in_progress':
         return isEnglish ? 'In progress' : 'Đang xử lý';
       case 'closed':
-        return isEnglish ? 'Closed' : 'Đã đóng';
+        return isEnglish ? 'Closed' : 'Đã kết thúc';
       case 'open':
       default:
-        return isEnglish ? 'Open' : 'Đang mở';
+        return isEnglish ? 'Open' : 'Mới gửi';
     }
   }
 

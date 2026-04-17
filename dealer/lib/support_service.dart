@@ -39,8 +39,8 @@ String resolveSupportServiceMessage(
           : 'Bạn cần đăng nhập trước khi liên hệ hỗ trợ.';
     case 'support.message.invalidTicketPayload':
       return isEnglish
-          ? 'Support ticket data is invalid.'
-          : 'Dữ liệu ticket hỗ trợ không hợp lệ.';
+          ? 'Support request data is invalid.'
+          : 'Dữ liệu yêu cầu hỗ trợ không hợp lệ.';
     case 'support.message.invalidTicketPagePayload':
       return isEnglish
           ? 'Support request history data is invalid.'
