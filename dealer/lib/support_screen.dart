@@ -7,6 +7,7 @@ import 'app_settings_controller.dart';
 import 'business_profile.dart';
 import 'breakpoints.dart';
 import 'notification_controller.dart';
+import 'support_attachment_utils.dart';
 import 'support_service.dart';
 import 'upload_service.dart';
 import 'widgets/brand_identity.dart';
@@ -693,8 +694,9 @@ class _SupportScreenState extends State<SupportScreen> {
                   runSpacing: 10,
                   children: attachments
                       .map(
-                        (attachment) => _DraftAttachmentChip(
+                        (attachment) => _DraftAttachmentPreview(
                           attachment: attachment,
+                          openLabel: texts.openAttachmentAction,
                           onRemove: _isSubmitting
                               ? null
                               : () => _removeDraftAttachment(attachment),
@@ -2433,7 +2435,7 @@ class _TicketThreadBubble extends StatelessWidget {
                   runSpacing: 8,
                   children: item.attachments
                       .map(
-                        (attachment) => _ThreadAttachmentCard(
+                        (attachment) => _ThreadAttachmentPreview(
                           attachment: attachment,
                           openLabel: texts.openAttachmentAction,
                         ),
@@ -2449,63 +2451,20 @@ class _TicketThreadBubble extends StatelessWidget {
   }
 }
 
-class _ThreadAttachmentCard extends StatelessWidget {
-  const _ThreadAttachmentCard({required this.attachment, this.openLabel});
+class _ThreadAttachmentPreview extends StatelessWidget {
+  const _ThreadAttachmentPreview({required this.attachment, this.openLabel});
 
   final SupportTicketAttachmentRecord attachment;
   final String? openLabel;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
-      onTap: () async {
-        final uri = Uri.tryParse(attachment.url);
-        if (uri != null) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        }
-      },
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 220),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          color: Theme.of(context).colorScheme.surface,
-          border: Border.all(
-            color: Theme.of(
-              context,
-            ).colorScheme.outlineVariant.withValues(alpha: 0.45),
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.attach_file_outlined, size: 18),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    attachment.fileName ?? attachment.url,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (openLabel != null)
-                    Text(
-                      openLabel!,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+    return _AttachmentPreviewCard(
+      attachment: attachment,
+      openLabel: openLabel,
+      previewHeight: 136,
+      semanticLabel: 'Xem tệp đính kèm',
+      thumbnailWidth: 220,
     );
   }
 }
@@ -2810,52 +2769,252 @@ class _SelectedReplyTargetCard extends StatelessWidget {
   }
 }
 
-class _DraftAttachmentChip extends StatelessWidget {
-  const _DraftAttachmentChip({required this.attachment, this.onRemove});
+class _DraftAttachmentPreview extends StatelessWidget {
+  const _DraftAttachmentPreview({
+    required this.attachment,
+    this.onRemove,
+    this.openLabel,
+  });
 
   final SupportTicketAttachmentRecord attachment;
   final VoidCallback? onRemove;
+  final String? openLabel;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 240),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        color: Theme.of(context).colorScheme.surface,
-        border: Border.all(
-          color: Theme.of(
-            context,
-          ).colorScheme.outlineVariant.withValues(alpha: 0.45),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        _AttachmentPreviewCard(
+          attachment: attachment,
+          openLabel: openLabel,
+          previewHeight: 112,
+          semanticLabel: 'Xem ảnh đính kèm',
+          thumbnailWidth: 152,
         ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.attach_file_outlined, size: 18),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              attachment.fileName ?? attachment.url,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          if (onRemove != null) ...[
-            const SizedBox(width: 8),
-            InkWell(
-              borderRadius: BorderRadius.circular(999),
-              onTap: onRemove,
-              child: const Padding(
-                padding: EdgeInsets.all(2),
-                child: Icon(Icons.close_rounded, size: 18),
+        if (onRemove != null)
+          Positioned(
+            top: -6,
+            right: -6,
+            child: Material(
+              color: Theme.of(context).colorScheme.surface,
+              shape: const CircleBorder(),
+              elevation: 1,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(999),
+                onTap: onRemove,
+                child: const Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Icon(Icons.close_rounded, size: 18),
+                ),
               ),
             ),
-          ],
-        ],
+          ),
+      ],
+    );
+  }
+}
+
+class _AttachmentPreviewCard extends StatelessWidget {
+  const _AttachmentPreviewCard({
+    required this.attachment,
+    required this.previewHeight,
+    required this.semanticLabel,
+    this.openLabel,
+    this.thumbnailWidth = 220,
+  });
+
+  final SupportTicketAttachmentRecord attachment;
+  final double previewHeight;
+  final double thumbnailWidth;
+  final String semanticLabel;
+  final String? openLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final isImage = isLikelyImageAttachment(
+      fileName: attachment.fileName,
+      url: attachment.url,
+    );
+    if (isImage) {
+      return _ImageAttachmentCard(
+        attachment: attachment,
+        openLabel: openLabel,
+        previewHeight: previewHeight,
+        thumbnailWidth: thumbnailWidth,
+        semanticLabel: semanticLabel,
+      );
+    }
+    return _FileAttachmentCard(
+      attachment: attachment,
+      openLabel: openLabel,
+      semanticLabel: semanticLabel,
+      maxWidth: thumbnailWidth,
+    );
+  }
+}
+
+class _ImageAttachmentCard extends StatelessWidget {
+  const _ImageAttachmentCard({
+    required this.attachment,
+    required this.previewHeight,
+    required this.thumbnailWidth,
+    required this.semanticLabel,
+    this.openLabel,
+  });
+
+  final SupportTicketAttachmentRecord attachment;
+  final double previewHeight;
+  final double thumbnailWidth;
+  final String semanticLabel;
+  final String? openLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: thumbnailWidth),
+      child: Semantics(
+        label: semanticLabel,
+        button: true,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => _openAttachmentUrl(attachment.url),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: colors.surface,
+              border: Border.all(
+                color: colors.outlineVariant.withValues(alpha: 0.45),
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image.network(
+                    attachment.url,
+                    height: previewHeight,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return _FileAttachmentCard(
+                        attachment: attachment,
+                        openLabel: openLabel,
+                        semanticLabel: semanticLabel,
+                        maxWidth: thumbnailWidth,
+                      );
+                    },
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            attachment.fileName ?? attachment.url,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                        if (openLabel != null) ...[
+                          const SizedBox(width: 8),
+                          Text(
+                            openLabel!,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: colors.primary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
+  }
+}
+
+class _FileAttachmentCard extends StatelessWidget {
+  const _FileAttachmentCard({
+    required this.attachment,
+    required this.semanticLabel,
+    this.openLabel,
+    this.maxWidth = 220,
+  });
+
+  final SupportTicketAttachmentRecord attachment;
+  final String semanticLabel;
+  final String? openLabel;
+  final double maxWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: semanticLabel,
+      button: true,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => _openAttachmentUrl(attachment.url),
+        child: Container(
+          constraints: BoxConstraints(maxWidth: maxWidth),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            color: Theme.of(context).colorScheme.surface,
+            border: Border.all(
+              color: Theme.of(
+                context,
+              ).colorScheme.outlineVariant.withValues(alpha: 0.45),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.attach_file_outlined, size: 18),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      attachment.fileName ?? attachment.url,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (openLabel != null)
+                      Text(
+                        openLabel!,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> _openAttachmentUrl(String url) async {
+  final uri = Uri.tryParse(url);
+  if (uri != null) {
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 }
 

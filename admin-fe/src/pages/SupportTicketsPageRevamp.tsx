@@ -26,6 +26,7 @@ import { translateCopy } from "../lib/i18n";
 import { useToast } from "../context/ToastContext";
 import { formatDateTime } from "../lib/formatters";
 import { subscribeAdminSupportRefresh } from "../lib/adminRealtime";
+import { isLikelyImageAttachment } from "../lib/supportAttachment";
 import { deleteStoredFileReference, storeFileReference } from "../lib/upload";
 import {
   EmptyState,
@@ -102,6 +103,16 @@ type ThreadItem = {
     fileName?: string | null;
   }>;
   syntheticRoot?: boolean;
+};
+
+type SupportAttachmentViewProps = {
+  attachment: {
+    url: string;
+    fileName?: string | null;
+  };
+  t: (value: string) => string;
+  removable?: boolean;
+  onRemove?: () => void;
 };
 
 const copyKeys = {
@@ -186,6 +197,92 @@ function buildThreadItems(ticket: BackendSupportTicketResponse): ThreadItem[] {
   }
 
   return thread;
+}
+
+function SupportAttachmentView({
+  attachment,
+  t,
+  removable = false,
+  onRemove,
+}: SupportAttachmentViewProps) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const isImage = isLikelyImageAttachment(attachment) && !imageFailed;
+  const fileLabel = attachment.fileName || t("Tệp đính kèm");
+
+  if (!isImage) {
+    return (
+      <div
+        className={[
+          "inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--ink)]",
+          removable ? "max-w-full" : "",
+        ].join(" ")}
+      >
+        <a
+          href={attachment.url}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-2 hover:text-[var(--accent)]"
+        >
+          <Paperclip className="h-4 w-4" />
+          <span className="max-w-[220px] truncate">{fileLabel}</span>
+        </a>
+        {removable && onRemove ? (
+          <button
+            type="button"
+            className="text-[var(--muted)] hover:text-[var(--danger)]"
+            onClick={onRemove}
+            aria-label={t("Xóa tệp đính kèm")}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={[
+        "overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]",
+        removable ? "w-40" : "w-44",
+      ].join(" ")}
+    >
+      <a
+        href={attachment.url}
+        target="_blank"
+        rel="noreferrer"
+        className="block"
+        aria-label={t("Mở ảnh đính kèm")}
+      >
+        <img
+          src={attachment.url}
+          alt={fileLabel}
+          className="h-28 w-full object-cover"
+          onError={() => setImageFailed(true)}
+        />
+      </a>
+      <div className="flex items-center gap-2 px-3 py-2">
+        <a
+          href={attachment.url}
+          target="_blank"
+          rel="noreferrer"
+          className="min-w-0 flex-1 text-xs text-[var(--ink)] hover:text-[var(--accent)]"
+        >
+          <span className="block truncate">{fileLabel}</span>
+        </a>
+        {removable && onRemove ? (
+          <button
+            type="button"
+            className="shrink-0 text-[var(--muted)] hover:text-[var(--danger)]"
+            onClick={onRemove}
+            aria-label={t("Xóa tệp đính kèm")}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
 }
 
 function SupportTicketsPageRevamp() {
@@ -981,15 +1078,11 @@ function SupportTicketsPageRevamp() {
                         {message.attachments.length > 0 ? (
                           <div className="mt-3 flex flex-wrap gap-2">
                             {message.attachments.map((attachment, index) => (
-                              <a
+                              <SupportAttachmentView
                                 key={`${message.key}-attachment-${index}`}
-                                href={attachment.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-xs text-[var(--ink)] hover:border-[var(--accent)]"
-                              >
-                                {attachment.fileName || t("Tệp đính kèm")}
-                              </a>
+                                attachment={attachment}
+                                t={t}
+                              />
                             ))}
                           </div>
                         ) : null}
@@ -1188,32 +1281,15 @@ function SupportTicketsPageRevamp() {
                     {selectedDraft.attachments.length > 0 ? (
                       <div className="flex flex-wrap gap-2">
                         {selectedDraft.attachments.map((attachment, index) => (
-                          <div
+                          <SupportAttachmentView
                             key={`${attachment.url}-${index}`}
-                            className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--ink)]"
-                          >
-                            <a
-                              href={attachment.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-2 hover:text-[var(--accent)]"
-                            >
-                              <Paperclip className="h-4 w-4" />
-                              <span>
-                                {attachment.fileName || t("Tệp đính kèm")}
-                              </span>
-                            </a>
-                            <button
-                              type="button"
-                              className="text-[var(--muted)] hover:text-[var(--danger)]"
-                              onClick={() =>
-                                void removeDraftAttachment(attachment.url)
-                              }
-                              aria-label={t("Xóa tệp đính kèm")}
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </div>
+                            attachment={attachment}
+                            t={t}
+                            removable
+                            onRemove={() =>
+                              void removeDraftAttachment(attachment.url)
+                            }
+                          />
                         ))}
                       </div>
                     ) : (
