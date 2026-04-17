@@ -249,6 +249,21 @@ class UploadAuthorizationTests {
     }
 
     @Test
+    void supportUploadResponseDecodesPercentEncodedDisplayNames() throws Exception {
+        String dealerToken = registerDealerAndExtractAccessToken("dealer-support-upload-encoded");
+
+        mockMvc.perform(multipart("/api/v1/upload/support-tickets")
+                        .file(new MockMultipartFile(
+                                "file",
+                                "Ng%C6%B0%E1%BB%9Di%20d%C3%B9ng%20-%20minh%20ch%E1%BB%A9ng.pdf",
+                                "application/pdf",
+                                SAMPLE_PDF_BYTES))
+                        .header("Authorization", "Bearer " + dealerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.fileName").value("Người dùng - minh chứng.pdf"));
+    }
+
+    @Test
     void suspendedDealerCannotReadOrDeleteOwnUploadAfterSuspension() throws Exception {
         Dealer dealer = registerDealer("dealer-suspended-upload", CustomerStatus.ACTIVE);
         String dealerToken = login(dealer.getEmail(), "Dealer#123");

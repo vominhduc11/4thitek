@@ -184,7 +184,20 @@ function extractLastSegment(value: string): string | null {
   const parsed = parseUrl(normalized);
   const path = extractPath(normalized, parsed).replace(/\\/g, "/").replace(/\/+$/, "");
   const segment = path.slice(path.lastIndexOf("/") + 1).trim();
-  return segment || null;
+  return decodeFileNameSegment(segment);
+}
+
+function decodeFileNameSegment(value: string): string | null {
+  const normalized = String(value ?? "").trim();
+  if (!normalized) {
+    return null;
+  }
+
+  try {
+    return decodeURIComponent(normalized);
+  } catch {
+    return normalized;
+  }
 }
 
 function findPrivateUploadPrefix(value: string): string | null {

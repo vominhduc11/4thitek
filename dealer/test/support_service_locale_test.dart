@@ -64,7 +64,7 @@ void main() {
                             'url':
                                 'support/evidence/dealers/7/9d0e914f-proof.jpg',
                             'fileName':
-                                'support/evidence/dealers/7/9d0e914f-proof.jpg',
+                                'Ng%C6%B0%E1%BB%9Di%20d%C3%B9ng%20-%20minh%20ch%E1%BB%A9ng.jpg',
                           },
                         ],
                         'createdAt': '2026-04-10T00:00:00Z',
@@ -101,7 +101,7 @@ void main() {
           '/api/v1/upload/support/evidence/dealers/7/9d0e914f-proof.jpg',
         ),
       );
-      expect(attachment.fileName, '9d0e914f-proof.jpg');
+      expect(attachment.fileName, 'Người dùng - minh chứng.jpg');
 
       service.close();
     },

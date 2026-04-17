@@ -64,6 +64,12 @@ describe("support attachment normalization", () => {
     ).toBe("9d0e914f-proof.jpg");
   });
 
+  it("decodes percent-encoded file names for display", () => {
+    expect(
+      normalizeSupportAttachmentFileName("Ng%C6%B0%E1%BB%9Di%20d%C3%B9ng.pdf"),
+    ).toBe("Người dùng.pdf");
+  });
+
   it("builds normalized attachment metadata for rendering", () => {
     const normalized = normalizeSupportAttachment({
       url: "support/evidence/dealers/1/9d0e914f-proof.jpg",

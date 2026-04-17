@@ -10,6 +10,8 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Locale;
 import java.util.Set;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
@@ -159,7 +161,7 @@ public class UploadController {
     private String resolveDisplayFileName(MultipartFile file, String storedPath) {
         String originalFileName = StringUtils.cleanPath(file == null ? "" : file.getOriginalFilename());
         if (StringUtils.hasText(originalFileName)) {
-            String extracted = StringUtils.getFilename(originalFileName);
+            String extracted = decodeFileName(StringUtils.getFilename(originalFileName));
             if (StringUtils.hasText(extracted)) {
                 return extracted;
             }
@@ -169,11 +171,22 @@ public class UploadController {
         if (!StringUtils.hasText(normalizedStoredPath)) {
             throw new BadRequestException("Invalid upload path");
         }
-        String fallbackFileName = StringUtils.getFilename(normalizedStoredPath);
+        String fallbackFileName = decodeFileName(StringUtils.getFilename(normalizedStoredPath));
         if (!StringUtils.hasText(fallbackFileName)) {
             throw new BadRequestException("Invalid upload path");
         }
         return fallbackFileName;
+    }
+
+    private String decodeFileName(String value) {
+        if (!StringUtils.hasText(value)) {
+            return value;
+        }
+        try {
+            return URLDecoder.decode(value, StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException ex) {
+            return value;
+        }
     }
 
     private String resolveRelativePath(String value) {

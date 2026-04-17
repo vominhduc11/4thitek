@@ -249,7 +249,14 @@ String? _extractLastPathSegment(String? value) {
   path = path.replaceAll('\\', '/').replaceAll(RegExp(r'/+$'), '');
   final index = path.lastIndexOf('/');
   final segment = (index >= 0 ? path.substring(index + 1) : path).trim();
-  return segment.isEmpty ? null : segment;
+  if (segment.isEmpty) {
+    return null;
+  }
+  try {
+    return Uri.decodeComponent(segment);
+  } catch (_) {
+    return segment;
+  }
 }
 
 class UploadException implements Exception {

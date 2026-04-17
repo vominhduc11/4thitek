@@ -527,7 +527,19 @@ String? _extractLastPathSegment(String? value) {
   final lastSlash = path.lastIndexOf('/');
   final segment = (lastSlash >= 0 ? path.substring(lastSlash + 1) : path)
       .trim();
-  return segment.isEmpty ? null : segment;
+  return _decodePathSegment(segment);
+}
+
+String? _decodePathSegment(String value) {
+  final normalized = value.trim();
+  if (normalized.isEmpty) {
+    return null;
+  }
+  try {
+    return Uri.decodeComponent(normalized);
+  } catch (_) {
+    return normalized;
+  }
 }
 
 String? _parseOptionalStringStatic(Object? value) {

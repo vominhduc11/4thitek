@@ -61,6 +61,30 @@ describe("storeFileReference", () => {
     expect(result.fileName).toBe("new-proof.jpg");
   });
 
+  it("decodes percent-encoded file names returned by the backend", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          success: true,
+          data: {
+            url: "/api/v1/upload/support/evidence/dealers/1/Ng%C6%B0%E1%BB%9Di%20d%C3%B9ng.pdf",
+            fileName: "Ng%C6%B0%E1%BB%9Di%20d%C3%B9ng.pdf",
+          },
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const file = new File(["proof"], "whatever.pdf", { type: "application/pdf" });
+    const result = await storeFileReference({
+      file,
+      category: "support-tickets",
+      accessToken: "admin-token",
+    });
+
+    expect(result.fileName).toBe("Người dùng.pdf");
+  });
+
   it("normalizes legacy /uploads support URLs to authenticated preview URLs", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
