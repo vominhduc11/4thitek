@@ -215,6 +215,326 @@ class ReturnRequestWorkflowTests {
     }
 
     @Test
+    void warrantyRmaFailsWhenSerialHasNoWarrantyRegistration() {
+        Dealer dealer = dealerRepository.save(createDealer("dealer-return-warranty-missing@example.com"));
+        Product product = productRepository.save(createProduct("SKU-RET-WAR-MISSING", BigDecimal.valueOf(142_000)));
+        Order order = orderRepository.save(createOrder(dealer, product, 1, "RET-ORDER-WAR-MISSING", OrderStatus.COMPLETED));
+        ProductSerial serial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "RET-SERIAL-WAR-MISSING",
+                ProductSerialStatus.ASSIGNED
+        ));
+
+        assertThatThrownBy(() -> returnRequestService.createDealerReturnRequest(
+                dealer.getUsername(),
+                createRequest(
+                        order.getId(),
+                        ReturnRequestType.WARRANTY_RMA,
+                        ReturnRequestResolution.INSPECT_ONLY,
+                        serial.getId()
+                )
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("requires an active warranty registration");
+    }
+
+    @Test
+    void warrantyRmaFailsWhenWarrantyStatusIsNotActive() {
+        Dealer dealer = dealerRepository.save(createDealer("dealer-return-warranty-inactive@example.com"));
+        Product product = productRepository.save(createProduct("SKU-RET-WAR-INACTIVE", BigDecimal.valueOf(143_000)));
+        Order order = orderRepository.save(createOrder(dealer, product, 1, "RET-ORDER-WAR-INACTIVE", OrderStatus.COMPLETED));
+        ProductSerial serial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "RET-SERIAL-WAR-INACTIVE",
+                ProductSerialStatus.WARRANTY
+        ));
+        WarrantyRegistration warranty = warrantyRegistrationRepository.save(createWarranty(
+                serial,
+                dealer,
+                order,
+                "WAR-INACTIVE",
+                WarrantyStatus.VOID,
+                Instant.now().plusSeconds(86_400)
+        ));
+        serial.setWarranty(warranty);
+        productSerialRepository.save(serial);
+
+        assertThatThrownBy(() -> returnRequestService.createDealerReturnRequest(
+                dealer.getUsername(),
+                createRequest(
+                        order.getId(),
+                        ReturnRequestType.WARRANTY_RMA,
+                        ReturnRequestResolution.INSPECT_ONLY,
+                        serial.getId()
+                )
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("warranty status must be ACTIVE");
+    }
+
+    @Test
+    void warrantyRmaFailsWhenWarrantyExpired() {
+        Dealer dealer = dealerRepository.save(createDealer("dealer-return-warranty-expired@example.com"));
+        Product product = productRepository.save(createProduct("SKU-RET-WAR-EXPIRED", BigDecimal.valueOf(144_000)));
+        Order order = orderRepository.save(createOrder(dealer, product, 1, "RET-ORDER-WAR-EXPIRED", OrderStatus.COMPLETED));
+        ProductSerial serial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "RET-SERIAL-WAR-EXPIRED",
+                ProductSerialStatus.WARRANTY
+        ));
+        WarrantyRegistration warranty = warrantyRegistrationRepository.save(createWarranty(
+                serial,
+                dealer,
+                order,
+                "WAR-EXPIRED",
+                WarrantyStatus.ACTIVE,
+                Instant.now().minusSeconds(60)
+        ));
+        serial.setWarranty(warranty);
+        productSerialRepository.save(serial);
+
+        assertThatThrownBy(() -> returnRequestService.createDealerReturnRequest(
+                dealer.getUsername(),
+                createRequest(
+                        order.getId(),
+                        ReturnRequestType.WARRANTY_RMA,
+                        ReturnRequestResolution.INSPECT_ONLY,
+                        serial.getId()
+                )
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("warranty has expired");
+    }
+
+    @Test
+    void warrantyRmaFailsWhenWarrantyDealerMismatch() {
+        Dealer dealer = dealerRepository.save(createDealer("dealer-return-warranty-owner@example.com"));
+        Dealer otherDealer = dealerRepository.save(createDealer("dealer-return-warranty-other@example.com"));
+        Product product = productRepository.save(createProduct("SKU-RET-WAR-MISMATCH", BigDecimal.valueOf(145_000)));
+        Order order = orderRepository.save(createOrder(dealer, product, 1, "RET-ORDER-WAR-MISMATCH", OrderStatus.COMPLETED));
+        ProductSerial serial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "RET-SERIAL-WAR-MISMATCH",
+                ProductSerialStatus.WARRANTY
+        ));
+        WarrantyRegistration warranty = warrantyRegistrationRepository.save(createWarranty(
+                serial,
+                otherDealer,
+                order,
+                "WAR-MISMATCH",
+                WarrantyStatus.ACTIVE,
+                Instant.now().plusSeconds(86_400)
+        ));
+        serial.setWarranty(warranty);
+        productSerialRepository.save(serial);
+
+        assertThatThrownBy(() -> returnRequestService.createDealerReturnRequest(
+                dealer.getUsername(),
+                createRequest(
+                        order.getId(),
+                        ReturnRequestType.WARRANTY_RMA,
+                        ReturnRequestResolution.REPLACE,
+                        serial.getId()
+                )
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("warranty registration belongs to a different dealer");
+    }
+
+    @Test
+    void warrantyRmaFailsWhenRequestedResolutionIsCreditOrRefund() {
+        Dealer dealer = dealerRepository.save(createDealer("dealer-return-warranty-resolution@example.com"));
+        Product product = productRepository.save(createProduct("SKU-RET-WAR-RES", BigDecimal.valueOf(146_000)));
+        Order order = orderRepository.save(createOrder(dealer, product, 1, "RET-ORDER-WAR-RES", OrderStatus.COMPLETED));
+        ProductSerial serial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "RET-SERIAL-WAR-RES",
+                ProductSerialStatus.WARRANTY
+        ));
+        WarrantyRegistration warranty = warrantyRegistrationRepository.save(createWarranty(serial, dealer, order, "WAR-RES"));
+        serial.setWarranty(warranty);
+        productSerialRepository.save(serial);
+
+        assertThatThrownBy(() -> returnRequestService.createDealerReturnRequest(
+                dealer.getUsername(),
+                createRequest(
+                        order.getId(),
+                        ReturnRequestType.WARRANTY_RMA,
+                        ReturnRequestResolution.CREDIT_NOTE,
+                        serial.getId()
+                )
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("WARRANTY_RMA only supports INSPECT_ONLY or REPLACE");
+
+        assertThatThrownBy(() -> returnRequestService.createDealerReturnRequest(
+                dealer.getUsername(),
+                createRequest(
+                        order.getId(),
+                        ReturnRequestType.WARRANTY_RMA,
+                        ReturnRequestResolution.REFUND,
+                        serial.getId()
+                )
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("WARRANTY_RMA only supports INSPECT_ONLY or REPLACE");
+    }
+
+    @Test
+    void warrantyRmaSucceedsWithEligibleActiveWarrantyAndAllowedRequestedResolution() {
+        Dealer dealer = dealerRepository.save(createDealer("dealer-return-warranty-success@example.com"));
+        Product product = productRepository.save(createProduct("SKU-RET-WAR-SUCCESS", BigDecimal.valueOf(147_000)));
+        Order order = orderRepository.save(createOrder(dealer, product, 2, "RET-ORDER-WAR-SUCCESS", OrderStatus.COMPLETED));
+
+        ProductSerial first = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "RET-SERIAL-WAR-SUCCESS-1",
+                ProductSerialStatus.WARRANTY
+        ));
+        WarrantyRegistration firstWarranty = warrantyRegistrationRepository.save(createWarranty(first, dealer, order, "WAR-SUCCESS-1"));
+        first.setWarranty(firstWarranty);
+        productSerialRepository.save(first);
+
+        ProductSerial second = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "RET-SERIAL-WAR-SUCCESS-2",
+                ProductSerialStatus.WARRANTY
+        ));
+        WarrantyRegistration secondWarranty = warrantyRegistrationRepository.save(createWarranty(second, dealer, order, "WAR-SUCCESS-2"));
+        second.setWarranty(secondWarranty);
+        productSerialRepository.save(second);
+
+        ReturnRequestDetailResponse inspectOnly = returnRequestService.createDealerReturnRequest(
+                dealer.getUsername(),
+                createRequest(
+                        order.getId(),
+                        ReturnRequestType.WARRANTY_RMA,
+                        ReturnRequestResolution.INSPECT_ONLY,
+                        first.getId()
+                )
+        );
+        assertThat(inspectOnly.type()).isEqualTo(ReturnRequestType.WARRANTY_RMA);
+        assertThat(inspectOnly.requestedResolution()).isEqualTo(ReturnRequestResolution.INSPECT_ONLY);
+
+        ReturnRequestDetailResponse replace = returnRequestService.createDealerReturnRequest(
+                dealer.getUsername(),
+                createRequest(
+                        order.getId(),
+                        ReturnRequestType.WARRANTY_RMA,
+                        ReturnRequestResolution.REPLACE,
+                        second.getId()
+                )
+        );
+        assertThat(replace.type()).isEqualTo(ReturnRequestType.WARRANTY_RMA);
+        assertThat(replace.requestedResolution()).isEqualTo(ReturnRequestResolution.REPLACE);
+    }
+
+    @Test
+    void defectiveReturnSucceedsForAssignedOrDefectiveSerials() {
+        Dealer dealer = dealerRepository.save(createDealer("dealer-return-defective-ok@example.com"));
+        Product product = productRepository.save(createProduct("SKU-RET-DEF-OK", BigDecimal.valueOf(148_000)));
+        Order order = orderRepository.save(createOrder(dealer, product, 2, "RET-ORDER-DEF-OK", OrderStatus.COMPLETED));
+        ProductSerial assignedSerial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "RET-SERIAL-DEF-OK-1",
+                ProductSerialStatus.ASSIGNED
+        ));
+        ProductSerial defectiveSerial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "RET-SERIAL-DEF-OK-2",
+                ProductSerialStatus.DEFECTIVE
+        ));
+
+        ReturnRequestDetailResponse created = returnRequestService.createDealerReturnRequest(
+                dealer.getUsername(),
+                createRequest(
+                        order.getId(),
+                        ReturnRequestType.DEFECTIVE_RETURN,
+                        ReturnRequestResolution.REPLACE,
+                        assignedSerial.getId(),
+                        defectiveSerial.getId()
+                )
+        );
+
+        assertThat(created.type()).isEqualTo(ReturnRequestType.DEFECTIVE_RETURN);
+        assertThat(created.items()).hasSize(2);
+    }
+
+    @Test
+    void commercialReturnUsesB2bRulesLikeDefectiveReturn() {
+        Dealer dealer = dealerRepository.save(createDealer("dealer-return-commercial-ok@example.com"));
+        Product product = productRepository.save(createProduct("SKU-RET-COMM-OK", BigDecimal.valueOf(148_500)));
+        Order order = orderRepository.save(createOrder(dealer, product, 1, "RET-ORDER-COMM-OK", OrderStatus.COMPLETED));
+        ProductSerial serial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "RET-SERIAL-COMM-OK",
+                ProductSerialStatus.ASSIGNED
+        ));
+
+        ReturnRequestDetailResponse created = returnRequestService.createDealerReturnRequest(
+                dealer.getUsername(),
+                createRequest(
+                        order.getId(),
+                        ReturnRequestType.COMMERCIAL_RETURN,
+                        ReturnRequestResolution.CREDIT_NOTE,
+                        serial.getId()
+                )
+        );
+
+        assertThat(created.type()).isEqualTo(ReturnRequestType.COMMERCIAL_RETURN);
+        assertThat(created.requestedResolution()).isEqualTo(ReturnRequestResolution.CREDIT_NOTE);
+    }
+
+    @Test
+    void defectiveReturnFailsForWarrantySerialWithActiveWarranty() {
+        Dealer dealer = dealerRepository.save(createDealer("dealer-return-defective-warranty@example.com"));
+        Product product = productRepository.save(createProduct("SKU-RET-DEF-WAR", BigDecimal.valueOf(149_000)));
+        Order order = orderRepository.save(createOrder(dealer, product, 1, "RET-ORDER-DEF-WAR", OrderStatus.COMPLETED));
+        ProductSerial serial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "RET-SERIAL-DEF-WAR",
+                ProductSerialStatus.WARRANTY
+        ));
+        WarrantyRegistration warranty = warrantyRegistrationRepository.save(createWarranty(serial, dealer, order, "WAR-DEF-WAR"));
+        serial.setWarranty(warranty);
+        productSerialRepository.save(serial);
+
+        assertThatThrownBy(() -> returnRequestService.createDealerReturnRequest(
+                dealer.getUsername(),
+                createRequest(
+                        order.getId(),
+                        ReturnRequestType.DEFECTIVE_RETURN,
+                        ReturnRequestResolution.REPLACE,
+                        serial.getId()
+                )
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("has active warranty; submit WARRANTY_RMA instead");
+    }
+
+    @Test
     void adminCanPartiallyApproveAndRejectItems() {
         Dealer dealer = dealerRepository.save(createDealer("dealer-return-review@example.com"));
         Product product = productRepository.save(createProduct("SKU-RET-5", BigDecimal.valueOf(150_000)));
@@ -509,6 +829,7 @@ class ReturnRequestWorkflowTests {
                 "admin-qc"
         );
 
+        assertThat(resolved.type()).isEqualTo(ReturnRequestType.DEFECTIVE_RETURN);
         Long adjustmentId = resolved.items().get(0).orderAdjustmentId();
         assertThat(adjustmentId).isNotNull();
         assertThat(resolved.items().get(0).itemStatus()).isEqualTo(ReturnRequestItemStatus.CREDITED);
@@ -552,6 +873,7 @@ class ReturnRequestWorkflowTests {
                 "admin-qc"
         );
 
+        assertThat(resolved.type()).isEqualTo(ReturnRequestType.DEFECTIVE_RETURN);
         Long adjustmentId = resolved.items().get(0).orderAdjustmentId();
         assertThat(adjustmentId).isNotNull();
         assertThat(resolved.items().get(0).itemStatus()).isEqualTo(ReturnRequestItemStatus.CREDITED);
@@ -572,7 +894,9 @@ class ReturnRequestWorkflowTests {
         WorkflowFixture fixture = prepareInspectingFixture(
                 "scrap-warranty",
                 ProductSerialStatus.WARRANTY,
-                true
+                true,
+                ReturnRequestType.WARRANTY_RMA,
+                ReturnRequestResolution.REPLACE
         );
 
         ReturnRequestDetailResponse resolved = returnRequestService.inspectReturnItem(
@@ -600,6 +924,51 @@ class ReturnRequestWorkflowTests {
 
         WarrantyRegistration warranty = warrantyRegistrationRepository.findById(fixture.warrantyId()).orElseThrow();
         assertThat(warranty.getStatus()).isEqualTo(WarrantyStatus.VOID);
+    }
+
+    @Test
+    void warrantyRmaFinalResolutionCannotBeCreditOrRefund() {
+        WorkflowFixture fixture = prepareInspectingFixture(
+                "warranty-final-resolution",
+                ProductSerialStatus.WARRANTY,
+                true,
+                ReturnRequestType.WARRANTY_RMA,
+                ReturnRequestResolution.REPLACE
+        );
+
+        assertThatThrownBy(() -> returnRequestService.inspectReturnItem(
+                fixture.requestId(),
+                fixture.itemId(),
+                new AdminInspectReturnItemRequest(
+                        AdminRmaRequest.RmaAction.SCRAP,
+                        "Try credit note for warranty",
+                        List.of("https://proof/warranty-credit.jpg"),
+                        ReturnRequestItemFinalResolution.CREDIT_NOTE,
+                        null,
+                        null,
+                        BigDecimal.valueOf(100_000)
+                ),
+                "admin-qc"
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("WARRANTY_RMA does not allow CREDIT_NOTE or REFUND");
+
+        assertThatThrownBy(() -> returnRequestService.inspectReturnItem(
+                fixture.requestId(),
+                fixture.itemId(),
+                new AdminInspectReturnItemRequest(
+                        AdminRmaRequest.RmaAction.SCRAP,
+                        "Try refund for warranty",
+                        List.of("https://proof/warranty-refund.jpg"),
+                        ReturnRequestItemFinalResolution.REFUND,
+                        null,
+                        BigDecimal.valueOf(100_000),
+                        null
+                ),
+                "admin-qc"
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("WARRANTY_RMA does not allow CREDIT_NOTE or REFUND");
     }
 
     @Test
@@ -681,7 +1050,14 @@ class ReturnRequestWorkflowTests {
 
         ReturnRequestDetailResponse created = returnRequestService.createDealerReturnRequest(
                 dealer.getUsername(),
-                createRequestWithAttachment(order.getId(), serial.getId(), null, serial.getId())
+                createRequestWithAttachment(
+                        order.getId(),
+                        serial.getId(),
+                        null,
+                        ReturnRequestType.DEFECTIVE_RETURN,
+                        ReturnRequestResolution.REPLACE,
+                        serial.getId()
+                )
         );
 
         assertThat(created.attachments()).singleElement().satisfies(attachment ->
@@ -703,7 +1079,14 @@ class ReturnRequestWorkflowTests {
 
         ReturnRequestDetailResponse created = returnRequestService.createDealerReturnRequest(
                 dealer.getUsername(),
-                createRequestWithAttachment(order.getId(), serial.getId(), serial.getId(), null)
+                createRequestWithAttachment(
+                        order.getId(),
+                        serial.getId(),
+                        serial.getId(),
+                        ReturnRequestType.DEFECTIVE_RETURN,
+                        ReturnRequestResolution.REPLACE,
+                        null
+                )
         );
 
         assertThat(created.attachments()).singleElement().satisfies(attachment ->
@@ -893,6 +1276,22 @@ class ReturnRequestWorkflowTests {
             ProductSerialStatus initialStatus,
             boolean includeActiveWarranty
     ) {
+        return prepareInspectingFixture(
+                uniqueSuffix,
+                initialStatus,
+                includeActiveWarranty,
+                ReturnRequestType.DEFECTIVE_RETURN,
+                ReturnRequestResolution.REPLACE
+        );
+    }
+
+    private WorkflowFixture prepareInspectingFixture(
+            String uniqueSuffix,
+            ProductSerialStatus initialStatus,
+            boolean includeActiveWarranty,
+            ReturnRequestType requestType,
+            ReturnRequestResolution requestedResolution
+    ) {
         Dealer dealer = dealerRepository.save(createDealer("dealer-return-" + uniqueSuffix + "@example.com"));
         Product product = productRepository.save(createProduct(
                 "SKU-RET-" + uniqueSuffix.toUpperCase(),
@@ -925,7 +1324,7 @@ class ReturnRequestWorkflowTests {
 
         ReturnRequestDetailResponse created = returnRequestService.createDealerReturnRequest(
                 dealer.getUsername(),
-                createRequest(order.getId(), serial.getId())
+                createRequest(order.getId(), requestType, requestedResolution, serial.getId())
         );
         ReturnRequestDetailResponse reviewed = returnRequestService.reviewReturnRequest(
                 created.id(),
@@ -967,10 +1366,26 @@ class ReturnRequestWorkflowTests {
     }
 
     private CreateDealerReturnRequest createRequest(Long orderId, Long... serialIds) {
+        return createRequest(
+                orderId,
+                ReturnRequestType.DEFECTIVE_RETURN,
+                ReturnRequestResolution.REPLACE,
+                serialIds
+        );
+    }
+
+    private CreateDealerReturnRequest createRequest(
+            Long orderId,
+            ReturnRequestType type,
+            ReturnRequestResolution requestedResolution,
+            Long... serialIds
+    ) {
         return createRequestWithAttachment(
                 orderId,
                 serialIds.length > 0 ? serialIds[0] : null,
                 serialIds.length > 0 ? serialIds[0] : null,
+                type,
+                requestedResolution,
                 null,
                 serialIds
         );
@@ -980,6 +1395,8 @@ class ReturnRequestWorkflowTests {
             Long orderId,
             Long defaultSerialId,
             Long attachmentItemId,
+            ReturnRequestType type,
+            ReturnRequestResolution requestedResolution,
             Long attachmentProductSerialId,
             Long... serialIds
     ) {
@@ -992,8 +1409,8 @@ class ReturnRequestWorkflowTests {
                 .toList();
         return new CreateDealerReturnRequest(
                 orderId,
-                ReturnRequestType.DEFECTIVE_RETURN,
-                ReturnRequestResolution.REPLACE,
+                type,
+                requestedResolution,
                 "DEFECT",
                 "Product failed after installation",
                 items,
@@ -1021,6 +1438,24 @@ class ReturnRequestWorkflowTests {
     }
 
     private WarrantyRegistration createWarranty(ProductSerial serial, Dealer dealer, Order order, String warrantyCode) {
+        return createWarranty(
+                serial,
+                dealer,
+                order,
+                warrantyCode,
+                WarrantyStatus.ACTIVE,
+                Instant.now().plusSeconds(86_400 * 365)
+        );
+    }
+
+    private WarrantyRegistration createWarranty(
+            ProductSerial serial,
+            Dealer dealer,
+            Order order,
+            String warrantyCode,
+            WarrantyStatus status,
+            Instant warrantyEnd
+    ) {
         WarrantyRegistration warranty = new WarrantyRegistration();
         warranty.setProductSerial(serial);
         warranty.setDealer(dealer);
@@ -1032,8 +1467,8 @@ class ReturnRequestWorkflowTests {
         warranty.setCustomerAddress("Warranty Street");
         warranty.setPurchaseDate(LocalDate.now().minusDays(1));
         warranty.setWarrantyStart(Instant.now().minusSeconds(86_400));
-        warranty.setWarrantyEnd(Instant.now().plusSeconds(86_400 * 365));
-        warranty.setStatus(WarrantyStatus.ACTIVE);
+        warranty.setWarrantyEnd(warrantyEnd);
+        warranty.setStatus(status);
         return warranty;
     }
 

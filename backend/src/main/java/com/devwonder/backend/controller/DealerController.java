@@ -401,20 +401,22 @@ public class DealerController {
     @GetMapping("/orders/{id}/return-eligible-serials")
     public ResponseEntity<ApiResponse<List<ReturnEligibilityResponse>>> returnEligibleSerialsForOrder(
             Authentication authentication,
-            @PathVariable("id") Long id
+            @PathVariable("id") Long id,
+            @RequestParam(name = "type", required = false) ReturnRequestType type
     ) {
         return ResponseEntity.ok(ApiResponse.success(
-                dealerPortalService.getOrderReturnEligibleSerials(extractUsername(authentication), id)
+                dealerPortalService.getOrderReturnEligibleSerials(extractUsername(authentication), id, type)
         ));
     }
 
     @GetMapping("/inventory/serials/{id}/return-eligibility")
     public ResponseEntity<ApiResponse<ReturnEligibilityResponse>> returnEligibilityForSerial(
             Authentication authentication,
-            @PathVariable("id") Long id
+            @PathVariable("id") Long id,
+            @RequestParam(name = "type", required = false) ReturnRequestType type
     ) {
         return ResponseEntity.ok(ApiResponse.success(
-                dealerPortalService.getSerialReturnEligibility(extractUsername(authentication), id)
+                dealerPortalService.getSerialReturnEligibility(extractUsername(authentication), id, type)
         ));
     }
 

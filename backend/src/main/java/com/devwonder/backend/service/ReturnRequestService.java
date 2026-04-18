@@ -35,6 +35,7 @@ import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.ProductSerialStatus;
 import com.devwonder.backend.entity.enums.ReturnRequestItemFinalResolution;
 import com.devwonder.backend.entity.enums.ReturnRequestItemStatus;
+import com.devwonder.backend.entity.enums.ReturnRequestType;
 import com.devwonder.backend.entity.enums.ReturnRequestStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
@@ -45,6 +46,7 @@ import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.ReturnRequestItemRepository;
 import com.devwonder.backend.repository.ReturnRequestRepository;
 import com.devwonder.backend.service.support.DealerPortalLookupSupport;
+import com.devwonder.backend.service.returns.ReturnRequestPolicy;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
@@ -99,12 +101,6 @@ public class ReturnRequestService {
             ReturnRequestItemStatus.CREDITED
     );
 
-    private static final Set<ProductSerialStatus> ELIGIBLE_SERIAL_STATUSES = EnumSet.of(
-            ProductSerialStatus.ASSIGNED,
-            ProductSerialStatus.WARRANTY,
-            ProductSerialStatus.DEFECTIVE
-    );
-
     private final DealerPortalLookupSupport dealerPortalLookupSupport;
     private final ReturnRequestRepository returnRequestRepository;
     private final ReturnRequestItemRepository returnRequestItemRepository;
@@ -115,6 +111,7 @@ public class ReturnRequestService {
     private final OrderAdjustmentRepository orderAdjustmentRepository;
     private final AdminFinancialService adminFinancialService;
     private final AdminRmaService adminRmaService;
+    private final ReturnRequestPolicy returnRequestPolicy;
     private final ObjectMapper objectMapper;
 
     @Transactional(readOnly = true)
@@ -172,11 +169,16 @@ public class ReturnRequestService {
             if (serial.getOrder() == null || !Objects.equals(serial.getOrder().getId(), order.getId())) {
                 throw new BadRequestException("Serial " + serial.getSerial() + " does not belong to order " + order.getOrderCode());
             }
-            if (!ELIGIBLE_SERIAL_STATUSES.contains(serial.getStatus())) {
-                throw new BadRequestException("Serial " + serial.getSerial() + " is not eligible for return in current state");
-            }
             serials.add(serial);
         }
+
+        returnRequestPolicy.validateCreateEligibility(
+                payload.type(),
+                dealer,
+                order,
+                serials,
+                payload.requestedResolution()
+        );
 
         rejectActiveDuplicateSerials(serials.stream().map(ProductSerial::getId).toList());
 
@@ -266,6 +268,11 @@ public class ReturnRequestService {
 
     @Transactional(readOnly = true)
     public List<ReturnEligibilityResponse> getOrderEligibleSerials(String username, Long orderId) {
+        return getOrderEligibleSerials(username, orderId, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReturnEligibilityResponse> getOrderEligibleSerials(String username, Long orderId, ReturnRequestType type) {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
         Order order = dealerPortalLookupSupport.requireDealerOrder(dealer.getId(), orderId);
         List<ProductSerial> serials = productSerialRepository.findInventoryByDealerId(dealer.getId()).stream()
@@ -275,19 +282,24 @@ public class ReturnRequestService {
         Map<Long, ActiveRequestRef> activeRefs = resolveActiveRequestRefBySerialId(serialIds);
         List<ReturnEligibilityResponse> responses = new ArrayList<>(serials.size());
         for (ProductSerial serial : serials) {
-            responses.add(toEligibilityResponse(serial, order, activeRefs.get(serial.getId())));
+            responses.add(toEligibilityResponse(dealer, serial, order, activeRefs.get(serial.getId()), type));
         }
         return responses;
     }
 
     @Transactional(readOnly = true)
     public ReturnEligibilityResponse getSerialEligibility(String username, Long serialId) {
+        return getSerialEligibility(username, serialId, null);
+    }
+
+    @Transactional(readOnly = true)
+    public ReturnEligibilityResponse getSerialEligibility(String username, Long serialId, ReturnRequestType type) {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
         ProductSerial serial = productSerialRepository.findInventoryByIdAndDealerId(serialId, dealer.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Serial not found"));
         Order order = serial.getOrder();
         ActiveRequestRef activeRef = resolveActiveRequestRefBySerialId(Set.of(serial.getId())).get(serial.getId());
-        return toEligibilityResponse(serial, order, activeRef);
+        return toEligibilityResponse(dealer, serial, order, activeRef, type);
     }
 
     @Transactional(readOnly = true)
@@ -448,6 +460,7 @@ public class ReturnRequestService {
                         ? ReturnRequestItemFinalResolution.RESTOCK
                         : ReturnRequestItemFinalResolution.SCRAP;
             }
+            returnRequestPolicy.validateFinalResolution(request.getType(), finalResolution);
             applyFinalResolution(
                     request,
                     item,
@@ -718,26 +731,20 @@ public class ReturnRequestService {
         return refs;
     }
 
-    private ReturnEligibilityResponse toEligibilityResponse(ProductSerial serial, Order order, ActiveRequestRef activeRequest) {
-        boolean orderCompleted = order != null && order.getStatus() == OrderStatus.COMPLETED;
-        boolean statusAllowed = ELIGIBLE_SERIAL_STATUSES.contains(serial.getStatus());
-        boolean noActiveRequest = activeRequest == null;
-        boolean eligible = orderCompleted && statusAllowed && noActiveRequest;
-        String reasonCode;
-        String reasonMessage;
-        if (!orderCompleted) {
-            reasonCode = "ORDER_NOT_COMPLETED";
-            reasonMessage = "Only completed order serials are eligible for return";
-        } else if (!statusAllowed) {
-            reasonCode = "SERIAL_STATUS_NOT_ELIGIBLE";
-            reasonMessage = "Serial is in a non-returnable state";
-        } else if (!noActiveRequest) {
-            reasonCode = "ACTIVE_RETURN_REQUEST_EXISTS";
-            reasonMessage = "Serial already has an active return request";
-        } else {
-            reasonCode = "ELIGIBLE";
-            reasonMessage = "Serial is eligible for return request";
-        }
+    private ReturnEligibilityResponse toEligibilityResponse(
+            Dealer dealer,
+            ProductSerial serial,
+            Order order,
+            ActiveRequestRef activeRequest,
+            ReturnRequestType type
+    ) {
+        ReturnRequestPolicy.EligibilityDecision decision = returnRequestPolicy.evaluateEligibility(
+                type,
+                dealer,
+                order,
+                serial,
+                activeRequest != null
+        );
         return new ReturnEligibilityResponse(
                 serial.getId(),
                 serial.getSerial(),
@@ -746,9 +753,9 @@ public class ReturnRequestService {
                 serial.getProduct() == null ? null : serial.getProduct().getId(),
                 serial.getProduct() == null ? null : serial.getProduct().getName(),
                 serial.getProduct() == null ? null : serial.getProduct().getSku(),
-                eligible,
-                reasonCode,
-                reasonMessage,
+                decision.eligible(),
+                decision.reasonCode(),
+                decision.reasonMessage(),
                 activeRequest == null ? null : activeRequest.requestId(),
                 activeRequest == null ? null : activeRequest.requestCode()
         );

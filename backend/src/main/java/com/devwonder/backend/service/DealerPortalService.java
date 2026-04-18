@@ -33,6 +33,7 @@ import com.devwonder.backend.entity.BulkDiscount;
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.enums.DiscountRuleStatus;
 import com.devwonder.backend.entity.enums.ProductSerialStatus;
+import com.devwonder.backend.entity.enums.ReturnRequestType;
 import com.devwonder.backend.repository.BulkDiscountRepository;
 import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.service.support.DealerAccountSupport;
@@ -378,13 +379,21 @@ public class DealerPortalService {
     }
 
     @Transactional(readOnly = true)
-    public java.util.List<ReturnEligibilityResponse> getOrderReturnEligibleSerials(String username, Long orderId) {
-        return returnRequestService.getOrderEligibleSerials(username, orderId);
+    public java.util.List<ReturnEligibilityResponse> getOrderReturnEligibleSerials(
+            String username,
+            Long orderId,
+            ReturnRequestType type
+    ) {
+        return returnRequestService.getOrderEligibleSerials(username, orderId, type);
     }
 
     @Transactional(readOnly = true)
-    public ReturnEligibilityResponse getSerialReturnEligibility(String username, Long serialId) {
-        return returnRequestService.getSerialEligibility(username, serialId);
+    public ReturnEligibilityResponse getSerialReturnEligibility(
+            String username,
+            Long serialId,
+            ReturnRequestType type
+    ) {
+        return returnRequestService.getSerialEligibility(username, serialId, type);
     }
 
     @Transactional
