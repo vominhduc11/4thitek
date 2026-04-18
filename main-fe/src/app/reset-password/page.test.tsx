@@ -50,6 +50,16 @@ describe('ResetPasswordPage', () => {
         vi.unstubAllGlobals();
     });
 
+    it('states that this page is for public, dealer, and general accounts only', () => {
+        render(<ResetPasswordPage />);
+
+        expect(
+            screen.getByText((content) =>
+                content.includes('public, dealer') && content.includes('admin portal')
+            )
+        ).toBeTruthy();
+    });
+
     it('validates the request form before calling forgot-password', async () => {
         render(<ResetPasswordPage />);
 

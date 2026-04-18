@@ -219,21 +219,20 @@ function ResetPasswordContent() {
                     <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
                         <section className="brand-card rounded-[2rem] p-8 lg:p-10">
                             <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[var(--brand-blue)]">
-                                4T HITEK Account Recovery
+                                4T HITEK Public Account Recovery
                             </p>
                             <h1 className="mt-4 font-serif text-4xl font-semibold leading-tight text-[var(--text-primary)] sm:text-5xl">
                                 Đặt lại mật khẩu
                             </h1>
                             <p className="mt-6 max-w-xl text-base leading-7 text-[var(--text-secondary)]">
-                                Đây là bề mặt chính thức để hoàn tất hành trình đặt lại mật khẩu. Dealer app chỉ khởi
-                                tạo yêu cầu; việc xác thực token và lưu mật khẩu mới luôn hoàn tất tại web qua liên kết
-                                trong email.
+                                Đây là trang chính thức để hoàn tất đặt lại mật khẩu cho tài khoản public, dealer và
+                                tài khoản chung. Tài khoản admin và staff dùng trang reset riêng trong admin portal.
                             </p>
 
                             <div className="mt-10 grid gap-4 sm:grid-cols-3">
                                 <StepCard
                                     title="1. Yêu cầu liên kết"
-                                    body="Nhập email tài khoản để hệ thống gửi liên kết đặt lại mật khẩu."
+                                    body="Nhập email tài khoản public, dealer hoặc tài khoản chung để hệ thống gửi liên kết đặt lại mật khẩu."
                                     emphasis
                                 />
                                 <StepCard
@@ -257,8 +256,8 @@ function ResetPasswordContent() {
                                         Gửi email đặt lại mật khẩu
                                     </h2>
                                     <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
-                                        Liên kết đặt lại mật khẩu sẽ được gửi nếu email tồn tại trong hệ thống. Thao tác
-                                        này không tiết lộ email có đang được đăng ký hay không.
+                                        Liên kết đặt lại mật khẩu sẽ được gửi nếu email tồn tại trong hệ thống. Trang này
+                                        dành cho public/dealer/general accounts, không dùng cho admin/staff.
                                     </p>
 
                                     <form onSubmit={handleRequestReset} className="mt-8 space-y-5">
@@ -301,7 +300,8 @@ function ResetPasswordContent() {
                                         Xác thực liên kết và lưu mật khẩu mới
                                     </h2>
                                     <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
-                                        Liên kết trong email sẽ được xác thực trước khi bạn gửi mật khẩu mới.
+                                        Liên kết trong email sẽ được xác thực trước khi bạn lưu mật khẩu mới cho tài khoản
+                                        public/dealer/general. Admin và staff dùng trang reset riêng trong admin portal.
                                     </p>
 
                                     <StatusPanel
@@ -469,3 +469,4 @@ export default function ResetPasswordPage() {
         </Suspense>
     );
 }
+
