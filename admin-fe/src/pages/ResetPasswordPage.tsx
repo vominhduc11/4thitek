@@ -6,6 +6,7 @@ import { FieldErrorMessage, ghostButtonClass, inputClass, primaryButtonClass } f
 import { BRAND_NAME } from "../config/businessProfile";
 import { useLanguage } from "../context/LanguageContext";
 import { AuthApiError, resetAdminPassword, validateAdminPasswordResetToken } from "../lib/authApi";
+import { clearStoredAuthSession } from "../lib/authSession";
 
 const copyByLanguage = {
   vi: {
@@ -123,6 +124,7 @@ function ResetPasswordPage() {
     setIsSubmitting(true);
     try {
       await resetAdminPassword(token, newPassword);
+      clearStoredAuthSession();
       setState("success");
       window.setTimeout(() => {
         navigate("/login", {

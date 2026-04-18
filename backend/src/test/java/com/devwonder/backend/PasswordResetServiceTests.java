@@ -11,6 +11,7 @@ import com.devwonder.backend.entity.Account;
 import com.devwonder.backend.entity.Admin;
 import com.devwonder.backend.entity.PasswordResetToken;
 import com.devwonder.backend.repository.AccountRepository;
+import com.devwonder.backend.repository.AdminRepository;
 import com.devwonder.backend.repository.PasswordResetTokenRepository;
 import com.devwonder.backend.service.PasswordResetService;
 import jakarta.mail.Session;
@@ -28,7 +29,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @SpringBootTest(properties = {
         "app.mail.enabled=true",
         "app.mail.from=test@4thitek.local",
-        "app.password-reset.base-url=https://4thitek.vn/reset-password"
+        "app.password-reset.base-url=https://4thitek.vn/reset-password",
+        "app.admin-password-reset.base-url=https://admin.4thitek.vn/reset-password"
 })
 class PasswordResetServiceTests {
 
@@ -37,6 +39,9 @@ class PasswordResetServiceTests {
 
     @Autowired
     private AccountRepository accountRepository;
+
+    @Autowired
+    private AdminRepository adminRepository;
 
     @Autowired
     private PasswordResetTokenRepository passwordResetTokenRepository;
@@ -93,6 +98,31 @@ class PasswordResetServiceTests {
     }
 
     @Test
+    void resetPasswordClearsRequirePasswordChangeForAdminAccounts() {
+        Admin admin = new Admin();
+        admin.setUsername("staff-reset-admin");
+        admin.setEmail("staff-reset-admin@example.com");
+        admin.setDisplayName("Staff Reset Admin");
+        admin.setPassword(passwordEncoder.encode("OldPass#123"));
+        admin.setRequirePasswordChange(true);
+        adminRepository.save(admin);
+
+        PasswordResetToken token = new PasswordResetToken();
+        token.setAccount(admin);
+        token.setToken("admin-reset-token");
+        token.setExpiresAt(java.time.Instant.now().plusSeconds(60));
+        passwordResetTokenRepository.save(token);
+
+        String message = passwordResetService.resetPassword(token.getToken(), "NewPass#456");
+        Admin updatedAdmin = adminRepository.findById(admin.getId()).orElseThrow();
+
+        assertThat(message).isEqualTo("Password reset successful");
+        assertThat(passwordEncoder.matches("NewPass#456", updatedAdmin.getPassword())).isTrue();
+        assertThat(updatedAdmin.getRequirePasswordChange()).isFalse();
+        assertThat(passwordResetTokenRepository.findAll()).isEmpty();
+    }
+
+    @Test
     void adminTriggeredStaffResetCreatesFreshTokenAndSendsEmailWithoutPlaintextPassword() throws Exception {
         Admin account = new Admin();
         account.setUsername("staff-reset");
@@ -113,6 +143,42 @@ class PasswordResetServiceTests {
         assertThat(tokens).hasSize(1);
         assertThat(tokens.get(0).getToken()).isNotEqualTo("old-token");
         verify(javaMailSender, timeout(1_000)).send(any(MimeMessage.class));
+    }
+
+    @Test
+    void requestResetUsesPublicResetBaseUrl() throws Exception {
+        Account account = new Account();
+        account.setUsername("public-reset-user");
+        account.setEmail("public-reset-user@example.com");
+        account.setPassword(passwordEncoder.encode("OldPass#123"));
+        accountRepository.save(account);
+
+        passwordResetService.requestReset("public-reset-user@example.com");
+
+        org.mockito.ArgumentCaptor<MimeMessage> messageCaptor = org.mockito.ArgumentCaptor.forClass(MimeMessage.class);
+        verify(javaMailSender, timeout(1_000)).send(messageCaptor.capture());
+        assertThat(messageCaptor.getValue().getContent().toString())
+                .contains("https://4thitek.vn/reset-password")
+                .doesNotContain("https://admin.4thitek.vn/reset-password");
+    }
+
+    @Test
+    void staffResetEmailsUseAdminResetBaseUrl() throws Exception {
+        Admin account = new Admin();
+        account.setUsername("staff-reset-url");
+        account.setEmail("staff-reset-url@example.com");
+        account.setDisplayName("Staff Reset URL");
+        account.setPassword(passwordEncoder.encode("OldPass#123"));
+        account.setRequirePasswordChange(true);
+        adminRepository.save(account);
+
+        passwordResetService.sendStaffOnboardingLink(account);
+
+        org.mockito.ArgumentCaptor<MimeMessage> messageCaptor = org.mockito.ArgumentCaptor.forClass(MimeMessage.class);
+        verify(javaMailSender, timeout(1_000)).send(messageCaptor.capture());
+        assertThat(messageCaptor.getValue().getContent().toString())
+                .contains("https://admin.4thitek.vn/reset-password")
+                .doesNotContain("https://4thitek.vn/reset-password");
     }
 
     @Test

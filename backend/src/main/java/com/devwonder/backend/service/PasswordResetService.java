@@ -134,17 +134,15 @@ public class PasswordResetService {
         AccountValidationSupport.assertStrongPassword(newPassword, "newPassword");
 
         Long accountId = storedToken.getAccount().getId();
-        String encodedPassword = passwordEncoder.encode(newPassword);
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new BadRequestException("Reset token is invalid"));
+        account.setPassword(passwordEncoder.encode(newPassword));
+        accountRepository.saveAndFlush(account);
+
         Admin adminAccount = adminRepository.findById(accountId).orElse(null);
-        if (adminAccount != null) {
-            adminAccount.setPassword(encodedPassword);
+        if (adminAccount != null && Boolean.TRUE.equals(adminAccount.getRequirePasswordChange())) {
             adminAccount.setRequirePasswordChange(false);
             adminRepository.saveAndFlush(adminAccount);
-        } else {
-            Account account = accountRepository.findById(accountId)
-                    .orElseThrow(() -> new BadRequestException("Reset token is invalid"));
-            account.setPassword(encodedPassword);
-            accountRepository.saveAndFlush(account);
         }
         passwordResetTokenRepository.deleteByAccountId(accountId);
 
@@ -216,7 +214,8 @@ public class PasswordResetService {
      */
     @Transactional
     public void sendStaffOnboardingLink(Account account) {
-        if (!mailService.isEnabled() || !StringUtils.hasText(resetBaseUrl)) {
+        String adminStaffResetBaseUrl = resolveAdminResetBaseUrl();
+        if (!mailService.isEnabled() || !StringUtils.hasText(adminStaffResetBaseUrl)) {
             log.warn("Staff onboarding email not sent for {} — mail is disabled or resetBaseUrl is not configured",
                     account.getEmail());
             return;
@@ -226,17 +225,17 @@ public class PasswordResetService {
             mailService.sendText(
                     account.getEmail(),
                     BusinessIdentity.BRAND_NAME + " — Kích hoạt tài khoản quản trị",
-                    buildOnboardingEmail(savedToken.getToken(), account)
+                    buildOnboardingEmail(savedToken.getToken(), account, adminStaffResetBaseUrl)
             );
         } catch (RuntimeException ex) {
             log.warn("Could not send onboarding email to new staff account {}", account.getEmail(), ex);
         }
     }
 
-    private String buildOnboardingEmail(String token, Account account) {
+    private String buildOnboardingEmail(String token, Account account, String baseUrl) {
         String displayName = account instanceof Admin a && a.getDisplayName() != null
                 ? a.getDisplayName() : account.getEmail();
-        String setupLink = UriComponentsBuilder.fromUriString(resetBaseUrl)
+        String setupLink = UriComponentsBuilder.fromUriString(baseUrl)
                 .queryParam("token", token)
                 .build(true)
                 .toUriString();
@@ -271,5 +270,9 @@ public class PasswordResetService {
 
     private String normalizePassword(String value) {
         return AccountValidationSupport.normalize(value);
+    }
+
+    private String resolveAdminResetBaseUrl() {
+        return StringUtils.hasText(adminResetBaseUrl) ? adminResetBaseUrl : resetBaseUrl;
     }
 }

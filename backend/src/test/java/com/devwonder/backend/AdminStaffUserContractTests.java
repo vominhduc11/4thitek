@@ -9,10 +9,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.devwonder.backend.entity.Account;
 import com.devwonder.backend.entity.Admin;
 import com.devwonder.backend.entity.PasswordResetToken;
-import com.devwonder.backend.repository.AccountRepository;
 import com.devwonder.backend.repository.AdminRepository;
 import com.devwonder.backend.repository.PasswordResetTokenRepository;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -44,7 +42,8 @@ import org.springframework.test.web.servlet.MvcResult;
         "app.mail.enabled=true",
         "app.mail.from=ops@4thitek.local",
         "app.mail.from-name=4T HITEK Ops",
-        "app.password-reset.base-url=https://admin.4thitek.local/reset",
+        "app.password-reset.base-url=https://4thitek.local/reset-password",
+        "app.admin-password-reset.base-url=https://admin.4thitek.local/reset-password",
         "app.email-verification.base-url=https://admin.4thitek.local/verify-email"
 })
 @AutoConfigureMockMvc
@@ -59,9 +58,6 @@ class AdminStaffUserContractTests {
 
     @Autowired
     private AdminRepository adminRepository;
-
-    @Autowired
-    private AccountRepository accountRepository;
 
     @Autowired
     private PasswordResetTokenRepository passwordResetTokenRepository;
@@ -183,7 +179,7 @@ class AdminStaffUserContractTests {
         assertThat(onboardingMessage.getRecipients(Message.RecipientType.TO)[0].toString()).isEqualTo("staff.ops@example.com");
         assertThat(onboardingBody)
                 .contains("Support Agent")
-                .contains("https://admin.4thitek.local/reset")
+                .contains("https://admin.4thitek.local/reset-password")
                 .doesNotContain("M\u1eadt kh\u1ea9u t\u1ea1m th\u1eddi:")
                 .doesNotContain("temporaryPassword");
         assertThat(verificationMessage.getRecipients(Message.RecipientType.TO)[0].toString()).isEqualTo("staff.ops@example.com");
@@ -240,7 +236,7 @@ class AdminStaffUserContractTests {
 
         String body = latestResetMessage.getContent().toString();
         assertThat(body)
-                .contains("https://admin.4thitek.local/reset")
+                .contains("https://admin.4thitek.local/reset-password")
                 .doesNotContain("temporaryPassword")
                 .doesNotContain("Mật khẩu tạm thời");
     }
@@ -256,7 +252,8 @@ class AdminStaffUserContractTests {
                                 {
                                   "email": "staff.onboarding@example.com",
                                   "name": "Onboarding Agent",
-                                  "role": "Support"
+                                  "role": "Support",
+                                  "status": "ACTIVE"
                                 }
                                 """))
                 .andExpect(status().isOk())
@@ -268,13 +265,12 @@ class AdminStaffUserContractTests {
                 .asText();
 
         Admin created = adminRepository.findByUsername(username).orElseThrow();
+        created.setEmailVerified(true);
+        adminRepository.save(created);
         PasswordResetToken token = passwordResetTokenRepository.findAll().stream()
                 .filter(entry -> entry.getAccount() != null && created.getId().equals(entry.getAccount().getId()))
                 .findFirst()
                 .orElseThrow();
-        Account accountView = accountRepository.findById(created.getId()).orElseThrow();
-        assertThat(token.getAccount()).isNotInstanceOf(Admin.class);
-        assertThat(accountView).isInstanceOf(Admin.class);
 
         mockMvc.perform(post("/api/v1/auth/reset-password")
                         .contentType(APPLICATION_JSON)

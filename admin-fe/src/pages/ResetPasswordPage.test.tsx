@@ -8,6 +8,8 @@ import ResetPasswordPage from "./ResetPasswordPage";
 const {
   validateAdminPasswordResetTokenMock,
   resetAdminPasswordMock,
+  clearStoredAuthSessionMock,
+  navigateMock,
   MockAuthApiError,
   translateMock,
   setLanguageMock,
@@ -25,9 +27,19 @@ const {
   return {
     validateAdminPasswordResetTokenMock: vi.fn(),
     resetAdminPasswordMock: vi.fn(),
+    clearStoredAuthSessionMock: vi.fn(),
+    navigateMock: vi.fn(),
     MockAuthApiError: HoistedAuthApiError,
     translateMock: (key: string) => key,
     setLanguageMock: vi.fn(),
+  };
+});
+
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
+  return {
+    ...actual,
+    useNavigate: () => navigateMock,
   };
 });
 
@@ -45,6 +57,10 @@ vi.mock("../lib/authApi", () => ({
   resetAdminPassword: resetAdminPasswordMock,
 }));
 
+vi.mock("../lib/authSession", () => ({
+  clearStoredAuthSession: clearStoredAuthSessionMock,
+}));
+
 const renderPage = (entry: string) =>
   render(
     <MemoryRouter initialEntries={[entry]}>
@@ -58,9 +74,13 @@ describe("ResetPasswordPage", () => {
   beforeEach(() => {
     validateAdminPasswordResetTokenMock.mockReset();
     resetAdminPasswordMock.mockReset();
+    clearStoredAuthSessionMock.mockReset();
+    navigateMock.mockReset();
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
     cleanup();
   });
 
@@ -82,7 +102,7 @@ describe("ResetPasswordPage", () => {
     expect(await screen.findByRole("heading", { name: "Liên kết đã hết hạn" })).toBeTruthy();
   });
 
-  it("validates the token and submits a new password successfully", async () => {
+  it("validates the token, clears stale auth state, and redirects to login after success", async () => {
     validateAdminPasswordResetTokenMock.mockResolvedValue({
       valid: true,
       status: "valid",
@@ -95,13 +115,21 @@ describe("ResetPasswordPage", () => {
 
     expect(await screen.findByRole("heading", { name: "Đặt mật khẩu mới" })).toBeTruthy();
 
-    await user.type(screen.getByPlaceholderText("Tối thiểu 8 ký tự, gồm chữ hoa, chữ thường và số"), "NewPass#456");
+    await user.type(
+      screen.getByPlaceholderText("Tối thiểu 8 ký tự, gồm chữ hoa, chữ thường và số"),
+      "NewPass#456",
+    );
     await user.type(screen.getByPlaceholderText("Nhập lại mật khẩu mới"), "NewPass#456");
     await user.click(screen.getByRole("button", { name: "Cập nhật mật khẩu" }));
 
     await waitFor(() => {
       expect(resetAdminPasswordMock).toHaveBeenCalledWith("valid-token", "NewPass#456");
-    });
+      expect(clearStoredAuthSessionMock).toHaveBeenCalledTimes(1);
+      expect(navigateMock).toHaveBeenCalledWith("/login", {
+        replace: true,
+        state: { notice: "Mật khẩu đã được cập nhật. Bạn có thể đăng nhập bằng mật khẩu mới." },
+      });
+    }, { timeout: 2000 });
 
     expect(await screen.findByRole("heading", { name: "Đặt lại mật khẩu thành công" })).toBeTruthy();
   });
@@ -120,7 +148,10 @@ describe("ResetPasswordPage", () => {
     renderPage("/reset-password?token=bad-token");
 
     await screen.findByRole("heading", { name: "Đặt mật khẩu mới" });
-    await user.type(screen.getByPlaceholderText("Tối thiểu 8 ký tự, gồm chữ hoa, chữ thường và số"), "NewPass#456");
+    await user.type(
+      screen.getByPlaceholderText("Tối thiểu 8 ký tự, gồm chữ hoa, chữ thường và số"),
+      "NewPass#456",
+    );
     await user.type(screen.getByPlaceholderText("Nhập lại mật khẩu mới"), "NewPass#456");
     await user.click(screen.getByRole("button", { name: "Cập nhật mật khẩu" }));
 
