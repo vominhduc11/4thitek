@@ -3054,7 +3054,11 @@ class _ImageAttachmentCard extends StatelessWidget {
         button: true,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: () => _openAttachmentDataUri(asset.dataUri),
+          onTap: () => _openAttachmentFullscreen(
+            context,
+            asset: asset,
+            title: attachment.fileName ?? attachment.url,
+          ),
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
@@ -3301,6 +3305,83 @@ Future<void> _openAttachmentDataUri(String dataUri) async {
   if (uri != null) {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
+}
+
+Future<void> _openAttachmentFullscreen(
+  BuildContext context, {
+  required SupportAttachmentAsset asset,
+  required String title,
+}) async {
+  await showDialog<void>(
+    context: context,
+    barrierColor: Colors.black.withValues(alpha: 0.92),
+    barrierDismissible: true,
+    builder: (dialogContext) {
+      final colors = Theme.of(dialogContext).colorScheme;
+      return Dialog.fullscreen(
+        backgroundColor: Colors.black,
+        child: SafeArea(
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Center(
+                  child: InteractiveViewer(
+                    minScale: 1,
+                    maxScale: 4,
+                    child: Image.memory(
+                      asset.bytes,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.broken_image_outlined,
+                                size: 56,
+                                color: colors.onSurface.withValues(alpha: 0.8),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                title,
+                                textAlign: TextAlign.center,
+                                style: Theme.of(dialogContext)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      color: colors.onSurface.withValues(
+                                        alpha: 0.9,
+                                      ),
+                                    ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Material(
+                  color: colors.surface.withValues(alpha: 0.12),
+                  shape: const CircleBorder(),
+                  child: IconButton(
+                    tooltip: 'Close',
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    icon: Icon(Icons.close_rounded, color: colors.onSurface),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
 }
 
 class _MetaPill extends StatelessWidget {
