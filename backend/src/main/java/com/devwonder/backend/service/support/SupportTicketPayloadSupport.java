@@ -3,6 +3,7 @@ package com.devwonder.backend.service.support;
 import com.devwonder.backend.dto.support.SupportTicketAttachmentPayload;
 import com.devwonder.backend.dto.support.SupportTicketAttachmentResponse;
 import com.devwonder.backend.dto.support.SupportTicketContextPayload;
+import com.devwonder.backend.entity.enums.MediaType;
 import com.devwonder.backend.exception.BadRequestException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -117,7 +118,18 @@ public class SupportTicketPayloadSupport {
             List<SupportTicketAttachmentPayload> attachments = normalizeAttachments(parsed);
             List<SupportTicketAttachmentResponse> responses = new ArrayList<>(attachments.size());
             for (SupportTicketAttachmentPayload attachment : attachments) {
-                responses.add(new SupportTicketAttachmentResponse(attachment.url(), attachment.fileName()));
+                String fileName = attachment.fileName();
+                String url = attachment.url();
+                responses.add(new SupportTicketAttachmentResponse(
+                        null,
+                        url,
+                        url,
+                        fileName,
+                        inferLegacyMediaType(fileName, url),
+                        null,
+                        null,
+                        null
+                ));
             }
             return List.copyOf(responses);
         } catch (JsonProcessingException ex) {
@@ -182,5 +194,39 @@ public class SupportTicketPayloadSupport {
         int lastSlash = slashNormalized.lastIndexOf('/');
         String fileName = lastSlash >= 0 ? slashNormalized.substring(lastSlash + 1) : slashNormalized;
         return DealerRequestSupport.normalize(fileName);
+    }
+
+    private MediaType inferLegacyMediaType(String fileName, String url) {
+        String candidate = DealerRequestSupport.normalize(fileName);
+        if (candidate == null) {
+            candidate = DealerRequestSupport.normalize(url);
+        }
+        if (candidate == null) {
+            return MediaType.OTHER;
+        }
+        String lower = candidate.toLowerCase(java.util.Locale.ROOT);
+        int queryIndex = lower.indexOf('?');
+        if (queryIndex >= 0) {
+            lower = lower.substring(0, queryIndex);
+        }
+        int hashIndex = lower.indexOf('#');
+        if (hashIndex >= 0) {
+            lower = lower.substring(0, hashIndex);
+        }
+        int dot = lower.lastIndexOf('.');
+        if (dot < 0 || dot >= lower.length() - 1) {
+            return MediaType.OTHER;
+        }
+        String ext = lower.substring(dot + 1);
+        if (ext.equals("jpg") || ext.equals("jpeg") || ext.equals("png") || ext.equals("webp")) {
+            return MediaType.IMAGE;
+        }
+        if (ext.equals("mp4") || ext.equals("webm")) {
+            return MediaType.VIDEO;
+        }
+        if (ext.equals("pdf")) {
+            return MediaType.DOCUMENT;
+        }
+        return MediaType.OTHER;
     }
 }

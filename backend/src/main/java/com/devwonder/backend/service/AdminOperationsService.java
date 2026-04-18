@@ -28,6 +28,7 @@ import com.devwonder.backend.entity.ProductSerial;
 import com.devwonder.backend.entity.SupportTicketMessage;
 import com.devwonder.backend.entity.WarrantyRegistration;
 import com.devwonder.backend.entity.enums.DealerSupportTicketStatus;
+import com.devwonder.backend.entity.enums.MediaType;
 import com.devwonder.backend.entity.enums.NotifyType;
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.ProductSerialStatus;
@@ -67,6 +68,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @Service
 @RequiredArgsConstructor
@@ -89,11 +91,12 @@ public class AdminOperationsService {
     private final AppMessageSupport appMessageSupport;
     private final ProductStockSyncSupport productStockSyncSupport;
     private final SupportTicketPayloadSupport supportTicketPayloadSupport;
+    private final MediaAssetService mediaAssetService;
 
     @Transactional(readOnly = true)
     public Page<AdminSupportTicketResponse> getSupportTickets(Pageable pageable) {
         return dealerSupportTicketRepository.findAllByOrderByCreatedAtDesc(pageable)
-                .map(this::toSupportTicketResponse);
+                .map(ticket -> toSupportTicketResponse(ticket, null));
     }
 
     @Transactional
@@ -151,7 +154,7 @@ public class AdminOperationsService {
             ));
             sendSupportTicketEmailIfPossible(dealer, saved, true, false);
         }
-        return toSupportTicketResponse(saved);
+        return toSupportTicketResponse(saved, actor);
     }
 
     @Transactional
@@ -165,13 +168,14 @@ public class AdminOperationsService {
         Admin actor = requireAdmin(actorUsername);
         boolean internalNote = Boolean.TRUE.equals(request.internalNote());
 
-        ticket.addMessage(buildSupportTicketMessage(
+        SupportTicketMessage adminMessage = buildSupportTicketMessage(
                 SupportTicketMessageAuthorRole.ADMIN,
                 resolveAdminName(actor),
                 internalNote,
                 requireNonBlank(request.message(), "message"),
                 request.attachments()
-        ));
+        );
+        ticket.addMessage(adminMessage);
         if (!internalNote) {
             ticket.setAdminReply(requireNonBlank(request.message(), "message"));
             if (ticket.getStatus() == DealerSupportTicketStatus.OPEN) {
@@ -180,7 +184,19 @@ public class AdminOperationsService {
             synchronizeSupportTicketTimeline(ticket, ticket.getStatus(), Instant.now());
         }
 
-        DealerSupportTicket saved = dealerSupportTicketRepository.save(ticket);
+        DealerSupportTicket saved = dealerSupportTicketRepository.saveAndFlush(ticket);
+        SupportTicketMessage persistedMessage = saved.getMessages().isEmpty()
+                ? null
+                : saved.getMessages().get(saved.getMessages().size() - 1);
+        mediaAssetService.attachAssetsToSupportMessage(
+                actor,
+                saved,
+                persistedMessage,
+                request.mediaAssetIds(),
+                countLegacyAttachments(request.attachments()),
+                countLegacyVideos(request.attachments())
+        );
+        dealerSupportTicketRepository.save(saved);
         Dealer dealer = saved.getDealer();
         if (!internalNote && dealer != null) {
             notificationService.create(new CreateNotifyRequest(
@@ -193,7 +209,7 @@ public class AdminOperationsService {
             ));
             sendSupportTicketEmailIfPossible(dealer, saved, false, true);
         }
-        return toSupportTicketResponse(saved);
+        return toSupportTicketResponse(saved, actor);
     }
 
     @Transactional(readOnly = true)
@@ -434,7 +450,7 @@ public class AdminOperationsService {
         };
     }
 
-    private AdminSupportTicketResponse toSupportTicketResponse(DealerSupportTicket ticket) {
+    private AdminSupportTicketResponse toSupportTicketResponse(DealerSupportTicket ticket, Account viewer) {
         Dealer dealer = ticket.getDealer();
         return new AdminSupportTicketResponse(
                 ticket.getId(),
@@ -449,7 +465,7 @@ public class AdminOperationsService {
                 supportTicketPayloadSupport.readContext(ticket.getContextData()),
                 ticket.getAssignee() == null ? null : ticket.getAssignee().getId(),
                 ticket.getAssignee() == null ? null : resolveAdminName(ticket.getAssignee()),
-                ticket.getMessages().stream().map(this::toSupportTicketMessageResponse).toList(),
+                ticket.getMessages().stream().map(message -> toSupportTicketMessageResponse(message, viewer)).toList(),
                 ticket.getCreatedAt(),
                 ticket.getUpdatedAt(),
                 ticket.getResolvedAt(),
@@ -797,14 +813,17 @@ public class AdminOperationsService {
         };
     }
 
-    private SupportTicketMessageResponse toSupportTicketMessageResponse(SupportTicketMessage message) {
+    private SupportTicketMessageResponse toSupportTicketMessageResponse(SupportTicketMessage message, Account viewer) {
+        List<com.devwonder.backend.dto.support.SupportTicketAttachmentResponse> attachments = new ArrayList<>();
+        attachments.addAll(mediaAssetService.buildMediaAttachmentResponses(message, viewer, appBaseUrl()));
+        attachments.addAll(supportTicketPayloadSupport.readAttachments(message.getAttachments()));
         return new SupportTicketMessageResponse(
                 message.getId(),
                 message.getAuthorRole(),
                 message.getAuthorName(),
                 Boolean.TRUE.equals(message.getInternalNote()),
                 message.getMessage(),
-                supportTicketPayloadSupport.readAttachments(message.getAttachments()),
+                List.copyOf(attachments),
                 message.getCreatedAt()
         );
     }
@@ -885,6 +904,24 @@ public class AdminOperationsService {
                 safeValue(resolveAdminName(nextAssignee), "Admin"),
                 actorName
         );
+    }
+
+    private int countLegacyAttachments(List<com.devwonder.backend.dto.support.SupportTicketAttachmentPayload> attachments) {
+        String raw = supportTicketPayloadSupport.writeAttachments(attachments);
+        return supportTicketPayloadSupport.readAttachments(raw).size();
+    }
+
+    private int countLegacyVideos(List<com.devwonder.backend.dto.support.SupportTicketAttachmentPayload> attachments) {
+        String raw = supportTicketPayloadSupport.writeAttachments(attachments);
+        return (int) supportTicketPayloadSupport.readAttachments(raw).stream()
+                .map(com.devwonder.backend.dto.support.SupportTicketAttachmentResponse::mediaType)
+                .filter(Objects::nonNull)
+                .filter(mediaType -> mediaType == MediaType.VIDEO)
+                .count();
+    }
+
+    private String appBaseUrl() {
+        return ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
     }
 
     private String normalize(String value) {

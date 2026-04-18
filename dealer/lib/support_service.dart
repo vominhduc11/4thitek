@@ -160,10 +160,25 @@ class SupportTicketContextRecord {
 }
 
 class SupportTicketAttachmentRecord {
-  const SupportTicketAttachmentRecord({required this.url, this.fileName});
+  const SupportTicketAttachmentRecord({
+    required this.url,
+    this.fileName,
+    this.id,
+    this.accessUrl,
+    this.mediaType,
+    this.contentType,
+    this.sizeBytes,
+    this.createdAt,
+  });
 
   final String url;
   final String? fileName;
+  final int? id;
+  final String? accessUrl;
+  final String? mediaType;
+  final String? contentType;
+  final int? sizeBytes;
+  final DateTime? createdAt;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
     'url': url.trim(),
@@ -252,11 +267,22 @@ class SupportService {
       body['contextData'] = encodedContext;
     }
     final encodedAttachments = attachments
-        .where((attachment) => attachment.url.trim().isNotEmpty)
+        .where(
+          (attachment) =>
+              attachment.id == null && attachment.url.trim().isNotEmpty,
+        )
         .map((attachment) => attachment.toJson())
         .toList(growable: false);
     if (encodedAttachments.isNotEmpty) {
       body['attachments'] = encodedAttachments;
+    }
+    final mediaAssetIds = attachments
+        .map((attachment) => attachment.id)
+        .whereType<int>()
+        .toSet()
+        .toList(growable: false);
+    if (mediaAssetIds.isNotEmpty) {
+      body['mediaAssetIds'] = mediaAssetIds;
     }
     final response = await _client.post(
       DealerApiConfig.resolveApiUri('/dealer/support-tickets'),
@@ -317,11 +343,22 @@ class SupportService {
   }) async {
     final body = <String, dynamic>{'message': message.trim()};
     final encodedAttachments = attachments
-        .where((attachment) => attachment.url.trim().isNotEmpty)
+        .where(
+          (attachment) =>
+              attachment.id == null && attachment.url.trim().isNotEmpty,
+        )
         .map((attachment) => attachment.toJson())
         .toList(growable: false);
     if (encodedAttachments.isNotEmpty) {
       body['attachments'] = encodedAttachments;
+    }
+    final mediaAssetIds = attachments
+        .map((attachment) => attachment.id)
+        .whereType<int>()
+        .toSet()
+        .toList(growable: false);
+    if (mediaAssetIds.isNotEmpty) {
+      body['mediaAssetIds'] = mediaAssetIds;
     }
     final response = await _client.post(
       DealerApiConfig.resolveApiUri(
@@ -485,13 +522,24 @@ List<SupportTicketAttachmentRecord> _mapAttachments(Object? raw) {
       .whereType<Map<String, dynamic>>()
       .map((attachment) {
         final rawUrl = attachment['url']?.toString().trim() ?? '';
-        final resolvedUrl = DealerApiConfig.resolveUploadUrl(rawUrl);
+        final rawAccessUrl = attachment['accessUrl']?.toString().trim() ?? '';
+        final effectiveUrl = rawAccessUrl.isNotEmpty ? rawAccessUrl : rawUrl;
+        final resolvedUrl = DealerApiConfig.resolveUploadUrl(effectiveUrl);
+        final resolvedAccessUrl = rawAccessUrl.isEmpty
+            ? null
+            : DealerApiConfig.resolveUploadUrl(rawAccessUrl);
         return SupportTicketAttachmentRecord(
           url: resolvedUrl,
+          accessUrl: resolvedAccessUrl,
           fileName: _normalizeAttachmentFileName(
             attachment['fileName'],
             fallbackUrl: resolvedUrl.isEmpty ? rawUrl : resolvedUrl,
           ),
+          id: _parseOptionalIntStatic(attachment['id']),
+          mediaType: _parseOptionalStringStatic(attachment['mediaType']),
+          contentType: _parseOptionalStringStatic(attachment['contentType']),
+          sizeBytes: _parseOptionalIntStatic(attachment['sizeBytes']),
+          createdAt: parseApiDateTime(attachment['createdAt']),
         );
       })
       .where((attachment) => attachment.url.isNotEmpty)
@@ -548,6 +596,24 @@ String? _parseOptionalStringStatic(Object? value) {
     return null;
   }
   return _normalizePossibleMojibake(normalized);
+}
+
+int _parseIntStatic(Object? value) {
+  if (value is int) {
+    return value;
+  }
+  if (value is double) {
+    return value.round();
+  }
+  return int.tryParse(value?.toString() ?? '') ?? 0;
+}
+
+int? _parseOptionalIntStatic(Object? value) {
+  if (value == null) {
+    return null;
+  }
+  final parsed = _parseIntStatic(value);
+  return parsed == 0 && value.toString().trim() != '0' ? null : parsed;
 }
 
 bool _isBlank(String? value) => value == null || value.trim().isEmpty;

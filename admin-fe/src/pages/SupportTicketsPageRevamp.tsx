@@ -1,7 +1,8 @@
-import {
+﻿import {
+  FileText,
   LifeBuoy,
   MessageSquareMore,
-  Paperclip,
+  PlayCircle,
   RefreshCw,
   Upload,
   X,
@@ -27,12 +28,12 @@ import { useToast } from "../context/ToastContext";
 import { formatDateTime } from "../lib/formatters";
 import { subscribeAdminSupportRefresh } from "../lib/adminRealtime";
 import {
-  isLikelyImageAttachment,
+  inferSupportAttachmentMediaType,
   isPrivateSupportAttachmentUrl,
   normalizeSupportAttachment,
   type NormalizedSupportAttachment,
 } from "../lib/supportAttachment";
-import { deleteStoredFileReference, storeFileReference } from "../lib/upload";
+import { uploadSupportMediaAsset } from "../lib/supportMediaUpload";
 import {
   EmptyState,
   ErrorState,
@@ -82,6 +83,21 @@ const priorityTone = {
   high: "warning",
   urgent: "danger",
 } as const;
+
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
+const ALLOWED_VIDEO_TYPES = new Set(["video/mp4", "video/webm"]);
+const ALLOWED_DOCUMENT_TYPES = new Set(["application/pdf"]);
+const ALLOWED_EXTENSIONS = new Set([
+  "jpg",
+  "jpeg",
+  "png",
+  "webp",
+  "mp4",
+  "webm",
+  "pdf",
+]);
 
 type TicketDraftState = {
   replyDraft: string;
@@ -144,6 +160,68 @@ const copyKeys = {
   loadFallback: "Danh sách yêu cầu hỗ trợ chưa thể tải.",
   reload: "Tải lại",
 } as const;
+
+const formatBytes = (value?: number | null) => {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    return null;
+  }
+  if (value < 1024) {
+    return `${value} B`;
+  }
+  const kb = value / 1024;
+  if (kb < 1024) {
+    return `${kb.toFixed(1)} KB`;
+  }
+  const mb = kb / 1024;
+  return `${mb.toFixed(1)} MB`;
+};
+
+const getFileExtension = (fileName: string) => {
+  const normalized = fileName.trim().toLowerCase();
+  const dot = normalized.lastIndexOf(".");
+  if (dot < 0 || dot === normalized.length - 1) {
+    return "";
+  }
+  return normalized.slice(dot + 1);
+};
+
+const validateSupportAttachmentFile = (file: File): string | null => {
+  const contentType = file.type.trim().toLowerCase();
+  const extension = getFileExtension(file.name);
+  if (!ALLOWED_EXTENSIONS.has(extension)) {
+    return "Chỉ hỗ trợ tệp JPG/JPEG/PNG/WEBP, MP4/WEBM hoặc PDF.";
+  }
+
+  if (contentType.startsWith("image/")) {
+    if (file.size > MAX_IMAGE_BYTES) {
+      return "Ảnh không được vượt quá 10MB.";
+    }
+    return null;
+  }
+
+  if (ALLOWED_VIDEO_TYPES.has(contentType)) {
+    if (file.size > MAX_VIDEO_BYTES) {
+      return "Video không được vượt quá 50MB.";
+    }
+    return null;
+  }
+
+  if (ALLOWED_DOCUMENT_TYPES.has(contentType)) {
+    if (file.size > MAX_DOCUMENT_BYTES) {
+      return "Tệp PDF không được vượt quá 10MB.";
+    }
+    return null;
+  }
+
+  if (["mp4", "webm"].includes(extension) && file.size <= MAX_VIDEO_BYTES) {
+    return null;
+  }
+  if (extension === "pdf" && file.size <= MAX_DOCUMENT_BYTES) {
+    return null;
+  }
+
+  return "Định dạng tệp không hợp lệ.";
+};
 
 function createDraft(ticket: BackendSupportTicketResponse): TicketDraftState {
   return {
@@ -213,12 +291,19 @@ export function SupportAttachmentView({
   const [imageFailed, setImageFailed] = useState(false);
   const [resolvedAssetUrl, setResolvedAssetUrl] = useState<string>("");
   const [resolutionFailed, setResolutionFailed] = useState(false);
-  const isPrivateAttachment = isPrivateSupportAttachmentUrl(
-    attachment.resolvedUrl || attachment.url,
-  );
-  const isImage = isLikelyImageAttachment(attachment) && !imageFailed;
+  const mediaType = inferSupportAttachmentMediaType(attachment);
+  const isImage = mediaType === "image" && !imageFailed;
+  const isVideo = mediaType === "video";
   const fileLabel = attachment.fileName || t("Tệp đính kèm");
-  const resolvedUrl = attachment.resolvedUrl || attachment.url;
+  const resolvedUrl =
+    attachment.resolvedAccessUrl ||
+    attachment.accessUrl ||
+    attachment.resolvedUrl ||
+    attachment.url;
+  const isPrivateAttachment =
+    !attachment.accessUrl &&
+    !attachment.resolvedAccessUrl &&
+    isPrivateSupportAttachmentUrl(attachment.resolvedUrl || attachment.url);
 
   useEffect(() => {
     let active = true;
@@ -237,6 +322,12 @@ export function SupportAttachmentView({
       return undefined;
     }
 
+    if (isVideo) {
+      setResolutionFailed(true);
+      setResolvedAssetUrl("");
+      return undefined;
+    }
+
     if (!accessToken) {
       setResolvedAssetUrl("");
       setResolutionFailed(true);
@@ -247,7 +338,7 @@ export function SupportAttachmentView({
 
     void (async () => {
       try {
-        const response = await fetch(resolvedUrl, {
+        const response = await fetch(attachment.resolvedUrl || attachment.url, {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
@@ -276,21 +367,90 @@ export function SupportAttachmentView({
         URL.revokeObjectURL(objectUrl);
       }
     };
-  }, [accessToken, isPrivateAttachment, resolvedUrl]);
+  }, [
+    accessToken,
+    attachment.resolvedUrl,
+    attachment.url,
+    isPrivateAttachment,
+    isVideo,
+    resolvedUrl,
+  ]);
 
-  const displayUrl = isPrivateAttachment ? resolvedAssetUrl : resolvedUrl;
+  const displayUrl = resolvedAssetUrl;
   const canOpenAttachment = isPrivateAttachment
     ? Boolean(displayUrl) && !resolutionFailed
     : Boolean(displayUrl);
+
+  if (isVideo) {
+    return (
+      <div
+        className={[
+          "overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]",
+          removable ? "w-56" : "w-64",
+        ].join(" ")}
+      >
+        {canOpenAttachment ? (
+          <video
+            className="h-36 w-full bg-black object-cover"
+            controls
+            preload="metadata"
+            src={displayUrl}
+          />
+        ) : (
+          <div className="flex h-36 w-full flex-col items-center justify-center gap-2 bg-[var(--surface-muted)] text-[var(--muted)]">
+            <PlayCircle className="h-6 w-6" />
+            <span className="px-3 text-center text-xs">
+              {resolutionFailed
+                ? t("Không tải được video")
+                : t("Video đính kèm")}
+            </span>
+          </div>
+        )}
+        <div className="flex items-center gap-2 px-3 py-2">
+          <PlayCircle className="h-4 w-4 text-[var(--muted)]" />
+          {canOpenAttachment ? (
+            <a
+              href={displayUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="min-w-0 flex-1 text-xs text-[var(--ink)] hover:text-[var(--accent)]"
+            >
+              <span className="block truncate">{fileLabel}</span>
+              {formatBytes(attachment.sizeBytes) ? (
+                <span className="block text-[11px] text-[var(--muted)]">
+                  {formatBytes(attachment.sizeBytes)}
+                </span>
+              ) : null}
+            </a>
+          ) : (
+            <span className="min-w-0 flex-1 text-xs text-[var(--muted)]">
+              <span className="block truncate">{fileLabel}</span>
+            </span>
+          )}
+          {removable && onRemove ? (
+            <button
+              type="button"
+              className="shrink-0 text-[var(--muted)] hover:text-[var(--danger)]"
+              onClick={onRemove}
+              aria-label={t("Xóa tệp đính kèm")}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
 
   if (!isImage) {
     return (
       <div
         className={[
-          "inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--ink)]",
+          "inline-flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--ink)]",
           removable ? "max-w-full" : "",
         ].join(" ")}
       >
+        <FileText className="h-4 w-4 text-[var(--muted)]" />
         {canOpenAttachment ? (
           <a
             href={displayUrl}
@@ -298,12 +458,15 @@ export function SupportAttachmentView({
             rel="noreferrer"
             className="inline-flex items-center gap-2 hover:text-[var(--accent)]"
           >
-            <Paperclip className="h-4 w-4" />
             <span className="max-w-[220px] truncate">{fileLabel}</span>
+            {formatBytes(attachment.sizeBytes) ? (
+              <span className="text-xs text-[var(--muted)]">
+                {formatBytes(attachment.sizeBytes)}
+              </span>
+            ) : null}
           </a>
         ) : (
           <span className="inline-flex items-center gap-2 text-[var(--muted)]">
-            <Paperclip className="h-4 w-4" />
             <span className="max-w-[220px] truncate">{fileLabel}</span>
           </span>
         )}
@@ -314,12 +477,12 @@ export function SupportAttachmentView({
             onClick={onRemove}
             aria-label={t("Xóa tệp đính kèm")}
           >
-            <X className="h-4 w-4" />
-          </button>
-        ) : null}
-      </div>
-    );
-  }
+          <X className="h-4 w-4" />
+        </button>
+      ) : null}
+    </div>
+  );
+}
 
   return (
     <div
@@ -411,9 +574,12 @@ function SupportTicketsPageRevamp() {
   const [isSavingProcessing, setIsSavingProcessing] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadingFileName, setUploadingFileName] = useState<string | null>(
+    null,
+  );
   const [showQuickStats, setShowQuickStats] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const draftAttachmentUrlsRef = useRef<Set<string>>(new Set());
   const hasAppliedTicketQueryRef = useRef(false);
   const hasActiveFilters = query.trim().length > 0 || statusFilter !== "all";
   const isSaving = isSavingProcessing || isSendingMessage;
@@ -423,36 +589,6 @@ function SupportTicketsPageRevamp() {
     const parsed = Number(raw);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
   }, [location.search]);
-
-  const cleanupDraftAttachments = useCallback(
-    async (urls: Array<string | null | undefined>) => {
-      const trackedUrls = Array.from(
-        new Set(
-          urls
-            .map((url) => String(url ?? "").trim())
-            .filter((url) => url && draftAttachmentUrlsRef.current.has(url)),
-        ),
-      );
-
-      if (trackedUrls.length === 0) {
-        return;
-      }
-
-      const results = await Promise.allSettled(
-        trackedUrls.map(async (url) => {
-          await deleteStoredFileReference({ url, accessToken });
-          return url;
-        }),
-      );
-
-      results.forEach((result, index) => {
-        if (result.status === "fulfilled") {
-          draftAttachmentUrlsRef.current.delete(trackedUrls[index]);
-        }
-      });
-    },
-    [accessToken],
-  );
 
   const mergeTickets = useCallback(
     (nextTickets: BackendSupportTicketResponse[]) => {
@@ -516,15 +652,6 @@ function SupportTicketsPageRevamp() {
       )
       .catch(() => setStaffUsers([]));
   }, [accessToken]);
-
-  useEffect(() => {
-    const trackedUploads = draftAttachmentUrlsRef.current;
-    return () => {
-      if (trackedUploads.size > 0) {
-        void cleanupDraftAttachments(Array.from(trackedUploads));
-      }
-    };
-  }, [cleanupDraftAttachments]);
 
   const loadAllTickets = useCallback(async () => {
     if (!accessToken) return;
@@ -756,32 +883,41 @@ function SupportTicketsPageRevamp() {
       return;
     }
 
+    const validationError = validateSupportAttachmentFile(file);
+    if (validationError) {
+      notify(validationError, {
+        title: copy.title,
+        variant: "error",
+      });
+      return;
+    }
+
     setIsUploadingAttachment(true);
+    setUploadingFileName(file.name);
+    setUploadProgress(0);
     try {
-      const stored = await storeFileReference({
+      const uploaded = await uploadSupportMediaAsset({
+        token: accessToken,
         file,
-        category: "support-tickets",
-        accessToken,
+        onProgress: (percent) => setUploadProgress(percent),
       });
       const normalizedAttachment = normalizeSupportAttachment({
-        url: stored.url,
-        fileName: stored.fileName || file.name,
+        id: uploaded.id,
+        url: uploaded.downloadUrl || uploaded.accessUrl || "",
+        accessUrl: uploaded.accessUrl ?? undefined,
+        fileName: uploaded.originalFileName || file.name,
+        mediaType: uploaded.mediaType ?? undefined,
+        contentType: uploaded.contentType ?? undefined,
+        sizeBytes: uploaded.sizeBytes ?? undefined,
+        createdAt: uploaded.createdAt ?? undefined,
       });
       if (!normalizedAttachment) {
-        throw new Error(t("Không thể xử lý URL tệp đính kèm."));
+        throw new Error(t("Cannot process attachment URL."));
       }
-      const draftAttachment: DraftAttachment = {
-        ...normalizedAttachment,
-        resolvedUrl: stored.previewUrl || normalizedAttachment.resolvedUrl,
-      };
-      draftAttachmentUrlsRef.current.add(draftAttachment.url);
       setDraftsByTicketId((current) => {
         const existingDraft =
           current[selectedTicket.id] ?? createDraft(selectedTicket);
-        const attachments = [
-          ...existingDraft.attachments,
-          draftAttachment,
-        ];
+        const attachments = [...existingDraft.attachments, normalizedAttachment];
         return {
           ...current,
           [selectedTicket.id]: {
@@ -794,7 +930,7 @@ function SupportTicketsPageRevamp() {
       notify(
         uploadError instanceof Error
           ? uploadError.message
-          : t("Không thể tải tệp đính kèm."),
+          : t("Cannot upload attachment."),
         {
           title: copy.title,
           variant: "error",
@@ -802,11 +938,13 @@ function SupportTicketsPageRevamp() {
       );
     } finally {
       setIsUploadingAttachment(false);
+      setUploadProgress(0);
+      setUploadingFileName(null);
     }
   };
 
   const removeDraftAttachment = useCallback(
-    async (attachmentUrl: string) => {
+    async (attachmentKey: string) => {
       if (!selectedTicket) {
         return;
       }
@@ -819,15 +957,14 @@ function SupportTicketsPageRevamp() {
           [selectedTicket.id]: {
             ...existingDraft,
             attachments: existingDraft.attachments.filter(
-              (attachment) => attachment.url !== attachmentUrl,
+              (attachment) =>
+                String(attachment.id ?? attachment.url) !== attachmentKey,
             ),
           },
         };
       });
-
-      await cleanupDraftAttachments([attachmentUrl]);
     },
-    [cleanupDraftAttachments, selectedTicket],
+    [selectedTicket],
   );
 
   const handleSendMessage = async () => {
@@ -836,21 +973,28 @@ function SupportTicketsPageRevamp() {
     }
     setIsSendingMessage(true);
     try {
+      const mediaAssetIds = selectedDraft.attachments
+        .map((attachment) => attachment.id)
+        .filter((id): id is number => typeof id === "number" && id > 0);
+      const legacyAttachments = selectedDraft.attachments
+        .filter((attachment) => typeof attachment.id !== "number")
+        .map((attachment) => ({
+          url: attachment.url,
+          fileName: attachment.fileName ?? undefined,
+        }));
+
       const updated = await createAdminSupportTicketMessage(
         accessToken,
         selectedTicket.id,
         {
           message: selectedDraft.replyDraft.trim(),
           internalNote: selectedDraft.internalNote,
-          attachments: selectedDraft.attachments.map((attachment) => ({
-            url: attachment.url,
-            fileName: attachment.fileName ?? undefined,
-          })),
+          ...(legacyAttachments.length > 0
+            ? { attachments: legacyAttachments }
+            : {}),
+          ...(mediaAssetIds.length > 0 ? { mediaAssetIds } : {}),
         },
       );
-      selectedDraft.attachments.forEach((attachment) => {
-        draftAttachmentUrlsRef.current.delete(attachment.url);
-      });
       replaceTicket(updated);
       setDraftsByTicketId((current) => ({
         ...current,
@@ -1436,7 +1580,7 @@ function SupportTicketsPageRevamp() {
                             : t("Tải tệp minh chứng")}
                         </span>
                         <input
-                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                          accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,application/pdf,.jpg,.jpeg,.png,.webp,.mp4,.webm,.pdf"
                           className="hidden"
                           disabled={isUploadingAttachment || isSaving}
                           onChange={(event) => {
@@ -1448,17 +1592,26 @@ function SupportTicketsPageRevamp() {
                         />
                       </label>
                     </div>
+                    {isUploadingAttachment ? (
+                      <p className="text-xs text-[var(--muted)]">
+                        {uploadingFileName
+                          ? `${uploadingFileName}: ${uploadProgress}%`
+                          : `${uploadProgress}%`}
+                      </p>
+                    ) : null}
                     {selectedDraft.attachments.length > 0 ? (
                       <div className="flex flex-wrap gap-2">
                         {selectedDraft.attachments.map((attachment, index) => (
                           <SupportAttachmentView
-                            key={`${attachment.url}-${index}`}
+                            key={`${attachment.id ?? attachment.url}-${index}`}
                             attachment={attachment}
                             t={t}
                             accessToken={accessToken}
                             removable
                             onRemove={() =>
-                              void removeDraftAttachment(attachment.url)
+                              void removeDraftAttachment(
+                                String(attachment.id ?? attachment.url),
+                              )
                             }
                           />
                         ))}
@@ -1496,3 +1649,6 @@ function SupportTicketsPageRevamp() {
 }
 
 export default SupportTicketsPageRevamp;
+
+
+

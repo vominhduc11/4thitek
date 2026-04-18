@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -22,6 +23,8 @@ enum SupportCategory { order, warranty, product, payment, returnOrder, other }
 enum SupportPriority { normal, high, urgent }
 
 enum SupportInteractionMode { viewing, creating, followingUp }
+
+enum _SupportAttachmentPickerChoice { image, video, document }
 
 class SupportScreen extends StatefulWidget {
   const SupportScreen({super.key, this.supportService, this.initialTicketId});
@@ -81,6 +84,9 @@ class _SupportScreenState extends State<SupportScreen> {
   static const _messageMax = 1000;
   static const _subjectMin = 5;
   static const _messageMin = 20;
+  static const _maxImageBytes = 10 * 1024 * 1024;
+  static const _maxVideoBytes = 50 * 1024 * 1024;
+  static const _maxDocumentBytes = 10 * 1024 * 1024;
 
   @override
   void initState() {
@@ -1131,17 +1137,20 @@ class _SupportScreenState extends State<SupportScreen> {
       _showSnackBar(texts.selectTicketToReplyMessage);
       return;
     }
-    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final picked = await _pickSupportAttachmentFile(texts);
     if (picked == null || !mounted) {
       return;
     }
+    final validationMessage = await _validateSupportAttachment(picked, texts);
+    if (validationMessage != null) {
+      _showSnackBar(validationMessage);
+      return;
+    }
+
     setState(() => _isUploadingAttachment = true);
     final uploadService = UploadService();
     try {
-      final uploaded = await uploadService.uploadXFile(
-        file: picked,
-        category: 'support-tickets',
-      );
+      final uploaded = await uploadService.uploadSupportMediaFile(file: picked);
       if (!mounted) {
         return;
       }
@@ -1149,7 +1158,12 @@ class _SupportScreenState extends State<SupportScreen> {
         _activeDraftAttachments().add(
           SupportTicketAttachmentRecord(
             url: uploaded.url,
+            accessUrl: uploaded.accessUrl,
             fileName: uploaded.fileName,
+            id: uploaded.mediaAssetId,
+            mediaType: uploaded.mediaType,
+            contentType: uploaded.contentType,
+            sizeBytes: uploaded.sizeBytes,
           ),
         );
       });
@@ -1164,22 +1178,125 @@ class _SupportScreenState extends State<SupportScreen> {
     }
   }
 
+  Future<XFile?> _pickSupportAttachmentFile(_SupportTexts texts) async {
+    final choice = await showModalBottomSheet<_SupportAttachmentPickerChoice>(
+      context: context,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.image_outlined),
+                title: Text(texts.pickImageAction),
+                onTap: () => Navigator.of(
+                  sheetContext,
+                ).pop(_SupportAttachmentPickerChoice.image),
+              ),
+              ListTile(
+                leading: const Icon(Icons.videocam_outlined),
+                title: Text(texts.pickVideoAction),
+                onTap: () => Navigator.of(
+                  sheetContext,
+                ).pop(_SupportAttachmentPickerChoice.video),
+              ),
+              ListTile(
+                leading: const Icon(Icons.picture_as_pdf_outlined),
+                title: Text(texts.pickDocumentAction),
+                onTap: () => Navigator.of(
+                  sheetContext,
+                ).pop(_SupportAttachmentPickerChoice.document),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (choice == null) {
+      return null;
+    }
+
+    if (choice == _SupportAttachmentPickerChoice.image) {
+      return ImagePicker().pickImage(source: ImageSource.gallery);
+    }
+    if (choice == _SupportAttachmentPickerChoice.video) {
+      return ImagePicker().pickVideo(source: ImageSource.gallery);
+    }
+
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const <String>['pdf'],
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) {
+      return null;
+    }
+    final file = result.files.first;
+    if (file.path != null && file.path!.trim().isNotEmpty) {
+      return XFile(file.path!, name: file.name, mimeType: 'application/pdf');
+    }
+    if (file.bytes != null) {
+      return XFile.fromData(
+        file.bytes!,
+        name: file.name,
+        mimeType: 'application/pdf',
+      );
+    }
+    return null;
+  }
+
+  Future<String?> _validateSupportAttachment(
+    XFile file,
+    _SupportTexts texts,
+  ) async {
+    final sizeBytes = await file.length();
+    final fileName = file.name.trim().toLowerCase();
+    final contentType = (file.mimeType ?? '').trim().toLowerCase();
+
+    final isImage =
+        isLikelyImageAttachment(fileName: fileName, url: fileName) ||
+        contentType.startsWith('image/');
+    final isVideo =
+        isLikelyVideoAttachment(
+          fileName: fileName,
+          url: fileName,
+          contentType: contentType,
+        ) ||
+        contentType.startsWith('video/');
+    final isDocument =
+        isLikelyDocumentAttachment(
+          fileName: fileName,
+          url: fileName,
+          contentType: contentType,
+        ) ||
+        contentType == 'application/pdf';
+
+    if (!isImage && !isVideo && !isDocument) {
+      return texts.attachmentUnsupportedTypeMessage;
+    }
+
+    if (isImage && sizeBytes > _maxImageBytes) {
+      return texts.attachmentImageTooLargeMessage;
+    }
+    if (isVideo && sizeBytes > _maxVideoBytes) {
+      return texts.attachmentVideoTooLargeMessage;
+    }
+    if (isDocument && sizeBytes > _maxDocumentBytes) {
+      return texts.attachmentDocumentTooLargeMessage;
+    }
+
+    return null;
+  }
+
   Future<void> _removeDraftAttachment(
     SupportTicketAttachmentRecord attachment,
   ) async {
     setState(() {
       _activeDraftAttachments().removeWhere(
-        (item) => item.url == attachment.url,
+        (item) => item.id == attachment.id && item.url == attachment.url,
       );
     });
-    final uploadService = UploadService();
-    try {
-      await uploadService.deleteUrl(attachment.url);
-    } catch (_) {
-      // Keep the UI responsive even if cleanup fails.
-    } finally {
-      uploadService.close();
-    }
   }
 
   void _copyToClipboard(String value, {String? message}) {
@@ -1439,25 +1556,8 @@ class _SupportScreenState extends State<SupportScreen> {
   }
 
   Future<void> _cleanupPendingAttachments() async {
-    final pendingAttachments = <SupportTicketAttachmentRecord>[
-      ..._createDraftAttachments,
-      for (final attachments in _followUpAttachmentsByTicketId.values)
-        ...attachments,
-    ];
-    if (pendingAttachments.isEmpty) {
-      return;
-    }
-    final uploadService = UploadService();
-    for (final attachment in List<SupportTicketAttachmentRecord>.from(
-      pendingAttachments,
-    )) {
-      try {
-        await uploadService.deleteUrl(attachment.url);
-      } catch (_) {
-        // Best-effort cleanup only.
-      }
-    }
-    uploadService.close();
+    // Pending media assets are cleaned up server-side by retention jobs.
+    return;
   }
 
   Widget _buildCounter(
@@ -1495,7 +1595,7 @@ class _SupportScreenState extends State<SupportScreen> {
       final savedPath = await saveSupportAttachmentAssetToDevice(
         asset: asset,
         preferredFileName: attachment.fileName,
-        sourceUrl: attachment.url,
+        sourceUrl: attachment.accessUrl ?? attachment.url,
       );
       if (!mounted || savedPath == null) {
         return;
@@ -1893,14 +1993,30 @@ extension _SupportTextsSupportExtras on _SupportTexts {
   String get attachmentSectionLabel =>
       isEnglish ? 'Attachments' : 'Tệp đính kèm';
   String get addAttachmentAction =>
-      isEnglish ? 'Choose image from gallery' : 'Chọn ảnh từ thư viện';
+      isEnglish ? 'Add attachment' : 'Thêm tệp đính kèm';
   String get uploadingAttachmentLabel =>
-      isEnglish ? 'Uploading image...' : 'Đang tải ảnh...';
+      isEnglish ? 'Uploading attachment...' : 'Đang tải tệp...';
+  String get pickImageAction =>
+      isEnglish ? 'Choose image from gallery' : 'Chọn ảnh từ thư viện';
+  String get pickVideoAction =>
+      isEnglish ? 'Choose video from gallery' : 'Chọn video từ thư viện';
+  String get pickDocumentAction =>
+      isEnglish ? 'Choose PDF document' : 'Chọn tài liệu PDF';
   String get attachmentHelper => isEnglish
-      ? 'You can currently attach images from your gallery, such as screenshots or proof photos.'
-      : 'Hiện bạn có thể đính kèm ảnh từ thư viện, như ảnh chụp màn hình hoặc ảnh minh chứng.';
+      ? 'Supported: JPG/JPEG/PNG/WEBP (max 10MB), MP4/WEBM (max 50MB), PDF (max 10MB).'
+      : 'Hỗ trợ: JPG/JPEG/PNG/WEBP (tối đa 10MB), MP4/WEBM (tối đa 50MB), PDF (tối đa 10MB).';
   String attachmentAddedMessage(String fileName) =>
-      isEnglish ? 'Added image $fileName.' : 'Đã thêm ảnh $fileName.';
+      isEnglish ? 'Added attachment $fileName.' : 'Đã thêm tệp $fileName.';
+  String get attachmentUnsupportedTypeMessage => isEnglish
+      ? 'Unsupported file type. Please use image, MP4/WEBM video, or PDF.'
+      : 'Định dạng tệp không hợp lệ. Chỉ hỗ trợ ảnh, video MP4/WEBM hoặc PDF.';
+  String get attachmentImageTooLargeMessage =>
+      isEnglish ? 'Image exceeds 10MB limit.' : 'Ảnh vượt quá giới hạn 10MB.';
+  String get attachmentVideoTooLargeMessage =>
+      isEnglish ? 'Video exceeds 50MB limit.' : 'Video vượt quá giới hạn 50MB.';
+  String get attachmentDocumentTooLargeMessage => isEnglish
+      ? 'Document exceeds 10MB limit.'
+      : 'Tài liệu vượt quá giới hạn 10MB.';
   String attachmentUploadFailed(Object error) =>
       uploadServiceErrorMessage(error, isEnglish: isEnglish);
 }
@@ -2953,23 +3069,85 @@ class _AttachmentPreviewCard extends StatefulWidget {
 
 class _AttachmentPreviewCardState extends State<_AttachmentPreviewCard> {
   late Future<SupportAttachmentAsset> _loadFuture;
+  late String _fetchKey;
 
   @override
   void initState() {
     super.initState();
-    _loadFuture = loadSupportAttachmentAsset(widget.attachment.url);
+    _fetchKey = _resolveFetchKey(widget.attachment);
+    _loadFuture = loadSupportAttachmentAsset(_fetchKey);
   }
 
   @override
   void didUpdateWidget(covariant _AttachmentPreviewCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.attachment.url != widget.attachment.url) {
-      _loadFuture = loadSupportAttachmentAsset(widget.attachment.url);
+    final nextKey = _resolveFetchKey(widget.attachment);
+    if (_fetchKey != nextKey) {
+      _fetchKey = nextKey;
+      _loadFuture = loadSupportAttachmentAsset(_fetchKey);
     }
+  }
+
+  String _resolveFetchKey(SupportTicketAttachmentRecord attachment) {
+    final direct = attachment.accessUrl?.trim();
+    if (direct != null && direct.isNotEmpty) {
+      return direct;
+    }
+    return attachment.url;
   }
 
   @override
   Widget build(BuildContext context) {
+    final directUrl = widget.attachment.accessUrl?.trim().isNotEmpty == true
+        ? widget.attachment.accessUrl!.trim()
+        : '';
+    final isImageHint =
+        (widget.attachment.mediaType ?? '').trim().toLowerCase() == 'image' ||
+        isLikelyImageAttachment(
+          fileName: widget.attachment.fileName,
+          url: widget.attachment.url,
+        );
+    final isVideoHint =
+        (widget.attachment.mediaType ?? '').trim().toLowerCase() == 'video' ||
+        isLikelyVideoAttachment(
+          fileName: widget.attachment.fileName,
+          url: widget.attachment.url,
+          contentType: widget.attachment.contentType,
+        );
+    final isDocumentHint =
+        (widget.attachment.mediaType ?? '').trim().toLowerCase() ==
+            'document' ||
+        isLikelyDocumentAttachment(
+          fileName: widget.attachment.fileName,
+          url: widget.attachment.url,
+          contentType: widget.attachment.contentType,
+        );
+
+    if (directUrl.isNotEmpty && isImageHint) {
+      return _NetworkImageAttachmentCard(
+        attachment: widget.attachment,
+        imageUrl: directUrl,
+        previewHeight: widget.previewHeight,
+        thumbnailWidth: widget.thumbnailWidth,
+        semanticLabel: widget.semanticLabel,
+        openLabel: widget.openLabel,
+      );
+    }
+
+    if (directUrl.isNotEmpty && (isVideoHint || isDocumentHint)) {
+      return _FileAttachmentCard(
+        attachment: widget.attachment,
+        openLabel: widget.openLabel,
+        downloadLabel: widget.downloadLabel,
+        onDownload: widget.onDownload,
+        semanticLabel: widget.semanticLabel,
+        maxWidth: widget.thumbnailWidth,
+        asset: null,
+        directUrl: directUrl,
+        isVideo: isVideoHint,
+      );
+    }
+
     return FutureBuilder<SupportAttachmentAsset>(
       future: _loadFuture,
       builder: (context, snapshot) {
@@ -2999,6 +3177,7 @@ class _AttachmentPreviewCardState extends State<_AttachmentPreviewCard> {
             semanticLabel: widget.semanticLabel,
             maxWidth: widget.thumbnailWidth,
             asset: null,
+            isVideo: isVideoHint,
           );
         }
 
@@ -3021,6 +3200,7 @@ class _AttachmentPreviewCardState extends State<_AttachmentPreviewCard> {
           onDownload: widget.onDownload,
           semanticLabel: widget.semanticLabel,
           maxWidth: widget.thumbnailWidth,
+          isVideo: isVideoHint,
         );
       },
     );
@@ -3115,11 +3295,108 @@ class _ImageAttachmentCard extends StatelessWidget {
   }
 }
 
+class _NetworkImageAttachmentCard extends StatelessWidget {
+  const _NetworkImageAttachmentCard({
+    required this.attachment,
+    required this.imageUrl,
+    required this.previewHeight,
+    required this.thumbnailWidth,
+    required this.semanticLabel,
+    this.openLabel,
+  });
+
+  final SupportTicketAttachmentRecord attachment;
+  final String imageUrl;
+  final double previewHeight;
+  final double thumbnailWidth;
+  final String semanticLabel;
+  final String? openLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: thumbnailWidth),
+      child: Semantics(
+        label: semanticLabel,
+        button: true,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => _openAttachmentUrl(imageUrl),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: colors.surface,
+              border: Border.all(
+                color: colors.outlineVariant.withValues(alpha: 0.45),
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image.network(
+                    imageUrl,
+                    height: previewHeight,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        height: previewHeight,
+                        alignment: Alignment.center,
+                        color: colors.surfaceContainerLow,
+                        child: Icon(
+                          Icons.image_not_supported_outlined,
+                          color: colors.onSurfaceVariant,
+                        ),
+                      );
+                    },
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            attachment.fileName ?? attachment.url,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                        if (openLabel != null) ...[
+                          const SizedBox(width: 8),
+                          Text(
+                            openLabel!,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: colors.primary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _FileAttachmentCard extends StatefulWidget {
   const _FileAttachmentCard({
     required this.attachment,
     required this.semanticLabel,
     required this.asset,
+    this.directUrl,
+    this.isVideo = false,
     this.openLabel,
     this.downloadLabel,
     this.onDownload,
@@ -3128,6 +3405,8 @@ class _FileAttachmentCard extends StatefulWidget {
 
   final SupportTicketAttachmentRecord attachment;
   final SupportAttachmentAsset? asset;
+  final String? directUrl;
+  final bool isVideo;
   final String semanticLabel;
   final String? openLabel;
   final String? downloadLabel;
@@ -3163,14 +3442,19 @@ class _FileAttachmentCardState extends State<_FileAttachmentCard> {
   @override
   Widget build(BuildContext context) {
     final asset = widget.asset;
+    final directUrl = widget.directUrl?.trim();
+    final hasDirectUrl = directUrl != null && directUrl.isNotEmpty;
+    final canOpen = asset != null || hasDirectUrl;
     return Semantics(
       label: widget.semanticLabel,
       button: true,
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        onTap: asset == null
+        onTap: !canOpen
             ? null
-            : () => _openAttachmentDataUri(asset.dataUri),
+            : () => asset != null
+                  ? _openAttachmentDataUri(asset.dataUri)
+                  : _openAttachmentUrl(directUrl!),
         child: Container(
           constraints: BoxConstraints(maxWidth: widget.maxWidth),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -3190,7 +3474,12 @@ class _FileAttachmentCardState extends State<_FileAttachmentCard> {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.attach_file_outlined, size: 18),
+                  Icon(
+                    widget.isVideo
+                        ? Icons.videocam_outlined
+                        : Icons.attach_file_outlined,
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
                   Flexible(
                     child: Text(
@@ -3213,7 +3502,7 @@ class _FileAttachmentCardState extends State<_FileAttachmentCard> {
                         child: Text(widget.openLabel!),
                       ),
                     if (widget.downloadLabel != null &&
-                        widget.onDownload != null)
+                        (widget.onDownload != null || hasDirectUrl))
                       OutlinedButton.icon(
                         onPressed: _isDownloading
                             ? null
@@ -3231,7 +3520,7 @@ class _FileAttachmentCardState extends State<_FileAttachmentCard> {
                       ),
                   ],
                 ),
-              ] else if (widget.openLabel != null) ...[
+              ] else if (widget.openLabel != null && hasDirectUrl) ...[
                 const SizedBox(height: 6),
                 Text(
                   widget.openLabel!,
@@ -3302,6 +3591,13 @@ class _AttachmentLoadingCard extends StatelessWidget {
 
 Future<void> _openAttachmentDataUri(String dataUri) async {
   final uri = Uri.tryParse(dataUri);
+  if (uri != null) {
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+}
+
+Future<void> _openAttachmentUrl(String url) async {
+  final uri = Uri.tryParse(url);
   if (uri != null) {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }

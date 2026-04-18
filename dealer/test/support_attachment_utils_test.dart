@@ -28,4 +28,26 @@ void main() {
       isFalse,
     );
   });
+
+  test('detects video by content type and extension', () {
+    expect(
+      isLikelyVideoAttachment(
+        fileName: 'clip.webm',
+        url: 'https://cdn.example.com/uploads/clip.webm',
+        contentType: 'video/webm',
+      ),
+      isTrue,
+    );
+  });
+
+  test('detects document by content type and extension', () {
+    expect(
+      isLikelyDocumentAttachment(
+        fileName: 'proof.pdf',
+        url: 'https://cdn.example.com/uploads/proof.pdf',
+        contentType: 'application/pdf',
+      ),
+      isTrue,
+    );
+  });
 }

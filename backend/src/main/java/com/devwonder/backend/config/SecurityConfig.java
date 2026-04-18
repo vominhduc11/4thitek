@@ -89,6 +89,17 @@ public class SecurityConfig {
                                 "/api/v1/upload/payment-proofs",
                                 "/api/v1/upload/support-tickets"
                         ).hasAnyAuthority("DEALER", "ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/media/*/download").permitAll()
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/v1/media/upload-session",
+                                "/api/v1/media/finalize",
+                                "/api/v1/media/upload-session/*/content"
+                        ).hasAnyAuthority("DEALER", "ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/v1/media/*/access-url"
+                        ).hasAnyAuthority("DEALER", "ADMIN", "SUPER_ADMIN")
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/v1/warranty-activation"

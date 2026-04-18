@@ -21,6 +21,7 @@ public record CreateDealerSupportTicketRequest(
         @Size(max = 500, message = "message must be at most 500 characters")
         String message,
         SupportTicketContextPayload contextData,
-        List<SupportTicketAttachmentPayload> attachments
+        List<SupportTicketAttachmentPayload> attachments,
+        List<Long> mediaAssetIds
 ) {
 }

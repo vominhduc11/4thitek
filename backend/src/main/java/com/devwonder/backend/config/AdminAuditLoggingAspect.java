@@ -58,7 +58,7 @@ public class AdminAuditLoggingAspect {
         this(auditLogService, objectMapper, new ClientIpResolver(false, false));
     }
 
-    @AfterReturning("execution(* com.devwonder.backend.controller.AdminController.*(..))")
+    @AfterReturning("execution(* com.devwonder.backend.controller.Admin*Controller.*(..))")
     public void captureAdminMutation(JoinPoint joinPoint) {
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attributes == null) {

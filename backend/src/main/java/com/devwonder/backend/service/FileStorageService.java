@@ -35,12 +35,17 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 @Service
 public class FileStorageService implements DisposableBean {
 
     private static final String LOCAL_PROVIDER = "local";
     private static final String S3_PROVIDER = "s3";
+    private static final String MINIO_PROVIDER = "minio";
     private static final String UPLOADS_PREFIX = "/uploads/";
     private static final String INTERNAL_UPLOAD_PREFIX = "/api/v1/upload/";
 
@@ -50,6 +55,8 @@ public class FileStorageService implements DisposableBean {
     private final String bucket;
     private final String publicBaseUrl;
     private final S3Client s3Client;
+    private final S3Presigner s3Presigner;
+    private final URI s3Endpoint;
     private final long maxFileSizeBytes;
 
     public record StoredFile(InputStream inputStream, String contentType, long contentLength) {
@@ -78,6 +85,7 @@ public class FileStorageService implements DisposableBean {
         this.bucket = normalize(bucket);
         this.publicBaseUrl = normalize(publicBaseUrl);
         this.maxFileSizeBytes = maxFileSize == null ? DataSize.ofMegabytes(10).toBytes() : maxFileSize.toBytes();
+        this.s3Endpoint = normalize(endpoint) == null ? null : URI.create(endpoint.trim());
 
         if (LOCAL_PROVIDER.equals(this.provider)) {
             try {
@@ -86,6 +94,7 @@ public class FileStorageService implements DisposableBean {
                 throw new IllegalStateException("Cannot create upload directory", ex);
             }
             this.s3Client = null;
+            this.s3Presigner = null;
             return;
         }
 
@@ -97,16 +106,25 @@ public class FileStorageService implements DisposableBean {
             throw new IllegalStateException("S3 access key and secret key are required when provider is s3");
         }
 
+        AwsBasicCredentials s3Credentials = AwsBasicCredentials.create(accessKey.trim(), secretKey.trim());
+
         S3ClientBuilder builder = S3Client.builder()
-                .credentialsProvider(StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(accessKey.trim(), secretKey.trim())
-                ))
+                .credentialsProvider(StaticCredentialsProvider.create(s3Credentials))
                 .region(Region.of(region));
-        if (normalize(endpoint) != null) {
-            builder.endpointOverride(URI.create(endpoint.trim()));
+        if (s3Endpoint != null) {
+            builder.endpointOverride(s3Endpoint);
         }
         builder.serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(pathStyleAccess).build());
         this.s3Client = builder.build();
+
+        S3Presigner.Builder presignerBuilder = S3Presigner.builder()
+                .credentialsProvider(StaticCredentialsProvider.create(s3Credentials))
+                .region(Region.of(region))
+                .serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(pathStyleAccess).build());
+        if (s3Endpoint != null) {
+            presignerBuilder.endpointOverride(s3Endpoint);
+        }
+        this.s3Presigner = presignerBuilder.build();
     }
 
     public String store(MultipartFile file, String subfolder) {
@@ -221,6 +239,230 @@ public class FileStorageService implements DisposableBean {
             }
             throw new IllegalStateException("Cannot read uploaded file", ex);
         }
+    }
+
+    public void write(String storedPath, InputStream inputStream, long contentLength, String contentType) {
+        String normalizedPath = normalizeStoredPath(storedPath);
+        if (normalizedPath == null) {
+            throw new BadRequestException("Invalid upload path");
+        }
+        if (contentLength < 0) {
+            throw new BadRequestException("Invalid upload content length");
+        }
+
+        if (LOCAL_PROVIDER.equals(provider)) {
+            Path targetPath = uploadDir.resolve(normalizedPath).normalize();
+            ensureInsideUploadDir(targetPath);
+            try {
+                Files.createDirectories(targetPath.getParent());
+                Files.copy(inputStream, targetPath, StandardCopyOption.REPLACE_EXISTING);
+                return;
+            } catch (IOException ex) {
+                throw new IllegalStateException("Cannot store uploaded file", ex);
+            }
+        }
+
+        try {
+            s3Client.putObject(
+                    PutObjectRequest.builder()
+                            .bucket(bucket)
+                            .key(normalizedPath)
+                            .contentType(contentType)
+                            .build(),
+                    RequestBody.fromInputStream(inputStream, contentLength)
+            );
+        } catch (RuntimeException ex) {
+            throw new IllegalStateException("Cannot store uploaded file", ex);
+        }
+    }
+
+    public String createObjectKey(String subfolder, String fileName) {
+        String normalizedFileName = normalize(fileName);
+        if (normalizedFileName == null) {
+            throw new BadRequestException("fileName is required");
+        }
+        String cleanedFileName = normalizedFileName.replace("\\", "/");
+        if (cleanedFileName.contains("/") || cleanedFileName.contains("..")) {
+            throw new BadRequestException("Invalid file name");
+        }
+        return toObjectKey(subfolder, cleanedFileName);
+    }
+
+    public String createRandomObjectKey(String subfolder, String extension) {
+        String normalizedExtension = normalize(extension);
+        if (normalizedExtension == null) {
+            throw new BadRequestException("extension is required");
+        }
+        String cleanedExtension = normalizedExtension.replace(".", "").toLowerCase(Locale.ROOT);
+        if (cleanedExtension.isBlank() || cleanedExtension.contains("/") || cleanedExtension.contains("\\")) {
+            throw new BadRequestException("Invalid extension");
+        }
+        return toObjectKey(subfolder, UUID.randomUUID() + "." + cleanedExtension);
+    }
+
+    public String createPresignedUploadUrl(String storedPath, String contentType, java.time.Duration ttl) {
+        if (s3Presigner == null) {
+            throw new BadRequestException("Presigned uploads are not supported for local storage");
+        }
+        String normalizedPath = normalizeStoredPath(storedPath);
+        if (normalizedPath == null) {
+            throw new BadRequestException("Invalid upload path");
+        }
+        java.time.Duration duration = ttl == null || ttl.isNegative() || ttl.isZero()
+                ? java.time.Duration.ofMinutes(10)
+                : ttl;
+        PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
+                .signatureDuration(duration)
+                .putObjectRequest(PutObjectRequest.builder()
+                        .bucket(bucket)
+                        .key(normalizedPath)
+                        .contentType(contentType)
+                        .build())
+                .build();
+        return s3Presigner.presignPutObject(presignRequest).url().toString();
+    }
+
+    public long contentLength(String storedPath) {
+        String normalizedPath = normalizeStoredPath(storedPath);
+        if (normalizedPath == null) {
+            throw new ResourceNotFoundException("Uploaded file not found");
+        }
+
+        if (LOCAL_PROVIDER.equals(provider)) {
+            Path targetPath = uploadDir.resolve(normalizedPath).normalize();
+            ensureInsideUploadDir(targetPath);
+            if (!Files.isRegularFile(targetPath)) {
+                throw new ResourceNotFoundException("Uploaded file not found");
+            }
+            try {
+                return Files.size(targetPath);
+            } catch (IOException ex) {
+                throw new IllegalStateException("Cannot read uploaded file metadata", ex);
+            }
+        }
+
+        try {
+            HeadObjectResponse response = s3Client.headObject(
+                    HeadObjectRequest.builder().bucket(bucket).key(normalizedPath).build()
+            );
+            if (response.contentLength() == null) {
+                throw new ResourceNotFoundException("Uploaded file not found");
+            }
+            return response.contentLength();
+        } catch (NoSuchKeyException ex) {
+            throw new ResourceNotFoundException("Uploaded file not found");
+        } catch (S3Exception ex) {
+            if (ex.statusCode() == 404) {
+                throw new ResourceNotFoundException("Uploaded file not found");
+            }
+            throw new IllegalStateException("Cannot read uploaded file metadata", ex);
+        }
+    }
+
+    public String contentType(String storedPath) {
+        String normalizedPath = normalizeStoredPath(storedPath);
+        if (normalizedPath == null) {
+            throw new ResourceNotFoundException("Uploaded file not found");
+        }
+
+        if (LOCAL_PROVIDER.equals(provider)) {
+            Path targetPath = uploadDir.resolve(normalizedPath).normalize();
+            ensureInsideUploadDir(targetPath);
+            if (!Files.isRegularFile(targetPath)) {
+                throw new ResourceNotFoundException("Uploaded file not found");
+            }
+            try {
+                return Files.probeContentType(targetPath);
+            } catch (IOException ex) {
+                throw new IllegalStateException("Cannot read uploaded file metadata", ex);
+            }
+        }
+
+        try {
+            HeadObjectResponse response = s3Client.headObject(
+                    HeadObjectRequest.builder().bucket(bucket).key(normalizedPath).build()
+            );
+            return response.contentType();
+        } catch (NoSuchKeyException ex) {
+            throw new ResourceNotFoundException("Uploaded file not found");
+        } catch (S3Exception ex) {
+            if (ex.statusCode() == 404) {
+                throw new ResourceNotFoundException("Uploaded file not found");
+            }
+            throw new IllegalStateException("Cannot read uploaded file metadata", ex);
+        }
+    }
+
+    public byte[] readHeadBytes(String storedPath, int maxBytes) {
+        if (maxBytes <= 0) {
+            return new byte[0];
+        }
+        String normalizedPath = normalizeStoredPath(storedPath);
+        if (normalizedPath == null) {
+            throw new ResourceNotFoundException("Uploaded file not found");
+        }
+
+        if (LOCAL_PROVIDER.equals(provider)) {
+            Path targetPath = uploadDir.resolve(normalizedPath).normalize();
+            ensureInsideUploadDir(targetPath);
+            if (!Files.isRegularFile(targetPath)) {
+                throw new ResourceNotFoundException("Uploaded file not found");
+            }
+            try (InputStream inputStream = Files.newInputStream(targetPath)) {
+                return inputStream.readNBytes(maxBytes);
+            } catch (IOException ex) {
+                throw new IllegalStateException("Cannot read uploaded file", ex);
+            }
+        }
+
+        try (ResponseInputStream<GetObjectResponse> inputStream = s3Client.getObject(
+                GetObjectRequest.builder()
+                        .bucket(bucket)
+                        .key(normalizedPath)
+                        .range("bytes=0-" + (maxBytes - 1))
+                        .build())) {
+            return inputStream.readNBytes(maxBytes);
+        } catch (NoSuchKeyException ex) {
+            throw new ResourceNotFoundException("Uploaded file not found");
+        } catch (S3Exception ex) {
+            if (ex.statusCode() == 404) {
+                throw new ResourceNotFoundException("Uploaded file not found");
+            }
+            throw new IllegalStateException("Cannot read uploaded file", ex);
+        } catch (IOException ex) {
+            throw new IllegalStateException("Cannot read uploaded file", ex);
+        }
+    }
+
+    public boolean exists(String storedPath) {
+        String normalizedPath = normalizeStoredPath(storedPath);
+        if (normalizedPath == null) {
+            return false;
+        }
+        if (LOCAL_PROVIDER.equals(provider)) {
+            Path targetPath = uploadDir.resolve(normalizedPath).normalize();
+            ensureInsideUploadDir(targetPath);
+            return Files.isRegularFile(targetPath);
+        }
+        try {
+            s3Client.headObject(HeadObjectRequest.builder().bucket(bucket).key(normalizedPath).build());
+            return true;
+        } catch (NoSuchKeyException ex) {
+            return false;
+        } catch (S3Exception ex) {
+            if (ex.statusCode() == 404) {
+                return false;
+            }
+            throw new IllegalStateException("Cannot verify uploaded file", ex);
+        }
+    }
+
+    public boolean isS3CompatibleProvider() {
+        return !LOCAL_PROVIDER.equals(provider);
+    }
+
+    public String providerName() {
+        return provider;
     }
 
     public String normalizeStoredPath(String value) {
@@ -504,7 +746,9 @@ public class FileStorageService implements DisposableBean {
         if (normalized == null) {
             return LOCAL_PROVIDER;
         }
-        if (!LOCAL_PROVIDER.equals(normalized) && !S3_PROVIDER.equals(normalized)) {
+        if (!LOCAL_PROVIDER.equals(normalized)
+                && !S3_PROVIDER.equals(normalized)
+                && !MINIO_PROVIDER.equals(normalized)) {
             throw new IllegalStateException("Unsupported storage provider: " + normalized);
         }
         return normalized;
@@ -522,6 +766,9 @@ public class FileStorageService implements DisposableBean {
     public void destroy() {
         if (s3Client != null) {
             s3Client.close();
+        }
+        if (s3Presigner != null) {
+            s3Presigner.close();
         }
     }
 }

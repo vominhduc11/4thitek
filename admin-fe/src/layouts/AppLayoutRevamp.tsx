@@ -8,6 +8,7 @@
   CircleDollarSign,
   ClipboardList,
   FileText,
+  FolderOpen,
   Landmark,
   LayoutDashboard,
   LifeBuoy,
@@ -143,6 +144,7 @@ const copyKeys = {
     serials: "Serial",
     notifications: "Trung tâm thông báo",
     support: "Hỗ trợ",
+    media: "Thư viện media",
     returns: "Đổi trả",
     recentPayments: "Thanh toán chuyển khoản",
     unmatchedPayments: "Thanh toán không khớp",
@@ -386,6 +388,12 @@ function AppLayoutRevamp() {
         to: "/support-tickets",
         label: copy.nav.support,
         icon: LifeBuoy,
+        group: "service",
+      },
+      {
+        to: "/media",
+        label: copy.nav.media,
+        icon: FolderOpen,
         group: "service",
       },
       {

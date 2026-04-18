@@ -66,6 +66,26 @@ class UploadedFileRef {
   final String fileName;
 }
 
+class UploadedSupportMediaRef {
+  const UploadedSupportMediaRef({
+    required this.mediaAssetId,
+    required this.url,
+    required this.fileName,
+    this.accessUrl,
+    this.mediaType,
+    this.contentType,
+    this.sizeBytes,
+  });
+
+  final int mediaAssetId;
+  final String url;
+  final String fileName;
+  final String? accessUrl;
+  final String? mediaType;
+  final String? contentType;
+  final int? sizeBytes;
+}
+
 class UploadService {
   UploadService({AuthStorage? authStorage, http.Client? client})
     : _authStorage = authStorage ?? AuthStorage() {
@@ -164,6 +184,150 @@ class UploadService {
     );
   }
 
+  Future<UploadedSupportMediaRef> uploadSupportMediaFile({
+    required XFile file,
+  }) async {
+    if (!DealerApiConfig.isConfigured) {
+      throw UploadException(
+        uploadServiceMessageToken(UploadMessageCode.apiNotConfigured),
+      );
+    }
+
+    final accessToken = await _authStorage.readAccessToken();
+    if (accessToken == null || accessToken.trim().isEmpty) {
+      throw UploadException(
+        uploadServiceMessageToken(UploadMessageCode.unauthenticated),
+      );
+    }
+
+    final fileName = file.name.trim().isEmpty ? 'attachment' : file.name.trim();
+    final contentType = _resolveMediaContentType(fileName, file.mimeType);
+    final sizeBytes = await file.length();
+
+    final sessionResponse = await _client.post(
+      DealerApiConfig.resolveApiUri('/media/upload-session'),
+      headers: <String, String>{
+        HttpHeaders.authorizationHeader: 'Bearer ${accessToken.trim()}',
+        HttpHeaders.acceptHeader: 'application/json',
+        HttpHeaders.contentTypeHeader: 'application/json',
+      },
+      body: jsonEncode(<String, dynamic>{
+        'fileName': fileName,
+        'contentType': contentType,
+        'sizeBytes': sizeBytes,
+        'category': 'support_ticket',
+      }),
+    );
+
+    final sessionPayload = _decodeJsonResponse(sessionResponse);
+    if (sessionResponse.statusCode < 200 || sessionResponse.statusCode >= 300) {
+      final message = _extractApiError(sessionPayload);
+      throw UploadException(
+        message ?? uploadServiceMessageToken(UploadMessageCode.uploadFailed),
+      );
+    }
+
+    final sessionData = sessionPayload['data'];
+    if (sessionData is! Map<String, dynamic>) {
+      throw UploadException(
+        uploadServiceMessageToken(UploadMessageCode.invalidJson),
+      );
+    }
+    final mediaAssetId = _parseInt(sessionData['mediaAssetId']);
+    final uploadMethod =
+        sessionData['uploadMethod']?.toString().trim().toUpperCase() ?? '';
+    final uploadUrl = sessionData['uploadUrl']?.toString().trim() ?? '';
+    if (mediaAssetId <= 0 || uploadUrl.isEmpty) {
+      throw UploadException(
+        uploadServiceMessageToken(UploadMessageCode.missingMetadata),
+      );
+    }
+
+    final uploadHeaders = <String, String>{};
+    final rawHeaders = sessionData['uploadHeaders'];
+    if (rawHeaders is Map<String, dynamic>) {
+      rawHeaders.forEach((key, value) {
+        final normalizedKey = key.toString().trim();
+        final normalizedValue = value?.toString().trim() ?? '';
+        if (normalizedKey.isNotEmpty && normalizedValue.isNotEmpty) {
+          uploadHeaders[normalizedKey] = normalizedValue;
+        }
+      });
+    }
+
+    if (uploadMethod == 'PRESIGNED_PUT') {
+      await _uploadPresignedPut(
+        url: uploadUrl,
+        file: file,
+        contentType: contentType,
+        headers: uploadHeaders,
+      );
+    } else {
+      await _uploadMultipartSession(
+        accessToken: accessToken,
+        uploadUrl: uploadUrl,
+        file: file,
+        contentType: contentType,
+      );
+    }
+
+    final finalizeResponse = await _client.post(
+      DealerApiConfig.resolveApiUri('/media/finalize'),
+      headers: <String, String>{
+        HttpHeaders.authorizationHeader: 'Bearer ${accessToken.trim()}',
+        HttpHeaders.acceptHeader: 'application/json',
+        HttpHeaders.contentTypeHeader: 'application/json',
+      },
+      body: jsonEncode(<String, dynamic>{'mediaAssetId': mediaAssetId}),
+    );
+
+    final finalizePayload = _decodeJsonResponse(finalizeResponse);
+    if (finalizeResponse.statusCode < 200 ||
+        finalizeResponse.statusCode >= 300) {
+      final message = _extractApiError(finalizePayload);
+      throw UploadException(
+        message ?? uploadServiceMessageToken(UploadMessageCode.uploadFailed),
+      );
+    }
+    final finalizeData = finalizePayload['data'];
+    if (finalizeData is! Map<String, dynamic>) {
+      throw UploadException(
+        uploadServiceMessageToken(UploadMessageCode.invalidJson),
+      );
+    }
+
+    final resolvedUrl = DealerApiConfig.resolveUploadUrl(
+      finalizeData['downloadUrl']?.toString() ??
+          finalizeData['accessUrl']?.toString() ??
+          '',
+    );
+    if (resolvedUrl.trim().isEmpty) {
+      throw UploadException(
+        uploadServiceMessageToken(UploadMessageCode.missingMetadata),
+      );
+    }
+    final resolvedFileName = _resolveUploadedFileName(
+      finalizeData['originalFileName'],
+      fallbackName: fileName,
+      rawUrl: resolvedUrl,
+    );
+
+    final rawAccessUrl = finalizeData['accessUrl']?.toString().trim();
+    final resolvedAccessUrl = rawAccessUrl == null || rawAccessUrl.isEmpty
+        ? null
+        : DealerApiConfig.resolveUploadUrl(rawAccessUrl);
+
+    return UploadedSupportMediaRef(
+      mediaAssetId: mediaAssetId,
+      url: resolvedUrl,
+      fileName: resolvedFileName,
+      accessUrl: resolvedAccessUrl,
+      mediaType: finalizeData['mediaType']?.toString(),
+      contentType: finalizeData['contentType']?.toString(),
+      sizeBytes: _parseOptionalInt(finalizeData['sizeBytes']),
+    );
+  }
+
   Future<void> deleteUrl(String url) async {
     final normalizedUrl = url.trim();
     if (normalizedUrl.isEmpty || !DealerApiConfig.isConfigured) {
@@ -194,6 +358,110 @@ class UploadService {
         message ?? uploadServiceMessageToken(UploadMessageCode.uploadFailed),
       );
     }
+  }
+
+  Future<void> _uploadMultipartSession({
+    required String accessToken,
+    required String uploadUrl,
+    required XFile file,
+    required String contentType,
+  }) async {
+    final request = http.MultipartRequest('POST', Uri.parse(uploadUrl));
+    request.headers[HttpHeaders.authorizationHeader] =
+        'Bearer ${accessToken.trim()}';
+    request.headers[HttpHeaders.acceptHeader] = 'application/json';
+
+    if (file.path.isNotEmpty) {
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'file',
+          file.path,
+          filename: file.name,
+        ),
+      );
+    } else {
+      final bytes = await file.readAsBytes();
+      request.files.add(
+        http.MultipartFile.fromBytes('file', bytes, filename: file.name),
+      );
+    }
+
+    final streamed = await _client.send(request);
+    final response = await http.Response.fromStream(streamed);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final payload = _decodeJsonResponse(response);
+      final message = _extractApiError(payload);
+      throw UploadException(
+        message ?? uploadServiceMessageToken(UploadMessageCode.uploadFailed),
+      );
+    }
+  }
+
+  Future<void> _uploadPresignedPut({
+    required String url,
+    required XFile file,
+    required String contentType,
+    required Map<String, String> headers,
+  }) async {
+    final request = http.Request('PUT', Uri.parse(url));
+    request.headers[HttpHeaders.contentTypeHeader] = contentType;
+    headers.forEach((key, value) {
+      if (key.trim().isNotEmpty && value.trim().isNotEmpty) {
+        request.headers[key] = value;
+      }
+    });
+    request.bodyBytes = await file.readAsBytes();
+    final streamed = await _client.send(request);
+    final response = await http.Response.fromStream(streamed);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final payload = _decodeJsonResponse(response);
+      final message = _extractApiError(payload);
+      throw UploadException(
+        message ?? uploadServiceMessageToken(UploadMessageCode.uploadFailed),
+      );
+    }
+  }
+
+  Map<String, dynamic> _decodeJsonResponse(http.Response response) {
+    final rawBody = response.body;
+    if (rawBody.trim().isEmpty) {
+      return const <String, dynamic>{};
+    }
+    try {
+      final decoded = jsonDecode(rawBody);
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      }
+    } catch (_) {
+      return const <String, dynamic>{};
+    }
+    return const <String, dynamic>{};
+  }
+
+  String? _extractApiError(Map<String, dynamic> payload) {
+    final message = payload['error']?.toString().trim();
+    if (message == null || message.isEmpty) {
+      return null;
+    }
+    return message;
+  }
+
+  int _parseInt(Object? value) {
+    if (value is int) {
+      return value;
+    }
+    if (value is double) {
+      return value.round();
+    }
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  int? _parseOptionalInt(Object? value) {
+    if (value == null) {
+      return null;
+    }
+    final parsed = _parseInt(value);
+    return parsed == 0 && value.toString().trim() != '0' ? null : parsed;
   }
 
   static Future<String> xFileToDataUri(XFile file) async {
@@ -234,6 +502,25 @@ String _resolveUploadedFileName(
 
   final fallback = fallbackName.trim();
   return fallback.isEmpty ? 'attachment' : fallback;
+}
+
+String _resolveMediaContentType(String fileName, String? declaredType) {
+  final normalizedType = declaredType?.trim().toLowerCase();
+  if (normalizedType != null && normalizedType.isNotEmpty) {
+    return normalizedType;
+  }
+  final extension = fileName.contains('.')
+      ? fileName.split('.').last.trim().toLowerCase()
+      : '';
+  return switch (extension) {
+    'jpg' || 'jpeg' => 'image/jpeg',
+    'png' => 'image/png',
+    'webp' => 'image/webp',
+    'mp4' => 'video/mp4',
+    'webm' => 'video/webm',
+    'pdf' => 'application/pdf',
+    _ => 'application/octet-stream',
+  };
 }
 
 String? _extractLastPathSegment(String? value) {

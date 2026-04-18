@@ -10,6 +10,7 @@ public record CreateAdminSupportTicketMessageRequest(
         @Size(max = 1000, message = "message must be at most 1000 characters")
         String message,
         Boolean internalNote,
-        List<SupportTicketAttachmentPayload> attachments
+        List<SupportTicketAttachmentPayload> attachments,
+        List<Long> mediaAssetIds
 ) {
 }

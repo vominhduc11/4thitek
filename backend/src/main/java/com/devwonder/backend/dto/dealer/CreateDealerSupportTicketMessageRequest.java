@@ -9,6 +9,7 @@ public record CreateDealerSupportTicketMessageRequest(
         @NotBlank(message = "message is required")
         @Size(max = 1000, message = "message must be at most 1000 characters")
         String message,
-        List<SupportTicketAttachmentPayload> attachments
+        List<SupportTicketAttachmentPayload> attachments,
+        List<Long> mediaAssetIds
 ) {
 }

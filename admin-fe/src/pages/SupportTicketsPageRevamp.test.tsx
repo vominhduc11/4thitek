@@ -12,6 +12,7 @@ const {
   fetchAdminUsersMock,
   updateAdminSupportTicketMock,
   createAdminSupportTicketMessageMock,
+  uploadSupportMediaAssetMock,
   notifyMock,
 } = vi.hoisted(() => ({
   fetchAdminSupportTicketsMock: vi.fn(),
@@ -19,6 +20,7 @@ const {
   fetchAdminUsersMock: vi.fn(),
   updateAdminSupportTicketMock: vi.fn(),
   createAdminSupportTicketMessageMock: vi.fn(),
+  uploadSupportMediaAssetMock: vi.fn(),
   notifyMock: vi.fn(),
 }));
 
@@ -52,6 +54,10 @@ vi.mock("../lib/adminApi", async () => {
     createAdminSupportTicketMessage: createAdminSupportTicketMessageMock,
   };
 });
+
+vi.mock("../lib/supportMediaUpload", () => ({
+  uploadSupportMediaAsset: uploadSupportMediaAssetMock,
+}));
 
 const renderPage = () =>
   render(
@@ -93,6 +99,7 @@ describe("SupportTicketsPageRevamp", () => {
     fetchAdminUsersMock.mockReset();
     updateAdminSupportTicketMock.mockReset();
     createAdminSupportTicketMessageMock.mockReset();
+    uploadSupportMediaAssetMock.mockReset();
     notifyMock.mockReset();
 
     fetchAdminSupportTicketsMock.mockResolvedValue({
@@ -105,6 +112,17 @@ describe("SupportTicketsPageRevamp", () => {
     fetchAdminUsersMock.mockResolvedValue([]);
     updateAdminSupportTicketMock.mockResolvedValue(ticketPayload);
     createAdminSupportTicketMessageMock.mockResolvedValue(ticketPayload);
+    uploadSupportMediaAssetMock.mockResolvedValue({
+      id: 909,
+      downloadUrl: "https://api.example.com/api/v1/media/909/download",
+      accessUrl:
+        "https://api.example.com/api/v1/media/909/download?token=example",
+      originalFileName: "evidence.mp4",
+      mediaType: "video",
+      contentType: "video/mp4",
+      sizeBytes: 1234,
+      createdAt: "2026-04-10T00:00:00Z",
+    });
   });
 
   afterEach(() => {
@@ -138,6 +156,45 @@ describe("SupportTicketsPageRevamp", () => {
       expect(fetchAllAdminSupportTicketsMock).toHaveBeenCalledWith(
         "admin-token",
         100,
+      );
+    });
+  });
+
+  it("submits mediaAssetIds when reply includes uploaded media", async () => {
+    const { container } = renderPage();
+    await screen.findByText("TK-001");
+
+    const input = container.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement | null;
+    expect(input).toBeTruthy();
+    if (!input) return;
+
+    const file = new File(["video-bytes"], "evidence.mp4", {
+      type: "video/mp4",
+    });
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(uploadSupportMediaAssetMock).toHaveBeenCalled();
+    });
+
+    const composer = container.querySelector("textarea") as HTMLTextAreaElement | null;
+    expect(composer).toBeTruthy();
+    if (!composer) return;
+    fireEvent.change(composer, { target: { value: "Please see attached video." } });
+
+    const sendButtons = screen.getAllByRole("button", { name: "Gửi cho đại lý" });
+    fireEvent.click(sendButtons[sendButtons.length - 1]);
+
+    await waitFor(() => {
+      expect(createAdminSupportTicketMessageMock).toHaveBeenCalledWith(
+        "admin-token",
+        101,
+        expect.objectContaining({
+          message: "Please see attached video.",
+          mediaAssetIds: [909],
+        }),
       );
     });
   });
@@ -344,5 +401,27 @@ describe("SupportTicketsPageRevamp", () => {
     expect(
       screen.getByRole("link", { name: "reconciliation.xlsx" }),
     ).toBeTruthy();
+  });
+
+  it("renders video attachments as video cards", () => {
+    const { container } = render(
+      <SupportAttachmentView
+        attachment={{
+          id: 44,
+          url: "https://cdn.example.com/files/evidence.mp4",
+          accessUrl: "https://cdn.example.com/files/evidence.mp4",
+          resolvedUrl: "https://cdn.example.com/files/evidence.mp4",
+          resolvedAccessUrl: "https://cdn.example.com/files/evidence.mp4",
+          fileName: "evidence.mp4",
+          mediaType: "video",
+          contentType: "video/mp4",
+          sizeBytes: 1000,
+        }}
+        t={(value) => value}
+      />,
+    );
+
+    expect(container.querySelector("video")).toBeTruthy();
+    expect(screen.getByRole("link", { name: /evidence.mp4/i })).toBeTruthy();
   });
 });

@@ -861,6 +861,7 @@ public class ReturnRequestService {
                             serialPreview,
                             trimOrNull(payload.reasonDetail())
                     ),
+                    List.of(),
                     List.of()
             ));
             if (support == null || support.id() == null) {

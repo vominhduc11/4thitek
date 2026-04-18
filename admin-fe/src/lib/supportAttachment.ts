@@ -1,6 +1,8 @@
 import { buildApiUrl, resolveBackendAssetUrl } from "./backendApi";
 
 const IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "gif"]);
+const VIDEO_EXTENSIONS = new Set(["mp4", "webm"]);
+const DOCUMENT_EXTENSIONS = new Set(["pdf"]);
 const IMAGE_QUERY_KEYS = new Set([
   "mime",
   "content-type",
@@ -12,14 +14,33 @@ const PUBLIC_UPLOAD_PREFIXES = ["products/", "blogs/"];
 const PRIVATE_UPLOAD_PREFIXES = ["avatars/", "payments/", "support/"];
 
 export type SupportAttachmentLike = {
+  id?: number | null;
   fileName?: string | null;
   url?: string | null;
+  accessUrl?: string | null;
+  mediaType?: string | null;
+  contentType?: string | null;
+  sizeBytes?: number | null;
+  createdAt?: string | null;
 };
 
+export type SupportAttachmentMediaType =
+  | "image"
+  | "video"
+  | "document"
+  | "other";
+
 export type NormalizedSupportAttachment = {
+  id?: number | null;
   url: string;
   resolvedUrl: string;
+  accessUrl?: string | null;
+  resolvedAccessUrl?: string | null;
   fileName?: string | null;
+  mediaType?: SupportAttachmentMediaType;
+  contentType?: string | null;
+  sizeBytes?: number | null;
+  createdAt?: string | null;
 };
 
 export function isPrivateSupportAttachmentUrl(value: string | null | undefined): boolean {
@@ -32,9 +53,11 @@ export function isPrivateSupportAttachmentUrl(value: string | null | undefined):
     stripped.startsWith("/api/v1/upload/support/") ||
     stripped.startsWith("/api/v1/upload/payments/") ||
     stripped.startsWith("/api/v1/upload/avatars/") ||
+    stripped.startsWith("/api/v1/media/") ||
     stripped.startsWith("/uploads/support/") ||
     stripped.startsWith("/uploads/payments/") ||
     stripped.startsWith("/uploads/avatars/") ||
+    stripped.startsWith("api/v1/media/") ||
     stripped.startsWith("support/") ||
     stripped.startsWith("payments/") ||
     stripped.startsWith("avatars/")
@@ -44,9 +67,30 @@ export function isPrivateSupportAttachmentUrl(value: string | null | undefined):
 export function isLikelyImageAttachment(
   attachment: SupportAttachmentLike,
 ): boolean {
+  if (normalizeMediaType(attachment.mediaType) === "image") {
+    return true;
+  }
   return (
     looksLikeImageValue(attachment.fileName) || looksLikeImageValue(attachment.url)
   );
+}
+
+export function isLikelyVideoAttachment(
+  attachment: SupportAttachmentLike,
+): boolean {
+  if (normalizeMediaType(attachment.mediaType) === "video") {
+    return true;
+  }
+  return looksLikeVideoValue(attachment.contentType) || looksLikeVideoValue(attachment.fileName) || looksLikeVideoValue(attachment.url);
+}
+
+export function isLikelyDocumentAttachment(
+  attachment: SupportAttachmentLike,
+): boolean {
+  if (normalizeMediaType(attachment.mediaType) === "document") {
+    return true;
+  }
+  return looksLikeDocumentValue(attachment.contentType) || looksLikeDocumentValue(attachment.fileName) || looksLikeDocumentValue(attachment.url);
 }
 
 function looksLikeImageValue(value: string | null | undefined): boolean {
@@ -86,6 +130,72 @@ function looksLikeImageValue(value: string | null | undefined): boolean {
   return IMAGE_EXTENSIONS.has(extension);
 }
 
+function looksLikeVideoValue(value: string | null | undefined): boolean {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+  if (normalized.startsWith("video/")) {
+    return true;
+  }
+  const parsed = parseUrl(normalized);
+  const path = extractPath(normalized, parsed);
+  const lastDot = path.lastIndexOf(".");
+  if (lastDot < 0 || lastDot === path.length - 1) {
+    return false;
+  }
+  const extension = path.slice(lastDot + 1);
+  return VIDEO_EXTENSIONS.has(extension);
+}
+
+function looksLikeDocumentValue(value: string | null | undefined): boolean {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+  if (normalized === "application/pdf") {
+    return true;
+  }
+  const parsed = parseUrl(normalized);
+  const path = extractPath(normalized, parsed);
+  const lastDot = path.lastIndexOf(".");
+  if (lastDot < 0 || lastDot === path.length - 1) {
+    return false;
+  }
+  const extension = path.slice(lastDot + 1);
+  return DOCUMENT_EXTENSIONS.has(extension);
+}
+
+function normalizeMediaType(value: string | null | undefined): SupportAttachmentMediaType | null {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+  if (normalized === "image" || normalized === "video" || normalized === "document" || normalized === "other") {
+    return normalized;
+  }
+  return null;
+}
+
+export function inferSupportAttachmentMediaType(
+  attachment: SupportAttachmentLike,
+): SupportAttachmentMediaType {
+  const explicit = normalizeMediaType(attachment.mediaType);
+  if (explicit) {
+    return explicit;
+  }
+  if (isLikelyImageAttachment(attachment)) {
+    return "image";
+  }
+  if (isLikelyVideoAttachment(attachment)) {
+    return "video";
+  }
+  if (isLikelyDocumentAttachment(attachment)) {
+    return "document";
+  }
+  return "other";
+}
+
 export function normalizeSupportAttachment(
   attachment: SupportAttachmentLike,
 ): NormalizedSupportAttachment | null {
@@ -95,12 +205,25 @@ export function normalizeSupportAttachment(
   }
 
   const resolvedUrl = resolveSupportAttachmentUrl(rawUrl);
+  const rawAccessUrl = String(attachment.accessUrl ?? "").trim();
+  const resolvedAccessUrl = rawAccessUrl ? resolveSupportAttachmentUrl(rawAccessUrl) : "";
   const fileName = normalizeSupportAttachmentFileName(attachment.fileName, rawUrl);
+  const mediaType = inferSupportAttachmentMediaType(attachment);
 
   return {
+    id: attachment.id ?? null,
     url: rawUrl,
     resolvedUrl,
+    accessUrl: rawAccessUrl || undefined,
+    resolvedAccessUrl: resolvedAccessUrl || undefined,
     fileName,
+    mediaType,
+    contentType: attachment.contentType?.trim() || undefined,
+    sizeBytes:
+      typeof attachment.sizeBytes === "number" && Number.isFinite(attachment.sizeBytes)
+        ? attachment.sizeBytes
+        : undefined,
+    createdAt: attachment.createdAt?.trim() || undefined,
   };
 }
 

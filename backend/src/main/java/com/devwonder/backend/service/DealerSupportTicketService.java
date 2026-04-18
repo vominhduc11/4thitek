@@ -9,6 +9,7 @@ import com.devwonder.backend.dto.support.SupportTicketMessageResponse;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.DealerSupportTicket;
 import com.devwonder.backend.entity.SupportTicketMessage;
+import com.devwonder.backend.entity.enums.MediaType;
 import com.devwonder.backend.entity.enums.DealerSupportTicketStatus;
 import com.devwonder.backend.entity.enums.NotifyType;
 import com.devwonder.backend.entity.enums.SupportTicketMessageAuthorRole;
@@ -18,6 +19,7 @@ import com.devwonder.backend.repository.DealerSupportTicketRepository;
 import com.devwonder.backend.service.support.AppMessageSupport;
 import com.devwonder.backend.service.support.SupportTicketPayloadSupport;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @Service
 @RequiredArgsConstructor
@@ -36,12 +39,13 @@ public class DealerSupportTicketService {
     private final AppMessageSupport appMessageSupport;
     private final WebSocketEventPublisher webSocketEventPublisher;
     private final SupportTicketPayloadSupport supportTicketPayloadSupport;
+    private final MediaAssetService mediaAssetService;
 
     @Transactional(readOnly = true)
     public DealerSupportTicketResponse getLatestTicket(String username) {
         Dealer dealer = requireDealerByUsername(username);
         return dealerSupportTicketRepository.findTopByDealerIdOrderByCreatedAtDesc(dealer.getId())
-                .map(this::toResponse)
+                .map(ticket -> toResponse(ticket, dealer))
                 .orElse(null);
     }
 
@@ -49,7 +53,7 @@ public class DealerSupportTicketService {
     public Page<DealerSupportTicketResponse> getTickets(String username, Pageable pageable) {
         Dealer dealer = requireDealerByUsername(username);
         return dealerSupportTicketRepository.findByDealerIdOrderByCreatedAtDesc(dealer.getId(), pageable)
-                .map(this::toResponse);
+                .map(ticket -> toResponse(ticket, dealer));
     }
 
     @Transactional
@@ -65,9 +69,22 @@ public class DealerSupportTicketService {
         ticket.setSubject(request.subject().trim());
         ticket.setMessage(request.message().trim());
         ticket.setContextData(supportTicketPayloadSupport.writeContext(request.contextData()));
-        ticket.addMessage(buildDealerMessage(dealer, request.message(), request.attachments()));
+        SupportTicketMessage initialMessage = buildDealerMessage(dealer, request.message(), request.attachments());
+        ticket.addMessage(initialMessage);
 
-        DealerSupportTicket saved = dealerSupportTicketRepository.save(ticket);
+        DealerSupportTicket saved = dealerSupportTicketRepository.saveAndFlush(ticket);
+        SupportTicketMessage persistedInitialMessage = saved.getMessages().isEmpty()
+                ? null
+                : saved.getMessages().get(saved.getMessages().size() - 1);
+        mediaAssetService.attachAssetsToSupportMessage(
+                dealer,
+                saved,
+                persistedInitialMessage,
+                request.mediaAssetIds(),
+                countLegacyAttachments(request.attachments()),
+                countLegacyVideos(request.attachments())
+        );
+        dealerSupportTicketRepository.save(saved);
         webSocketEventPublisher.publishAdminNewSupportTicket(new AdminNewSupportTicketEvent(
                 saved.getId(),
                 saved.getTicketCode(),
@@ -86,7 +103,7 @@ public class DealerSupportTicketService {
                 "/support",
                 null
         ));
-        return toResponse(saved);
+        return toResponse(saved, dealer);
     }
 
     @Transactional
@@ -110,10 +127,23 @@ public class DealerSupportTicketService {
             ticket.setClosedAt(null);
         }
 
-        ticket.addMessage(buildDealerMessage(dealer, request.message(), request.attachments()));
+        SupportTicketMessage followUpMessage = buildDealerMessage(dealer, request.message(), request.attachments());
+        ticket.addMessage(followUpMessage);
         ticket.setMessage(resolveFirstDealerMessage(ticket.getMessages()));
 
-        DealerSupportTicket saved = dealerSupportTicketRepository.save(ticket);
+        DealerSupportTicket saved = dealerSupportTicketRepository.saveAndFlush(ticket);
+        SupportTicketMessage persistedMessage = saved.getMessages().isEmpty()
+                ? null
+                : saved.getMessages().get(saved.getMessages().size() - 1);
+        mediaAssetService.attachAssetsToSupportMessage(
+                dealer,
+                saved,
+                persistedMessage,
+                request.mediaAssetIds(),
+                countLegacyAttachments(request.attachments()),
+                countLegacyVideos(request.attachments())
+        );
+        dealerSupportTicketRepository.save(saved);
         webSocketEventPublisher.publishAdminNewSupportTicket(new AdminNewSupportTicketEvent(
                 saved.getId(),
                 saved.getTicketCode(),
@@ -124,7 +154,7 @@ public class DealerSupportTicketService {
                 saved.getSubject(),
                 saved.getUpdatedAt()
         ));
-        return toResponse(saved);
+        return toResponse(saved, dealer);
     }
 
     private Dealer requireDealerByUsername(String username) {
@@ -141,10 +171,10 @@ public class DealerSupportTicketService {
         return ticketCode;
     }
 
-    private DealerSupportTicketResponse toResponse(DealerSupportTicket ticket) {
+    private DealerSupportTicketResponse toResponse(DealerSupportTicket ticket, Dealer viewer) {
         List<SupportTicketMessageResponse> visibleMessages = ticket.getMessages().stream()
                 .filter(message -> !Boolean.TRUE.equals(message.getInternalNote()))
-                .map(this::toMessageResponse)
+                .map(message -> toMessageResponse(message, viewer))
                 .toList();
         return new DealerSupportTicketResponse(
                 ticket.getId(),
@@ -179,16 +209,37 @@ public class DealerSupportTicketService {
         return supportTicketMessage;
     }
 
-    private SupportTicketMessageResponse toMessageResponse(SupportTicketMessage message) {
+    private SupportTicketMessageResponse toMessageResponse(SupportTicketMessage message, Dealer viewer) {
+        List<com.devwonder.backend.dto.support.SupportTicketAttachmentResponse> attachments = new ArrayList<>();
+        attachments.addAll(mediaAssetService.buildMediaAttachmentResponses(message, viewer, appBaseUrl()));
+        attachments.addAll(supportTicketPayloadSupport.readAttachments(message.getAttachments()));
         return new SupportTicketMessageResponse(
                 message.getId(),
                 message.getAuthorRole(),
                 message.getAuthorName(),
                 Boolean.TRUE.equals(message.getInternalNote()),
                 message.getMessage(),
-                supportTicketPayloadSupport.readAttachments(message.getAttachments()),
+                List.copyOf(attachments),
                 message.getCreatedAt()
         );
+    }
+
+    private int countLegacyAttachments(List<com.devwonder.backend.dto.support.SupportTicketAttachmentPayload> attachments) {
+        String raw = supportTicketPayloadSupport.writeAttachments(attachments);
+        return supportTicketPayloadSupport.readAttachments(raw).size();
+    }
+
+    private int countLegacyVideos(List<com.devwonder.backend.dto.support.SupportTicketAttachmentPayload> attachments) {
+        String raw = supportTicketPayloadSupport.writeAttachments(attachments);
+        return (int) supportTicketPayloadSupport.readAttachments(raw).stream()
+                .map(com.devwonder.backend.dto.support.SupportTicketAttachmentResponse::mediaType)
+                .filter(Objects::nonNull)
+                .filter(mediaType -> mediaType == MediaType.VIDEO)
+                .count();
+    }
+
+    private String appBaseUrl() {
+        return ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
     }
 
     private String resolveDealerName(Dealer dealer) {

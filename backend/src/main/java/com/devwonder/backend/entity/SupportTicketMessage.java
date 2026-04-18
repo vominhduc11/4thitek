@@ -11,8 +11,13 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -49,7 +54,19 @@ public class SupportTicketMessage {
     @Column(name = "attachments", columnDefinition = "text")
     private String attachments;
 
+    @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("sortOrder ASC")
+    private Set<SupportTicketMessageAttachment> mediaAttachments = new LinkedHashSet<>();
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;
+
+    public void addMediaAttachment(SupportTicketMessageAttachment attachment) {
+        if (attachment == null) {
+            return;
+        }
+        attachment.setMessage(this);
+        mediaAttachments.add(attachment);
+    }
 }
