@@ -6,6 +6,7 @@ import com.devwonder.backend.entity.Admin;
 import com.devwonder.backend.entity.PasswordResetToken;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.repository.AccountRepository;
+import com.devwonder.backend.repository.AdminRepository;
 import com.devwonder.backend.repository.PasswordResetTokenRepository;
 import com.devwonder.backend.service.support.AccountValidationSupport;
 import java.time.Instant;
@@ -31,6 +32,7 @@ public class PasswordResetService {
             "If the email exists in our system, a password reset link has been sent.";
 
     private final AccountRepository accountRepository;
+    private final AdminRepository adminRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final MailService mailService;
@@ -38,6 +40,9 @@ public class PasswordResetService {
 
     @Value("${app.password-reset.base-url:}")
     private String resetBaseUrl;
+
+    @Value("${app.admin-password-reset.base-url:}")
+    private String adminResetBaseUrl;
 
     @Value("${app.password-reset.expiration-minutes:30}")
     private long expirationMinutes;
@@ -84,7 +89,8 @@ public class PasswordResetService {
         if (!mailService.isEnabled()) {
             throw new BadRequestException("Email delivery is not configured");
         }
-        if (!StringUtils.hasText(resetBaseUrl)) {
+        String adminStaffResetBaseUrl = resolveAdminResetBaseUrl();
+        if (!StringUtils.hasText(adminStaffResetBaseUrl)) {
             throw new BadRequestException("Password reset link is not configured");
         }
 
@@ -92,7 +98,7 @@ public class PasswordResetService {
         asyncMailService.sendText(
                 email,
                 BusinessIdentity.BRAND_NAME + " password reset",
-                buildAdminTriggeredResetEmail(savedToken.getToken(), account)
+                buildAdminTriggeredResetEmail(savedToken.getToken(), account, adminStaffResetBaseUrl)
         );
     }
 
@@ -128,13 +134,18 @@ public class PasswordResetService {
         AccountValidationSupport.assertStrongPassword(newPassword, "newPassword");
 
         Long accountId = storedToken.getAccount().getId();
-        Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new BadRequestException("Reset token is invalid"));
-        account.setPassword(passwordEncoder.encode(newPassword));
-        if (account instanceof Admin adminAccount) {
+        String encodedPassword = passwordEncoder.encode(newPassword);
+        Admin adminAccount = adminRepository.findById(accountId).orElse(null);
+        if (adminAccount != null) {
+            adminAccount.setPassword(encodedPassword);
             adminAccount.setRequirePasswordChange(false);
+            adminRepository.saveAndFlush(adminAccount);
+        } else {
+            Account account = accountRepository.findById(accountId)
+                    .orElseThrow(() -> new BadRequestException("Reset token is invalid"));
+            account.setPassword(encodedPassword);
+            accountRepository.saveAndFlush(account);
         }
-        accountRepository.save(account);
         passwordResetTokenRepository.deleteByAccountId(accountId);
 
         return "Password reset successful";
@@ -173,11 +184,11 @@ public class PasswordResetService {
                 """.formatted(BusinessIdentity.BRAND_NAME, resetLink, expirationMinutes);
     }
 
-    private String buildAdminTriggeredResetEmail(String token, Account account) {
+    private String buildAdminTriggeredResetEmail(String token, Account account, String baseUrl) {
         String displayName = account instanceof Admin admin && admin.getDisplayName() != null
                 ? admin.getDisplayName()
                 : account.getEmail();
-        String resetLink = UriComponentsBuilder.fromUriString(resetBaseUrl)
+        String resetLink = UriComponentsBuilder.fromUriString(baseUrl)
                 .queryParam("token", token)
                 .build(true)
                 .toUriString();

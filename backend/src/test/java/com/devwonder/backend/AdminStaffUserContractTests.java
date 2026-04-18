@@ -9,8 +9,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.devwonder.backend.entity.Account;
 import com.devwonder.backend.entity.Admin;
 import com.devwonder.backend.entity.PasswordResetToken;
+import com.devwonder.backend.repository.AccountRepository;
 import com.devwonder.backend.repository.AdminRepository;
 import com.devwonder.backend.repository.PasswordResetTokenRepository;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -57,6 +59,9 @@ class AdminStaffUserContractTests {
 
     @Autowired
     private AdminRepository adminRepository;
+
+    @Autowired
+    private AccountRepository accountRepository;
 
     @Autowired
     private PasswordResetTokenRepository passwordResetTokenRepository;
@@ -238,6 +243,63 @@ class AdminStaffUserContractTests {
                 .contains("https://admin.4thitek.local/reset")
                 .doesNotContain("temporaryPassword")
                 .doesNotContain("Mật khẩu tạm thời");
+    }
+
+    @Test
+    void onboardingResetClearsRequirePasswordChangeAndLoginDoesNotForceSecondChange() throws Exception {
+        String accessToken = login("staff.owner@example.com", "ChangedPass#456");
+
+        MvcResult createResult = mockMvc.perform(post("/api/v1/admin/users")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "staff.onboarding@example.com",
+                                  "name": "Onboarding Agent",
+                                  "role": "Support"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String username = objectMapper.readTree(createResult.getResponse().getContentAsString())
+                .path("data")
+                .path("username")
+                .asText();
+
+        Admin created = adminRepository.findByUsername(username).orElseThrow();
+        PasswordResetToken token = passwordResetTokenRepository.findAll().stream()
+                .filter(entry -> entry.getAccount() != null && created.getId().equals(entry.getAccount().getId()))
+                .findFirst()
+                .orElseThrow();
+        Account accountView = accountRepository.findById(created.getId()).orElseThrow();
+        assertThat(token.getAccount()).isNotInstanceOf(Admin.class);
+        assertThat(accountView).isInstanceOf(Admin.class);
+
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "token": "%s",
+                                  "newPassword": "Onboarding#456"
+                                }
+                                """.formatted(token.getToken())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").value("Password reset successful"));
+
+        Admin reloaded = adminRepository.findById(created.getId()).orElseThrow();
+        assertThat(reloaded.getRequirePasswordChange()).isFalse();
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "%s",
+                                  "password": "Onboarding#456"
+                                }
+                                """.formatted(username)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.user.requirePasswordChange").value(false));
     }
 
     @Test
