@@ -46,8 +46,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class MediaAssetService {
 
     private final MediaAssetRepository mediaAssetRepository;
@@ -74,6 +76,11 @@ public class MediaAssetService {
         this.mediaFileValidationService = mediaFileValidationService;
         this.mediaSignedUrlService = mediaSignedUrlService;
         this.mediaProperties = mediaProperties;
+        if ("local".equalsIgnoreCase(fileStorageService.providerName())) {
+            log.warn(
+                    "Support media storage is using local provider. Video uploads will use multipart fallback and are intended for development only; configure app.storage.provider=s3 or minio in production."
+            );
+        }
     }
 
     @Transactional

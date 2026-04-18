@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:dealer_hub/auth_storage.dart';
 import 'package:dealer_hub/upload_service.dart';
@@ -100,8 +101,15 @@ void main() {
   test(
     'uploadSupportMediaFile completes multipart session and finalize flow',
     () async {
+      final tempDir = await Directory.systemTemp.createTemp(
+        'dealer-upload-multipart',
+      );
+      final filePath = '${tempDir.path}${Platform.pathSeparator}evidence.mp4';
+      await File(filePath).writeAsBytes(utf8.encode('video-payload'));
+
       Map<String, dynamic>? sessionBody;
       var uploadCalled = false;
+      int uploadRequestCount = 0;
       final client = MockClient((request) async {
         if (request.method == 'POST' &&
             request.url.path.endsWith('/media/upload-session')) {
@@ -122,6 +130,7 @@ void main() {
         }
         if (request.method == 'POST' &&
             request.url.path.endsWith('/media/upload-session/321/upload')) {
+          uploadRequestCount += 1;
           uploadCalled = true;
           return http.Response(
             jsonEncode({'success': true}),
@@ -158,8 +167,8 @@ void main() {
         client: client,
       );
 
-      final file = XFile.fromData(
-        utf8.encode('video-payload'),
+      final file = _PathBackedXFile(
+        filePath,
         name: 'evidence.mp4',
         mimeType: 'video/mp4',
       );
@@ -167,6 +176,7 @@ void main() {
       final uploaded = await service.uploadSupportMediaFile(file: file);
 
       expect(uploadCalled, isTrue);
+      expect(uploadRequestCount, 1);
       expect(sessionBody, isNotNull);
       expect(sessionBody!['category'], 'support_ticket');
       expect(sessionBody!['contentType'], 'video/mp4');
@@ -178,10 +188,17 @@ void main() {
       expect(uploaded.accessUrl, contains('/api/v1/media/321/access-url'));
 
       service.close();
+      await tempDir.delete(recursive: true);
     },
   );
 
   test('uploadSupportMediaFile supports presigned put upload method', () async {
+    final tempDir = await Directory.systemTemp.createTemp(
+      'dealer-upload-presigned',
+    );
+    final filePath = '${tempDir.path}${Platform.pathSeparator}proof.pdf';
+    await File(filePath).writeAsBytes(utf8.encode('pdf-proof'));
+
     var putCalled = false;
     final client = MockClient((request) async {
       if (request.method == 'POST' &&
@@ -227,25 +244,26 @@ void main() {
       return http.Response('{}', 404);
     });
 
-    final service = UploadService(
-      authStorage: _FakeAuthStorage('dealer-token'),
-      client: client,
-    );
+      final service = UploadService(
+        authStorage: _FakeAuthStorage('dealer-token'),
+        client: client,
+      );
 
-    final file = XFile.fromData(
-      utf8.encode('pdf-proof'),
-      name: 'proof.pdf',
-      mimeType: 'application/pdf',
-    );
+      final file = _PathBackedXFile(
+        filePath,
+        name: 'proof.pdf',
+        mimeType: 'application/pdf',
+      );
 
-    final uploaded = await service.uploadSupportMediaFile(file: file);
+      final uploaded = await service.uploadSupportMediaFile(file: file);
 
-    expect(putCalled, isTrue);
-    expect(uploaded.mediaAssetId, 654);
-    expect(uploaded.mediaType, 'DOCUMENT');
-    expect(uploaded.fileName, 'proof.pdf');
+      expect(putCalled, isTrue);
+      expect(uploaded.mediaAssetId, 654);
+      expect(uploaded.mediaType, 'DOCUMENT');
+      expect(uploaded.fileName, 'proof.pdf');
 
-    service.close();
+      service.close();
+      await tempDir.delete(recursive: true);
   });
 
   test('uploadSupportMediaFile reports progress for path-based presigned uploads', () async {
@@ -300,7 +318,7 @@ void main() {
       client: client,
     );
 
-    final file = XFile(filePath, name: 'video.mp4', mimeType: 'video/mp4');
+    final file = _PathBackedXFile(filePath, name: 'video.mp4', mimeType: 'video/mp4');
     final uploaded = await service.uploadSupportMediaFile(
       file: file,
       onProgress: progressValues.add,
@@ -313,6 +331,70 @@ void main() {
     service.close();
     await tempDir.delete(recursive: true);
   });
+
+  test(
+    'uploadSupportMediaFile returns unauthenticated when multipart upload content is unauthorized',
+    () async {
+      final tempDir = await Directory.systemTemp.createTemp(
+        'dealer-upload-unauth',
+      );
+      final filePath = '${tempDir.path}${Platform.pathSeparator}evidence.mp4';
+      await File(filePath).writeAsBytes(utf8.encode('video-payload'));
+
+      final client = MockClient((request) async {
+        if (request.method == 'POST' &&
+            request.url.path.endsWith('/media/upload-session')) {
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'data': {
+                'mediaAssetId': 999,
+                'uploadMethod': 'MULTIPART',
+                'uploadUrl':
+                    'https://api.4thitek.vn/api/v1/media/upload-session/999/upload',
+              },
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        if (request.method == 'POST' &&
+            request.url.path.endsWith('/media/upload-session/999/upload')) {
+          return http.Response(
+            jsonEncode({'success': false, 'error': 'Unauthorized'}),
+            401,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        return http.Response('{}', 404);
+      });
+
+      final service = UploadService(
+        authStorage: _FakeAuthStorage('dealer-token'),
+        client: client,
+      );
+
+      final file = _PathBackedXFile(
+        filePath,
+        name: 'evidence.mp4',
+        mimeType: 'video/mp4',
+      );
+
+      await expectLater(
+        () => service.uploadSupportMediaFile(file: file),
+        throwsA(
+          isA<UploadException>().having(
+            (error) => error.message,
+            'message',
+            uploadServiceMessageToken(UploadMessageCode.unauthenticated),
+          ),
+        ),
+      );
+
+      service.close();
+      await tempDir.delete(recursive: true);
+    },
+  );
 }
 
 class _FakeAuthStorage extends AuthStorage {
@@ -322,4 +404,17 @@ class _FakeAuthStorage extends AuthStorage {
 
   @override
   Future<String?> readAccessToken() async => _token;
+}
+
+class _PathBackedXFile extends XFile {
+  _PathBackedXFile(
+    super.path, {
+    required super.name,
+    super.mimeType,
+  });
+
+  @override
+  Future<Uint8List> readAsBytes() {
+    throw StateError('readAsBytes should not be called for path-based uploads');
+  }
 }

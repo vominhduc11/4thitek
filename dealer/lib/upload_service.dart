@@ -393,9 +393,15 @@ class UploadService {
       );
     }
 
-    onProgress?.call(75);
-    final streamed = await _client.send(request);
+    onProgress?.call(60);
+    final streamed = await _rawClient.send(request);
     final response = await http.Response.fromStream(streamed);
+    if (response.statusCode == HttpStatus.unauthorized ||
+        response.statusCode == HttpStatus.forbidden) {
+      throw UploadException(
+        uploadServiceMessageToken(UploadMessageCode.unauthenticated),
+      );
+    }
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final payload = _decodeJsonResponse(response);
       final message = _extractApiError(payload);
@@ -403,6 +409,7 @@ class UploadService {
         message ?? uploadServiceMessageToken(UploadMessageCode.uploadFailed),
       );
     }
+    onProgress?.call(85);
   }
 
   Future<void> _uploadPresignedPut({
