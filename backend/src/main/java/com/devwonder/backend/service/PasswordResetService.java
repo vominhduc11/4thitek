@@ -53,9 +53,9 @@ public class PasswordResetService {
         if (email == null) {
             throw new BadRequestException("email is required");
         }
-        boolean canSendResetEmail = mailService.isEnabled() && StringUtils.hasText(resetBaseUrl);
-
         accountRepository.findByEmailIgnoreCase(email).ifPresent(account -> {
+            String baseUrl = resolveResetBaseUrl(account);
+            boolean canSendResetEmail = mailService.isEnabled() && StringUtils.hasText(baseUrl);
             passwordResetTokenRepository.deleteByAccountId(account.getId());
             if (!canSendResetEmail) {
                 return;
@@ -70,7 +70,7 @@ public class PasswordResetService {
             asyncMailService.sendText(
                     account.getEmail(),
                     BusinessIdentity.BRAND_NAME + " password reset",
-                    buildResetEmail(savedToken.getToken())
+                    buildResetEmail(savedToken.getToken(), baseUrl)
             );
         });
 
@@ -162,8 +162,8 @@ public class PasswordResetService {
         return token.getExpiresAt() != null && token.getExpiresAt().isAfter(Instant.now());
     }
 
-    private String buildResetEmail(String token) {
-        String resetLink = UriComponentsBuilder.fromUriString(resetBaseUrl)
+    private String buildResetEmail(String token, String baseUrl) {
+        String resetLink = UriComponentsBuilder.fromUriString(baseUrl)
                 .queryParam("token", token)
                 .build(true)
                 .toUriString();
@@ -274,5 +274,12 @@ public class PasswordResetService {
 
     private String resolveAdminResetBaseUrl() {
         return StringUtils.hasText(adminResetBaseUrl) ? adminResetBaseUrl : resetBaseUrl;
+    }
+
+    private String resolveResetBaseUrl(Account account) {
+        if (account instanceof Admin) {
+            return resolveAdminResetBaseUrl();
+        }
+        return resetBaseUrl;
     }
 }

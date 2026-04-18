@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.devwonder.backend.entity.Account;
 import com.devwonder.backend.entity.Admin;
+import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.PasswordResetToken;
 import com.devwonder.backend.repository.AccountRepository;
 import com.devwonder.backend.repository.AdminRepository;
@@ -79,6 +80,42 @@ class PasswordResetServiceTests {
     }
 
     @Test
+    void requestResetUsesPublicResetBaseUrlForNonAdminAccounts() throws Exception {
+        Dealer dealer = new Dealer();
+        dealer.setUsername("dealer-reset-user");
+        dealer.setEmail("dealer-reset-user@example.com");
+        dealer.setPassword(passwordEncoder.encode("OldPass#123"));
+        accountRepository.save(dealer);
+
+        passwordResetService.requestReset("dealer-reset-user@example.com");
+
+        org.mockito.ArgumentCaptor<MimeMessage> messageCaptor = org.mockito.ArgumentCaptor.forClass(MimeMessage.class);
+        verify(javaMailSender, timeout(1_000)).send(messageCaptor.capture());
+        assertThat(messageCaptor.getValue().getContent().toString())
+                .contains("https://4thitek.vn/reset-password")
+                .doesNotContain("https://admin.4thitek.vn/reset-password");
+    }
+
+    @Test
+    void requestResetUsesAdminResetBaseUrlForAdminAccounts() throws Exception {
+        Admin admin = new Admin();
+        admin.setUsername("admin-reset-user");
+        admin.setEmail("admin-reset-user@example.com");
+        admin.setDisplayName("Admin Reset User");
+        admin.setPassword(passwordEncoder.encode("OldPass#123"));
+        admin.setRequirePasswordChange(true);
+        adminRepository.save(admin);
+
+        passwordResetService.requestReset("admin-reset-user@example.com");
+
+        org.mockito.ArgumentCaptor<MimeMessage> messageCaptor = org.mockito.ArgumentCaptor.forClass(MimeMessage.class);
+        verify(javaMailSender, timeout(1_000)).send(messageCaptor.capture());
+        assertThat(messageCaptor.getValue().getContent().toString())
+                .contains("https://admin.4thitek.vn/reset-password")
+                .doesNotContain("https://4thitek.vn/reset-password");
+    }
+
+    @Test
     void resetPasswordUpdatesPasswordAndInvalidatesToken() {
         Account account = new Account();
         account.setUsername("reset-user-2");
@@ -146,14 +183,14 @@ class PasswordResetServiceTests {
     }
 
     @Test
-    void requestResetUsesPublicResetBaseUrl() throws Exception {
-        Account account = new Account();
-        account.setUsername("public-reset-user");
-        account.setEmail("public-reset-user@example.com");
-        account.setPassword(passwordEncoder.encode("OldPass#123"));
-        accountRepository.save(account);
+    void requestResetUsesPublicResetBaseUrlForNonAdminAccounts() throws Exception {
+        Dealer dealer = new Dealer();
+        dealer.setUsername("dealer-reset-user");
+        dealer.setEmail("dealer-reset-user@example.com");
+        dealer.setPassword(passwordEncoder.encode("OldPass#123"));
+        accountRepository.save(dealer);
 
-        passwordResetService.requestReset("public-reset-user@example.com");
+        passwordResetService.requestReset("dealer-reset-user@example.com");
 
         org.mockito.ArgumentCaptor<MimeMessage> messageCaptor = org.mockito.ArgumentCaptor.forClass(MimeMessage.class);
         verify(javaMailSender, timeout(1_000)).send(messageCaptor.capture());
