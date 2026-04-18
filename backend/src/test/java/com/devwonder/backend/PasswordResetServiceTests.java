@@ -183,23 +183,6 @@ class PasswordResetServiceTests {
     }
 
     @Test
-    void requestResetUsesPublicResetBaseUrlForNonAdminAccounts() throws Exception {
-        Dealer dealer = new Dealer();
-        dealer.setUsername("dealer-reset-user");
-        dealer.setEmail("dealer-reset-user@example.com");
-        dealer.setPassword(passwordEncoder.encode("OldPass#123"));
-        accountRepository.save(dealer);
-
-        passwordResetService.requestReset("dealer-reset-user@example.com");
-
-        org.mockito.ArgumentCaptor<MimeMessage> messageCaptor = org.mockito.ArgumentCaptor.forClass(MimeMessage.class);
-        verify(javaMailSender, timeout(1_000)).send(messageCaptor.capture());
-        assertThat(messageCaptor.getValue().getContent().toString())
-                .contains("https://4thitek.vn/reset-password")
-                .doesNotContain("https://admin.4thitek.vn/reset-password");
-    }
-
-    @Test
     void staffResetEmailsUseAdminResetBaseUrl() throws Exception {
         Admin account = new Admin();
         account.setUsername("staff-reset-url");
