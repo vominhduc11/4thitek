@@ -443,15 +443,14 @@ public class ReturnRequestService {
         }
         validateInspectPayload(payload);
 
-        adminRmaService.applyRmaAction(
-                item.getProductSerial().getId(),
-                new com.devwonder.backend.dto.admin.AdminRmaRequest(payload.rmaAction(), reason, payload.proofUrls()),
-                actorUsername,
-                true
-        );
-
-        item.setInspectionNote(reason);
         if (payload.rmaAction() == com.devwonder.backend.dto.admin.AdminRmaRequest.RmaAction.START_INSPECTION) {
+            adminRmaService.applyRmaAction(
+                    item.getProductSerial().getId(),
+                    new com.devwonder.backend.dto.admin.AdminRmaRequest(payload.rmaAction(), reason, payload.proofUrls()),
+                    actorUsername,
+                    true
+            );
+            item.setInspectionNote(reason);
             item.setItemStatus(ReturnRequestItemStatus.INSPECTING);
         } else {
             ReturnRequestItemFinalResolution finalResolution = payload.finalResolution();
@@ -461,6 +460,13 @@ public class ReturnRequestService {
                         : ReturnRequestItemFinalResolution.SCRAP;
             }
             returnRequestPolicy.validateFinalResolution(request.getType(), finalResolution);
+            adminRmaService.applyRmaAction(
+                    item.getProductSerial().getId(),
+                    new com.devwonder.backend.dto.admin.AdminRmaRequest(payload.rmaAction(), reason, payload.proofUrls()),
+                    actorUsername,
+                    true
+            );
+            item.setInspectionNote(reason);
             applyFinalResolution(
                     request,
                     item,

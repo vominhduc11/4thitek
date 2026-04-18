@@ -953,6 +953,11 @@ class ReturnRequestWorkflowTests {
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("WARRANTY_RMA does not allow CREDIT_NOTE or REFUND");
 
+        ProductSerial serialAfterCreditAttempt = productSerialRepository.findById(fixture.serial().getId()).orElseThrow();
+        assertThat(serialAfterCreditAttempt.getStatus()).isEqualTo(ProductSerialStatus.INSPECTING);
+        WarrantyRegistration warrantyAfterCreditAttempt = warrantyRegistrationRepository.findById(fixture.warrantyId()).orElseThrow();
+        assertThat(warrantyAfterCreditAttempt.getStatus()).isEqualTo(WarrantyStatus.ACTIVE);
+
         assertThatThrownBy(() -> returnRequestService.inspectReturnItem(
                 fixture.requestId(),
                 fixture.itemId(),
@@ -969,6 +974,11 @@ class ReturnRequestWorkflowTests {
         ))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("WARRANTY_RMA does not allow CREDIT_NOTE or REFUND");
+
+        ProductSerial serialAfterRefundAttempt = productSerialRepository.findById(fixture.serial().getId()).orElseThrow();
+        assertThat(serialAfterRefundAttempt.getStatus()).isEqualTo(ProductSerialStatus.INSPECTING);
+        WarrantyRegistration warrantyAfterRefundAttempt = warrantyRegistrationRepository.findById(fixture.warrantyId()).orElseThrow();
+        assertThat(warrantyAfterRefundAttempt.getStatus()).isEqualTo(WarrantyStatus.ACTIVE);
     }
 
     @Test
