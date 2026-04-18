@@ -29,7 +29,9 @@ public class MediaSignedUrlService {
         String fallback = StringUtils.hasText(jwtSecret) ? jwtSecret.trim() : null;
         String effectiveSecret = configuredSecret != null ? configuredSecret : fallback;
         if (!StringUtils.hasText(effectiveSecret)) {
-            effectiveSecret = "media-signed-url-secret";
+            throw new IllegalStateException(
+                    "Missing media signed URL secret. Configure app.media.signed-url-secret or jwt.secret."
+            );
         }
         this.secret = effectiveSecret.getBytes(StandardCharsets.UTF_8);
     }

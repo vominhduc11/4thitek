@@ -16,7 +16,6 @@ import {
   softDeleteAdminMedia,
   type BackendAdminMediaListItem,
   type BackendAdminMediaSummary,
-  type BackendMediaCategory,
   type BackendMediaStatus,
   type BackendMediaType,
 } from "../lib/adminApi";
@@ -116,13 +115,6 @@ const mediaIcon = (mediaType?: BackendMediaType | null) => {
   }
 };
 
-const CATEGORY_OPTIONS: Array<BackendMediaCategory | "all"> = [
-  "all",
-  "support_ticket",
-  "payment_proof",
-  "other",
-];
-
 const STATUS_OPTIONS: Array<BackendMediaStatus | "all"> = [
   "all",
   "pending",
@@ -149,7 +141,6 @@ function MediaLibraryPage() {
   const [query, setQuery] = useState("");
   const [mediaType, setMediaType] = useState<BackendMediaType | "all">("all");
   const [status, setStatus] = useState<BackendMediaStatus | "all">("all");
-  const [category, setCategory] = useState<BackendMediaCategory | "all">("all");
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
@@ -172,7 +163,6 @@ function MediaLibraryPage() {
           sortDir: "desc",
           ...(mediaType !== "all" ? { mediaType } : {}),
           ...(status !== "all" ? { status } : {}),
-          ...(category !== "all" ? { category } : {}),
           ...(query.trim() ? { query: query.trim() } : {}),
         }),
         fetchAdminMediaSummary(accessToken),
@@ -186,7 +176,7 @@ function MediaLibraryPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [accessToken, category, mediaType, page, query, status, t]);
+  }, [accessToken, mediaType, page, query, status, t]);
 
   useEffect(() => {
     void loadData();
@@ -194,7 +184,7 @@ function MediaLibraryPage() {
 
   useEffect(() => {
     setPage(0);
-  }, [query, mediaType, status, category]);
+  }, [query, mediaType, status]);
 
   const openMedia = useCallback(
     async (id: number) => {
@@ -295,7 +285,7 @@ function MediaLibraryPage() {
         <div>
           <h2 className="text-xl font-semibold text-[var(--ink)]">Media Library</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Manage support ticket images, videos, and documents.
+            Manage support ticket media only (images, videos, documents).
           </p>
         </div>
         <GhostButton
@@ -318,7 +308,7 @@ function MediaLibraryPage() {
         ))}
       </div>
 
-      <div className="mt-4 grid gap-3 lg:grid-cols-[2fr_1fr_1fr_1fr]">
+      <div className="mt-4 grid gap-3 lg:grid-cols-[2fr_1fr_1fr]">
         <SearchInput
           id="admin-media-search"
           label="Search media"
@@ -345,17 +335,6 @@ function MediaLibraryPage() {
           {STATUS_OPTIONS.map((option) => (
             <option key={option} value={option}>
               {option === "all" ? "All status" : statusLabel(option)}
-            </option>
-          ))}
-        </select>
-        <select
-          className={inputClass}
-          value={category}
-          onChange={(event) => setCategory(event.target.value as BackendMediaCategory | "all")}
-        >
-          {CATEGORY_OPTIONS.map((option) => (
-            <option key={option} value={option}>
-              {option === "all" ? "All categories" : option}
             </option>
           ))}
         </select>
@@ -467,4 +446,3 @@ function MediaLibraryPage() {
 }
 
 export default MediaLibraryPage;
-

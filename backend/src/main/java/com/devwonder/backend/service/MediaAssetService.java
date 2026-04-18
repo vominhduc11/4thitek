@@ -391,7 +391,23 @@ public class MediaAssetService {
         }
 
         List<Long> uniqueIds = new ArrayList<>(new LinkedHashSet<>(mediaAssetIds));
-        if (legacyAttachmentCount + uniqueIds.size() > mediaProperties.getMaxAttachmentsPerMessage()) {
+        Set<Long> existingAttachmentIds = message.getMediaAttachments().stream()
+                .map(SupportTicketMessageAttachment::getMediaAsset)
+                .filter(Objects::nonNull)
+                .map(MediaAsset::getId)
+                .filter(Objects::nonNull)
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+        int existingVideoCount = (int) message.getMediaAttachments().stream()
+                .map(SupportTicketMessageAttachment::getMediaAsset)
+                .filter(Objects::nonNull)
+                .map(MediaAsset::getMediaType)
+                .filter(mediaType -> mediaType == MediaType.VIDEO)
+                .count();
+        int newAttachmentCount = (int) uniqueIds.stream()
+                .filter(id -> !existingAttachmentIds.contains(id))
+                .count();
+        if (legacyAttachmentCount + existingAttachmentIds.size() + newAttachmentCount
+                > mediaProperties.getMaxAttachmentsPerMessage()) {
             throw new BadRequestException(
                     "attachments must contain at most " + mediaProperties.getMaxAttachmentsPerMessage() + " items"
             );
@@ -406,8 +422,13 @@ public class MediaAssetService {
                 java.util.stream.Collectors.toMap(MediaAsset::getId, asset -> asset)
         );
 
-        int mediaVideoCount = 0;
-        int sortOrder = 0;
+        int newMediaVideoCount = 0;
+        int nextSortOrder = message.getMediaAttachments().stream()
+                .map(SupportTicketMessageAttachment::getSortOrder)
+                .filter(Objects::nonNull)
+                .mapToInt(Integer::intValue)
+                .max()
+                .orElse(-1) + 1;
         for (Long mediaAssetId : uniqueIds) {
             MediaAsset mediaAsset = byId.get(mediaAssetId);
             if (mediaAsset == null) {
@@ -424,31 +445,41 @@ public class MediaAssetService {
                     actor.getId())) {
                 throw new AccessDeniedException("Access denied");
             }
-            if (mediaAsset.getLinkedEntityType() != null
-                    && (mediaAsset.getLinkedEntityType() != MediaLinkedEntityType.SUPPORT_TICKET_MESSAGE
-                    || !Objects.equals(mediaAsset.getLinkedEntityId(), message.getId()))) {
+            if (mediaAsset.getFinalizedAt() == null) {
+                throw new BadRequestException("Media asset is not finalized");
+            }
+            if (!fileStorageService.exists(mediaAsset.getObjectKey())) {
+                throw new BadRequestException("Media asset object is missing");
+            }
+
+            boolean linkedToCurrentMessage = mediaAsset.getLinkedEntityType() == MediaLinkedEntityType.SUPPORT_TICKET_MESSAGE
+                    && Objects.equals(mediaAsset.getLinkedEntityId(), message.getId());
+            if (mediaAsset.getLinkedEntityType() != null && !linkedToCurrentMessage) {
                 throw new BadRequestException("Media asset is already linked to another entity");
             }
-
-            if (mediaAsset.getMediaType() == MediaType.VIDEO) {
-                mediaVideoCount++;
+            if (mediaAsset.getStatus() == MediaStatus.ACTIVE && !linkedToCurrentMessage) {
+                throw new BadRequestException("Media asset is already active on another message");
             }
 
-            SupportTicketMessageAttachment attachment = new SupportTicketMessageAttachment();
-            attachment.setMediaAsset(mediaAsset);
-            attachment.setSortOrder(sortOrder++);
-            message.addMediaAttachment(attachment);
+            boolean alreadyInMessage = existingAttachmentIds.contains(mediaAsset.getId());
+            if (!alreadyInMessage) {
+                if (mediaAsset.getMediaType() == MediaType.VIDEO) {
+                    newMediaVideoCount++;
+                }
+                SupportTicketMessageAttachment attachment = new SupportTicketMessageAttachment();
+                attachment.setMediaAsset(mediaAsset);
+                attachment.setSortOrder(nextSortOrder++);
+                message.addMediaAttachment(attachment);
+                existingAttachmentIds.add(mediaAsset.getId());
+            }
 
             mediaAsset.setStatus(MediaStatus.ACTIVE);
             mediaAsset.setLinkedEntityType(MediaLinkedEntityType.SUPPORT_TICKET_MESSAGE);
             mediaAsset.setLinkedEntityId(message.getId());
-            if (mediaAsset.getFinalizedAt() == null) {
-                mediaAsset.setFinalizedAt(Instant.now());
-            }
             mediaAsset.setDeletedAt(null);
         }
 
-        if (legacyVideoCount + mediaVideoCount > mediaProperties.getMaxVideosPerMessage()) {
+        if (legacyVideoCount + existingVideoCount + newMediaVideoCount > mediaProperties.getMaxVideosPerMessage()) {
             throw new BadRequestException(
                     "videos must contain at most " + mediaProperties.getMaxVideosPerMessage() + " items"
             );

@@ -403,22 +403,47 @@ class UploadService {
     required String contentType,
     required Map<String, String> headers,
   }) async {
-    final request = http.Request('PUT', Uri.parse(url));
-    request.headers[HttpHeaders.contentTypeHeader] = contentType;
-    headers.forEach((key, value) {
-      if (key.trim().isNotEmpty && value.trim().isNotEmpty) {
-        request.headers[key] = value;
+    try {
+      final uploadUri = Uri.parse(url);
+      final normalizedPath = file.path.trim();
+      final http.StreamedResponse streamed;
+      if (normalizedPath.isNotEmpty) {
+        final localFile = File(normalizedPath);
+        final request = http.StreamedRequest('PUT', uploadUri);
+        request.headers[HttpHeaders.contentTypeHeader] = contentType;
+        headers.forEach((key, value) {
+          if (key.trim().isNotEmpty && value.trim().isNotEmpty) {
+            request.headers[key] = value;
+          }
+        });
+        request.contentLength = await localFile.length();
+        final responseFuture = _client.send(request);
+        await localFile.openRead().pipe(request.sink);
+        streamed = await responseFuture;
+      } else {
+        final request = http.Request('PUT', uploadUri);
+        request.headers[HttpHeaders.contentTypeHeader] = contentType;
+        headers.forEach((key, value) {
+          if (key.trim().isNotEmpty && value.trim().isNotEmpty) {
+            request.headers[key] = value;
+          }
+        });
+        request.bodyBytes = await file.readAsBytes();
+        streamed = await _client.send(request);
       }
-    });
-    request.bodyBytes = await file.readAsBytes();
-    final streamed = await _client.send(request);
-    final response = await http.Response.fromStream(streamed);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      final payload = _decodeJsonResponse(response);
-      final message = _extractApiError(payload);
-      throw UploadException(
-        message ?? uploadServiceMessageToken(UploadMessageCode.uploadFailed),
-      );
+
+      final response = await http.Response.fromStream(streamed);
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        final payload = _decodeJsonResponse(response);
+        final message = _extractApiError(payload);
+        throw UploadException(
+          message ?? uploadServiceMessageToken(UploadMessageCode.uploadFailed),
+        );
+      }
+    } on UploadException {
+      rethrow;
+    } catch (error) {
+      throw UploadException('Failed to upload file: $error');
     }
   }
 

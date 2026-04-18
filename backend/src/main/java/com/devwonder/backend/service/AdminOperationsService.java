@@ -94,9 +94,10 @@ public class AdminOperationsService {
     private final MediaAssetService mediaAssetService;
 
     @Transactional(readOnly = true)
-    public Page<AdminSupportTicketResponse> getSupportTickets(Pageable pageable) {
+    public Page<AdminSupportTicketResponse> getSupportTickets(Pageable pageable, String actorUsername) {
+        Admin viewer = requireAdmin(actorUsername);
         return dealerSupportTicketRepository.findAllByOrderByCreatedAtDesc(pageable)
-                .map(ticket -> toSupportTicketResponse(ticket, null));
+                .map(ticket -> toSupportTicketResponse(ticket, viewer));
     }
 
     @Transactional

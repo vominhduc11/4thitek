@@ -260,10 +260,14 @@ public class AdminController {
             @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false) Integer size,
             @RequestParam(name = "sortBy", required = false) String sortBy,
-            @RequestParam(name = "sortDir", required = false) String sortDir
+            @RequestParam(name = "sortDir", required = false) String sortDir,
+            Authentication authentication
     ) {
         Pageable pageable = PaginationUtils.toPageable(page, size, sortBy, sortDir, "createdAt");
-        Page<AdminSupportTicketResponse> result = adminOperationsService.getSupportTickets(pageable);
+        Page<AdminSupportTicketResponse> result = adminOperationsService.getSupportTickets(
+                pageable,
+                extractUsername(authentication)
+        );
         return ResponseEntity.ok(ApiResponse.success(PagedResponse.from(result, "createdAt")));
     }
 

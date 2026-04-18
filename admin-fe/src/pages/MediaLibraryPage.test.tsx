@@ -104,10 +104,12 @@ describe("MediaLibraryPage", () => {
     render(<MediaLibraryPage />);
 
     expect(await screen.findByText("evidence.mp4")).toBeTruthy();
+    expect(screen.queryByText("All categories")).toBeNull();
     expect(fetchAdminMediaListMock).toHaveBeenCalledWith(
       "admin-token",
       expect.objectContaining({ page: 0, size: 20 }),
     );
+    expect(fetchAdminMediaListMock.mock.calls[0]?.[1]).not.toHaveProperty("category");
 
     fireEvent.change(screen.getByRole("searchbox"), {
       target: { value: "TK-001" },

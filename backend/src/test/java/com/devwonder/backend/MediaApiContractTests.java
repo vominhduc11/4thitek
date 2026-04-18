@@ -12,11 +12,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.devwonder.backend.entity.Admin;
 import com.devwonder.backend.entity.Dealer;
+import com.devwonder.backend.entity.MediaAsset;
 import com.devwonder.backend.entity.enums.CustomerStatus;
+import com.devwonder.backend.entity.enums.MediaLinkedEntityType;
+import com.devwonder.backend.entity.enums.MediaStatus;
 import com.devwonder.backend.repository.AdminRepository;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.DealerSupportTicketRepository;
 import com.devwonder.backend.repository.MediaAssetRepository;
+import com.devwonder.backend.service.FileStorageService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Base64;
@@ -75,6 +79,9 @@ class MediaApiContractTests {
     @Autowired
     private MediaAssetRepository mediaAssetRepository;
 
+    @Autowired
+    private FileStorageService fileStorageService;
+
     @BeforeEach
     void setUp() {
         dealerSupportTicketRepository.deleteAll();
@@ -120,6 +127,7 @@ class MediaApiContractTests {
     @Test
     void uploadAndFinalizeImageVideoPdfAndLinkToSupportTicket() throws Exception {
         String dealerToken = registerDealerAndExtractAccessToken("media-allowed");
+        String adminToken = login("media.admin@example.com", "ChangedPass#456");
 
         long imageId = createUploadSession(dealerToken, "proof.png", "image/png", SAMPLE_PNG_BYTES.length);
         uploadSessionContent(dealerToken, imageId, "proof.png", "image/png", SAMPLE_PNG_BYTES);
@@ -187,6 +195,15 @@ class MediaApiContractTests {
                 .path("id")
                 .asLong();
         assertThat(ticketId).isPositive();
+
+        mockMvc.perform(get("/api/v1/admin/support-tickets")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items[0].messages[0].attachments[0].id").value(imageId))
+                .andExpect(jsonPath("$.data.items[0].messages[0].attachments[0].url")
+                        .value(org.hamcrest.Matchers.containsString("/api/v1/media/" + imageId + "/download")))
+                .andExpect(jsonPath("$.data.items[0].messages[0].attachments[0].accessUrl")
+                        .value(org.hamcrest.Matchers.containsString("token=")));
     }
 
     @Test
@@ -228,6 +245,160 @@ class MediaApiContractTests {
                 .andExpect(content().bytes(SAMPLE_PNG_BYTES));
     }
 
+    @Test
+    void supportTicketRejectsUnfinalizedMediaAttachment() throws Exception {
+        String dealerToken = registerDealerAndExtractAccessToken("media-unfinalized");
+        long mediaAssetId = createUploadSession(dealerToken, "proof.png", "image/png", SAMPLE_PNG_BYTES.length);
+
+        mockMvc.perform(post("/api/v1/dealer/support-tickets")
+                        .contentType(APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + dealerToken)
+                        .content("""
+                                {
+                                  "category": "payment",
+                                  "priority": "normal",
+                                  "subject": "Invalid media reference",
+                                  "message": "Should fail",
+                                  "mediaAssetIds": [%d]
+                                }
+                                """.formatted(mediaAssetId)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void supportTicketRejectsMediaWhenStoredObjectIsMissing() throws Exception {
+        String dealerToken = registerDealerAndExtractAccessToken("media-missing-object");
+        long mediaAssetId = createUploadSession(dealerToken, "proof.png", "image/png", SAMPLE_PNG_BYTES.length);
+        uploadSessionContent(dealerToken, mediaAssetId, "proof.png", "image/png", SAMPLE_PNG_BYTES);
+        finalizeUpload(dealerToken, mediaAssetId)
+                .andExpect(status().isOk());
+
+        MediaAsset mediaAsset = mediaAssetRepository.findById(mediaAssetId).orElseThrow();
+        fileStorageService.delete(mediaAsset.getObjectKey());
+
+        mockMvc.perform(post("/api/v1/dealer/support-tickets")
+                        .contentType(APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + dealerToken)
+                        .content("""
+                                {
+                                  "category": "payment",
+                                  "priority": "normal",
+                                  "subject": "Missing media object",
+                                  "message": "Should fail",
+                                  "mediaAssetIds": [%d]
+                                }
+                                """.formatted(mediaAssetId)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void finalizedMediaCanAttachAndKeepsFinalizedTimestamp() throws Exception {
+        String dealerToken = registerDealerAndExtractAccessToken("media-finalized");
+        long mediaAssetId = createUploadSession(dealerToken, "proof.png", "image/png", SAMPLE_PNG_BYTES.length);
+        uploadSessionContent(dealerToken, mediaAssetId, "proof.png", "image/png", SAMPLE_PNG_BYTES);
+        finalizeUpload(dealerToken, mediaAssetId)
+                .andExpect(status().isOk());
+
+        MediaAsset finalizedAsset = mediaAssetRepository.findById(mediaAssetId).orElseThrow();
+        assertThat(finalizedAsset.getFinalizedAt()).isNotNull();
+        var finalizedAtBeforeAttach = finalizedAsset.getFinalizedAt();
+
+        mockMvc.perform(post("/api/v1/dealer/support-tickets")
+                        .contentType(APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + dealerToken)
+                        .content("""
+                                {
+                                  "category": "payment",
+                                  "priority": "normal",
+                                  "subject": "Valid media",
+                                  "message": "Attach finalized media",
+                                  "mediaAssetIds": [%d]
+                                }
+                                """.formatted(mediaAssetId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.messages[0].attachments[0].id").value(mediaAssetId));
+
+        MediaAsset attachedAsset = mediaAssetRepository.findById(mediaAssetId).orElseThrow();
+        assertThat(attachedAsset.getStatus()).isEqualTo(MediaStatus.ACTIVE);
+        assertThat(attachedAsset.getLinkedEntityType()).isEqualTo(MediaLinkedEntityType.SUPPORT_TICKET_MESSAGE);
+        assertThat(attachedAsset.getLinkedEntityId()).isNotNull();
+        assertThat(attachedAsset.getFinalizedAt()).isEqualTo(finalizedAtBeforeAttach);
+    }
+
+    @Test
+    void internalNoteMediaAttachmentIsHiddenFromDealerResponses() throws Exception {
+        String dealerToken = registerDealerAndExtractAccessToken("media-internal-note");
+        String adminToken = login("media.admin@example.com", "ChangedPass#456");
+
+        MvcResult createdTicket = mockMvc.perform(post("/api/v1/dealer/support-tickets")
+                        .contentType(APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + dealerToken)
+                        .content("""
+                                {
+                                  "category": "payment",
+                                  "priority": "normal",
+                                  "subject": "Need support",
+                                  "message": "Dealer initial message"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn();
+        long ticketId = objectMapper.readTree(createdTicket.getResponse().getContentAsString())
+                .path("data")
+                .path("id")
+                .asLong();
+
+        long mediaAssetId = createUploadSession(adminToken, "internal-proof.png", "image/png", SAMPLE_PNG_BYTES.length);
+        uploadSessionContent(adminToken, mediaAssetId, "internal-proof.png", "image/png", SAMPLE_PNG_BYTES);
+        finalizeUpload(adminToken, mediaAssetId)
+                .andExpect(status().isOk());
+
+        MvcResult adminInternalNoteResult = mockMvc.perform(post("/api/v1/admin/support-tickets/{id}/messages", ticketId)
+                        .contentType(APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .content("""
+                                {
+                                  "message": "Internal evidence",
+                                  "internalNote": true,
+                                  "mediaAssetIds": [%d]
+                                }
+                                """.formatted(mediaAssetId)))
+                .andExpect(status().isOk())
+                .andReturn();
+        JsonNode adminMessages = objectMapper.readTree(adminInternalNoteResult.getResponse().getContentAsString())
+                .path("data")
+                .path("messages");
+        assertThat(adminMessages.isArray()).isTrue();
+        boolean internalNoteWithMediaFound = false;
+        for (JsonNode message : adminMessages) {
+            if (!message.path("internalNote").asBoolean(false)) {
+                continue;
+            }
+            for (JsonNode attachment : message.path("attachments")) {
+                if (attachment.path("id").asLong(-1) == mediaAssetId) {
+                    internalNoteWithMediaFound = true;
+                    break;
+                }
+            }
+            if (internalNoteWithMediaFound) {
+                break;
+            }
+        }
+        assertThat(internalNoteWithMediaFound).isTrue();
+
+        MvcResult dealerLatest = mockMvc.perform(get("/api/v1/dealer/support-tickets/latest")
+                        .header("Authorization", "Bearer " + dealerToken))
+                .andExpect(status().isOk())
+                .andReturn();
+        JsonNode dealerData = objectMapper.readTree(dealerLatest.getResponse().getContentAsString()).path("data");
+        for (JsonNode message : dealerData.path("messages")) {
+            assertThat(message.path("internalNote").asBoolean(false)).isFalse();
+            for (JsonNode attachment : message.path("attachments")) {
+                assertThat(attachment.path("id").asLong(-1)).isNotEqualTo(mediaAssetId);
+            }
+        }
+    }
+
     private long createUploadSession(String token, String fileName, String contentType, int sizeBytes) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/v1/media/upload-session")
                         .contentType(APPLICATION_JSON)
@@ -253,6 +424,17 @@ class MediaApiContractTests {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id").value(mediaAssetId));
+    }
+
+    private org.springframework.test.web.servlet.ResultActions finalizeUpload(String token, long mediaAssetId) throws Exception {
+        return mockMvc.perform(post("/api/v1/media/finalize")
+                .contentType(APPLICATION_JSON)
+                .header("Authorization", "Bearer " + token)
+                .content("""
+                        {
+                          "mediaAssetId": %d
+                        }
+                        """.formatted(mediaAssetId)));
     }
 
     private String registerDealerAndExtractAccessToken(String prefix) throws Exception {
