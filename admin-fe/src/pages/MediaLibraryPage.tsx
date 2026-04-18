@@ -191,10 +191,19 @@ function MediaLibraryPage() {
       if (!accessToken) {
         return;
       }
-      const payload = await fetchMediaAccessUrl(accessToken, id);
-      window.open(payload.accessUrl, "_blank", "noopener,noreferrer");
+      try {
+        const payload = await fetchMediaAccessUrl(accessToken, id);
+        window.open(payload.accessUrl, "_blank", "noopener,noreferrer");
+      } catch (error) {
+        notify(
+          error instanceof Error
+            ? error.message
+            : "Media file is not available for preview or download.",
+          { title: "Media", variant: "error" },
+        );
+      }
     },
-    [accessToken],
+    [accessToken, notify],
   );
 
   const softDeleteMedia = useCallback(

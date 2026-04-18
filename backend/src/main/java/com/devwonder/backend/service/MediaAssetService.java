@@ -213,7 +213,7 @@ public class MediaAssetService {
 
     @Transactional(readOnly = true)
     public FileStorageService.StoredFile openForDownloadAsActor(Long mediaAssetId, Account actor) {
-        MediaAsset mediaAsset = requireAccessibleAsset(mediaAssetId, actor);
+        MediaAsset mediaAsset = requireDownloadableAsset(mediaAssetId, actor);
         return fileStorageService.open(mediaAsset.getObjectKey());
     }
 
@@ -225,7 +225,7 @@ public class MediaAssetService {
         }
         Account account = accountRepository.findById(parsed.accountId())
                 .orElseThrow(() -> new AccessDeniedException("Access denied"));
-        MediaAsset mediaAsset = requireAccessibleAsset(parsed.mediaAssetId(), account);
+        MediaAsset mediaAsset = requireDownloadableAsset(parsed.mediaAssetId(), account);
         return fileStorageService.open(mediaAsset.getObjectKey());
     }
 
@@ -238,7 +238,7 @@ public class MediaAssetService {
 
     @Transactional(readOnly = true)
     public MediaAccessUrlResponse createSignedAccessUrl(Long mediaAssetId, Account actor, String appBaseUrl) {
-        MediaAsset mediaAsset = requireAccessibleAsset(mediaAssetId, actor);
+        MediaAsset mediaAsset = requireDownloadableAsset(mediaAssetId, actor);
         Instant expiresAt = Instant.now().plus(mediaProperties.getSignedAccessTtl());
         String token = mediaSignedUrlService.sign(mediaAsset.getId(), actor.getId(), expiresAt);
         String accessUrl = appBaseUrl + "/api/v1/media/" + mediaAsset.getId() + "/download?token=" + token;
@@ -681,6 +681,17 @@ public class MediaAssetService {
                 .orElseThrow(() -> new ResourceNotFoundException("Media asset not found"));
         if (!canAccessMedia(mediaAsset, actor)) {
             throw new AccessDeniedException("Access denied");
+        }
+        return mediaAsset;
+    }
+
+    private MediaAsset requireDownloadableAsset(Long mediaAssetId, Account actor) {
+        MediaAsset mediaAsset = requireAccessibleAsset(mediaAssetId, actor);
+        if (mediaAsset.getFinalizedAt() == null) {
+            throw new BadRequestException("Media asset is not finalized");
+        }
+        if (!fileStorageService.exists(mediaAsset.getObjectKey())) {
+            throw new ResourceNotFoundException("Uploaded file not found");
         }
         return mediaAsset;
     }

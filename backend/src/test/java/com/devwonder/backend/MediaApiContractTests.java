@@ -246,6 +246,34 @@ class MediaApiContractTests {
     }
 
     @Test
+    void accessUrlRejectsUnfinalizedMedia() throws Exception {
+        String dealerToken = registerDealerAndExtractAccessToken("media-access-unfinalized");
+
+        long mediaAssetId = createUploadSession(dealerToken, "proof.png", "image/png", SAMPLE_PNG_BYTES.length);
+
+        mockMvc.perform(get("/api/v1/media/{id}/access-url", mediaAssetId)
+                        .header("Authorization", "Bearer " + dealerToken))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void accessUrlRejectsMissingStoredObject() throws Exception {
+        String dealerToken = registerDealerAndExtractAccessToken("media-access-missing");
+
+        long mediaAssetId = createUploadSession(dealerToken, "proof.png", "image/png", SAMPLE_PNG_BYTES.length);
+        uploadSessionContent(dealerToken, mediaAssetId, "proof.png", "image/png", SAMPLE_PNG_BYTES);
+        finalizeUpload(dealerToken, mediaAssetId)
+                .andExpect(status().isOk());
+
+        MediaAsset mediaAsset = mediaAssetRepository.findById(mediaAssetId).orElseThrow();
+        fileStorageService.delete(mediaAsset.getObjectKey());
+
+        mockMvc.perform(get("/api/v1/media/{id}/access-url", mediaAssetId)
+                        .header("Authorization", "Bearer " + dealerToken))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void supportTicketRejectsUnfinalizedMediaAttachment() throws Exception {
         String dealerToken = registerDealerAndExtractAccessToken("media-unfinalized");
         long mediaAssetId = createUploadSession(dealerToken, "proof.png", "image/png", SAMPLE_PNG_BYTES.length);

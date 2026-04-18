@@ -140,4 +140,21 @@ describe("MediaLibraryPage", () => {
       );
     });
   });
+
+  it("shows an error toast when media access URL cannot be created", async () => {
+    fetchMediaAccessUrlMock.mockRejectedValueOnce(new Error("Uploaded file not found"));
+
+    render(<MediaLibraryPage />);
+    await screen.findByText("evidence.mp4");
+
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+
+    await waitFor(() => {
+      expect(notifyMock).toHaveBeenCalledWith("Uploaded file not found", {
+        title: "Media",
+        variant: "error",
+      });
+    });
+    expect(window.open).not.toHaveBeenCalled();
+  });
 });
