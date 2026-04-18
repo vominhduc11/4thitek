@@ -157,4 +157,38 @@ describe("MediaLibraryPage", () => {
     });
     expect(window.open).not.toHaveBeenCalled();
   });
+
+  it("disables open and download actions for pending media", async () => {
+    fetchAdminMediaListMock.mockResolvedValue({
+      items: [
+        {
+          id: 23,
+          fileName: "pending.mp4",
+          mediaType: "video",
+          contentType: "video/mp4",
+          sizeBytes: 1024,
+          category: "support_ticket",
+          status: "pending",
+          linkedTicketId: null,
+          linkedTicketCode: null,
+          linkedDealerName: null,
+          uploadedByName: "Admin",
+        },
+      ],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+      sortBy: "createdAt",
+    });
+
+    render(<MediaLibraryPage />);
+    await screen.findByText("pending.mp4");
+
+    const openButton = screen.getByRole("button", { name: "Open" }) as HTMLButtonElement;
+    const downloadButton = screen.getByRole("button", { name: "Download" }) as HTMLButtonElement;
+
+    expect(openButton.disabled).toBe(true);
+    expect(downloadButton.disabled).toBe(true);
+  });
 });

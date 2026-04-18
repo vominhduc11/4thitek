@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:dealer_hub/auth_storage.dart';
 import 'package:dealer_hub/upload_service.dart';
@@ -245,6 +246,72 @@ void main() {
     expect(uploaded.fileName, 'proof.pdf');
 
     service.close();
+  });
+
+  test('uploadSupportMediaFile reports progress for path-based presigned uploads', () async {
+    final tempDir = await Directory.systemTemp.createTemp('dealer-upload-progress');
+    final filePath = '${tempDir.path}${Platform.pathSeparator}video.mp4';
+    await File(filePath).writeAsBytes(utf8.encode('video-stream-body'));
+
+    final progressValues = <double>[];
+    final client = MockClient((request) async {
+      if (request.method == 'POST' &&
+          request.url.path.endsWith('/media/upload-session')) {
+        return http.Response(
+          jsonEncode({
+            'success': true,
+            'data': {
+              'mediaAssetId': 777,
+              'uploadMethod': 'PRESIGNED_PUT',
+              'uploadUrl': 'https://uploads.example.com/support/777.bin',
+            },
+          }),
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      }
+      if (request.method == 'PUT' &&
+          request.url.host == 'uploads.example.com') {
+        return http.Response('', 200);
+      }
+      if (request.method == 'POST' &&
+          request.url.path.endsWith('/media/finalize')) {
+        return http.Response(
+          jsonEncode({
+            'success': true,
+            'data': {
+              'id': 777,
+              'originalFileName': 'video.mp4',
+              'mediaType': 'VIDEO',
+              'contentType': 'video/mp4',
+              'sizeBytes': 17,
+              'downloadUrl': '/api/v1/media/777/download',
+            },
+          }),
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      }
+      return http.Response('{}', 404);
+    });
+
+    final service = UploadService(
+      authStorage: _FakeAuthStorage('dealer-token'),
+      client: client,
+    );
+
+    final file = XFile(filePath, name: 'video.mp4', mimeType: 'video/mp4');
+    final uploaded = await service.uploadSupportMediaFile(
+      file: file,
+      onProgress: progressValues.add,
+    );
+
+    expect(uploaded.mediaAssetId, 777);
+    expect(progressValues, isNotEmpty);
+    expect(progressValues.last, 100);
+
+    service.close();
+    await tempDir.delete(recursive: true);
   });
 }
 

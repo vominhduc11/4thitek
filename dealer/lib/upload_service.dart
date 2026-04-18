@@ -88,14 +88,16 @@ class UploadedSupportMediaRef {
 
 class UploadService {
   UploadService({AuthStorage? authStorage, http.Client? client})
-    : _authStorage = authStorage ?? AuthStorage() {
+    : _authStorage = authStorage ?? AuthStorage(),
+      _rawClient = client ?? http.Client() {
     _client = DealerAuthClient(
       authStorage: _authStorage,
-      inner: client ?? http.Client(),
+      inner: _rawClient,
     );
   }
 
   final AuthStorage _authStorage;
+  final http.Client _rawClient;
   late final http.Client _client;
 
   Future<UploadedFileRef> uploadXFile({
@@ -186,6 +188,7 @@ class UploadService {
 
   Future<UploadedSupportMediaRef> uploadSupportMediaFile({
     required XFile file,
+    void Function(double progress)? onProgress,
   }) async {
     if (!DealerApiConfig.isConfigured) {
       throw UploadException(
@@ -261,6 +264,7 @@ class UploadService {
         file: file,
         contentType: contentType,
         headers: uploadHeaders,
+        onProgress: onProgress,
       );
     } else {
       await _uploadMultipartSession(
@@ -268,6 +272,7 @@ class UploadService {
         uploadUrl: uploadUrl,
         file: file,
         contentType: contentType,
+        onProgress: onProgress,
       );
     }
 
@@ -295,6 +300,7 @@ class UploadService {
         uploadServiceMessageToken(UploadMessageCode.invalidJson),
       );
     }
+    onProgress?.call(100);
 
     final resolvedUrl = DealerApiConfig.resolveUploadUrl(
       finalizeData['downloadUrl']?.toString() ??
@@ -365,6 +371,7 @@ class UploadService {
     required String uploadUrl,
     required XFile file,
     required String contentType,
+    void Function(double progress)? onProgress,
   }) async {
     final request = http.MultipartRequest('POST', Uri.parse(uploadUrl));
     request.headers[HttpHeaders.authorizationHeader] =
@@ -386,6 +393,7 @@ class UploadService {
       );
     }
 
+    onProgress?.call(75);
     final streamed = await _client.send(request);
     final response = await http.Response.fromStream(streamed);
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -402,6 +410,7 @@ class UploadService {
     required XFile file,
     required String contentType,
     required Map<String, String> headers,
+    void Function(double progress)? onProgress,
   }) async {
     try {
       final uploadUri = Uri.parse(url);
@@ -417,8 +426,19 @@ class UploadService {
           }
         });
         request.contentLength = await localFile.length();
-        final responseFuture = _client.send(request);
-        await localFile.openRead().pipe(request.sink);
+        onProgress?.call(20);
+        final responseFuture = _rawClient.send(request);
+        final totalBytes = request.contentLength ?? 0;
+        var sentBytes = 0;
+        await for (final chunk in localFile.openRead()) {
+          request.sink.add(chunk);
+          sentBytes += chunk.length;
+          if (totalBytes > 0) {
+            final percent = 20 + ((sentBytes / totalBytes) * 70);
+            onProgress?.call(percent.clamp(20.0, 90.0));
+          }
+        }
+        await request.sink.close();
         streamed = await responseFuture;
       } else {
         final request = http.Request('PUT', uploadUri);
@@ -429,7 +449,8 @@ class UploadService {
           }
         });
         request.bodyBytes = await file.readAsBytes();
-        streamed = await _client.send(request);
+        onProgress?.call(90);
+        streamed = await _rawClient.send(request);
       }
 
       final response = await http.Response.fromStream(streamed);
@@ -440,6 +461,7 @@ class UploadService {
           message ?? uploadServiceMessageToken(UploadMessageCode.uploadFailed),
         );
       }
+      onProgress?.call(95);
     } on UploadException {
       rethrow;
     } catch (error) {

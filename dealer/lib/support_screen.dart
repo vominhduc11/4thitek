@@ -75,6 +75,7 @@ class _SupportScreenState extends State<SupportScreen> {
   bool _hasMoreTickets = true;
   bool _isSubmitting = false;
   bool _isUploadingAttachment = false;
+  double? _attachmentUploadProgress;
   int _handledSupportEventVersion = 0;
   SupportInteractionMode _interactionMode = SupportInteractionMode.viewing;
 
@@ -775,6 +776,26 @@ class _SupportScreenState extends State<SupportScreen> {
                   ),
                 ],
               ),
+              if (_isUploadingAttachment && _attachmentUploadProgress != null) ...[
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    minHeight: 8,
+                    value: (_attachmentUploadProgress! / 100)
+                        .clamp(0.0, 1.0)
+                        .toDouble(),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${_attachmentUploadProgress!.toStringAsFixed(0)}%',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
               const SizedBox(height: 8),
               Text(
                 texts.attachmentHelper,
@@ -1147,10 +1168,21 @@ class _SupportScreenState extends State<SupportScreen> {
       return;
     }
 
-    setState(() => _isUploadingAttachment = true);
+    setState(() {
+      _isUploadingAttachment = true;
+      _attachmentUploadProgress = 0;
+    });
     final uploadService = UploadService();
     try {
-      final uploaded = await uploadService.uploadSupportMediaFile(file: picked);
+      final uploaded = await uploadService.uploadSupportMediaFile(
+        file: picked,
+        onProgress: (progress) {
+          if (!mounted) {
+            return;
+          }
+          setState(() => _attachmentUploadProgress = progress);
+        },
+      );
       if (!mounted) {
         return;
       }
@@ -1173,7 +1205,10 @@ class _SupportScreenState extends State<SupportScreen> {
     } finally {
       uploadService.close();
       if (mounted) {
-        setState(() => _isUploadingAttachment = false);
+        setState(() {
+          _isUploadingAttachment = false;
+          _attachmentUploadProgress = null;
+        });
       }
     }
   }

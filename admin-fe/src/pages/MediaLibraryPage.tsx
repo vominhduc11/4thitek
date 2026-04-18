@@ -370,6 +370,7 @@ function MediaLibraryPage() {
             {items.map((item) => {
               const canHardDelete =
                 item.status === "deleted" || item.status === "orphaned";
+              const canPreview = item.status === "active";
               const isBusy = busyMediaId === item.id;
               return (
                 <div
@@ -402,7 +403,7 @@ function MediaLibraryPage() {
                     <div className="flex flex-wrap gap-2">
                       <GhostButton
                         type="button"
-                        disabled={isBusy}
+                        disabled={isBusy || !canPreview}
                         icon={<Link2 className="h-4 w-4" />}
                         onClick={() => void openMedia(item.id)}
                       >
@@ -410,7 +411,7 @@ function MediaLibraryPage() {
                       </GhostButton>
                       <GhostButton
                         type="button"
-                        disabled={isBusy}
+                        disabled={isBusy || !canPreview}
                         icon={<Download className="h-4 w-4" />}
                         onClick={() => void openMedia(item.id)}
                       >
