@@ -50,6 +50,21 @@ public class ReturnRequestPolicy {
             ReturnRequestItemFinalResolution.REJECT_WARRANTY
     );
 
+    private static final Set<ReturnRequestItemFinalResolution> COMMERCIAL_AND_DEFECTIVE_ALLOWED_FINAL_RESOLUTIONS = EnumSet.of(
+            ReturnRequestItemFinalResolution.RESTOCK,
+            ReturnRequestItemFinalResolution.REPLACE,
+            ReturnRequestItemFinalResolution.CREDIT_NOTE,
+            ReturnRequestItemFinalResolution.REFUND,
+            ReturnRequestItemFinalResolution.SCRAP
+    );
+
+    public Set<ReturnRequestItemFinalResolution> allowedFinalResolutions(ReturnRequestType type) {
+        if (type == ReturnRequestType.WARRANTY_RMA) {
+            return WARRANTY_RMA_ALLOWED_FINAL_RESOLUTIONS;
+        }
+        return COMMERCIAL_AND_DEFECTIVE_ALLOWED_FINAL_RESOLUTIONS;
+    }
+
     public void validateCreateEligibility(
             ReturnRequestType type,
             Dealer dealer,
@@ -87,12 +102,17 @@ public class ReturnRequestPolicy {
     }
 
     public void validateFinalResolution(ReturnRequestType type, ReturnRequestItemFinalResolution finalResolution) {
-        if (type != ReturnRequestType.WARRANTY_RMA || finalResolution == null) {
+        if (type == null || finalResolution == null) {
             return;
         }
-        if (!WARRANTY_RMA_ALLOWED_FINAL_RESOLUTIONS.contains(finalResolution)) {
+        if (!allowedFinalResolutions(type).contains(finalResolution)) {
+            if (type == ReturnRequestType.WARRANTY_RMA) {
+                throw new BadRequestException(
+                        "WARRANTY_RMA only allows REPLACE, REPAIR, RETURN_TO_CUSTOMER or REJECT_WARRANTY final resolution"
+                );
+            }
             throw new BadRequestException(
-                    "WARRANTY_RMA only allows REPLACE, REPAIR, RETURN_TO_CUSTOMER or REJECT_WARRANTY final resolution"
+                    "COMMERCIAL_RETURN and DEFECTIVE_RETURN only allow RESTOCK, REPLACE, CREDIT_NOTE, REFUND or SCRAP final resolution"
             );
         }
     }

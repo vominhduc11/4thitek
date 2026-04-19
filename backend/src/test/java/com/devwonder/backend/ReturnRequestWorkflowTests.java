@@ -1207,6 +1207,268 @@ class ReturnRequestWorkflowTests {
         assertThat(serialAfterRefundAttempt.getStatus()).isEqualTo(ProductSerialStatus.INSPECTING);
         WarrantyRegistration warrantyAfterRefundAttempt = warrantyRegistrationRepository.findById(fixture.warrantyId()).orElseThrow();
         assertThat(warrantyAfterRefundAttempt.getStatus()).isEqualTo(WarrantyStatus.ACTIVE);
+
+        assertThatThrownBy(() -> returnRequestService.inspectReturnItem(
+                fixture.requestId(),
+                fixture.itemId(),
+                new AdminInspectReturnItemRequest(
+                        AdminRmaRequest.RmaAction.SCRAP,
+                        "Try scrap for warranty",
+                        List.of("https://proof/warranty-scrap.jpg"),
+                        ReturnRequestItemFinalResolution.SCRAP,
+                        null,
+                        null,
+                        null
+                ),
+                "admin-qc"
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("REPLACE or REJECT_WARRANTY only");
+    }
+
+    @Test
+    void defectiveReturnRejectsInvalidFinalResolutionsBeforeSideEffects() {
+        WorkflowFixture fixture = prepareInspectingFixture(
+                "defective-invalid-final",
+                ProductSerialStatus.ASSIGNED,
+                false
+        );
+
+        assertUnsupportedFinalResolutionRejected(fixture, ReturnRequestItemFinalResolution.REPAIR);
+        assertUnsupportedFinalResolutionRejected(fixture, ReturnRequestItemFinalResolution.RETURN_TO_CUSTOMER);
+        assertUnsupportedFinalResolutionRejected(fixture, ReturnRequestItemFinalResolution.REJECT_WARRANTY);
+    }
+
+    @Test
+    void commercialReturnRejectsInvalidFinalResolutionBeforeSideEffects() {
+        WorkflowFixture fixture = prepareInspectingFixture(
+                "commercial-invalid-final",
+                ProductSerialStatus.ASSIGNED,
+                false,
+                ReturnRequestType.COMMERCIAL_RETURN,
+                ReturnRequestResolution.REPLACE
+        );
+
+        assertThatThrownBy(() -> returnRequestService.inspectReturnItem(
+                fixture.requestId(),
+                fixture.itemId(),
+                new AdminInspectReturnItemRequest(
+                        AdminRmaRequest.RmaAction.SCRAP,
+                        "Commercial invalid final resolution",
+                        List.of("https://proof/commercial-invalid.jpg"),
+                        ReturnRequestItemFinalResolution.REJECT_WARRANTY,
+                        null,
+                        null,
+                        null
+                ),
+                "admin-qc"
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("only allow");
+
+        assertInspectItemStillPending(fixture.requestId(), fixture.serial().getId());
+    }
+
+    @Test
+    void warrantyReplaceRejectsReplacementSerialWithActiveWarranty() {
+        WorkflowFixture fixture = prepareInspectingFixture(
+                "replace-active-warranty",
+                ProductSerialStatus.WARRANTY,
+                true,
+                ReturnRequestType.WARRANTY_RMA,
+                ReturnRequestResolution.REPLACE
+        );
+
+        Order replacementOrder = orderRepository.save(createOrder(
+                fixture.dealer(),
+                fixture.product(),
+                1,
+                "RET-WAR-REPLACE-ACTIVE-ORDER",
+                OrderStatus.COMPLETED
+        ));
+        ProductSerial replacementSerial = productSerialRepository.save(createDealerOwnedSerial(
+                fixture.dealer(),
+                replacementOrder,
+                fixture.product(),
+                "RET-WAR-REPLACE-ACTIVE-SERIAL",
+                ProductSerialStatus.ASSIGNED
+        ));
+        WarrantyRegistration replacementWarranty = warrantyRegistrationRepository.save(
+                createWarranty(replacementSerial, fixture.dealer(), replacementOrder, "WAR-REPLACE-ACTIVE")
+        );
+        replacementSerial.setWarranty(replacementWarranty);
+        productSerialRepository.save(replacementSerial);
+
+        assertThatThrownBy(() -> returnRequestService.inspectReturnItem(
+                fixture.requestId(),
+                fixture.itemId(),
+                new AdminInspectReturnItemRequest(
+                        AdminRmaRequest.RmaAction.SCRAP,
+                        "Replace with active warranty serial",
+                        List.of("https://proof/replace-active-warranty.jpg"),
+                        ReturnRequestItemFinalResolution.REPLACE,
+                        replacementOrder.getId(),
+                        null,
+                        null
+                ),
+                "admin-qc"
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("active warranty");
+
+        assertInspectItemStillPending(fixture.requestId(), fixture.serial().getId());
+        assertThat(productSerialRepository.findById(replacementSerial.getId()).orElseThrow().getStatus())
+                .isEqualTo(ProductSerialStatus.ASSIGNED);
+        assertThat(warrantyRegistrationRepository.findByProductSerialId(replacementSerial.getId()))
+                .isPresent();
+    }
+
+    @Test
+    void warrantyReplaceRejectsReplacementSerialWithInvalidStatus() {
+        WorkflowFixture fixture = prepareInspectingFixture(
+                "replace-invalid-status",
+                ProductSerialStatus.WARRANTY,
+                true,
+                ReturnRequestType.WARRANTY_RMA,
+                ReturnRequestResolution.REPLACE
+        );
+
+        Order replacementOrder = orderRepository.save(createOrder(
+                fixture.dealer(),
+                fixture.product(),
+                1,
+                "RET-WAR-REPLACE-INVALID-ORDER",
+                OrderStatus.COMPLETED
+        ));
+        ProductSerial replacementSerial = productSerialRepository.save(createDealerOwnedSerial(
+                fixture.dealer(),
+                replacementOrder,
+                fixture.product(),
+                "RET-WAR-REPLACE-INVALID-SERIAL",
+                ProductSerialStatus.AVAILABLE
+        ));
+
+        assertThatThrownBy(() -> returnRequestService.inspectReturnItem(
+                fixture.requestId(),
+                fixture.itemId(),
+                new AdminInspectReturnItemRequest(
+                        AdminRmaRequest.RmaAction.SCRAP,
+                        "Replace with invalid status serial",
+                        List.of("https://proof/replace-invalid-status.jpg"),
+                        ReturnRequestItemFinalResolution.REPLACE,
+                        replacementOrder.getId(),
+                        null,
+                        null
+                ),
+                "admin-qc"
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("ASSIGNED status");
+
+        assertInspectItemStillPending(fixture.requestId(), fixture.serial().getId());
+        assertThat(productSerialRepository.findById(replacementSerial.getId()).orElseThrow().getStatus())
+                .isEqualTo(ProductSerialStatus.AVAILABLE);
+    }
+
+    @Test
+    void warrantyReplaceRejectsWhenReplacementOrderHasMultipleEligibleSerials() {
+        WorkflowFixture fixture = prepareInspectingFixture(
+                "replace-multiple-eligible",
+                ProductSerialStatus.WARRANTY,
+                true,
+                ReturnRequestType.WARRANTY_RMA,
+                ReturnRequestResolution.REPLACE
+        );
+
+        Order replacementOrder = orderRepository.save(createOrder(
+                fixture.dealer(),
+                fixture.product(),
+                2,
+                "RET-WAR-REPLACE-MULTIPLE-ORDER",
+                OrderStatus.COMPLETED
+        ));
+        productSerialRepository.save(createDealerOwnedSerial(
+                fixture.dealer(),
+                replacementOrder,
+                fixture.product(),
+                "RET-WAR-REPLACE-MULTIPLE-SERIAL-1",
+                ProductSerialStatus.ASSIGNED
+        ));
+        productSerialRepository.save(createDealerOwnedSerial(
+                fixture.dealer(),
+                replacementOrder,
+                fixture.product(),
+                "RET-WAR-REPLACE-MULTIPLE-SERIAL-2",
+                ProductSerialStatus.ASSIGNED
+        ));
+
+        assertThatThrownBy(() -> returnRequestService.inspectReturnItem(
+                fixture.requestId(),
+                fixture.itemId(),
+                new AdminInspectReturnItemRequest(
+                        AdminRmaRequest.RmaAction.SCRAP,
+                        "Replace with ambiguous serials",
+                        List.of("https://proof/replace-multiple.jpg"),
+                        ReturnRequestItemFinalResolution.REPLACE,
+                        replacementOrder.getId(),
+                        null,
+                        null
+                ),
+                "admin-qc"
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("multiple eligible serials");
+
+        assertInspectItemStillPending(fixture.requestId(), fixture.serial().getId());
+    }
+
+    @Test
+    void warrantyReplaceRejectsWhenReplacementSerialHasActiveReturnRequest() {
+        WorkflowFixture fixture = prepareInspectingFixture(
+                "replace-active-return",
+                ProductSerialStatus.WARRANTY,
+                true,
+                ReturnRequestType.WARRANTY_RMA,
+                ReturnRequestResolution.REPLACE
+        );
+
+        Order replacementOrder = orderRepository.save(createOrder(
+                fixture.dealer(),
+                fixture.product(),
+                1,
+                "RET-WAR-REPLACE-ACTIVE-REQ-ORDER",
+                OrderStatus.COMPLETED
+        ));
+        ProductSerial replacementSerial = productSerialRepository.save(createDealerOwnedSerial(
+                fixture.dealer(),
+                replacementOrder,
+                fixture.product(),
+                "RET-WAR-REPLACE-ACTIVE-REQ-SERIAL",
+                ProductSerialStatus.ASSIGNED
+        ));
+        returnRequestService.createDealerReturnRequest(
+                fixture.dealer().getUsername(),
+                createRequest(replacementOrder.getId(), replacementSerial.getId())
+        );
+
+        assertThatThrownBy(() -> returnRequestService.inspectReturnItem(
+                fixture.requestId(),
+                fixture.itemId(),
+                new AdminInspectReturnItemRequest(
+                        AdminRmaRequest.RmaAction.SCRAP,
+                        "Replace with serial already in active request",
+                        List.of("https://proof/replace-active-request.jpg"),
+                        ReturnRequestItemFinalResolution.REPLACE,
+                        replacementOrder.getId(),
+                        null,
+                        null
+                ),
+                "admin-qc"
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("active return request");
+
+        assertInspectItemStillPending(fixture.requestId(), fixture.serial().getId());
     }
 
     @Test
@@ -1584,6 +1846,41 @@ class ReturnRequestWorkflowTests {
         ))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("submit a return request");
+    }
+
+    private void assertUnsupportedFinalResolutionRejected(
+            WorkflowFixture fixture,
+            ReturnRequestItemFinalResolution invalidResolution
+    ) {
+        assertThatThrownBy(() -> returnRequestService.inspectReturnItem(
+                fixture.requestId(),
+                fixture.itemId(),
+                new AdminInspectReturnItemRequest(
+                        AdminRmaRequest.RmaAction.SCRAP,
+                        "Invalid final resolution",
+                        List.of("https://proof/invalid-final-resolution.jpg"),
+                        invalidResolution,
+                        null,
+                        null,
+                        null
+                ),
+                "admin-qc"
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("only allow");
+        assertInspectItemStillPending(fixture.requestId(), fixture.serial().getId());
+    }
+
+    private void assertInspectItemStillPending(Long requestId, Long serialId) {
+        ReturnRequestDetailResponse detail = returnRequestService.getAdminReturnDetail(requestId);
+        assertThat(detail.items()).singleElement().satisfies(item -> {
+            assertThat(item.itemStatus()).isEqualTo(ReturnRequestItemStatus.INSPECTING);
+            assertThat(item.finalResolution()).isNull();
+            assertThat(item.replacementOrderId()).isNull();
+            assertThat(item.replacementSerialId()).isNull();
+        });
+        assertThat(productSerialRepository.findById(serialId).orElseThrow().getStatus())
+                .isEqualTo(ProductSerialStatus.INSPECTING);
     }
 
     private WorkflowFixture prepareInspectingFixture(
