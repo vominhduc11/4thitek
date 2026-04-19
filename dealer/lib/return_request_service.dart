@@ -124,6 +124,9 @@ enum DealerReturnRequestItemStatus {
   scrapped('SCRAPPED'),
   replaced('REPLACED'),
   credited('CREDITED'),
+  repaired('REPAIRED'),
+  returnedToCustomer('RETURNED_TO_CUSTOMER'),
+  warrantyRejected('WARRANTY_REJECTED'),
   unknown('UNKNOWN');
 
   const DealerReturnRequestItemStatus(this.apiValue);
@@ -169,6 +172,9 @@ enum DealerReturnRequestItemFinalResolution {
   creditNote('CREDIT_NOTE'),
   refund('REFUND'),
   scrap('SCRAP'),
+  repair('REPAIR'),
+  returnToCustomer('RETURN_TO_CUSTOMER'),
+  rejectWarranty('REJECT_WARRANTY'),
   unknown('UNKNOWN');
 
   const DealerReturnRequestItemFinalResolution(this.apiValue);
@@ -304,6 +310,7 @@ class DealerReturnRequestItemRecord {
     required this.inspectionNote,
     required this.finalResolution,
     required this.replacementOrderId,
+    required this.replacementSerialId,
     required this.refundAmount,
     required this.creditAmount,
     required this.orderAdjustmentId,
@@ -320,6 +327,7 @@ class DealerReturnRequestItemRecord {
   final String? inspectionNote;
   final DealerReturnRequestItemFinalResolution? finalResolution;
   final int? replacementOrderId;
+  final int? replacementSerialId;
   final num? refundAmount;
   final num? creditAmount;
   final int? orderAdjustmentId;
@@ -738,6 +746,7 @@ class ReturnRequestService {
                       item['finalResolution']?.toString(),
                     ),
               replacementOrderId: _parseOptionalInt(item['replacementOrderId']),
+              replacementSerialId: _parseOptionalInt(item['replacementSerialId']),
               refundAmount: _parseOptionalNum(item['refundAmount']),
               creditAmount: _parseOptionalNum(item['creditAmount']),
               orderAdjustmentId: _parseOptionalInt(item['orderAdjustmentId']),

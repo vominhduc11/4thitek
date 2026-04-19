@@ -102,6 +102,7 @@ const buildDetailPayload = () => ({
       inspectionNote: null,
       finalResolution: null,
       replacementOrderId: null,
+      replacementSerialId: null,
       refundAmount: null,
       creditAmount: null,
       orderAdjustmentId: null,
@@ -207,6 +208,39 @@ describe("ReturnDetailPage", () => {
     expect(screen.getByRole("option", { name: "SCRAP" })).toBeTruthy();
   });
 
+  it("limits warranty resolution options by selected inspection action", async () => {
+    const warrantyPayload: any = buildDetailPayload();
+    warrantyPayload.type = "WARRANTY_RMA";
+    warrantyPayload.status = "INSPECTING";
+    warrantyPayload.items = [
+      {
+        ...warrantyPayload.items[0],
+        itemStatus: "INSPECTING",
+      },
+    ];
+    fetchAdminReturnDetailMock.mockResolvedValueOnce(warrantyPayload);
+
+    renderPage();
+    await screen.findByText("RET-11");
+
+    const actionSelect = screen.getByDisplayValue("Start inspection");
+    fireEvent.change(actionSelect, { target: { value: "PASS_QC" } });
+
+    await waitFor(() => {
+      expect(screen.getByRole("option", { name: "REPAIR" })).toBeTruthy();
+    });
+    expect(screen.getByRole("option", { name: "RETURN TO CUSTOMER" })).toBeTruthy();
+    expect(screen.queryByRole("option", { name: "RESTOCK" })).toBeNull();
+    expect(screen.queryByRole("option", { name: "CREDIT NOTE" })).toBeNull();
+
+    fireEvent.change(actionSelect, { target: { value: "SCRAP" } });
+    await waitFor(() => {
+      expect(screen.getByRole("option", { name: "REPLACE" })).toBeTruthy();
+    });
+    expect(screen.getByRole("option", { name: "REJECT WARRANTY" })).toBeTruthy();
+    expect(screen.queryByRole("option", { name: "REFUND" })).toBeNull();
+  });
+
   it("renders replacement, refund, credit, and adjustment metadata on item card", async () => {
     const resolvedPayload: any = buildDetailPayload();
     resolvedPayload.status = "PARTIALLY_RESOLVED";
@@ -216,6 +250,7 @@ describe("ReturnDetailPage", () => {
         itemStatus: "SCRAPPED",
         finalResolution: "REFUND",
         replacementOrderId: 77,
+        replacementSerialId: 88,
         refundAmount: 50000,
         creditAmount: 30000,
         orderAdjustmentId: 9001,
@@ -227,6 +262,7 @@ describe("ReturnDetailPage", () => {
     await screen.findByText("RET-11");
 
     expect(screen.getByText("Replacement order #77")).toBeTruthy();
+    expect(screen.getByText("Replacement serial #88")).toBeTruthy();
     expect(screen.getByText("Refund amount: 50000")).toBeTruthy();
     expect(screen.getByText("Credit amount: 30000")).toBeTruthy();
     expect(screen.getByText("Adjustment reference #9001")).toBeTruthy();

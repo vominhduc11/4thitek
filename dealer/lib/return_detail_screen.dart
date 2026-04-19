@@ -520,6 +520,10 @@ class _ReturnItemCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text('Replacement order: #${item.replacementOrderId}'),
         ],
+        if (item.replacementSerialId != null) ...[
+          const SizedBox(height: 4),
+          Text('Replacement serial: #${item.replacementSerialId}'),
+        ],
         if (item.refundAmount != null) ...[
           const SizedBox(height: 4),
           Text('Refund amount: ${item.refundAmount}'),
@@ -641,6 +645,12 @@ String _itemStatusLabel(
       return isEnglish ? 'Replaced' : 'Da doi moi';
     case DealerReturnRequestItemStatus.credited:
       return isEnglish ? 'Credited' : 'Da ghi co';
+    case DealerReturnRequestItemStatus.repaired:
+      return isEnglish ? 'Repaired' : 'Da sua';
+    case DealerReturnRequestItemStatus.returnedToCustomer:
+      return isEnglish ? 'Returned to customer' : 'Tra khach';
+    case DealerReturnRequestItemStatus.warrantyRejected:
+      return isEnglish ? 'Warranty rejected' : 'Tu choi bao hanh';
     case DealerReturnRequestItemStatus.unknown:
       return isEnglish ? 'Unknown' : 'Khong xac dinh';
   }
@@ -661,6 +671,12 @@ String _finalResolutionLabel(
       return isEnglish ? 'Refund' : 'Hoan tien';
     case DealerReturnRequestItemFinalResolution.scrap:
       return isEnglish ? 'Scrap' : 'Tieu huy';
+    case DealerReturnRequestItemFinalResolution.repair:
+      return isEnglish ? 'Repair' : 'Sua chua';
+    case DealerReturnRequestItemFinalResolution.returnToCustomer:
+      return isEnglish ? 'Return to customer' : 'Tra khach';
+    case DealerReturnRequestItemFinalResolution.rejectWarranty:
+      return isEnglish ? 'Reject warranty' : 'Tu choi bao hanh';
     case DealerReturnRequestItemFinalResolution.unknown:
       return isEnglish ? 'Unknown' : 'Khong xac dinh';
   }

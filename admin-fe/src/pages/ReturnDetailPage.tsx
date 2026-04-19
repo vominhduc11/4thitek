@@ -73,6 +73,9 @@ const itemStatusTone = {
   SCRAPPED: "danger",
   REPLACED: "success",
   CREDITED: "neutral",
+  REPAIRED: "success",
+  RETURNED_TO_CUSTOMER: "info",
+  WARRANTY_REJECTED: "danger",
 } as const;
 
 const toDisplay = (value?: string | null) =>
@@ -103,7 +106,13 @@ const normalizeEventPayload = (payloadJson?: string | null) => {
 
 const inferResolutionFromAction = (
   action: BackendRmaAction,
+  requestType?: BackendReturnRequestDetailResponse["type"],
 ): BackendReturnRequestItemFinalResolution | "" => {
+  if (requestType === "WARRANTY_RMA") {
+    if (action === "PASS_QC") return "REPAIR";
+    if (action === "SCRAP") return "REPLACE";
+    return "";
+  }
   if (action === "PASS_QC") return "RESTOCK";
   if (action === "SCRAP") return "SCRAP";
   return "";
@@ -111,7 +120,17 @@ const inferResolutionFromAction = (
 
 const allowedResolutionsForAction = (
   action: BackendRmaAction,
+  requestType?: BackendReturnRequestDetailResponse["type"],
 ): BackendReturnRequestItemFinalResolution[] => {
+  if (requestType === "WARRANTY_RMA") {
+    if (action === "PASS_QC") {
+      return ["REPAIR", "RETURN_TO_CUSTOMER"];
+    }
+    if (action === "SCRAP") {
+      return ["REPLACE", "REJECT_WARRANTY"];
+    }
+    return [];
+  }
   if (action === "PASS_QC") {
     return ["RESTOCK"];
   }
@@ -127,12 +146,16 @@ const terminalItemStatuses = new Set<string>([
   "SCRAPPED",
   "REPLACED",
   "CREDITED",
+  "REPAIRED",
+  "RETURNED_TO_CUSTOMER",
+  "WARRANTY_REJECTED",
 ]);
 
 const effectiveResolution = (
   draft: InspectDraft,
+  requestType?: BackendReturnRequestDetailResponse["type"],
 ): BackendReturnRequestItemFinalResolution | "" =>
-  draft.finalResolution || inferResolutionFromAction(draft.rmaAction);
+  draft.finalResolution || inferResolutionFromAction(draft.rmaAction, requestType);
 
 const needsReplacementOrder = (
   resolution: BackendReturnRequestItemFinalResolution | "",
@@ -445,22 +468,16 @@ function ReturnDetailPage() {
       return;
     }
 
-    const selectedResolution = effectiveResolution(draft);
+    const selectedResolution = effectiveResolution(draft, detail.type);
     const replacementOrderId = draft.replacementOrderId.trim()
       ? Number(draft.replacementOrderId.trim())
       : undefined;
     const refundAmount = parseAmount(draft.refundAmount);
     const creditAmount = parseAmount(draft.creditAmount);
 
-    if (draft.rmaAction === "PASS_QC" && selectedResolution !== "RESTOCK") {
-      notify("PASS_QC only supports RESTOCK resolution.", {
-        title: "Returns",
-        variant: "error",
-      });
-      return;
-    }
-    if (draft.rmaAction === "SCRAP" && selectedResolution === "RESTOCK") {
-      notify("SCRAP action cannot use RESTOCK resolution.", {
+    const allowedResolutions = allowedResolutionsForAction(draft.rmaAction, detail.type);
+    if (selectedResolution && !allowedResolutions.includes(selectedResolution)) {
+      notify("Selected resolution is not valid for the current RMA type.", {
         title: "Returns",
         variant: "error",
       });
@@ -496,9 +513,7 @@ function ReturnDetailPage() {
         .map((value) => value.trim())
         .filter((value) => value.length > 0),
       finalResolution: selectedResolution || undefined,
-      replacementOrderId: needsReplacementOrder(selectedResolution)
-        ? replacementOrderId
-        : undefined,
+      replacementOrderId: needsReplacementOrder(selectedResolution) ? replacementOrderId : undefined,
       refundAmount: needsRefundAmount(selectedResolution) ? refundAmount : undefined,
       creditAmount: needsCreditAmount(selectedResolution) ? creditAmount : undefined,
     };
@@ -845,6 +860,11 @@ function ReturnDetailPage() {
                           Replacement order #{item.replacementOrderId}
                         </p>
                       ) : null}
+                      {item.replacementSerialId ? (
+                        <p className={tableMetaClass}>
+                          Replacement serial #{item.replacementSerialId}
+                        </p>
+                      ) : null}
                       {item.refundAmount != null ? (
                         <p className={tableMetaClass}>Refund amount: {item.refundAmount}</p>
                       ) : null}
@@ -875,8 +895,8 @@ function ReturnDetailPage() {
                   refundAmount: "",
                   creditAmount: "",
                 };
-                const selectedResolution = effectiveResolution(draft);
-                const allowedResolutions = allowedResolutionsForAction(draft.rmaAction);
+                const selectedResolution = effectiveResolution(draft, detail.type);
+                const allowedResolutions = allowedResolutionsForAction(draft.rmaAction, detail.type);
                 return (
                   <article
                     key={item.id}
@@ -898,6 +918,11 @@ function ReturnDetailPage() {
                         {item.replacementOrderId ? (
                           <p className={tableMetaClass}>
                             Replacement order #{item.replacementOrderId}
+                          </p>
+                        ) : null}
+                        {item.replacementSerialId ? (
+                          <p className={tableMetaClass}>
+                            Replacement serial #{item.replacementSerialId}
                           </p>
                         ) : null}
                         {item.refundAmount != null ? (
@@ -923,18 +948,19 @@ function ReturnDetailPage() {
                         value={draft.rmaAction}
                         onChange={(event) => {
                           const nextAction = event.target.value as BackendRmaAction;
-                          const nextAllowedResolutions = allowedResolutionsForAction(nextAction);
+                          const nextAllowedResolutions = allowedResolutionsForAction(
+                            nextAction,
+                            detail.type,
+                          );
                           const retainedResolution =
                             draft.finalResolution &&
                             nextAllowedResolutions.includes(draft.finalResolution)
                               ? draft.finalResolution
                               : "";
                           const nextResolution =
-                            nextAction === "PASS_QC"
-                              ? "RESTOCK"
-                              : nextAction === "START_INSPECTION"
-                                ? ""
-                                : retainedResolution;
+                            nextAction === "START_INSPECTION"
+                              ? ""
+                              : retainedResolution || inferResolutionFromAction(nextAction, detail.type);
                           setInspectDrafts((current) => ({
                             ...current,
                             [item.id!]: {
@@ -956,8 +982,12 @@ function ReturnDetailPage() {
                         }}
                       >
                         <option value="START_INSPECTION">Start inspection</option>
-                        <option value="PASS_QC">Pass QC</option>
-                        <option value="SCRAP">Scrap</option>
+                        <option value="PASS_QC">
+                          {detail.type === "WARRANTY_RMA" ? "Finish inspection" : "Pass QC"}
+                        </option>
+                        <option value="SCRAP">
+                          {detail.type === "WARRANTY_RMA" ? "Return / replace" : "Scrap"}
+                        </option>
                       </select>
                       <select
                         className={inputClass}

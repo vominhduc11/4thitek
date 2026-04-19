@@ -30,9 +30,10 @@ void main() {
                       'productName': 'Router AX',
                       'productSku': 'AX-1',
                       'serialSnapshot': 'SER-0001',
-                      'itemStatus': 'CREDITED',
-                      'finalResolution': 'REFUND',
+                      'itemStatus': 'REPAIRED',
+                      'finalResolution': 'REPAIR',
                       'replacementOrderId': 77,
+                      'replacementSerialId': 78,
                       'refundAmount': 50000,
                       'creditAmount': 30000,
                       'orderAdjustmentId': 9001,
@@ -57,6 +58,7 @@ void main() {
       expect(detail.id, 11);
       expect(detail.items, hasLength(1));
       expect(detail.items.first.replacementOrderId, 77);
+      expect(detail.items.first.replacementSerialId, 78);
       expect(detail.items.first.refundAmount, 50000);
       expect(detail.items.first.creditAmount, 30000);
       expect(detail.items.first.orderAdjustmentId, 9001);

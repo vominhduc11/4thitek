@@ -8,5 +8,6 @@ public enum ProductSerialStatus {
     DEFECTIVE,
     RETURNED,
     INSPECTING,
-    SCRAPPED
+    SCRAPPED,
+    WARRANTY_REPLACED
 }

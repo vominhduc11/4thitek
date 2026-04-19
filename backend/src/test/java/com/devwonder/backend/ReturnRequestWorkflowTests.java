@@ -810,6 +810,13 @@ class ReturnRequestWorkflowTests {
                 "RET-REPLACE-VALID",
                 OrderStatus.COMPLETED
         ));
+        ProductSerial replacementSerial = productSerialRepository.save(createDealerOwnedSerial(
+                fixture.dealer(),
+                validReplacementOrder,
+                fixture.product(),
+                "RET-REPLACE-VALID-SERIAL",
+                ProductSerialStatus.ASSIGNED
+        ));
 
         assertThatThrownBy(() -> returnRequestService.inspectReturnItem(
                 fixture.requestId(),
@@ -864,6 +871,7 @@ class ReturnRequestWorkflowTests {
             assertThat(item.itemStatus()).isEqualTo(ReturnRequestItemStatus.REPLACED);
             assertThat(item.finalResolution()).isEqualTo(ReturnRequestItemFinalResolution.REPLACE);
             assertThat(item.replacementOrderId()).isEqualTo(validReplacementOrder.getId());
+            assertThat(item.replacementSerialId()).isEqualTo(replacementSerial.getId());
         });
 
         ProductSerial reloaded = productSerialRepository.findById(fixture.serial().getId()).orElseThrow();
@@ -961,9 +969,82 @@ class ReturnRequestWorkflowTests {
     }
 
     @Test
-    void scrapResolutionScrapsSerialAndVoidsWarranty() {
+    void warrantyRepairLeavesWarrantyActiveAndSerialInWarranty() {
         WorkflowFixture fixture = prepareInspectingFixture(
-                "scrap-warranty",
+                "repair-warranty",
+                ProductSerialStatus.WARRANTY,
+                true,
+                ReturnRequestType.WARRANTY_RMA,
+                ReturnRequestResolution.REPLACE
+        );
+
+        ReturnRequestDetailResponse resolved = returnRequestService.inspectReturnItem(
+                fixture.requestId(),
+                fixture.itemId(),
+                new AdminInspectReturnItemRequest(
+                        AdminRmaRequest.RmaAction.PASS_QC,
+                        "Repair approved",
+                        List.of("https://proof/repair.jpg"),
+                        ReturnRequestItemFinalResolution.REPAIR,
+                        null,
+                        null,
+                        null
+                ),
+                "admin-qc"
+        );
+
+        assertThat(resolved.items().get(0).itemStatus()).isEqualTo(ReturnRequestItemStatus.REPAIRED);
+        assertThat(resolved.items().get(0).finalResolution()).isEqualTo(ReturnRequestItemFinalResolution.REPAIR);
+
+        ProductSerial reloadedSerial = productSerialRepository.findById(fixture.serial().getId()).orElseThrow();
+        assertThat(reloadedSerial.getStatus()).isEqualTo(ProductSerialStatus.WARRANTY);
+        assertThat(reloadedSerial.getDealer().getId()).isEqualTo(fixture.dealer().getId());
+        assertThat(reloadedSerial.getOrder().getId()).isEqualTo(fixture.order().getId());
+
+        WarrantyRegistration warranty = warrantyRegistrationRepository.findById(fixture.warrantyId()).orElseThrow();
+        assertThat(warranty.getStatus()).isEqualTo(WarrantyStatus.ACTIVE);
+    }
+
+    @Test
+    void warrantyReturnToCustomerLeavesWarrantyActive() {
+        WorkflowFixture fixture = prepareInspectingFixture(
+                "return-customer-warranty",
+                ProductSerialStatus.WARRANTY,
+                true,
+                ReturnRequestType.WARRANTY_RMA,
+                ReturnRequestResolution.REPLACE
+        );
+
+        ReturnRequestDetailResponse resolved = returnRequestService.inspectReturnItem(
+                fixture.requestId(),
+                fixture.itemId(),
+                new AdminInspectReturnItemRequest(
+                        AdminRmaRequest.RmaAction.PASS_QC,
+                        "Return to customer approved",
+                        List.of("https://proof/return-customer.jpg"),
+                        ReturnRequestItemFinalResolution.RETURN_TO_CUSTOMER,
+                        null,
+                        null,
+                        null
+                ),
+                "admin-qc"
+        );
+
+        assertThat(resolved.items().get(0).itemStatus()).isEqualTo(ReturnRequestItemStatus.RETURNED_TO_CUSTOMER);
+        assertThat(resolved.items().get(0).finalResolution())
+                .isEqualTo(ReturnRequestItemFinalResolution.RETURN_TO_CUSTOMER);
+
+        ProductSerial reloadedSerial = productSerialRepository.findById(fixture.serial().getId()).orElseThrow();
+        assertThat(reloadedSerial.getStatus()).isEqualTo(ProductSerialStatus.WARRANTY);
+
+        WarrantyRegistration warranty = warrantyRegistrationRepository.findById(fixture.warrantyId()).orElseThrow();
+        assertThat(warranty.getStatus()).isEqualTo(WarrantyStatus.ACTIVE);
+    }
+
+    @Test
+    void warrantyRejectWarrantyKeepsWarrantyActive() {
+        WorkflowFixture fixture = prepareInspectingFixture(
+                "reject-warranty",
                 ProductSerialStatus.WARRANTY,
                 true,
                 ReturnRequestType.WARRANTY_RMA,
@@ -975,9 +1056,9 @@ class ReturnRequestWorkflowTests {
                 fixture.itemId(),
                 new AdminInspectReturnItemRequest(
                         AdminRmaRequest.RmaAction.SCRAP,
-                        "Scrap damaged unit",
-                        List.of("https://proof/scrap.jpg"),
-                        ReturnRequestItemFinalResolution.SCRAP,
+                        "Reject warranty claim",
+                        List.of("https://proof/reject-warranty.jpg"),
+                        ReturnRequestItemFinalResolution.REJECT_WARRANTY,
                         null,
                         null,
                         null
@@ -985,16 +1066,75 @@ class ReturnRequestWorkflowTests {
                 "admin-qc"
         );
 
-        assertThat(resolved.items().get(0).itemStatus()).isEqualTo(ReturnRequestItemStatus.SCRAPPED);
-        assertThat(resolved.items().get(0).finalResolution()).isEqualTo(ReturnRequestItemFinalResolution.SCRAP);
+        assertThat(resolved.items().get(0).itemStatus()).isEqualTo(ReturnRequestItemStatus.WARRANTY_REJECTED);
+        assertThat(resolved.items().get(0).finalResolution())
+                .isEqualTo(ReturnRequestItemFinalResolution.REJECT_WARRANTY);
 
         ProductSerial reloadedSerial = productSerialRepository.findById(fixture.serial().getId()).orElseThrow();
-        assertThat(reloadedSerial.getStatus()).isEqualTo(ProductSerialStatus.SCRAPPED);
-        assertThat(reloadedSerial.getDealer()).isNull();
-        assertThat(reloadedSerial.getOrder()).isNull();
+        assertThat(reloadedSerial.getStatus()).isEqualTo(ProductSerialStatus.WARRANTY);
 
         WarrantyRegistration warranty = warrantyRegistrationRepository.findById(fixture.warrantyId()).orElseThrow();
-        assertThat(warranty.getStatus()).isEqualTo(WarrantyStatus.VOID);
+        assertThat(warranty.getStatus()).isEqualTo(WarrantyStatus.ACTIVE);
+    }
+
+    @Test
+    void warrantyReplaceTransfersWarrantyToReplacementSerialAndSetsTrace() {
+        WorkflowFixture fixture = prepareInspectingFixture(
+                "replace-warranty",
+                ProductSerialStatus.WARRANTY,
+                true,
+                ReturnRequestType.WARRANTY_RMA,
+                ReturnRequestResolution.REPLACE
+        );
+
+        Order replacementOrder = orderRepository.save(createOrder(
+                fixture.dealer(),
+                fixture.product(),
+                1,
+                "RET-WAR-REPLACE-ORDER",
+                OrderStatus.COMPLETED
+        ));
+        ProductSerial replacementSerial = productSerialRepository.save(createDealerOwnedSerial(
+                fixture.dealer(),
+                replacementOrder,
+                fixture.product(),
+                "RET-WAR-REPLACE-SERIAL",
+                ProductSerialStatus.ASSIGNED
+        ));
+
+        ReturnRequestDetailResponse resolved = returnRequestService.inspectReturnItem(
+                fixture.requestId(),
+                fixture.itemId(),
+                new AdminInspectReturnItemRequest(
+                        AdminRmaRequest.RmaAction.SCRAP,
+                        "Replace warranty unit",
+                        List.of("https://proof/warranty-replace.jpg"),
+                        ReturnRequestItemFinalResolution.REPLACE,
+                        replacementOrder.getId(),
+                        null,
+                        null
+                ),
+                "admin-qc"
+        );
+
+        assertThat(resolved.items().get(0).itemStatus()).isEqualTo(ReturnRequestItemStatus.REPLACED);
+        assertThat(resolved.items().get(0).finalResolution()).isEqualTo(ReturnRequestItemFinalResolution.REPLACE);
+        assertThat(resolved.items().get(0).replacementOrderId()).isEqualTo(replacementOrder.getId());
+        assertThat(resolved.items().get(0).replacementSerialId()).isEqualTo(replacementSerial.getId());
+
+        ProductSerial oldSerial = productSerialRepository.findById(fixture.serial().getId()).orElseThrow();
+        assertThat(oldSerial.getStatus()).isEqualTo(ProductSerialStatus.WARRANTY_REPLACED);
+
+        ProductSerial reloadedReplacementSerial = productSerialRepository.findById(replacementSerial.getId()).orElseThrow();
+        assertThat(reloadedReplacementSerial.getStatus()).isEqualTo(ProductSerialStatus.WARRANTY);
+        assertThat(reloadedReplacementSerial.getWarranty()).isNotNull();
+
+        WarrantyRegistration oldWarranty = warrantyRegistrationRepository.findById(fixture.warrantyId()).orElseThrow();
+        assertThat(oldWarranty.getStatus()).isEqualTo(WarrantyStatus.VOID);
+        WarrantyRegistration replacementWarranty = warrantyRegistrationRepository
+                .findByProductSerialId(replacementSerial.getId())
+                .orElseThrow();
+        assertThat(replacementWarranty.getStatus()).isEqualTo(WarrantyStatus.ACTIVE);
     }
 
     @Test
@@ -1022,7 +1162,7 @@ class ReturnRequestWorkflowTests {
                 "admin-qc"
         ))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("WARRANTY_RMA does not allow CREDIT_NOTE or REFUND");
+                .hasMessageContaining("WARRANTY_RMA SCRAP supports REPLACE or REJECT_WARRANTY only");
 
         ProductSerial serialAfterCreditAttempt = productSerialRepository.findById(fixture.serial().getId()).orElseThrow();
         assertThat(serialAfterCreditAttempt.getStatus()).isEqualTo(ProductSerialStatus.INSPECTING);
@@ -1044,7 +1184,24 @@ class ReturnRequestWorkflowTests {
                 "admin-qc"
         ))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("WARRANTY_RMA does not allow CREDIT_NOTE or REFUND");
+                .hasMessageContaining("WARRANTY_RMA SCRAP supports REPLACE or REJECT_WARRANTY only");
+
+        assertThatThrownBy(() -> returnRequestService.inspectReturnItem(
+                fixture.requestId(),
+                fixture.itemId(),
+                new AdminInspectReturnItemRequest(
+                        AdminRmaRequest.RmaAction.SCRAP,
+                        "Try restock for warranty",
+                        List.of("https://proof/warranty-restock.jpg"),
+                        ReturnRequestItemFinalResolution.RESTOCK,
+                        null,
+                        null,
+                        null
+                ),
+                "admin-qc"
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("WARRANTY_RMA SCRAP supports REPLACE or REJECT_WARRANTY only");
 
         ProductSerial serialAfterRefundAttempt = productSerialRepository.findById(fixture.serial().getId()).orElseThrow();
         assertThat(serialAfterRefundAttempt.getStatus()).isEqualTo(ProductSerialStatus.INSPECTING);

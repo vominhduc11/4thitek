@@ -19,6 +19,7 @@ public record ReturnRequestItemResponse(
         String inspectionNote,
         ReturnRequestItemFinalResolution finalResolution,
         Long replacementOrderId,
+        Long replacementSerialId,
         BigDecimal refundAmount,
         BigDecimal creditAmount,
         Long orderAdjustmentId

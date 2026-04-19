@@ -82,6 +82,7 @@ const SERIAL_STATUS_FILTER_OPTIONS: BackendProductSerialStatus[] = [
   "ASSIGNED",
   "WARRANTY",
   "RETURNED",
+  "WARRANTY_REPLACED",
 ];
 
 const statusTone = {
@@ -93,6 +94,7 @@ const statusTone = {
   ASSIGNED: "neutral",
   WARRANTY: "info",
   RETURNED: "warning",
+  WARRANTY_REPLACED: "neutral",
 } as const;
 
 function getSerialBadge(
@@ -195,6 +197,7 @@ const copyKeys = {
     ASSIGNED: "Đã gán",
     WARRANTY: "Bảo hành",
     RETURNED: "Trả lại",
+    WARRANTY_REPLACED: "Đã thay thế",
   } as Record<BackendProductSerialStatus, string>,
   rmaStartInspectionTitle: "Bắt đầu kiểm định",
   rmaPassQcTitle: "Đạt kiểm định — đưa về kho",

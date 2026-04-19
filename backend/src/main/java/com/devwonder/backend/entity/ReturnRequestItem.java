@@ -70,6 +70,9 @@ public class ReturnRequestItem {
     @Column(name = "replacement_order_id")
     private Long replacementOrderId;
 
+    @Column(name = "replacement_serial_id")
+    private Long replacementSerialId;
+
     @Column(name = "refund_amount", precision = 19, scale = 2)
     private BigDecimal refundAmount;
 

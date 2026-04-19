@@ -195,9 +195,12 @@ public class AdminRmaService {
     }
 
     private void applyTerminalSideEffects(ProductSerial serial) {
+        WarrantyRegistration warranty = serial.getWarranty();
+        if (warranty != null && warranty.getStatus() == WarrantyStatus.ACTIVE) {
+            throw new BadRequestException("Active warranty serials must not be terminalized through generic RMA");
+        }
         serial.setDealer(null);
         serial.setOrder(null);
-        WarrantyRegistration warranty = serial.getWarranty();
         if (warranty == null) {
             return;
         }

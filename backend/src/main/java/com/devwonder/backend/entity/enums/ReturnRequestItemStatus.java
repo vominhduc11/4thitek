@@ -11,5 +11,8 @@ public enum ReturnRequestItemStatus {
     RESTOCKED,
     SCRAPPED,
     REPLACED,
-    CREDITED
+    CREDITED,
+    REPAIRED,
+    RETURNED_TO_CUSTOMER,
+    WARRANTY_REJECTED
 }

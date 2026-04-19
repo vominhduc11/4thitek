@@ -31,7 +31,7 @@ export type BackendFinancialSettlementType = 'CANCELLATION_REFUND' | 'STALE_ORDE
 export type BackendStaffUserStatus = 'ACTIVE' | 'PENDING'
 export type BackendDiscountRuleStatus = 'ACTIVE' | 'DRAFT'
 export type BackendWarrantyStatus = 'ACTIVE' | 'EXPIRED' | 'VOID'
-export type BackendProductSerialStatus = 'AVAILABLE' | 'RESERVED' | 'DEFECTIVE' | 'ASSIGNED' | 'WARRANTY' | 'RETURNED' | 'INSPECTING' | 'SCRAPPED'
+export type BackendProductSerialStatus = 'AVAILABLE' | 'RESERVED' | 'DEFECTIVE' | 'ASSIGNED' | 'WARRANTY' | 'RETURNED' | 'INSPECTING' | 'SCRAPPED' | 'WARRANTY_REPLACED'
 export type BackendRmaAction = 'START_INSPECTION' | 'PASS_QC' | 'SCRAP'
 export type BackendRmaRequest = {
   action: BackendRmaAction
@@ -80,8 +80,19 @@ export type BackendReturnRequestItemStatus =
   | 'SCRAPPED'
   | 'REPLACED'
   | 'CREDITED'
+  | 'REPAIRED'
+  | 'RETURNED_TO_CUSTOMER'
+  | 'WARRANTY_REJECTED'
 export type BackendReturnRequestItemCondition = 'SEALED' | 'OPEN_BOX' | 'USED' | 'DEFECTIVE'
-export type BackendReturnRequestItemFinalResolution = 'RESTOCK' | 'REPLACE' | 'CREDIT_NOTE' | 'REFUND' | 'SCRAP'
+export type BackendReturnRequestItemFinalResolution =
+  | 'RESTOCK'
+  | 'REPLACE'
+  | 'CREDIT_NOTE'
+  | 'REFUND'
+  | 'SCRAP'
+  | 'REPAIR'
+  | 'RETURN_TO_CUSTOMER'
+  | 'REJECT_WARRANTY'
 export type BackendReturnRequestAttachmentCategory = 'PROOF' | 'DEFECT_PHOTO' | 'RECEIPT' | 'PACKING' | 'OTHER'
 
 export type BackendProductResponse = {
@@ -425,6 +436,7 @@ export type BackendReturnRequestItemResponse = {
   inspectionNote?: string | null
   finalResolution?: BackendReturnRequestItemFinalResolution | null
   replacementOrderId?: number | null
+  replacementSerialId?: number | null
   refundAmount?: number | string | null
   creditAmount?: number | string | null
   orderAdjustmentId?: number | null

@@ -43,9 +43,11 @@ public class ReturnRequestPolicy {
             ReturnRequestResolution.REPLACE
     );
 
-    private static final Set<ReturnRequestItemFinalResolution> WARRANTY_RMA_FORBIDDEN_FINAL_RESOLUTIONS = EnumSet.of(
-            ReturnRequestItemFinalResolution.CREDIT_NOTE,
-            ReturnRequestItemFinalResolution.REFUND
+    private static final Set<ReturnRequestItemFinalResolution> WARRANTY_RMA_ALLOWED_FINAL_RESOLUTIONS = EnumSet.of(
+            ReturnRequestItemFinalResolution.REPLACE,
+            ReturnRequestItemFinalResolution.REPAIR,
+            ReturnRequestItemFinalResolution.RETURN_TO_CUSTOMER,
+            ReturnRequestItemFinalResolution.REJECT_WARRANTY
     );
 
     public void validateCreateEligibility(
@@ -88,8 +90,10 @@ public class ReturnRequestPolicy {
         if (type != ReturnRequestType.WARRANTY_RMA || finalResolution == null) {
             return;
         }
-        if (WARRANTY_RMA_FORBIDDEN_FINAL_RESOLUTIONS.contains(finalResolution)) {
-            throw new BadRequestException("WARRANTY_RMA does not allow CREDIT_NOTE or REFUND final resolution");
+        if (!WARRANTY_RMA_ALLOWED_FINAL_RESOLUTIONS.contains(finalResolution)) {
+            throw new BadRequestException(
+                    "WARRANTY_RMA only allows REPLACE, REPAIR, RETURN_TO_CUSTOMER or REJECT_WARRANTY final resolution"
+            );
         }
     }
 

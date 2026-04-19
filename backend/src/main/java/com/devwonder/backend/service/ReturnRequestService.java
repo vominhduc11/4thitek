@@ -30,6 +30,7 @@ import com.devwonder.backend.entity.ReturnRequestAttachment;
 import com.devwonder.backend.entity.ReturnRequestEvent;
 import com.devwonder.backend.entity.ReturnRequestItem;
 import com.devwonder.backend.entity.SupportTicketMessage;
+import com.devwonder.backend.entity.WarrantyRegistration;
 import com.devwonder.backend.entity.enums.DealerSupportCategory;
 import com.devwonder.backend.entity.enums.DealerSupportPriority;
 import com.devwonder.backend.entity.enums.OrderAdjustmentType;
@@ -40,6 +41,7 @@ import com.devwonder.backend.entity.enums.ReturnRequestItemStatus;
 import com.devwonder.backend.entity.enums.ReturnRequestType;
 import com.devwonder.backend.entity.enums.ReturnRequestStatus;
 import com.devwonder.backend.entity.enums.SupportTicketMessageAuthorRole;
+import com.devwonder.backend.entity.enums.WarrantyStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.service.FileStorageService;
@@ -50,6 +52,7 @@ import com.devwonder.backend.repository.MediaAssetRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.ReturnRequestItemRepository;
 import com.devwonder.backend.repository.ReturnRequestRepository;
+import com.devwonder.backend.repository.WarrantyRegistrationRepository;
 import com.devwonder.backend.service.support.DealerPortalLookupSupport;
 import com.devwonder.backend.service.support.SupportTicketPayloadSupport;
 import com.devwonder.backend.service.returns.ReturnRequestPolicy;
@@ -97,14 +100,20 @@ public class ReturnRequestService {
             ReturnRequestItemStatus.RESTOCKED,
             ReturnRequestItemStatus.SCRAPPED,
             ReturnRequestItemStatus.REPLACED,
-            ReturnRequestItemStatus.CREDITED
+            ReturnRequestItemStatus.CREDITED,
+            ReturnRequestItemStatus.REPAIRED,
+            ReturnRequestItemStatus.RETURNED_TO_CUSTOMER,
+            ReturnRequestItemStatus.WARRANTY_REJECTED
     );
 
     private static final Set<ReturnRequestItemStatus> FINAL_OUTCOME_ITEM_STATUSES = EnumSet.of(
             ReturnRequestItemStatus.RESTOCKED,
             ReturnRequestItemStatus.SCRAPPED,
             ReturnRequestItemStatus.REPLACED,
-            ReturnRequestItemStatus.CREDITED
+            ReturnRequestItemStatus.CREDITED,
+            ReturnRequestItemStatus.REPAIRED,
+            ReturnRequestItemStatus.RETURNED_TO_CUSTOMER,
+            ReturnRequestItemStatus.WARRANTY_REJECTED
     );
 
     private static final Set<ReturnRequestStatus> SUPPORT_MILESTONE_STATUSES = EnumSet.of(
@@ -126,6 +135,7 @@ public class ReturnRequestService {
     private final OrderRepository orderRepository;
     private final OrderAdjustmentRepository orderAdjustmentRepository;
     private final MediaAssetRepository mediaAssetRepository;
+    private final WarrantyRegistrationRepository warrantyRegistrationRepository;
     private final FileStorageService fileStorageService;
     private final AdminFinancialService adminFinancialService;
     private final AdminRmaService adminRmaService;
@@ -498,7 +508,7 @@ public class ReturnRequestService {
         if (reason == null) {
             throw new BadRequestException("reason is required for inspection");
         }
-        validateInspectPayload(payload);
+        validateInspectPayload(request, payload);
 
         if (payload.rmaAction() == com.devwonder.backend.dto.admin.AdminRmaRequest.RmaAction.START_INSPECTION) {
             adminRmaService.applyRmaAction(
@@ -509,6 +519,20 @@ public class ReturnRequestService {
             );
             item.setInspectionNote(reason);
             item.setItemStatus(ReturnRequestItemStatus.INSPECTING);
+        } else if (request.getType() == ReturnRequestType.WARRANTY_RMA) {
+            ReturnRequestItemFinalResolution finalResolution = payload.finalResolution();
+            if (finalResolution == null) {
+                finalResolution = defaultWarrantyFinalResolution(payload.rmaAction());
+            }
+            returnRequestPolicy.validateFinalResolution(request.getType(), finalResolution);
+            item.setInspectionNote(reason);
+            applyWarrantyFinalResolution(
+                    request,
+                    item,
+                    finalResolution,
+                    payload.replacementOrderId(),
+                    actorUsername
+            );
         } else {
             ReturnRequestItemFinalResolution finalResolution = payload.finalResolution();
             if (finalResolution == null) {
@@ -549,6 +573,9 @@ public class ReturnRequestService {
         }
         if (item.getReplacementOrderId() != null) {
             eventPayload.put("replacementOrderId", item.getReplacementOrderId());
+        }
+        if (item.getReplacementSerialId() != null) {
+            eventPayload.put("replacementSerialId", item.getReplacementSerialId());
         }
         if (item.getRefundAmount() != null) {
             eventPayload.put("refundAmount", item.getRefundAmount());
@@ -650,8 +677,13 @@ public class ReturnRequestService {
             BigDecimal creditAmount,
             String actorUsername
     ) {
+        if (request.getType() == ReturnRequestType.WARRANTY_RMA) {
+            applyWarrantyFinalResolution(request, item, finalResolution, replacementOrderId, actorUsername);
+            return;
+        }
         item.setFinalResolution(finalResolution);
         item.setReplacementOrderId(null);
+        item.setReplacementSerialId(null);
         item.setRefundAmount(null);
         item.setCreditAmount(null);
         item.setOrderAdjustmentId(null);
@@ -662,8 +694,10 @@ public class ReturnRequestService {
                     throw new BadRequestException("replacementOrderId is required for REPLACE resolution");
                 }
                 validateReplacementOrder(request, item, replacementOrderId);
+                ProductSerial replacementSerial = resolveReplacementSerial(request, item, replacementOrderId);
                 item.setItemStatus(ReturnRequestItemStatus.REPLACED);
                 item.setReplacementOrderId(replacementOrderId);
+                item.setReplacementSerialId(replacementSerial.getId());
             }
             case CREDIT_NOTE -> {
                 if (creditAmount == null || creditAmount.signum() <= 0) {
@@ -699,7 +733,7 @@ public class ReturnRequestService {
         }
     }
 
-    private void validateInspectPayload(AdminInspectReturnItemRequest payload) {
+    private void validateInspectPayload(ReturnRequest request, AdminInspectReturnItemRequest payload) {
         if (payload.rmaAction() == com.devwonder.backend.dto.admin.AdminRmaRequest.RmaAction.START_INSPECTION) {
             if (payload.finalResolution() != null
                     || payload.replacementOrderId() != null
@@ -714,13 +748,20 @@ public class ReturnRequestService {
 
         ReturnRequestItemFinalResolution finalResolution = payload.finalResolution();
         if (payload.rmaAction() == com.devwonder.backend.dto.admin.AdminRmaRequest.RmaAction.PASS_QC) {
-            if (finalResolution != null && finalResolution != ReturnRequestItemFinalResolution.RESTOCK) {
+            if (request.getType() == ReturnRequestType.WARRANTY_RMA) {
+                if (finalResolution != null
+                        && finalResolution != ReturnRequestItemFinalResolution.REPAIR
+                        && finalResolution != ReturnRequestItemFinalResolution.RETURN_TO_CUSTOMER) {
+                    throw new BadRequestException("WARRANTY_RMA PASS_QC supports REPAIR or RETURN_TO_CUSTOMER only");
+                }
+            } else if (finalResolution != null && finalResolution != ReturnRequestItemFinalResolution.RESTOCK) {
                 throw new BadRequestException("PASS_QC supports RESTOCK only");
             }
-            if (payload.replacementOrderId() != null
-                    || payload.refundAmount() != null
-                    || payload.creditAmount() != null) {
-                throw new BadRequestException("PASS_QC does not accept replacement or settlement fields");
+            if (payload.refundAmount() != null || payload.creditAmount() != null) {
+                throw new BadRequestException("PASS_QC does not accept settlement fields");
+            }
+            if (payload.replacementOrderId() != null && finalResolution != ReturnRequestItemFinalResolution.REPLACE) {
+                throw new BadRequestException("replacementOrderId requires REPLACE final resolution");
             }
             return;
         }
@@ -734,7 +775,12 @@ public class ReturnRequestService {
                 }
                 return;
             }
-            if (finalResolution == ReturnRequestItemFinalResolution.RESTOCK) {
+            if (request.getType() == ReturnRequestType.WARRANTY_RMA) {
+                if (finalResolution != ReturnRequestItemFinalResolution.REPLACE
+                        && finalResolution != ReturnRequestItemFinalResolution.REJECT_WARRANTY) {
+                    throw new BadRequestException("WARRANTY_RMA SCRAP supports REPLACE or REJECT_WARRANTY only");
+                }
+            } else if (finalResolution == ReturnRequestItemFinalResolution.RESTOCK) {
                 throw new BadRequestException("SCRAP action cannot use RESTOCK final resolution");
             }
             boolean needsReplacement = finalResolution == ReturnRequestItemFinalResolution.REPLACE;
@@ -759,6 +805,75 @@ public class ReturnRequestService {
                 throw new BadRequestException("creditAmount is only allowed for CREDIT_NOTE resolution");
             }
         }
+    }
+
+    private ReturnRequestItemFinalResolution defaultWarrantyFinalResolution(
+            com.devwonder.backend.dto.admin.AdminRmaRequest.RmaAction rmaAction
+    ) {
+        return rmaAction == com.devwonder.backend.dto.admin.AdminRmaRequest.RmaAction.PASS_QC
+                ? ReturnRequestItemFinalResolution.REPAIR
+                : ReturnRequestItemFinalResolution.REPLACE;
+    }
+
+    private void applyWarrantyFinalResolution(
+            ReturnRequest request,
+            ReturnRequestItem item,
+            ReturnRequestItemFinalResolution finalResolution,
+            Long replacementOrderId,
+            String actorUsername
+    ) {
+        item.setFinalResolution(finalResolution);
+        item.setReplacementOrderId(null);
+        item.setReplacementSerialId(null);
+        item.setRefundAmount(null);
+        item.setCreditAmount(null);
+        item.setOrderAdjustmentId(null);
+
+        ProductSerial serial = item.getProductSerial();
+        if (serial == null) {
+            throw new BadRequestException("Return item is missing serial linkage");
+        }
+
+        switch (finalResolution) {
+            case REPAIR -> {
+                item.setItemStatus(ReturnRequestItemStatus.REPAIRED);
+                serial.setStatus(ProductSerialStatus.WARRANTY);
+                productSerialRepository.save(serial);
+            }
+            case RETURN_TO_CUSTOMER -> {
+                item.setItemStatus(ReturnRequestItemStatus.RETURNED_TO_CUSTOMER);
+                serial.setStatus(ProductSerialStatus.WARRANTY);
+                productSerialRepository.save(serial);
+            }
+            case REJECT_WARRANTY -> {
+                item.setItemStatus(ReturnRequestItemStatus.WARRANTY_REJECTED);
+                serial.setStatus(ProductSerialStatus.WARRANTY);
+                productSerialRepository.save(serial);
+            }
+            case REPLACE -> {
+                if (replacementOrderId == null || replacementOrderId <= 0) {
+                    throw new BadRequestException("replacementOrderId is required for REPLACE resolution");
+                }
+                validateReplacementOrder(request, item, replacementOrderId);
+                ProductSerial replacementSerial = resolveReplacementSerial(request, item, replacementOrderId);
+                item.setItemStatus(ReturnRequestItemStatus.REPLACED);
+                item.setReplacementOrderId(replacementOrderId);
+                item.setReplacementSerialId(replacementSerial.getId());
+                serial.setStatus(ProductSerialStatus.WARRANTY_REPLACED);
+                productSerialRepository.save(serial);
+                transferWarrantyToReplacementSerial(request, item, replacementSerial, actorUsername);
+            }
+            default -> throw new BadRequestException(
+                    "WARRANTY_RMA only allows REPLACE, REPAIR, RETURN_TO_CUSTOMER or REJECT_WARRANTY final resolution"
+            );
+        }
+    }
+
+    private boolean isCommercialPassResolution(ReturnRequestItemFinalResolution finalResolution) {
+        return finalResolution == ReturnRequestItemFinalResolution.RESTOCK
+                || finalResolution == ReturnRequestItemFinalResolution.REPAIR
+                || finalResolution == ReturnRequestItemFinalResolution.RETURN_TO_CUSTOMER
+                || finalResolution == ReturnRequestItemFinalResolution.REJECT_WARRANTY;
     }
 
     private ReturnRequestStatus resolveStatusAfterReview(ReturnRequest request, Boolean awaitingReceipt) {
@@ -800,6 +915,24 @@ public class ReturnRequestService {
             return request.getReviewedAt() == null ? ReturnRequestStatus.SUBMITTED : ReturnRequestStatus.UNDER_REVIEW;
         }
         return ReturnRequestStatus.UNDER_REVIEW;
+    }
+
+    private ProductSerial resolveReplacementSerial(ReturnRequest request, ReturnRequestItem item, Long replacementOrderId) {
+        Long expectedProductId = item.getProduct() == null ? null : item.getProduct().getId();
+        if (expectedProductId == null) {
+            throw new BadRequestException("Return item is missing product linkage");
+        }
+        List<ProductSerial> matchingSerials = productSerialRepository.findByOrderId(replacementOrderId).stream()
+                .filter(serial -> serial.getProduct() != null
+                        && Objects.equals(serial.getProduct().getId(), expectedProductId))
+                .toList();
+        if (matchingSerials.isEmpty()) {
+            throw new BadRequestException("Replacement order does not contain a matching serial for the return item product");
+        }
+        if (matchingSerials.size() > 1) {
+            throw new BadRequestException("Replacement order contains multiple matching serials; cannot derive replacement serial trace");
+        }
+        return matchingSerials.get(0);
     }
 
     private void rejectActiveDuplicateSerials(List<Long> serialIds) {
@@ -863,6 +996,58 @@ public class ReturnRequestService {
                 decision.reasonMessage(),
                 activeRequest == null ? null : activeRequest.requestId(),
                 activeRequest == null ? null : activeRequest.requestCode()
+        );
+    }
+
+    private void transferWarrantyToReplacementSerial(
+            ReturnRequest request,
+            ReturnRequestItem item,
+            ProductSerial replacementSerial,
+            String actorUsername
+    ) {
+        WarrantyRegistration sourceWarranty = item.getProductSerial() == null ? null : item.getProductSerial().getWarranty();
+        if (sourceWarranty == null) {
+            throw new BadRequestException("Return item is missing warranty linkage");
+        }
+        Order replacementOrder = item.getReplacementOrderId() == null
+                ? request.getOrder()
+                : orderRepository.findById(item.getReplacementOrderId()).orElse(request.getOrder());
+
+        String replacementCodeBase = safeValue(sourceWarranty.getWarrantyCode(), "WAR-" + replacementSerial.getId());
+        String replacementCode = replacementCodeBase + "-XFER-" + replacementSerial.getId();
+        int suffix = 1;
+        while (warrantyRegistrationRepository.existsByWarrantyCodeIgnoreCase(replacementCode)) {
+            replacementCode = replacementCodeBase + "-XFER-" + replacementSerial.getId() + "-" + suffix++;
+        }
+
+        WarrantyRegistration replacementWarranty = warrantyRegistrationRepository.findByProductSerialId(replacementSerial.getId())
+                .orElseGet(WarrantyRegistration::new);
+        replacementWarranty.setProductSerial(replacementSerial);
+        replacementWarranty.setDealer(request.getDealer());
+        replacementWarranty.setOrder(replacementOrder);
+        replacementWarranty.setCustomerName(sourceWarranty.getCustomerName());
+        replacementWarranty.setCustomerEmail(sourceWarranty.getCustomerEmail());
+        replacementWarranty.setCustomerPhone(sourceWarranty.getCustomerPhone());
+        replacementWarranty.setCustomerAddress(sourceWarranty.getCustomerAddress());
+        replacementWarranty.setPurchaseDate(sourceWarranty.getPurchaseDate());
+        replacementWarranty.setWarrantyStart(sourceWarranty.getWarrantyStart());
+        replacementWarranty.setWarrantyEnd(sourceWarranty.getWarrantyEnd());
+        replacementWarranty.setStatus(WarrantyStatus.ACTIVE);
+        replacementWarranty.setWarrantyCode(replacementCode);
+
+        sourceWarranty.setStatus(WarrantyStatus.VOID);
+        warrantyRegistrationRepository.save(sourceWarranty);
+        WarrantyRegistration savedReplacementWarranty = warrantyRegistrationRepository.save(replacementWarranty);
+        replacementSerial.setWarranty(savedReplacementWarranty);
+        replacementSerial.setStatus(ProductSerialStatus.WARRANTY);
+        productSerialRepository.save(replacementSerial);
+
+        log.info(
+                "Transferred warranty from serial {} to replacement serial {} for return request {} by {}",
+                item.getProductSerial().getId(),
+                replacementSerial.getId(),
+                request.getId(),
+                actorUsername
         );
     }
 
@@ -1146,6 +1331,7 @@ public class ReturnRequestService {
                         item.getInspectionNote(),
                         item.getFinalResolution(),
                         item.getReplacementOrderId(),
+                        item.getReplacementSerialId(),
                         item.getRefundAmount(),
                         item.getCreditAmount(),
                         item.getOrderAdjustmentId()

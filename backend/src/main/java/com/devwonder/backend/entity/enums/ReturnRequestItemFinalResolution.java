@@ -5,5 +5,8 @@ public enum ReturnRequestItemFinalResolution {
     REPLACE,
     CREDIT_NOTE,
     REFUND,
-    SCRAP
+    SCRAP,
+    REPAIR,
+    RETURN_TO_CUSTOMER,
+    REJECT_WARRANTY
 }
