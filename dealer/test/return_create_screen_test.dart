@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:dealer_hub/app_settings_controller.dart';
 import 'package:dealer_hub/auth_storage.dart';
 import 'package:dealer_hub/order_controller.dart';
@@ -103,6 +102,54 @@ void main() {
     ]);
   });
 
+  testWidgets('attachment upload stays enabled when no serial is eligible', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      await _buildApp(
+        orderController: _FakeOrderController(remoteOrderId: 101),
+        returnService: _FakeReturnRequestService(
+          eligibilityFuture: Future<List<DealerReturnEligibilityRecord>>.value(
+            <DealerReturnEligibilityRecord>[
+              _eligibility(serialId: 9, eligible: false),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _scrollToAttachmentSection(tester);
+
+    final button = tester.widget<OutlinedButton>(
+      find.widgetWithText(OutlinedButton, 'Upload attachment'),
+    );
+    expect(button.onPressed, isNotNull);
+  });
+
+  testWidgets('shows support-style picker options for attachments', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      await _buildApp(
+        orderController: _FakeOrderController(remoteOrderId: 101),
+        returnService: _FakeReturnRequestService(
+          eligibilityFuture: Future<List<DealerReturnEligibilityRecord>>.value(
+            <DealerReturnEligibilityRecord>[_eligibility(serialId: 9)],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _scrollToAttachmentSection(tester);
+
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Upload attachment'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Choose image from gallery'), findsOneWidget);
+    expect(find.text('Choose video from gallery'), findsOneWidget);
+    expect(find.text('Choose PDF document'), findsOneWidget);
+  });
+
   testWidgets(
     'active request status lookup does not block eligibility render',
     (WidgetTester tester) async {
@@ -139,6 +186,15 @@ void main() {
 
 Future<void> _scrollToSerialSection(WidgetTester tester) async {
   await tester.drag(find.byType(ListView), const Offset(0, -520));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _scrollToAttachmentSection(WidgetTester tester) async {
+  await tester.dragUntilVisible(
+    find.widgetWithText(OutlinedButton, 'Upload attachment'),
+    find.byType(ListView),
+    const Offset(0, -300),
+  );
   await tester.pumpAndSettle();
 }
 
