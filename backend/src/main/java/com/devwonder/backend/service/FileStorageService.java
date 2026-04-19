@@ -15,6 +15,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -41,6 +42,7 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 @Service
+@Slf4j
 public class FileStorageService implements DisposableBean {
 
     private static final String LOCAL_PROVIDER = "local";
@@ -68,6 +70,7 @@ public class FileStorageService implements DisposableBean {
             @Value("${app.storage.provider:local}") String provider,
             @Value("${app.storage.s3.bucket:}") String bucket,
             @Value("${app.storage.s3.endpoint:}") String endpoint,
+            @Value("${app.storage.s3.presign-endpoint:}") String presignEndpoint,
             @Value("${app.storage.s3.region:ap-southeast-1}") String region,
             @Value("${app.storage.s3.access-key:}") String accessKey,
             @Value("${app.storage.s3.secret-key:}") String secretKey,
@@ -86,6 +89,7 @@ public class FileStorageService implements DisposableBean {
         this.publicBaseUrl = normalize(publicBaseUrl);
         this.maxFileSizeBytes = maxFileSize == null ? DataSize.ofMegabytes(10).toBytes() : maxFileSize.toBytes();
         this.s3Endpoint = normalize(endpoint) == null ? null : URI.create(endpoint.trim());
+        URI s3PresignEndpoint = normalize(presignEndpoint) == null ? null : URI.create(presignEndpoint.trim());
 
         if (LOCAL_PROVIDER.equals(this.provider)) {
             try {
@@ -121,10 +125,18 @@ public class FileStorageService implements DisposableBean {
                 .credentialsProvider(StaticCredentialsProvider.create(s3Credentials))
                 .region(Region.of(region))
                 .serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(pathStyleAccess).build());
-        if (s3Endpoint != null) {
-            presignerBuilder.endpointOverride(s3Endpoint);
+        URI presignerEndpoint = s3PresignEndpoint != null ? s3PresignEndpoint : s3Endpoint;
+        if (presignerEndpoint != null) {
+            presignerBuilder.endpointOverride(presignerEndpoint);
         }
         this.s3Presigner = presignerBuilder.build();
+
+        log.info(
+                "Initialized storage provider={}, internalS3EndpointHost={}, presignEndpointConfigured={}",
+                this.provider,
+                this.s3Endpoint == null ? "none" : this.s3Endpoint.getHost(),
+                s3PresignEndpoint != null
+        );
     }
 
     public String store(MultipartFile file, String subfolder) {
