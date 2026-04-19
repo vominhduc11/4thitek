@@ -15,6 +15,8 @@ extension DealerNavigationX on BuildContext {
   Future<T?> pushDealerProducts<T extends Object?>() =>
       push<T>(DealerRoutePath.products);
 
+  void goToDealerProducts() => go(DealerRoutePath.products);
+
   Future<T?> pushDealerProductDetail<T extends Object?>(String productId) =>
       push<T>(DealerRoutePath.productDetail(productId));
 
@@ -105,9 +107,10 @@ extension DealerNavigationX on BuildContext {
   Future<T?> pushDealerChangePassword<T extends Object?>() =>
       push<T>(DealerRoutePath.accountChangePassword);
 
-  Future<T?> pushDealerCart<T extends Object?>() => push<T>('/cart');
+  Future<T?> pushDealerCart<T extends Object?>() => push<T>(DealerRoutePath.cart);
 
-  Future<T?> pushDealerCheckout<T extends Object?>() => push<T>('/checkout');
+  Future<T?> pushDealerCheckout<T extends Object?>() =>
+      push<T>(DealerRoutePath.checkout);
 
   Future<T?> openDealerInternalRoute<T extends Object?>(String route) {
     final normalized = normalizeDealerInternalRoute(route) ?? route;

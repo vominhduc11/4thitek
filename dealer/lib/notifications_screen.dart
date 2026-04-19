@@ -11,6 +11,7 @@ import 'models.dart';
 import 'notification_controller.dart';
 import 'utils.dart';
 import 'widgets/brand_identity.dart';
+import 'widgets/dealer_fallback_back_button.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/section_card.dart';
 
@@ -53,6 +54,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const DealerFallbackBackButton(
+          fallbackPath: DealerRoutePath.home,
+        ),
         title: BrandAppBarTitle(l10n.notificationsTitle(notices.length)),
         actions: [
           IconButton(

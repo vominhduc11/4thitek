@@ -5,11 +5,13 @@ import 'package:image_picker/image_picker.dart';
 
 import 'app_settings_controller.dart';
 import 'dealer_navigation.dart';
+import 'dealer_routes.dart';
 import 'order_controller.dart';
 import 'return_request_service.dart';
 import 'return_request_ui_support.dart';
 import 'upload_service.dart';
 import 'widgets/brand_identity.dart';
+import 'widgets/dealer_fallback_back_button.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/section_card.dart';
 
@@ -305,7 +307,12 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
     final eligibleCount = _eligibilities.where((item) => item.eligible).length;
 
     return Scaffold(
-      appBar: AppBar(title: BrandAppBarTitle(texts.screenTitle)),
+      appBar: AppBar(
+        leading: DealerFallbackBackButton(
+          fallbackPath: DealerRoutePath.home,
+        ),
+        title: BrandAppBarTitle(texts.screenTitle),
+      ),
       body: RefreshIndicator(
         onRefresh: _loadEligibility,
         child: ListView(

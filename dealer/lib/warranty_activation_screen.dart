@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import 'app_settings_controller.dart';
 import 'breakpoints.dart';
+import 'dealer_routes.dart';
 import 'models.dart';
 import 'order_controller.dart';
 import 'serial_scan_screen.dart';
@@ -12,6 +13,7 @@ import 'utils.dart';
 import 'validation_utils.dart';
 import 'warranty_controller.dart';
 import 'widgets/brand_identity.dart';
+import 'widgets/dealer_fallback_back_button.dart';
 import 'widgets/fade_slide_in.dart';
 
 const double _serialSectionGap = 18;
@@ -226,7 +228,12 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     final isFormReady = _phase == _ActivationPhase.ready;
 
     return Scaffold(
-      appBar: AppBar(title: BrandAppBarTitle(texts.screenTitle)),
+      appBar: AppBar(
+        leading: const DealerFallbackBackButton(
+          fallbackPath: DealerRoutePath.home,
+        ),
+        title: BrandAppBarTitle(texts.screenTitle),
+      ),
       body: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(

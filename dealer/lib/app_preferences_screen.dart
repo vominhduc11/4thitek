@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import 'app_settings_controller.dart';
 import 'breakpoints.dart';
+import 'dealer_routes.dart';
 import 'widgets/brand_identity.dart';
+import 'widgets/dealer_fallback_back_button.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/section_card.dart';
 
@@ -126,6 +128,9 @@ class AppPreferencesScreen extends StatelessWidget {
         return Scaffold(
           backgroundColor: Theme.of(context).colorScheme.surface,
           appBar: AppBar(
+            leading: const DealerFallbackBackButton(
+              fallbackPath: DealerRoutePath.home,
+            ),
             title: BrandAppBarTitle(texts.screenTitle),
             surfaceTintColor: Colors.transparent,
             scrolledUnderElevation: 0,

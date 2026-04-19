@@ -1,13 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'app_settings_controller.dart';
 import 'breakpoints.dart';
+import 'dealer_navigation.dart';
 import 'dealer_profile_storage.dart';
+import 'dealer_routes.dart';
 import 'file_reference.dart';
 import 'upload_service.dart';
 import 'validation_utils.dart';
 import 'widgets/brand_identity.dart';
+import 'widgets/dealer_fallback_back_button.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/section_card.dart';
 import 'widgets/skeleton_box.dart';
@@ -247,6 +252,26 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     }
     final shouldDiscard = await _confirmDiscardChanges();
     return shouldDiscard ?? false;
+  }
+
+  void _handleRootFallback() {
+    unawaited(_handleRootFallbackAsync());
+  }
+
+  Future<void> _handleRootFallbackAsync() async {
+    if (_isSaving) {
+      return;
+    }
+    if (_hasUnsavedChanges) {
+      final shouldDiscard = await _confirmDiscardChanges();
+      if (shouldDiscard != true || !mounted) {
+        return;
+      }
+    }
+    if (!mounted) {
+      return;
+    }
+    context.goToDealerHome();
   }
 
   Future<bool?> _confirmDiscardChanges() {
@@ -1025,6 +1050,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       child: Scaffold(
         backgroundColor: colors.surface,
         appBar: AppBar(
+          leading: DealerFallbackBackButton(
+            fallbackPath: DealerRoutePath.home,
+            onFallbackPressed: _handleRootFallback,
+          ),
           title: BrandAppBarTitle(texts.screenTitle),
           surfaceTintColor: Colors.transparent,
           scrolledUnderElevation: 0,

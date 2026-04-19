@@ -5,12 +5,14 @@ import 'package:flutter/services.dart';
 
 import 'app_settings_controller.dart';
 import 'breakpoints.dart';
+import 'dealer_routes.dart';
 import 'order_controller.dart';
 import 'serial_scan_screen.dart';
 import 'utils.dart';
 import 'validation_utils.dart';
 import 'warranty_controller.dart';
 import 'widgets/brand_identity.dart';
+import 'widgets/dealer_fallback_back_button.dart';
 import 'widgets/fade_slide_in.dart';
 
 const double _exportSectionGap = 18;
@@ -339,6 +341,9 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const DealerFallbackBackButton(
+          fallbackPath: DealerRoutePath.home,
+        ),
         title: BrandAppBarTitle(texts.screenTitle),
         actions: [
           if (_cart.isNotEmpty)

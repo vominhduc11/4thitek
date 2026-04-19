@@ -8,10 +8,12 @@ import 'app_settings_controller.dart';
 import 'breakpoints.dart';
 import 'cart_controller.dart';
 import 'dealer_navigation.dart';
+import 'dealer_routes.dart';
 import 'global_search.dart';
 import 'models.dart';
 import 'utils.dart';
 import 'widgets/brand_identity.dart';
+import 'widgets/dealer_fallback_back_button.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/product_image.dart';
 import 'widgets/section_card.dart';
@@ -52,8 +54,6 @@ class _CartScreenState extends State<CartScreen> {
     final texts = _CartTexts(isEnglish: isEnglish);
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final navigator = Navigator.of(context);
-    final canPop = navigator.canPop();
     final cart = CartScope.of(context);
     final items = cart.items;
 
@@ -490,13 +490,10 @@ class _CartScreenState extends State<CartScreen> {
       data: mediaQuery.copyWith(textScaler: safeTextScaler),
       child: Scaffold(
         backgroundColor: colors.surface,
-        appBar: AppBar(
-          automaticallyImplyLeading: canPop,
-          leading: canPop
-              ? BackButton(onPressed: () => navigator.maybePop())
-              : null,
-          leadingWidth: canPop ? 56 : null,
-          titleSpacing: canPop ? 0 : null,
+      appBar: AppBar(
+        leading: const DealerFallbackBackButton(
+          fallbackPath: DealerRoutePath.home,
+        ),
           toolbarHeight: 64,
           backgroundColor: colors.surfaceContainerLow,
           foregroundColor: colors.onSurface,
@@ -522,9 +519,7 @@ class _CartScreenState extends State<CartScreen> {
                   onShop:
                       widget.onShop ??
                       () {
-                        Navigator.of(
-                          context,
-                        ).popUntil((route) => route.isFirst);
+                        context.goToDealerHome();
                       },
                 ),
               );

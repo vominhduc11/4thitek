@@ -1,10 +1,12 @@
 import 'package:dealer_hub/app_settings_controller.dart';
+import 'package:dealer_hub/dealer_routes.dart';
 import 'package:dealer_hub/notification_controller.dart';
 import 'package:dealer_hub/support_screen.dart';
 import 'package:dealer_hub/support_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -178,6 +180,25 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('Support screen root fallback goes to home', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+
+    await tester.pumpWidget(
+      await _buildRouterApp(
+        const Locale('en'),
+        supportService: _FakeSupportService(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.home_outlined).first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Home landing'), findsOneWidget);
+  });
 }
 
 Future<Widget> _buildApp(
@@ -201,6 +222,46 @@ Future<Widget> _buildApp(
           GlobalCupertinoLocalizations.delegate,
         ],
         home: SupportScreen(supportService: supportService),
+      ),
+    ),
+  );
+}
+
+Future<Widget> _buildRouterApp(
+  Locale locale, {
+  required SupportService supportService,
+}) async {
+  final settingsController = AppSettingsController();
+  await settingsController.setLocale(locale);
+  final notificationController = NotificationController();
+
+  return AppSettingsScope(
+    controller: settingsController,
+    child: NotificationScope(
+      controller: notificationController,
+      child: MaterialApp.router(
+        locale: locale,
+        supportedLocales: const <Locale>[Locale('vi'), Locale('en')],
+        localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        routerConfig: GoRouter(
+          initialLocation: DealerRoutePath.support,
+          routes: <RouteBase>[
+            GoRoute(
+              path: DealerRoutePath.support,
+              builder: (context, state) =>
+                  SupportScreen(supportService: supportService),
+            ),
+            GoRoute(
+              path: DealerRoutePath.home,
+              builder: (context, state) =>
+                  const Scaffold(body: Text('Home landing')),
+            ),
+          ],
+        ),
       ),
     ),
   );

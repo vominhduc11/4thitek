@@ -7,6 +7,7 @@ import 'breakpoints.dart';
 import 'cart_controller.dart';
 import 'checkout_validation_service.dart';
 import 'dealer_navigation.dart';
+import 'dealer_routes.dart';
 import 'dealer_profile_storage.dart';
 import 'global_search.dart';
 import 'models.dart';
@@ -15,6 +16,7 @@ import 'order_success_screen.dart';
 import 'product_catalog_controller.dart';
 import 'utils.dart';
 import 'widgets/brand_identity.dart';
+import 'widgets/dealer_fallback_back_button.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/product_image.dart';
 import 'widgets/section_card.dart';
@@ -647,6 +649,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const DealerFallbackBackButton(
+          fallbackPath: DealerRoutePath.home,
+        ),
         title: BrandAppBarTitle(texts.screenTitle),
         actions: const [GlobalSearchIconButton()],
       ),

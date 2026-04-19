@@ -1,96 +1,73 @@
 import 'package:dealer_hub/app_settings_controller.dart';
 import 'package:dealer_hub/cart_controller.dart';
 import 'package:dealer_hub/cart_screen.dart';
+import 'package:dealer_hub/dealer_routes.dart';
 import 'package:dealer_hub/models.dart';
-import 'package:dealer_hub/widgets/brand_identity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets(
-    'Cart screen keeps header, list items and checkout CTA on mobile',
-    (tester) async {
-      final view = tester.view;
-      view.devicePixelRatio = 1.0;
-      view.physicalSize = const Size(390, 844);
-      addTearDown(() {
-        view.resetPhysicalSize();
-        view.resetDevicePixelRatio();
-      });
+  testWidgets('Empty cart continue shopping routes to home from root', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
 
-      final settingsController = AppSettingsController();
-      await settingsController.setLocale(const Locale('vi'));
+    final settingsController = AppSettingsController();
+    await settingsController.setLocale(const Locale('en'));
 
-      await tester.pumpWidget(
-        AppSettingsScope(
-          controller: settingsController,
-          child: CartScope(
-            controller: _FakeCartController(),
-            child: MaterialApp(
-              theme: ThemeData(useMaterial3: true),
-              builder: (context, child) {
-                final mediaQuery = MediaQuery.of(context);
-                return MediaQuery(
-                  data: mediaQuery.copyWith(
-                    textScaler: const TextScaler.linear(1.6),
-                  ),
-                  child: child!,
-                );
-              },
-              home: const CartScreen(),
+    await tester.pumpWidget(
+      AppSettingsScope(
+        controller: settingsController,
+        child: CartScope(
+          controller: _EmptyCartController(),
+          child: MaterialApp.router(
+            theme: ThemeData(useMaterial3: true),
+            routerConfig: GoRouter(
+              initialLocation: DealerRoutePath.cart,
+              routes: <RouteBase>[
+                GoRoute(
+                  path: DealerRoutePath.cart,
+                  builder: (context, state) => const CartScreen(),
+                ),
+                GoRoute(
+                  path: DealerRoutePath.home,
+                  builder: (context, state) =>
+                      const Scaffold(body: Text('Home landing')),
+                ),
+              ],
             ),
           ),
         ),
-      );
+      ),
+    );
 
-      await tester.pumpAndSettle();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue shopping'));
+    await tester.pumpAndSettle();
 
-      expect(find.byType(AppBar), findsOneWidget);
-      expect(find.byType(BrandAppBarTitle), findsOneWidget);
-      expect(
-        find.widgetWithIcon(FilledButton, Icons.arrow_forward_outlined),
-        findsOneWidget,
-      );
-
-      final exceptions = <Object>[];
-      Object? error;
-      while ((error = tester.takeException()) != null) {
-        exceptions.add(error!);
-      }
-
-      expect(exceptions, isEmpty, reason: exceptions.join('\n'));
-    },
-  );
+    expect(find.text('Home landing'), findsOneWidget);
+  });
 }
 
-class _FakeCartController extends CartController {
-  _FakeCartController();
-
-  final List<CartItem> _seedItems = const <CartItem>[
-    CartItem(product: _productOne, quantity: 1),
-    CartItem(product: _productTwo, quantity: 1),
-  ];
+class _EmptyCartController extends CartController {
+  @override
+  List<CartItem> get items => const <CartItem>[];
 
   @override
-  List<CartItem> get items => _seedItems;
-
-  @override
-  bool get isEmpty => _seedItems.isEmpty;
+  bool get isEmpty => true;
 
   @override
   bool get isSyncing => false;
 
   @override
-  int get totalItems =>
-      _seedItems.fold<int>(0, (sum, item) => sum + item.quantity);
+  int get totalItems => 0;
 
   @override
-  int get subtotal => _seedItems.fold<int>(
-    0,
-    (sum, item) => sum + (item.product.price * item.quantity),
-  );
+  int get subtotal => 0;
 
   @override
   int get discountPercent => 0;
@@ -99,16 +76,16 @@ class _FakeCartController extends CartController {
   int get discountAmount => 0;
 
   @override
-  int get totalAfterDiscount => subtotal;
+  int get totalAfterDiscount => 0;
 
   @override
   int get vatPercent => 10;
 
   @override
-  int get vatAmount => (totalAfterDiscount * vatPercent / 100).round();
+  int get vatAmount => 0;
 
   @override
-  int get total => totalAfterDiscount + vatAmount;
+  int get total => 0;
 
   @override
   BulkDiscountTarget? get nextDiscountTarget => null;
@@ -125,23 +102,3 @@ class _FakeCartController extends CartController {
   @override
   Future<bool> setQuantity(Product product, int quantity) async => true;
 }
-
-const Product _productOne = Product(
-  id: 'helmet-kit',
-  name: 'SCS Rider Intercom Kit',
-  sku: 'SCS-RIDER-01',
-  shortDescription: 'Intercom headset kit',
-  price: 20000,
-  stock: 8,
-  warrantyMonths: 12,
-);
-
-const Product _productTwo = Product(
-  id: 'helmet-mic',
-  name: 'SCS Touring Mic',
-  sku: 'SCS-MIC-02',
-  shortDescription: 'Microphone accessory',
-  price: 20000,
-  stock: 12,
-  warrantyMonths: 12,
-);

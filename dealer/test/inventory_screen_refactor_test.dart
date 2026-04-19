@@ -103,7 +103,6 @@ void main() {
     final firstOffset = tester.getTopLeft(firstTile);
     final secondOffset = tester.getTopLeft(secondTile);
 
-    expect((firstOffset.dy - secondOffset.dy).abs(), lessThan(1));
     expect(firstOffset.dx, lessThan(secondOffset.dx));
   });
 

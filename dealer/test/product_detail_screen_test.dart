@@ -1,9 +1,11 @@
-import 'package:dealer_hub/app_settings_controller.dart';
+﻿import 'package:dealer_hub/app_settings_controller.dart';
 import 'package:dealer_hub/cart_controller.dart';
+import 'package:dealer_hub/dealer_routes.dart';
 import 'package:dealer_hub/models.dart';
 import 'package:dealer_hub/product_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -58,6 +60,7 @@ void main() {
   ) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final settings = AppSettingsController();
+    await settings.setLocale(const Locale('vi'));
 
     final cart = CartController(productLookup: (productId) => _product);
     addTearDown(cart.dispose);
@@ -95,6 +98,53 @@ void main() {
     expect(find.text('Thêm vào giỏ'), findsOneWidget);
     expect(find.text('Mua ngay'), findsOneWidget);
   });
+
+  testWidgets('Product detail screen root fallback goes to home', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final settings = AppSettingsController();
+    await settings.setLocale(const Locale('en'));
+
+    final cart = CartController(productLookup: (productId) => _product);
+    addTearDown(cart.dispose);
+
+    await tester.pumpWidget(
+      AppSettingsScope(
+        controller: settings,
+        child: CartScope(
+          controller: cart,
+          child: MaterialApp.router(
+            routerConfig: GoRouter(
+              initialLocation: DealerRoutePath.productDetail(_product.id),
+              routes: <RouteBase>[
+                GoRoute(
+                  path: DealerRoutePath.home,
+                  builder: (context, state) =>
+                      const Scaffold(body: Text('Home landing')),
+                ),
+                GoRoute(
+                  path: '${DealerRoutePath.products}/:productId',
+                  builder: (context, state) => ProductDetailScreen(
+                    product: _product,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump(const Duration(milliseconds: 450));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.byIcon(Icons.home_outlined).first);
+    await tester.tap(find.byIcon(Icons.home_outlined).first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Home landing'), findsOneWidget);
+  });
 }
 
 const Product _product = Product(
@@ -122,3 +172,4 @@ const Product _product = Product(
     ProductSpecification(label: 'Resolution', value: '4MP'),
   ],
 );
+

@@ -15,6 +15,8 @@ class DealerRoutePath {
   static const String accountSettings = '/account/settings';
   static const String accountPreferences = '/account/preferences';
   static const String accountChangePassword = '/account/change-password';
+  static const String cart = '/cart';
+  static const String checkout = '/checkout';
 
   static String productDetail(String productId) =>
       '$products/${Uri.encodeComponent(productId)}';

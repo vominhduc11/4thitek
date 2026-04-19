@@ -18,8 +18,10 @@ import 'widgets/notification_icon_button.dart';
 import 'utils.dart';
 import 'warranty_controller.dart';
 import 'widgets/brand_identity.dart';
+import 'widgets/dealer_fallback_back_button.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/skeleton_box.dart';
+import 'dealer_routes.dart';
 
 part 'orders_screen_support.dart';
 
@@ -1246,6 +1248,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const DealerFallbackBackButton(
+          fallbackPath: DealerRoutePath.home,
+        ),
         title: BrandAppBarTitle(texts.screenTitle),
         actions: [
           const GlobalSearchIconButton(),

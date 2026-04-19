@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'app_settings_controller.dart';
 import 'breakpoints.dart';
 import 'dealer_navigation.dart';
+import 'dealer_routes.dart';
 import 'models.dart';
 import 'notification_controller.dart';
 import 'order_controller.dart';
@@ -10,6 +11,7 @@ import 'utils.dart';
 import 'warranty_controller.dart';
 import 'warranty_serial_inventory_screen.dart';
 import 'widgets/brand_identity.dart';
+import 'widgets/dealer_fallback_back_button.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/notification_icon_button.dart';
 import 'widgets/section_card.dart';
@@ -43,6 +45,9 @@ class WarrantyHubScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const DealerFallbackBackButton(
+          fallbackPath: DealerRoutePath.home,
+        ),
         title: BrandAppBarTitle(texts.screenTitle),
         actions: [
           NotificationIconButton(

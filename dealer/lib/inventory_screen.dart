@@ -14,7 +14,9 @@ import 'utils.dart';
 import 'warranty_export_screen.dart';
 import 'warranty_controller.dart';
 import 'widgets/brand_identity.dart';
+import 'widgets/dealer_fallback_back_button.dart';
 import 'widgets/product_image.dart';
+import 'dealer_routes.dart';
 
 part 'inventory_screen_support.dart';
 
@@ -233,6 +235,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const DealerFallbackBackButton(
+          fallbackPath: DealerRoutePath.home,
+        ),
         title: BrandAppBarTitle(texts.screenTitle),
         actions: const [GlobalSearchIconButton()],
       ),
@@ -782,6 +787,9 @@ class _InventoryProductTile extends StatelessWidget {
                           : '${item.orderIds.length} orders',
                     ),
                 ];
+                final visibleSupportingMetrics = compactTile
+                    ? supportingMetrics.take(2).toList()
+                    : supportingMetrics;
                 final identityBlock = Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -805,7 +813,7 @@ class _InventoryProductTile extends StatelessWidget {
                     const SizedBox(height: 10),
                     Text(
                       item.product.name,
-                      maxLines: 2,
+                      maxLines: compactTile ? 1 : 2,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleMedium?.copyWith(
                         color: colorScheme.onSurface,
@@ -816,17 +824,19 @@ class _InventoryProductTile extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       'SKU: ${item.product.sku}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.labelMedium?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.1,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: compactTile ? 6 : 12),
                     Wrap(
-                      spacing: 10,
-                      runSpacing: 8,
-                      children: supportingMetrics,
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: visibleSupportingMetrics,
                     ),
                   ],
                 );
@@ -1041,11 +1051,15 @@ class _InventoryTileStatusBadge extends StatelessWidget {
         children: [
           Icon(icon, size: 14, color: color),
           const SizedBox(width: 6),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: colorScheme.onSurface,
-              fontWeight: FontWeight.w700,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
@@ -1464,14 +1478,19 @@ class _InventoryOverviewCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              _InventoryStatusPill(
-                icon: hasWarning
-                    ? Icons.priority_high_rounded
-                    : Icons.sync_rounded,
-                label: '${texts.sourceHealthLabel}: $statusValue',
-                accentColor: hasWarning
-                    ? colorScheme.error
-                    : colorScheme.primary,
+              Flexible(
+                child: Align(
+                  alignment: Alignment.topRight,
+                  child: _InventoryStatusPill(
+                    icon: hasWarning
+                        ? Icons.priority_high_rounded
+                        : Icons.sync_rounded,
+                    label: '${texts.sourceHealthLabel}: $statusValue',
+                    accentColor: hasWarning
+                        ? colorScheme.error
+                        : colorScheme.primary,
+                  ),
+                ),
               ),
             ],
           ),
@@ -1699,11 +1718,15 @@ class _InventoryStatusPill extends StatelessWidget {
         children: [
           Icon(icon, size: 14, color: accentColor),
           const SizedBox(width: 6),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: colorScheme.onSurface,
-              fontWeight: FontWeight.w700,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'app_settings_controller.dart';
 import 'breakpoints.dart';
+import 'dealer_navigation.dart';
 import 'models.dart';
 import 'order_controller.dart';
 import 'order_detail_screen.dart';
@@ -140,23 +141,13 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
               ),
               const SizedBox(height: 16),
               FilledButton.icon(
-                onPressed: () {
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          OrderDetailScreen(orderId: widget.orderId),
-                    ),
-                    (route) => route.isFirst,
-                  );
-                },
+                onPressed: () => context.goDealerOrderDetail(widget.orderId),
                 icon: const Icon(Icons.receipt_long_outlined),
                 label: Text(texts.viewOrderDetailAction),
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.of(context).popUntil((route) => route.isFirst);
-                },
+                onPressed: () => context.goToDealerHome(),
                 icon: const Icon(Icons.storefront_outlined),
                 label: Text(texts.continueShoppingAction),
               ),

@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 
 import 'app_settings_controller.dart';
 import 'dealer_navigation.dart';
+import 'dealer_routes.dart';
 import 'global_search.dart';
 import 'return_request_service.dart';
 import 'return_request_ui_support.dart';
 import 'utils.dart';
 import 'widgets/brand_identity.dart';
+import 'widgets/dealer_fallback_back_button.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/section_card.dart';
 
@@ -154,6 +156,9 @@ class _DealerReturnsScreenState extends State<DealerReturnsScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const DealerFallbackBackButton(
+          fallbackPath: DealerRoutePath.home,
+        ),
         title: BrandAppBarTitle(texts.screenTitle),
         actions: const [GlobalSearchIconButton()],
       ),

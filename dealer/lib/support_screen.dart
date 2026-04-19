@@ -7,12 +7,14 @@ import 'package:url_launcher/url_launcher.dart';
 import 'app_settings_controller.dart';
 import 'business_profile.dart';
 import 'breakpoints.dart';
+import 'dealer_routes.dart';
 import 'support_attachment_download.dart';
 import 'notification_controller.dart';
 import 'support_attachment_utils.dart';
 import 'support_service.dart';
 import 'upload_service.dart';
 import 'widgets/brand_identity.dart';
+import 'widgets/dealer_fallback_back_button.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/section_card.dart';
 import 'widgets/support_ticket_history.dart';
@@ -380,6 +382,9 @@ class _SupportScreenState extends State<SupportScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
+        leading: const DealerFallbackBackButton(
+          fallbackPath: DealerRoutePath.home,
+        ),
         title: BrandAppBarTitle(texts.screenTitle),
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,

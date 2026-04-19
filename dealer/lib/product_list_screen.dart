@@ -20,10 +20,12 @@ import 'utils.dart';
 import 'widgets/cart_icon_button.dart';
 import 'widgets/notification_icon_button.dart';
 import 'widgets/brand_identity.dart';
+import 'widgets/dealer_fallback_back_button.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/product_image.dart';
 import 'widgets/skeleton_box.dart';
 import 'widgets/stock_badge.dart';
+import 'dealer_routes.dart';
 
 part 'product_list_screen_support.dart';
 
@@ -157,6 +159,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
       data: mediaQuery.copyWith(textScaler: safeTextScaler),
       child: Scaffold(
         appBar: AppBar(
+          leading: const DealerFallbackBackButton(
+            fallbackPath: DealerRoutePath.home,
+          ),
           title: BrandAppBarTitle(texts.screenTitle),
           actions: [
             const GlobalSearchIconButton(),

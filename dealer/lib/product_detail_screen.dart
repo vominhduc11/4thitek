@@ -11,6 +11,7 @@ import 'app_settings_controller.dart';
 import 'breakpoints.dart';
 import 'cart_controller.dart';
 import 'dealer_navigation.dart';
+import 'dealer_routes.dart';
 import 'file_reference.dart';
 import 'global_search.dart';
 import 'models.dart';
@@ -18,6 +19,7 @@ import 'product_catalog_controller.dart';
 import 'utils.dart';
 import 'widgets/cart_icon_button.dart';
 import 'widgets/brand_identity.dart';
+import 'widgets/dealer_fallback_back_button.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/lazy_network_image.dart';
 import 'widgets/product_image.dart';
@@ -559,6 +561,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const DealerFallbackBackButton(
+          fallbackPath: DealerRoutePath.home,
+        ),
         title: BrandAppBarTitle(_currentProduct.name),
         actions: [
           const GlobalSearchIconButton(),
