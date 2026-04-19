@@ -429,6 +429,8 @@ class DealerCreateReturnRequestAttachmentPayload {
 }
 
 class ReturnRequestService {
+  static const Duration _requestTimeout = Duration(seconds: 15);
+
   ReturnRequestService({AuthStorage? authStorage, http.Client? client})
     : _authStorage = authStorage ?? AuthStorage() {
     _client = DealerAuthClient(
@@ -448,7 +450,8 @@ class ReturnRequestService {
     String? orderCode,
     String? serial,
   }) async {
-    final response = await _client.get(
+    final response = await _withRequestTimeout(
+      _client.get(
       DealerApiConfig.resolveApiUri('/dealer/returns/page').replace(
         queryParameters: <String, String>{
           'page': '$page',
@@ -464,6 +467,7 @@ class ReturnRequestService {
         },
       ),
       headers: await _authorizedHeaders(),
+      ),
     );
     final payload = _decodeBody(response.body);
     if (response.statusCode >= HttpStatus.badRequest) {
@@ -489,9 +493,11 @@ class ReturnRequestService {
   }
 
   Future<DealerReturnRequestDetailRecord> fetchDetail(int requestId) async {
-    final response = await _client.get(
+    final response = await _withRequestTimeout(
+      _client.get(
       DealerApiConfig.resolveApiUri('/dealer/returns/$requestId'),
       headers: await _authorizedHeaders(),
+      ),
     );
     final payload = _decodeBody(response.body);
     if (response.statusCode >= HttpStatus.badRequest) {
@@ -516,7 +522,8 @@ class ReturnRequestService {
     List<DealerCreateReturnRequestAttachmentPayload> attachments =
         const <DealerCreateReturnRequestAttachmentPayload>[],
   }) async {
-    final response = await _client.post(
+    final response = await _withRequestTimeout(
+      _client.post(
       DealerApiConfig.resolveApiUri('/dealer/returns'),
       headers: await _authorizedJsonHeaders(),
       body: jsonEncode(<String, dynamic>{
@@ -534,6 +541,7 @@ class ReturnRequestService {
               .map((item) => item.toJson())
               .toList(growable: false),
       }),
+      ),
     );
     final payload = _decodeBody(response.body);
     if (response.statusCode >= HttpStatus.badRequest) {
@@ -549,10 +557,12 @@ class ReturnRequestService {
   }
 
   Future<DealerReturnRequestDetailRecord> cancelRequest(int requestId) async {
-    final response = await _client.post(
+    final response = await _withRequestTimeout(
+      _client.post(
       DealerApiConfig.resolveApiUri('/dealer/returns/$requestId/cancel'),
       headers: await _authorizedJsonHeaders(),
       body: jsonEncode(const <String, dynamic>{}),
+      ),
     );
     final payload = _decodeBody(response.body);
     if (response.statusCode >= HttpStatus.badRequest) {
@@ -570,11 +580,13 @@ class ReturnRequestService {
   Future<List<DealerReturnEligibilityRecord>> fetchOrderEligibleSerials(
     int orderId,
   ) async {
-    final response = await _client.get(
+    final response = await _withRequestTimeout(
+      _client.get(
       DealerApiConfig.resolveApiUri(
         '/dealer/orders/$orderId/return-eligible-serials',
       ),
       headers: await _authorizedHeaders(),
+      ),
     );
     final payload = _decodeBody(response.body);
     if (response.statusCode >= HttpStatus.badRequest) {
@@ -595,11 +607,13 @@ class ReturnRequestService {
   Future<DealerReturnEligibilityRecord> fetchSerialEligibility(
     int serialId,
   ) async {
-    final response = await _client.get(
+    final response = await _withRequestTimeout(
+      _client.get(
       DealerApiConfig.resolveApiUri(
         '/dealer/inventory/serials/$serialId/return-eligibility',
       ),
       headers: await _authorizedHeaders(),
+      ),
     );
     final payload = _decodeBody(response.body);
     if (response.statusCode >= HttpStatus.badRequest) {
@@ -616,6 +630,10 @@ class ReturnRequestService {
 
   void close() {
     _client.close();
+  }
+
+  Future<T> _withRequestTimeout<T>(Future<T> future) {
+    return future.timeout(_requestTimeout);
   }
 
   DealerReturnRequestSummaryRecord _mapSummary(Map<String, dynamic> json) {

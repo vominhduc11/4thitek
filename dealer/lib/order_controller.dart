@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -183,6 +184,8 @@ class OrderControllerException implements Exception {
 }
 
 class OrderController extends ChangeNotifier {
+  static const Duration _requestTimeout = Duration(seconds: 15);
+
   OrderController({
     Product? Function(String productId)? productLookup,
     AuthStorage? authStorage,
@@ -241,6 +244,7 @@ class OrderController extends ChangeNotifier {
   }
 
   Future<void> refreshSingleOrder(String orderId) async {
+    _lastActionMessage = null;
     var remoteOrderId = _remoteOrderIds[orderId];
     if (remoteOrderId == null) {
       final loadedRemote = await _loadRemoteOrdersAndPayments();
@@ -414,15 +418,17 @@ class OrderController extends ChangeNotifier {
     if (remoteOrderId != null && await _canUseRemoteApi()) {
       return _trackCriticalMutation(() async {
         try {
-          final response = await _client.patch(
-            DealerApiConfig.resolveApiUri(
-              '/dealer/orders/$remoteOrderId/status',
-            ),
-            headers: await _authorizedJsonHeaders(),
-            body: jsonEncode(<String, dynamic>{
-              'status': _toRemoteOrderStatus(status),
-            }),
-          );
+      final response = await _withRequestTimeout(
+        _client.patch(
+        DealerApiConfig.resolveApiUri(
+          '/dealer/orders/$remoteOrderId/status',
+        ),
+        headers: await _authorizedJsonHeaders(),
+        body: jsonEncode(<String, dynamic>{
+          'status': _toRemoteOrderStatus(status),
+        }),
+        ),
+      );
           final payload = _decodeBody(response.body);
           if (response.statusCode >= 400) {
             throw OrderControllerException(
@@ -528,7 +534,8 @@ class OrderController extends ChangeNotifier {
     final remoteOrderId = _remoteOrderIds[orderId];
     if (remoteOrderId != null && await _canUseRemoteApi()) {
       try {
-        final response = await _client.post(
+        final response = await _withRequestTimeout(
+          _client.post(
           DealerApiConfig.resolveApiUri(
             '/dealer/orders/$remoteOrderId/payments',
           ),
@@ -541,6 +548,7 @@ class OrderController extends ChangeNotifier {
             if (proofFileName != null && proofFileName.trim().isNotEmpty)
               'proofFileName': proofFileName.trim(),
           }),
+          ),
         );
         final payload = _decodeBody(response.body);
         if (response.statusCode >= 400) {
@@ -600,9 +608,11 @@ class OrderController extends ChangeNotifier {
     }
 
     try {
-      final response = await _client.get(
+      final response = await _withRequestTimeout(
+        _client.get(
         DealerApiConfig.resolveApiUri('/dealer/orders'),
         headers: await _authorizedHeaders(),
+        ),
       );
       final payload = _decodeBody(response.body);
       if (response.statusCode >= 400) {
@@ -644,7 +654,8 @@ class OrderController extends ChangeNotifier {
   Future<Order> _createRemoteOrder(Order order) async {
     final headers = await _authorizedJsonHeaders();
     headers['X-Idempotency-Key'] = _generateIdempotencyKey();
-    final response = await _client.post(
+    final response = await _withRequestTimeout(
+      _client.post(
       DealerApiConfig.resolveApiUri('/dealer/orders'),
       headers: headers,
       body: jsonEncode(<String, dynamic>{
@@ -684,6 +695,7 @@ class OrderController extends ChangeNotifier {
               .toList(growable: false);
         }(),
       }),
+      ),
     );
     final payload = _decodeBody(response.body);
     if (response.statusCode >= 400) {
@@ -709,9 +721,11 @@ class OrderController extends ChangeNotifier {
   }
 
   Future<void> _reloadRemoteOrder(int remoteOrderId) async {
-    final response = await _client.get(
+    final response = await _withRequestTimeout(
+      _client.get(
       DealerApiConfig.resolveApiUri('/dealer/orders/$remoteOrderId'),
       headers: await _authorizedHeaders(),
+      ),
     );
     final payload = _decodeBody(response.body);
     if (response.statusCode >= 400) {
@@ -733,9 +747,11 @@ class OrderController extends ChangeNotifier {
     int remoteOrderId,
   ) async {
     try {
-      final response = await _client.get(
+      final response = await _withRequestTimeout(
+        _client.get(
         DealerApiConfig.resolveApiUri('/dealer/orders/$remoteOrderId/payments'),
         headers: await _authorizedHeaders(),
+        ),
       );
       final payload = _decodeBody(response.body);
       if (response.statusCode >= 400) {
@@ -942,6 +958,10 @@ class OrderController extends ChangeNotifier {
     return <String, String>{...headers, 'Content-Type': 'application/json'};
   }
 
+  Future<T> _withRequestTimeout<T>(Future<T> future) {
+    return future.timeout(_requestTimeout);
+  }
+
   String _generateIdempotencyKey() {
     final random = Random.secure();
     final bytes = List<int>.generate(16, (_) => random.nextInt(256));
@@ -998,6 +1018,12 @@ class OrderController extends ChangeNotifier {
     Object error, {
     required OrderMessageCode fallbackCode,
   }) {
+    if (error is TimeoutException ||
+        error is SocketException ||
+        error is FormatException ||
+        error is http.ClientException) {
+      return orderControllerMessageToken(fallbackCode);
+    }
     final message = switch (error) {
       OrderControllerException() => error.message,
       String() => error,

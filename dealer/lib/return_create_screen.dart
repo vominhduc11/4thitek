@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -40,6 +41,9 @@ class DealerReturnCreateScreen extends StatefulWidget {
 }
 
 class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
+  static const Duration _eligibilityLoadTimeout = Duration(seconds: 15);
+  static const Duration _activeRequestDetailTimeout = Duration(seconds: 5);
+
   late final ReturnRequestService _returnService;
   late final UploadService _uploadService;
 
@@ -70,7 +74,12 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
     super.initState();
     _returnService = widget.returnRequestService ?? ReturnRequestService();
     _uploadService = widget.uploadService ?? UploadService();
-    unawaited(_loadEligibility());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      unawaited(_loadEligibility());
+    });
   }
 
   @override
@@ -93,65 +102,7 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
     });
     final texts = _dealerReturnCreateTexts(context);
     try {
-      final orderController = OrderScope.of(context);
-      await orderController.refreshSingleOrder(widget.orderId);
-      final remoteOrderId = orderController.remoteOrderIdForOrderCode(
-        widget.orderId,
-      );
-      if (remoteOrderId == null || remoteOrderId <= 0) {
-        setState(() {
-          _errorMessage = texts.missingOrderMappingMessage(widget.orderId);
-          _isLoading = false;
-        });
-        return;
-      }
-
-      final eligibility = await _returnService.fetchOrderEligibleSerials(
-        remoteOrderId,
-      );
-      final activeRequestIds = eligibility
-          .map((item) => item.activeRequestId)
-          .whereType<int>()
-          .toSet()
-          .toList(growable: false);
-      final activeStatusMap = <int, DealerReturnRequestStatus>{};
-      for (final requestId in activeRequestIds) {
-        try {
-          final detail = await _returnService.fetchDetail(requestId);
-          activeStatusMap[requestId] = detail.status;
-        } on ReturnRequestException {
-          // Keep fallback reason text from eligibility endpoint.
-        }
-      }
-
-      if (!mounted) {
-        return;
-      }
-      final nextSelected = <int>{};
-      final nextConditionBySerialId = <int, DealerReturnRequestItemCondition>{};
-      for (final item in eligibility) {
-        final defaultCondition = DealerReturnRequestItemCondition.defective;
-        nextConditionBySerialId[item.serialId] = defaultCondition;
-        if (item.eligible &&
-            widget.prefilledSerialId != null &&
-            widget.prefilledSerialId == item.serialId) {
-          nextSelected.add(item.serialId);
-        }
-      }
-
-      setState(() {
-        _remoteOrderId = remoteOrderId;
-        _eligibilities = eligibility;
-        _selectedSerialIds
-          ..clear()
-          ..addAll(nextSelected);
-        _conditionBySerialId
-          ..clear()
-          ..addAll(nextConditionBySerialId);
-        _activeStatusByRequestId
-          ..clear()
-          ..addAll(activeStatusMap);
-      });
+      await _loadEligibilityData(texts).timeout(_eligibilityLoadTimeout);
     } on ReturnRequestException catch (error) {
       if (!mounted) {
         return;
@@ -162,6 +113,34 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
           isEnglish: texts.isEnglish,
         );
       });
+    } on TimeoutException {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _errorMessage = texts.eligibilityLoadTimeoutMessage;
+      });
+    } on FormatException {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _errorMessage = texts.eligibilityLoadInvalidResponseMessage;
+      });
+    } on SocketException {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _errorMessage = texts.eligibilityLoadNetworkMessage;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _errorMessage = texts.eligibilityLoadFailedMessage;
+      });
     } finally {
       if (mounted) {
         setState(() {
@@ -169,6 +148,78 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
         });
       }
     }
+  }
+
+  Future<void> _loadEligibilityData(_DealerReturnCreateTexts texts) async {
+    final orderController = OrderScope.of(context);
+    await orderController.refreshSingleOrder(widget.orderId);
+    final remoteOrderId = orderController.remoteOrderIdForOrderCode(
+      widget.orderId,
+    );
+    if (remoteOrderId == null || remoteOrderId <= 0) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        final orderLoadError = orderController.lastActionMessage;
+        _errorMessage = orderLoadError == null
+            ? texts.missingOrderMappingMessage(widget.orderId)
+            : orderControllerErrorMessage(
+                orderLoadError,
+                isEnglish: texts.isEnglish,
+              );
+      });
+      return;
+    }
+
+    final eligibility = await _returnService.fetchOrderEligibleSerials(
+      remoteOrderId,
+    );
+    final activeRequestIds = eligibility
+        .map((item) => item.activeRequestId)
+        .whereType<int>()
+        .toSet()
+        .toList(growable: false);
+    final activeStatusMap = <int, DealerReturnRequestStatus>{};
+    for (final requestId in activeRequestIds) {
+      try {
+        final detail = await _returnService
+            .fetchDetail(requestId)
+            .timeout(_activeRequestDetailTimeout);
+        activeStatusMap[requestId] = detail.status;
+      } catch (_) {
+        // Keep fallback reason text from eligibility endpoint.
+      }
+    }
+
+    if (!mounted) {
+      return;
+    }
+    final nextSelected = <int>{};
+    final nextConditionBySerialId = <int, DealerReturnRequestItemCondition>{};
+    for (final item in eligibility) {
+      final defaultCondition = DealerReturnRequestItemCondition.defective;
+      nextConditionBySerialId[item.serialId] = defaultCondition;
+      if (item.eligible &&
+          widget.prefilledSerialId != null &&
+          widget.prefilledSerialId == item.serialId) {
+        nextSelected.add(item.serialId);
+      }
+    }
+
+    setState(() {
+      _remoteOrderId = remoteOrderId;
+      _eligibilities = eligibility;
+      _selectedSerialIds
+        ..clear()
+        ..addAll(nextSelected);
+      _conditionBySerialId
+        ..clear()
+        ..addAll(nextConditionBySerialId);
+      _activeStatusByRequestId
+        ..clear()
+        ..addAll(activeStatusMap);
+    });
   }
 
   Future<void> _pickAttachment() async {
@@ -305,6 +356,9 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
   Widget build(BuildContext context) {
     final texts = _dealerReturnCreateTexts(context);
     final eligibleCount = _eligibilities.where((item) => item.eligible).length;
+    final orderHintText = _isLoading
+        ? texts.checkingEligibilityMessage
+        : texts.orderHint(eligibleCount);
 
     return Scaffold(
       appBar: AppBar(
@@ -326,7 +380,7 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      texts.orderHint(eligibleCount),
+                      orderHintText,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
@@ -836,6 +890,9 @@ class _DealerReturnCreateTexts {
   String orderHint(int eligibleCount) => isEnglish
       ? '$eligibleCount serial(s) are currently eligible to create a return request.'
       : '$eligibleCount serial dang du dieu kien tao yeu cau doi tra.';
+  String get checkingEligibilityMessage => isEnglish
+      ? 'Checking eligible serials for this return request...'
+      : 'Dang kiem tra serial du dieu kien doi tra...';
   String remoteOrderHint(int remoteOrderId) => isEnglish
       ? 'Runtime order id: $remoteOrderId'
       : 'Ma don runtime: $remoteOrderId';
@@ -845,6 +902,18 @@ class _DealerReturnCreateTexts {
   String get loadFailedTitle => isEnglish
       ? 'Unable to load return eligibility'
       : 'Khong the tai du lieu du dieu kien doi tra';
+  String get eligibilityLoadTimeoutMessage => isEnglish
+      ? 'Loading return eligibility timed out. Please retry.'
+      : 'Tai du lieu du dieu kien doi tra bi qua thoi gian. Vui long thu lai.';
+  String get eligibilityLoadInvalidResponseMessage => isEnglish
+      ? 'The server returned invalid return data. Please retry.'
+      : 'May chu tra ve du lieu doi tra khong hop le. Vui long thu lai.';
+  String get eligibilityLoadNetworkMessage => isEnglish
+      ? 'Unable to reach the server right now. Please retry.'
+      : 'Khong the ket noi may chu luc nay. Vui long thu lai.';
+  String get eligibilityLoadFailedMessage => isEnglish
+      ? 'Unable to load return eligibility right now.'
+      : 'Khong the tai du lieu du dieu kien doi tra luc nay.';
   String get retryAction => isEnglish ? 'Retry' : 'Thu lai';
   String get requestConfigTitle =>
       isEnglish ? 'Request details' : 'Thong tin yeu cau';

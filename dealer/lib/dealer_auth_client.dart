@@ -8,6 +8,8 @@ import 'api_config.dart';
 import 'auth_storage.dart';
 
 class DealerAuthClient extends http.BaseClient {
+  static const Duration _refreshTimeout = Duration(seconds: 12);
+
   DealerAuthClient({required AuthStorage authStorage, http.Client? inner})
     : _authStorage = authStorage,
       _inner = inner ?? http.Client();
@@ -119,7 +121,7 @@ class DealerAuthClient extends http.BaseClient {
         DealerApiConfig.authRefreshUri,
         headers: DealerApiConfig.jsonHeaders,
         body: jsonEncode(<String, String>{'refreshToken': refreshToken.trim()}),
-      );
+      ).timeout(_refreshTimeout);
 
       final payload = _decodeBody(response.body);
       if (response.statusCode >= 400) {
@@ -148,6 +150,8 @@ class DealerAuthClient extends http.BaseClient {
         refreshToken: nextRefreshToken,
       );
       return accessToken;
+    } on TimeoutException {
+      return null;
     } on Exception {
       return null;
     }
