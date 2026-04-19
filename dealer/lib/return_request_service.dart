@@ -613,12 +613,19 @@ class ReturnRequestService {
   }
 
   Future<DealerReturnEligibilityRecord> fetchSerialEligibility(
-    int serialId,
-  ) async {
+    int serialId, {
+    DealerReturnRequestType? type,
+  }) async {
+    final queryParameters = <String, String>{};
+    if (type != null && type != DealerReturnRequestType.unknown) {
+      queryParameters['type'] = type.apiValue;
+    }
     final response = await _withRequestTimeout(
       _client.get(
         DealerApiConfig.resolveApiUri(
           '/dealer/inventory/serials/$serialId/return-eligibility',
+        ).replace(
+          queryParameters: queryParameters.isEmpty ? null : queryParameters,
         ),
         headers: await _authorizedHeaders(),
       ),

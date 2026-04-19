@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'dealer_routes.dart';
 import 'inventory_screen.dart';
+import 'return_request_service.dart';
 
 extension DealerNavigationX on BuildContext {
   void goToDealerHome() => go(DealerRoutePath.home);
@@ -42,10 +43,12 @@ extension DealerNavigationX on BuildContext {
   Future<T?> pushDealerCreateReturnRequest<T extends Object?>(
     String orderId, {
     int? prefilledSerialId,
+    DealerReturnRequestType? returnType,
   }) => push<T>(
     DealerRoutePath.createReturnRequest(
       orderId,
       prefilledSerialId: prefilledSerialId,
+      returnType: returnType,
     ),
   );
 
@@ -107,7 +110,8 @@ extension DealerNavigationX on BuildContext {
   Future<T?> pushDealerChangePassword<T extends Object?>() =>
       push<T>(DealerRoutePath.accountChangePassword);
 
-  Future<T?> pushDealerCart<T extends Object?>() => push<T>(DealerRoutePath.cart);
+  Future<T?> pushDealerCart<T extends Object?>() =>
+      push<T>(DealerRoutePath.cart);
 
   Future<T?> pushDealerCheckout<T extends Object?>() =>
       push<T>(DealerRoutePath.checkout);

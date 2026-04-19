@@ -25,6 +25,9 @@ _OrderDetailTexts _orderDetailTexts(BuildContext context) => _OrderDetailTexts(
   isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
 );
 
+const DealerReturnRequestType _defaultCreateReturnRequestType =
+    DealerReturnRequestType.defectiveReturn;
+
 void _leaveOrderDetail(BuildContext context) {
   final navigator = Navigator.of(context);
   if (navigator.canPop()) {
@@ -1057,6 +1060,8 @@ class _OrderReturnOverviewSection extends StatefulWidget {
 
 class _OrderReturnOverviewSectionState
     extends State<_OrderReturnOverviewSection> {
+  static const Duration _activeRequestDetailTimeout = Duration(seconds: 5);
+
   late final ReturnRequestService _returnService;
   bool _hasLoadedInitially = false;
   List<DealerReturnEligibilityRecord> _eligibilities =
@@ -1065,6 +1070,7 @@ class _OrderReturnOverviewSectionState
       <int, DealerReturnRequestStatus>{};
   bool _isLoading = true;
   String? _errorMessage;
+  int _loadGeneration = 0;
 
   @override
   void initState() {
@@ -1089,6 +1095,7 @@ class _OrderReturnOverviewSectionState
   }
 
   Future<void> _load() async {
+    final loadGeneration = ++_loadGeneration;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -1101,7 +1108,7 @@ class _OrderReturnOverviewSectionState
         widget.orderId,
       );
       if (remoteOrderId == null || remoteOrderId <= 0) {
-        if (!mounted) {
+        if (!mounted || !_isCurrentLoad(loadGeneration)) {
           return;
         }
         setState(() {
@@ -1114,32 +1121,18 @@ class _OrderReturnOverviewSectionState
 
       final eligibility = await _returnService.fetchOrderEligibleSerials(
         remoteOrderId,
+        type: _defaultCreateReturnRequestType,
       );
-      final activeRequestIds = eligibility
-          .map((item) => item.activeRequestId)
-          .whereType<int>()
-          .toSet()
-          .toList(growable: false);
-      final statusMap = <int, DealerReturnRequestStatus>{};
-      for (final requestId in activeRequestIds) {
-        try {
-          final detail = await _returnService.fetchDetail(requestId);
-          statusMap[requestId] = detail.status;
-        } on ReturnRequestException {
-          // Keep reason from eligibility API if detail lookup fails.
-        }
-      }
-      if (!mounted) {
+      if (!mounted || !_isCurrentLoad(loadGeneration)) {
         return;
       }
       setState(() {
         _eligibilities = eligibility;
-        _activeStatusByRequestId
-          ..clear()
-          ..addAll(statusMap);
+        _activeStatusByRequestId.clear();
       });
+      unawaited(_enrichActiveRequestStatuses(eligibility, loadGeneration));
     } on ReturnRequestException catch (error) {
-      if (!mounted) {
+      if (!mounted || !_isCurrentLoad(loadGeneration)) {
         return;
       }
       setState(() {
@@ -1149,12 +1142,51 @@ class _OrderReturnOverviewSectionState
         );
       });
     } finally {
-      if (mounted) {
+      if (mounted && _isCurrentLoad(loadGeneration)) {
         setState(() {
           _isLoading = false;
         });
       }
     }
+  }
+
+  bool _isCurrentLoad(int loadGeneration) => loadGeneration == _loadGeneration;
+
+  Future<void> _enrichActiveRequestStatuses(
+    List<DealerReturnEligibilityRecord> eligibility,
+    int loadGeneration,
+  ) async {
+    final activeRequestIds = eligibility
+        .map((item) => item.activeRequestId)
+        .whereType<int>()
+        .toSet()
+        .toList(growable: false);
+    if (activeRequestIds.isEmpty) {
+      return;
+    }
+
+    final statusMap = <int, DealerReturnRequestStatus>{};
+    await Future.wait<void>(
+      activeRequestIds.map((requestId) async {
+        try {
+          final detail = await _returnService
+              .fetchDetail(requestId)
+              .timeout(_activeRequestDetailTimeout);
+          statusMap[requestId] = detail.status;
+        } catch (_) {
+          // Keep reason from eligibility API if detail lookup fails.
+        }
+      }),
+    );
+
+    if (!mounted || !_isCurrentLoad(loadGeneration)) {
+      return;
+    }
+    setState(() {
+      _activeStatusByRequestId
+        ..clear()
+        ..addAll(statusMap);
+    });
   }
 
   @override
@@ -1207,8 +1239,10 @@ class _OrderReturnOverviewSectionState
               runSpacing: 8,
               children: [
                 OutlinedButton.icon(
-                  onPressed: () =>
-                      context.pushDealerCreateReturnRequest(widget.orderId),
+                  onPressed: () => context.pushDealerCreateReturnRequest(
+                    widget.orderId,
+                    returnType: _defaultCreateReturnRequestType,
+                  ),
                   icon: const Icon(Icons.assignment_return_outlined, size: 18),
                   label: Text(texts.createReturnAction),
                 ),
@@ -1298,6 +1332,7 @@ class _OrderReturnSerialTile extends StatelessWidget {
                     : () => context.pushDealerCreateReturnRequest(
                         eligibility.orderCode!,
                         prefilledSerialId: eligibility.serialId,
+                        returnType: _defaultCreateReturnRequestType,
                       ),
                 child: Text(texts.createReturnForSerialAction),
               ),

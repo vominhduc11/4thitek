@@ -1,4 +1,5 @@
 import 'package:dealer_hub/dealer_routes.dart';
+import 'package:dealer_hub/return_request_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -64,6 +65,14 @@ void main() {
       expect(
         DealerRoutePath.createReturnRequest('DH-001', prefilledSerialId: 9),
         '/orders/DH-001/returns/new?serialId=9',
+      );
+      expect(
+        DealerRoutePath.createReturnRequest(
+          'DH-001',
+          prefilledSerialId: 9,
+          returnType: DealerReturnRequestType.warrantyRma,
+        ),
+        '/orders/DH-001/returns/new?serialId=9&type=WARRANTY_RMA',
       );
     });
 

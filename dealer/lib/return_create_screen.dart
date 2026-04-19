@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'app_settings_controller.dart';
@@ -26,12 +27,14 @@ class DealerReturnCreateScreen extends StatefulWidget {
     super.key,
     required this.orderId,
     this.prefilledSerialId,
+    this.initialRequestType,
     this.returnRequestService,
     this.uploadService,
   });
 
   final String orderId;
   final int? prefilledSerialId;
+  final DealerReturnRequestType? initialRequestType;
   final ReturnRequestService? returnRequestService;
   final UploadService? uploadService;
 
@@ -43,6 +46,8 @@ class DealerReturnCreateScreen extends StatefulWidget {
 class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
   static const Duration _eligibilityLoadTimeout = Duration(seconds: 15);
   static const Duration _activeRequestDetailTimeout = Duration(seconds: 5);
+  static const int _reasonCodeMaxLength = 128;
+  static const int _reasonDetailMaxLength = 1000;
 
   late final ReturnRequestService _returnService;
   late final UploadService _uploadService;
@@ -67,6 +72,7 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
   bool _isLoading = true;
   bool _isSubmitting = false;
   bool _isUploadingAttachment = false;
+  int _eligibilityLoadGeneration = 0;
   String? _errorMessage;
 
   @override
@@ -74,6 +80,15 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
     super.initState();
     _returnService = widget.returnRequestService ?? ReturnRequestService();
     _uploadService = widget.uploadService ?? UploadService();
+    final initialRequestType = widget.initialRequestType;
+    if (initialRequestType != null &&
+        initialRequestType != DealerReturnRequestType.unknown) {
+      _requestType = initialRequestType;
+      _resolution = _normalizeResolutionForRequestType(
+        _requestType,
+        _resolution,
+      );
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
@@ -96,15 +111,21 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
   }
 
   Future<void> _loadEligibility() async {
+    final loadGeneration = ++_eligibilityLoadGeneration;
+    final requestType = _requestType;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
     final texts = _dealerReturnCreateTexts(context);
     try {
-      await _loadEligibilityData(texts).timeout(_eligibilityLoadTimeout);
+      await _loadEligibilityData(
+        texts,
+        loadGeneration: loadGeneration,
+        requestType: requestType,
+      ).timeout(_eligibilityLoadTimeout);
     } on ReturnRequestException catch (error) {
-      if (!mounted) {
+      if (!mounted || !_isCurrentEligibilityLoad(loadGeneration)) {
         return;
       }
       setState(() {
@@ -114,35 +135,35 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
         );
       });
     } on TimeoutException {
-      if (!mounted) {
+      if (!mounted || !_isCurrentEligibilityLoad(loadGeneration)) {
         return;
       }
       setState(() {
         _errorMessage = texts.eligibilityLoadTimeoutMessage;
       });
     } on FormatException {
-      if (!mounted) {
+      if (!mounted || !_isCurrentEligibilityLoad(loadGeneration)) {
         return;
       }
       setState(() {
         _errorMessage = texts.eligibilityLoadInvalidResponseMessage;
       });
     } on SocketException {
-      if (!mounted) {
+      if (!mounted || !_isCurrentEligibilityLoad(loadGeneration)) {
         return;
       }
       setState(() {
         _errorMessage = texts.eligibilityLoadNetworkMessage;
       });
     } catch (_) {
-      if (!mounted) {
+      if (!mounted || !_isCurrentEligibilityLoad(loadGeneration)) {
         return;
       }
       setState(() {
         _errorMessage = texts.eligibilityLoadFailedMessage;
       });
     } finally {
-      if (mounted) {
+      if (mounted && _isCurrentEligibilityLoad(loadGeneration)) {
         setState(() {
           _isLoading = false;
         });
@@ -150,14 +171,21 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
     }
   }
 
-  Future<void> _loadEligibilityData(_DealerReturnCreateTexts texts) async {
+  bool _isCurrentEligibilityLoad(int loadGeneration) =>
+      loadGeneration == _eligibilityLoadGeneration;
+
+  Future<void> _loadEligibilityData(
+    _DealerReturnCreateTexts texts, {
+    required int loadGeneration,
+    required DealerReturnRequestType requestType,
+  }) async {
     final orderController = OrderScope.of(context);
     await orderController.refreshSingleOrder(widget.orderId);
     final remoteOrderId = orderController.remoteOrderIdForOrderCode(
       widget.orderId,
     );
     if (remoteOrderId == null || remoteOrderId <= 0) {
-      if (!mounted) {
+      if (!mounted || !_isCurrentEligibilityLoad(loadGeneration)) {
         return;
       }
       setState(() {
@@ -174,26 +202,10 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
 
     final eligibility = await _returnService.fetchOrderEligibleSerials(
       remoteOrderId,
-      type: _requestType,
+      type: requestType,
     );
-    final activeRequestIds = eligibility
-        .map((item) => item.activeRequestId)
-        .whereType<int>()
-        .toSet()
-        .toList(growable: false);
-    final activeStatusMap = <int, DealerReturnRequestStatus>{};
-    for (final requestId in activeRequestIds) {
-      try {
-        final detail = await _returnService
-            .fetchDetail(requestId)
-            .timeout(_activeRequestDetailTimeout);
-        activeStatusMap[requestId] = detail.status;
-      } catch (_) {
-        // Keep fallback reason text from eligibility endpoint.
-      }
-    }
 
-    if (!mounted) {
+    if (!mounted || !_isCurrentEligibilityLoad(loadGeneration)) {
       return;
     }
     final nextSelected = <int>{};
@@ -217,6 +229,42 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
       _conditionBySerialId
         ..clear()
         ..addAll(nextConditionBySerialId);
+      _activeStatusByRequestId.clear();
+    });
+    unawaited(_enrichActiveRequestStatuses(eligibility, loadGeneration));
+  }
+
+  Future<void> _enrichActiveRequestStatuses(
+    List<DealerReturnEligibilityRecord> eligibility,
+    int loadGeneration,
+  ) async {
+    final activeRequestIds = eligibility
+        .map((item) => item.activeRequestId)
+        .whereType<int>()
+        .toSet()
+        .toList(growable: false);
+    if (activeRequestIds.isEmpty) {
+      return;
+    }
+
+    final activeStatusMap = <int, DealerReturnRequestStatus>{};
+    await Future.wait<void>(
+      activeRequestIds.map((requestId) async {
+        try {
+          final detail = await _returnService
+              .fetchDetail(requestId)
+              .timeout(_activeRequestDetailTimeout);
+          activeStatusMap[requestId] = detail.status;
+        } catch (_) {
+          // Keep fallback reason text from eligibility endpoint.
+        }
+      }),
+    );
+
+    if (!mounted || !_isCurrentEligibilityLoad(loadGeneration)) {
+      return;
+    }
+    setState(() {
       _activeStatusByRequestId
         ..clear()
         ..addAll(activeStatusMap);
@@ -325,6 +373,15 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
 
   Future<void> _submit() async {
     final texts = _dealerReturnCreateTexts(context);
+    if (_isSubmitting) {
+      return;
+    }
+    if (_isUploadingAttachment) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(texts.attachmentUploadInProgressMessage)),
+      );
+      return;
+    }
     final remoteOrderId = _remoteOrderId;
     if (remoteOrderId == null || remoteOrderId <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -347,6 +404,26 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
       );
       return;
     }
+    final reasonCode = _reasonCodeController.text.trim();
+    if (reasonCode.length > _reasonCodeMaxLength) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(texts.reasonCodeTooLongMessage(_reasonCodeMaxLength)),
+        ),
+      );
+      return;
+    }
+    final reasonDetail = _reasonDetailController.text.trim();
+    if (reasonDetail.length > _reasonDetailMaxLength) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            texts.reasonDetailTooLongMessage(_reasonDetailMaxLength),
+          ),
+        ),
+      );
+      return;
+    }
     setState(() => _isSubmitting = true);
     try {
       final payloadItems = _selectedSerialIds
@@ -359,9 +436,13 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
             ),
           )
           .toList(growable: false);
+      final attachmentProductSerialId = _selectedSerialIds.length == 1
+          ? _selectedSerialIds.single
+          : null;
       final payloadAttachments = _attachments
           .map(
             (attachment) => DealerCreateReturnRequestAttachmentPayload(
+              productSerialId: attachmentProductSerialId,
               url: attachment.url,
               fileName: attachment.fileName,
               category: attachment.category,
@@ -373,8 +454,8 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
         orderId: remoteOrderId,
         type: _requestType,
         requestedResolution: _resolution,
-        reasonCode: _reasonCodeController.text.trim(),
-        reasonDetail: _reasonDetailController.text.trim(),
+        reasonCode: reasonCode,
+        reasonDetail: reasonDetail,
         items: payloadItems,
         attachments: payloadAttachments,
       );
@@ -412,7 +493,11 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
     final eligibleCount = _eligibilities.where((item) => item.eligible).length;
     final hasEligibleSerials = eligibleCount > 0;
     final allowedResolutions = _allowedResolutionsForRequestType(_requestType);
-    final canSubmit = !_isSubmitting && !_isLoading && hasEligibleSerials;
+    final canSubmit =
+        !_isSubmitting &&
+        !_isLoading &&
+        !_isUploadingAttachment &&
+        hasEligibleSerials;
     final orderHintText = _isLoading
         ? texts.checkingEligibilityMessage
         : texts.orderHint(eligibleCount);
@@ -545,6 +630,11 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
                       TextField(
                         controller: _reasonCodeController,
                         enabled: hasEligibleSerials,
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(
+                            _reasonCodeMaxLength,
+                          ),
+                        ],
                         decoration: InputDecoration(
                           labelText: texts.reasonCodeLabel,
                         ),
@@ -554,6 +644,11 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
                         controller: _reasonDetailController,
                         enabled: hasEligibleSerials,
                         maxLines: 3,
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(
+                            _reasonDetailMaxLength,
+                          ),
+                        ],
                         decoration: InputDecoration(
                           labelText: texts.reasonDetailLabel,
                         ),
@@ -1022,4 +1117,13 @@ class _DealerReturnCreateTexts {
   String get noEligibleSerialsSubmitMessage => isEnglish
       ? 'No eligible serials are available for this return request.'
       : 'Khong co serial du dieu kien de tao yeu cau doi tra nay.';
+  String get attachmentUploadInProgressMessage => isEnglish
+      ? 'Please wait for the attachment upload to finish before submitting.'
+      : 'Vui long cho tai tap dinh kem xong truoc khi gui yeu cau.';
+  String reasonCodeTooLongMessage(int maxLength) => isEnglish
+      ? 'Reason code must be at most $maxLength characters.'
+      : 'Ma ly do toi da $maxLength ky tu.';
+  String reasonDetailTooLongMessage(int maxLength) => isEnglish
+      ? 'Reason detail must be at most $maxLength characters.'
+      : 'Mo ta chi tiet toi da $maxLength ky tu.';
 }

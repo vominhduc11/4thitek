@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'account_settings_screen.dart';
@@ -19,6 +19,7 @@ import 'product_detail_screen.dart';
 import 'product_list_screen.dart';
 import 'return_create_screen.dart';
 import 'return_detail_screen.dart';
+import 'return_request_service.dart';
 import 'returns_screen.dart';
 import 'support_screen.dart';
 import 'warranty_activation_screen.dart';
@@ -78,8 +79,14 @@ GoRouter buildDealerRouter({
           if (orderId == null || orderId.isEmpty) {
             return const OrdersScreen();
           }
+          final returnType = DealerReturnRequestType.fromApi(
+            state.uri.queryParameters['type'],
+          );
           return DealerReturnCreateScreen(
             orderId: orderId,
+            initialRequestType: returnType == DealerReturnRequestType.unknown
+                ? null
+                : returnType,
             prefilledSerialId: int.tryParse(
               state.uri.queryParameters['serialId'] ?? '',
             ),
@@ -324,7 +331,9 @@ class _RouteNotFoundScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isEnglish = Localizations.localeOf(context).languageCode == 'en';
-    final title = isEnglish ? 'Content not found' : 'KhĂ´ng tĂ¬m tháº¥y ná»™i dung';
+    final title = isEnglish
+        ? 'Content not found'
+        : 'KhĂ´ng tĂ¬m tháº¥y ná»™i dung';
     final message = isEnglish
         ? 'The destination may have changed or is no longer available.'
         : 'Äiá»ƒm Ä‘áº¿n cĂ³ thá»ƒ Ä‘Ă£ thay Ä‘á»•i hoáº·c hiá»‡n khĂ´ng cĂ²n kháº£ dá»¥ng.';
@@ -407,4 +416,3 @@ class _RouteNotFoundScreen extends StatelessWidget {
     );
   }
 }
-

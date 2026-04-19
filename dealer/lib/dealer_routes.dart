@@ -1,3 +1,5 @@
+import 'return_request_service.dart';
+
 class DealerRoutePath {
   const DealerRoutePath._();
 
@@ -31,9 +33,15 @@ class DealerRoutePath {
     queryParameters: <String, String>{'ticketId': '$ticketId'},
   ).toString();
 
-  static String createReturnRequest(String orderId, {int? prefilledSerialId}) {
+  static String createReturnRequest(
+    String orderId, {
+    int? prefilledSerialId,
+    DealerReturnRequestType? returnType,
+  }) {
     final queryParameters = <String, String>{
       if (prefilledSerialId != null) 'serialId': '$prefilledSerialId',
+      if (returnType != null && returnType != DealerReturnRequestType.unknown)
+        'type': returnType.apiValue,
     };
     return Uri(
       path: '/orders/${Uri.encodeComponent(orderId)}/returns/new',

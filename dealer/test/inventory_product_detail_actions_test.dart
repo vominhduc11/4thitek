@@ -88,8 +88,9 @@ class _FakeInventoryService extends InventoryService {
 class _FakeReturnRequestService extends ReturnRequestService {
   @override
   Future<DealerReturnEligibilityRecord> fetchSerialEligibility(
-    int serialId,
-  ) async {
+    int serialId, {
+    DealerReturnRequestType? type,
+  }) async {
     return DealerReturnEligibilityRecord(
       serialId: serialId,
       serial: 'SN-READY-001',
