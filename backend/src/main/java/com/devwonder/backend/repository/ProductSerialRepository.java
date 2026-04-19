@@ -3,6 +3,7 @@ package com.devwonder.backend.repository;
 import com.devwonder.backend.entity.ProductSerial;
 import com.devwonder.backend.entity.enums.ProductSerialStatus;
 import jakarta.persistence.LockModeType;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -67,6 +68,40 @@ public interface ProductSerialRepository extends JpaRepository<ProductSerial, Lo
 
     @EntityGraph(attributePaths = {"product", "dealer", "order", "warranty"})
     List<ProductSerial> findByOrderId(Long orderId);
+
+    @EntityGraph(attributePaths = {"product", "dealer", "order"})
+    @Query("""
+            SELECT ps
+            FROM ProductSerial ps
+            JOIN ps.order o
+            WHERE o.id = :orderId
+              AND o.dealer.id = :dealerId
+            ORDER BY ps.importedAt DESC
+            """)
+    List<ProductSerial> findInventoryByOrderIdAndDealerId(
+            @Param("orderId") Long orderId,
+            @Param("dealerId") Long dealerId
+    );
+
+    @EntityGraph(attributePaths = {"product", "dealer", "order", "order.dealer", "warranty", "warranty.dealer"})
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select ps
+            from ProductSerial ps
+            left join ps.order o
+            left join ps.warranty w
+            where ps.id in :serialIds
+              and (
+                (ps.dealer is not null and ps.dealer.id = :dealerId)
+                or (o is not null and o.dealer is not null and o.dealer.id = :dealerId
+                    and o.status = com.devwonder.backend.entity.enums.OrderStatus.COMPLETED)
+                or (w is not null and w.dealer is not null and w.dealer.id = :dealerId)
+            )
+            """)
+    List<ProductSerial> findInventoryByIdsAndDealerIdForUpdate(
+            @Param("serialIds") Collection<Long> serialIds,
+            @Param("dealerId") Long dealerId
+    );
 
     long countByOrderIdAndProductId(Long orderId, Long productId);
 

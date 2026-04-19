@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -452,21 +453,21 @@ class ReturnRequestService {
   }) async {
     final response = await _withRequestTimeout(
       _client.get(
-      DealerApiConfig.resolveApiUri('/dealer/returns/page').replace(
-        queryParameters: <String, String>{
-          'page': '$page',
-          'size': '$size',
-          if (status != null && status != DealerReturnRequestStatus.unknown)
-            'status': status.apiValue,
-          if (type != null && type != DealerReturnRequestType.unknown)
-            'type': type.apiValue,
-          if (orderCode != null && orderCode.trim().isNotEmpty)
-            'orderCode': orderCode.trim(),
-          if (serial != null && serial.trim().isNotEmpty)
-            'serial': serial.trim(),
-        },
-      ),
-      headers: await _authorizedHeaders(),
+        DealerApiConfig.resolveApiUri('/dealer/returns/page').replace(
+          queryParameters: <String, String>{
+            'page': '$page',
+            'size': '$size',
+            if (status != null && status != DealerReturnRequestStatus.unknown)
+              'status': status.apiValue,
+            if (type != null && type != DealerReturnRequestType.unknown)
+              'type': type.apiValue,
+            if (orderCode != null && orderCode.trim().isNotEmpty)
+              'orderCode': orderCode.trim(),
+            if (serial != null && serial.trim().isNotEmpty)
+              'serial': serial.trim(),
+          },
+        ),
+        headers: await _authorizedHeaders(),
       ),
     );
     final payload = _decodeBody(response.body);
@@ -495,8 +496,8 @@ class ReturnRequestService {
   Future<DealerReturnRequestDetailRecord> fetchDetail(int requestId) async {
     final response = await _withRequestTimeout(
       _client.get(
-      DealerApiConfig.resolveApiUri('/dealer/returns/$requestId'),
-      headers: await _authorizedHeaders(),
+        DealerApiConfig.resolveApiUri('/dealer/returns/$requestId'),
+        headers: await _authorizedHeaders(),
       ),
     );
     final payload = _decodeBody(response.body);
@@ -524,23 +525,23 @@ class ReturnRequestService {
   }) async {
     final response = await _withRequestTimeout(
       _client.post(
-      DealerApiConfig.resolveApiUri('/dealer/returns'),
-      headers: await _authorizedJsonHeaders(),
-      body: jsonEncode(<String, dynamic>{
-        'orderId': orderId,
-        'type': type.apiValue,
-        'requestedResolution': requestedResolution.apiValue,
-        if (reasonCode != null && reasonCode.trim().isNotEmpty)
-          'reasonCode': reasonCode.trim(),
-        if (reasonDetail != null && reasonDetail.trim().isNotEmpty)
-          'reasonDetail': reasonDetail.trim(),
-        'items': items.map((item) => item.toJson()).toList(growable: false),
-        if (attachments.isNotEmpty)
-          'attachments': attachments
-              .where((item) => item.url.trim().isNotEmpty)
-              .map((item) => item.toJson())
-              .toList(growable: false),
-      }),
+        DealerApiConfig.resolveApiUri('/dealer/returns'),
+        headers: await _authorizedJsonHeaders(),
+        body: jsonEncode(<String, dynamic>{
+          'orderId': orderId,
+          'type': type.apiValue,
+          'requestedResolution': requestedResolution.apiValue,
+          if (reasonCode != null && reasonCode.trim().isNotEmpty)
+            'reasonCode': reasonCode.trim(),
+          if (reasonDetail != null && reasonDetail.trim().isNotEmpty)
+            'reasonDetail': reasonDetail.trim(),
+          'items': items.map((item) => item.toJson()).toList(growable: false),
+          if (attachments.isNotEmpty)
+            'attachments': attachments
+                .where((item) => item.url.trim().isNotEmpty)
+                .map((item) => item.toJson())
+                .toList(growable: false),
+        }),
       ),
     );
     final payload = _decodeBody(response.body);
@@ -559,9 +560,9 @@ class ReturnRequestService {
   Future<DealerReturnRequestDetailRecord> cancelRequest(int requestId) async {
     final response = await _withRequestTimeout(
       _client.post(
-      DealerApiConfig.resolveApiUri('/dealer/returns/$requestId/cancel'),
-      headers: await _authorizedJsonHeaders(),
-      body: jsonEncode(const <String, dynamic>{}),
+        DealerApiConfig.resolveApiUri('/dealer/returns/$requestId/cancel'),
+        headers: await _authorizedJsonHeaders(),
+        body: jsonEncode(const <String, dynamic>{}),
       ),
     );
     final payload = _decodeBody(response.body);
@@ -578,14 +579,21 @@ class ReturnRequestService {
   }
 
   Future<List<DealerReturnEligibilityRecord>> fetchOrderEligibleSerials(
-    int orderId,
-  ) async {
+    int orderId, {
+    DealerReturnRequestType? type,
+  }) async {
+    final queryParameters = <String, String>{};
+    if (type != null && type != DealerReturnRequestType.unknown) {
+      queryParameters['type'] = type.apiValue;
+    }
     final response = await _withRequestTimeout(
       _client.get(
-      DealerApiConfig.resolveApiUri(
-        '/dealer/orders/$orderId/return-eligible-serials',
-      ),
-      headers: await _authorizedHeaders(),
+        DealerApiConfig.resolveApiUri(
+          '/dealer/orders/$orderId/return-eligible-serials',
+        ).replace(
+          queryParameters: queryParameters.isEmpty ? null : queryParameters,
+        ),
+        headers: await _authorizedHeaders(),
       ),
     );
     final payload = _decodeBody(response.body);
@@ -609,10 +617,10 @@ class ReturnRequestService {
   ) async {
     final response = await _withRequestTimeout(
       _client.get(
-      DealerApiConfig.resolveApiUri(
-        '/dealer/inventory/serials/$serialId/return-eligibility',
-      ),
-      headers: await _authorizedHeaders(),
+        DealerApiConfig.resolveApiUri(
+          '/dealer/inventory/serials/$serialId/return-eligibility',
+        ),
+        headers: await _authorizedHeaders(),
       ),
     );
     final payload = _decodeBody(response.body);
@@ -632,8 +640,28 @@ class ReturnRequestService {
     _client.close();
   }
 
-  Future<T> _withRequestTimeout<T>(Future<T> future) {
-    return future.timeout(_requestTimeout);
+  Future<T> _withRequestTimeout<T>(Future<T> future) async {
+    try {
+      return await future.timeout(_requestTimeout);
+    } on ReturnRequestException {
+      rethrow;
+    } on TimeoutException {
+      throw ReturnRequestException(
+        returnServiceMessageToken(ReturnMessageCode.syncFailed),
+      );
+    } on SocketException {
+      throw ReturnRequestException(
+        returnServiceMessageToken(ReturnMessageCode.syncFailed),
+      );
+    } on http.ClientException {
+      throw ReturnRequestException(
+        returnServiceMessageToken(ReturnMessageCode.syncFailed),
+      );
+    } on FormatException {
+      throw ReturnRequestException(
+        returnServiceMessageToken(ReturnMessageCode.syncFailed),
+      );
+    }
   }
 
   DealerReturnRequestSummaryRecord _mapSummary(Map<String, dynamic> json) {
@@ -784,7 +812,14 @@ class ReturnRequestService {
     if (body.trim().isEmpty) {
       return const <String, dynamic>{};
     }
-    final decoded = jsonDecode(body);
+    final dynamic decoded;
+    try {
+      decoded = jsonDecode(body);
+    } on FormatException {
+      throw ReturnRequestException(
+        returnServiceMessageToken(ReturnMessageCode.syncFailed),
+      );
+    }
     if (decoded is Map<String, dynamic>) {
       return decoded;
     }

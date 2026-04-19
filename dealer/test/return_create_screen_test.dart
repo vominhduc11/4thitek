@@ -18,14 +18,14 @@ void main() {
   ) async {
     final eligibilityCompleter =
         Completer<List<DealerReturnEligibilityRecord>>();
-    await tester.pumpWidget(await _buildApp(
-      orderController: _FakeOrderController(
-        remoteOrderId: 101,
+    await tester.pumpWidget(
+      await _buildApp(
+        orderController: _FakeOrderController(remoteOrderId: 101),
+        returnService: _FakeReturnRequestService(
+          eligibilityFuture: eligibilityCompleter.future,
+        ),
       ),
-      returnService: _FakeReturnRequestService(
-        eligibilityFuture: eligibilityCompleter.future,
-      ),
-    ));
+    );
     await tester.pump();
 
     expect(
@@ -39,14 +39,15 @@ void main() {
   testWidgets('shows retryable timeout error when eligibility load stalls', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(await _buildApp(
-      orderController: _FakeOrderController(
-        remoteOrderId: 101,
+    await tester.pumpWidget(
+      await _buildApp(
+        orderController: _FakeOrderController(remoteOrderId: 101),
+        returnService: _FakeReturnRequestService(
+          eligibilityFuture:
+              Completer<List<DealerReturnEligibilityRecord>>().future,
+        ),
       ),
-      returnService: _FakeReturnRequestService(
-        eligibilityFuture: Completer<List<DealerReturnEligibilityRecord>>().future,
-      ),
-    ));
+    );
 
     await tester.pump(const Duration(seconds: 16));
     await tester.pumpAndSettle();
@@ -58,7 +59,6 @@ void main() {
     );
     expect(find.text('Retry'), findsOneWidget);
   });
-
 }
 
 Future<Widget> _buildApp({
@@ -86,9 +86,8 @@ Future<Widget> _buildApp({
 }
 
 class _FakeOrderController extends OrderController {
-  _FakeOrderController({
-    required this.remoteOrderId,
-  }) : super(authStorage: _FakeAuthStorage(), client: _NoopClient());
+  _FakeOrderController({required this.remoteOrderId})
+    : super(authStorage: _FakeAuthStorage(), client: _NoopClient());
 
   final int remoteOrderId;
 
@@ -102,16 +101,16 @@ class _FakeOrderController extends OrderController {
 }
 
 class _FakeReturnRequestService extends ReturnRequestService {
-  _FakeReturnRequestService({
-    this.eligibilityFuture,
-  }) : super(authStorage: _FakeAuthStorage(), client: _NoopClient());
+  _FakeReturnRequestService({this.eligibilityFuture})
+    : super(authStorage: _FakeAuthStorage(), client: _NoopClient());
 
   final Future<List<DealerReturnEligibilityRecord>>? eligibilityFuture;
 
   @override
   Future<List<DealerReturnEligibilityRecord>> fetchOrderEligibleSerials(
-    int orderId,
-  ) {
+    int orderId, {
+    DealerReturnRequestType? type,
+  }) {
     if (eligibilityFuture != null) {
       return eligibilityFuture!;
     }

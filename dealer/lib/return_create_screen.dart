@@ -174,6 +174,7 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
 
     final eligibility = await _returnService.fetchOrderEligibleSerials(
       remoteOrderId,
+      type: _requestType,
     );
     final activeRequestIds = eligibility
         .map((item) => item.activeRequestId)
@@ -220,6 +221,52 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
         ..clear()
         ..addAll(activeStatusMap);
     });
+  }
+
+  List<DealerReturnRequestResolution> _allowedResolutionsForRequestType(
+    DealerReturnRequestType type,
+  ) {
+    if (type == DealerReturnRequestType.warrantyRma) {
+      return const <DealerReturnRequestResolution>[
+        DealerReturnRequestResolution.inspectOnly,
+        DealerReturnRequestResolution.replace,
+      ];
+    }
+    return DealerReturnRequestResolution.values
+        .where(
+          (resolution) => resolution != DealerReturnRequestResolution.unknown,
+        )
+        .toList(growable: false);
+  }
+
+  DealerReturnRequestResolution _normalizeResolutionForRequestType(
+    DealerReturnRequestType type,
+    DealerReturnRequestResolution current,
+  ) {
+    final allowed = _allowedResolutionsForRequestType(type);
+    if (allowed.contains(current)) {
+      return current;
+    }
+    return allowed.first;
+  }
+
+  void _onRequestTypeChanged(DealerReturnRequestType nextType) {
+    if (nextType == _requestType) {
+      return;
+    }
+    final normalizedResolution = _normalizeResolutionForRequestType(
+      nextType,
+      _resolution,
+    );
+    setState(() {
+      _requestType = nextType;
+      _resolution = normalizedResolution;
+      _eligibilities = const <DealerReturnEligibilityRecord>[];
+      _selectedSerialIds.clear();
+      _conditionBySerialId.clear();
+      _activeStatusByRequestId.clear();
+    });
+    unawaited(_loadEligibility());
   }
 
   Future<void> _pickAttachment() async {
@@ -293,6 +340,13 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
       );
       return;
     }
+    final eligibleCount = _eligibilities.where((item) => item.eligible).length;
+    if (eligibleCount == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(texts.noEligibleSerialsSubmitMessage)),
+      );
+      return;
+    }
     setState(() => _isSubmitting = true);
     try {
       final payloadItems = _selectedSerialIds
@@ -356,15 +410,16 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
   Widget build(BuildContext context) {
     final texts = _dealerReturnCreateTexts(context);
     final eligibleCount = _eligibilities.where((item) => item.eligible).length;
+    final hasEligibleSerials = eligibleCount > 0;
+    final allowedResolutions = _allowedResolutionsForRequestType(_requestType);
+    final canSubmit = !_isSubmitting && !_isLoading && hasEligibleSerials;
     final orderHintText = _isLoading
         ? texts.checkingEligibilityMessage
         : texts.orderHint(eligibleCount);
 
     return Scaffold(
       appBar: AppBar(
-        leading: DealerFallbackBackButton(
-          fallbackPath: DealerRoutePath.home,
-        ),
+        leading: DealerFallbackBackButton(fallbackPath: DealerRoutePath.home),
         title: BrandAppBarTitle(texts.screenTitle),
       ),
       body: RefreshIndicator(
@@ -450,21 +505,18 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
                           if (value == null) {
                             return;
                           }
-                          setState(() => _requestType = value);
+                          _onRequestTypeChanged(value);
                         },
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<DealerReturnRequestResolution>(
-                        initialValue: _resolution,
+                        initialValue: allowedResolutions.contains(_resolution)
+                            ? _resolution
+                            : allowedResolutions.first,
                         decoration: InputDecoration(
                           labelText: texts.resolutionLabel,
                         ),
-                        items: DealerReturnRequestResolution.values
-                            .where(
-                              (resolution) =>
-                                  resolution !=
-                                  DealerReturnRequestResolution.unknown,
-                            )
+                        items: allowedResolutions
                             .map(
                               (resolution) =>
                                   DropdownMenuItem<
@@ -480,16 +532,19 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
                                   ),
                             )
                             .toList(growable: false),
-                        onChanged: (value) {
-                          if (value == null) {
-                            return;
-                          }
-                          setState(() => _resolution = value);
-                        },
+                        onChanged: hasEligibleSerials
+                            ? (value) {
+                                if (value == null) {
+                                  return;
+                                }
+                                setState(() => _resolution = value);
+                              }
+                            : null,
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _reasonCodeController,
+                        enabled: hasEligibleSerials,
                         decoration: InputDecoration(
                           labelText: texts.reasonCodeLabel,
                         ),
@@ -497,11 +552,27 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
                       const SizedBox(height: 12),
                       TextField(
                         controller: _reasonDetailController,
+                        enabled: hasEligibleSerials,
                         maxLines: 3,
                         decoration: InputDecoration(
                           labelText: texts.reasonDetailLabel,
                         ),
                       ),
+                      if (!hasEligibleSerials && _eligibilities.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            texts.noEligibleSerialsGuidance,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -603,7 +674,10 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
                       ),
                       const SizedBox(height: 10),
                       OutlinedButton.icon(
-                        onPressed: (_isUploadingAttachment || _isSubmitting)
+                        onPressed:
+                            (_isUploadingAttachment ||
+                                _isSubmitting ||
+                                !hasEligibleSerials)
                             ? null
                             : _pickAttachment,
                         icon: _isUploadingAttachment
@@ -623,7 +697,7 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
               ),
               const SizedBox(height: 14),
               FilledButton.icon(
-                onPressed: _isSubmitting ? null : _submit,
+                onPressed: canSubmit ? _submit : null,
                 icon: _isSubmitting
                     ? const SizedBox(
                         width: 18,
@@ -930,6 +1004,9 @@ class _DealerReturnCreateTexts {
   String get noSerialsMessage => isEnglish
       ? 'No serials found for this order.'
       : 'Khong tim thay serial nao cua don nay.';
+  String get noEligibleSerialsGuidance => isEnglish
+      ? 'There are no eligible serials for the selected return type. Change return type or try again later.'
+      : 'Khong co serial du dieu kien cho loai doi tra da chon. Hay doi loai doi tra hoac thu lai sau.';
   String get attachmentsTitle =>
       isEnglish ? 'Attachments (optional)' : 'Tap dinh kem (tuy chon)';
   String get addAttachmentAction =>
@@ -942,4 +1019,7 @@ class _DealerReturnCreateTexts {
   String get selectAtLeastOneSerialMessage => isEnglish
       ? 'Select at least one eligible serial.'
       : 'Hay chon it nhat mot serial du dieu kien.';
+  String get noEligibleSerialsSubmitMessage => isEnglish
+      ? 'No eligible serials are available for this return request.'
+      : 'Khong co serial du dieu kien de tao yeu cau doi tra nay.';
 }

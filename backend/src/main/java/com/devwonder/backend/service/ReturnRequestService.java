@@ -161,11 +161,33 @@ public class ReturnRequestService {
         Map<Long, ReturnRequestItem> itemBySerialId = new HashMap<>();
         for (DealerReturnRequestItemPayload itemPayload : payload.items()) {
             Long serialId = itemPayload.productSerialId();
+            if (serialId == null || serialId <= 0) {
+                throw new BadRequestException("productSerialId is required");
+            }
             if (!seenSerialIds.add(serialId)) {
                 throw new BadRequestException("Duplicate serial detected in request payload: " + serialId);
             }
-            ProductSerial serial = productSerialRepository.findInventoryByIdAndDealerId(serialId, dealer.getId())
-                    .orElseThrow(() -> new BadRequestException("Serial not owned by dealer: " + serialId));
+        }
+
+        List<ProductSerial> lockedSerials = productSerialRepository.findInventoryByIdsAndDealerIdForUpdate(
+                seenSerialIds,
+                dealer.getId()
+        );
+        Map<Long, ProductSerial> serialById = lockedSerials.stream()
+                .collect(java.util.stream.Collectors.toMap(ProductSerial::getId, value -> value));
+        if (serialById.size() != seenSerialIds.size()) {
+            Long missingSerialId = seenSerialIds.stream()
+                    .filter(id -> !serialById.containsKey(id))
+                    .findFirst()
+                    .orElse(null);
+            throw new BadRequestException("Serial not owned by dealer: " + missingSerialId);
+        }
+        for (DealerReturnRequestItemPayload itemPayload : payload.items()) {
+            Long serialId = itemPayload.productSerialId();
+            ProductSerial serial = serialById.get(serialId);
+            if (serial == null) {
+                throw new BadRequestException("Serial not owned by dealer: " + serialId);
+            }
             if (serial.getOrder() == null || !Objects.equals(serial.getOrder().getId(), order.getId())) {
                 throw new BadRequestException("Serial " + serial.getSerial() + " does not belong to order " + order.getOrderCode());
             }
@@ -275,9 +297,7 @@ public class ReturnRequestService {
     public List<ReturnEligibilityResponse> getOrderEligibleSerials(String username, Long orderId, ReturnRequestType type) {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
         Order order = dealerPortalLookupSupport.requireDealerOrder(dealer.getId(), orderId);
-        List<ProductSerial> serials = productSerialRepository.findInventoryByDealerId(dealer.getId()).stream()
-                .filter(serial -> serial.getOrder() != null && Objects.equals(serial.getOrder().getId(), order.getId()))
-                .toList();
+        List<ProductSerial> serials = productSerialRepository.findInventoryByOrderIdAndDealerId(order.getId(), dealer.getId());
         Set<Long> serialIds = serials.stream().map(ProductSerial::getId).collect(java.util.stream.Collectors.toSet());
         Map<Long, ActiveRequestRef> activeRefs = resolveActiveRequestRefBySerialId(serialIds);
         List<ReturnEligibilityResponse> responses = new ArrayList<>(serials.size());

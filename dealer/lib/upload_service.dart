@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -87,13 +88,13 @@ class UploadedSupportMediaRef {
 }
 
 class UploadService {
+  static const Duration _uploadRequestTimeout = Duration(seconds: 120);
+  static const Duration _deleteRequestTimeout = Duration(seconds: 15);
+
   UploadService({AuthStorage? authStorage, http.Client? client})
     : _authStorage = authStorage ?? AuthStorage(),
       _rawClient = client ?? http.Client() {
-    _client = DealerAuthClient(
-      authStorage: _authStorage,
-      inner: _rawClient,
-    );
+    _client = DealerAuthClient(authStorage: _authStorage, inner: _rawClient);
   }
 
   final AuthStorage _authStorage;
@@ -135,8 +136,10 @@ class UploadService {
       throw UploadException('Failed to encode file for upload: $e');
     }
 
-    final streamedResponse = await _client.send(request);
-    final response = await http.Response.fromStream(streamedResponse);
+    final streamedResponse = await _withUploadTimeout(_client.send(request));
+    final response = await _withUploadTimeout(
+      http.Response.fromStream(streamedResponse),
+    );
     final Object? decoded;
     try {
       decoded = jsonDecode(response.body);
@@ -348,12 +351,14 @@ class UploadService {
     final uri = DealerApiConfig.resolveApiUri(
       '/upload',
     ).replace(queryParameters: <String, String>{'url': normalizedUrl});
-    final response = await _client.delete(
-      uri,
-      headers: <String, String>{
-        HttpHeaders.authorizationHeader: 'Bearer ${accessToken.trim()}',
-        HttpHeaders.acceptHeader: 'application/json',
-      },
+    final response = await _withDeleteTimeout(
+      _client.delete(
+        uri,
+        headers: <String, String>{
+          HttpHeaders.authorizationHeader: 'Bearer ${accessToken.trim()}',
+          HttpHeaders.acceptHeader: 'application/json',
+        },
+      ),
     );
     final decoded = jsonDecode(response.body.isEmpty ? '{}' : response.body);
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -394,8 +399,10 @@ class UploadService {
     }
 
     onProgress?.call(60);
-    final streamed = await _rawClient.send(request);
-    final response = await http.Response.fromStream(streamed);
+    final streamed = await _withUploadTimeout(_rawClient.send(request));
+    final response = await _withUploadTimeout(
+      http.Response.fromStream(streamed),
+    );
     if (response.statusCode == HttpStatus.unauthorized ||
         response.statusCode == HttpStatus.forbidden) {
       throw UploadException(
@@ -446,7 +453,7 @@ class UploadService {
           }
         }
         await request.sink.close();
-        streamed = await responseFuture;
+        streamed = await _withUploadTimeout(responseFuture);
       } else {
         final request = http.Request('PUT', uploadUri);
         request.headers[HttpHeaders.contentTypeHeader] = contentType;
@@ -457,10 +464,12 @@ class UploadService {
         });
         request.bodyBytes = await file.readAsBytes();
         onProgress?.call(90);
-        streamed = await _rawClient.send(request);
+        streamed = await _withUploadTimeout(_rawClient.send(request));
       }
 
-      final response = await http.Response.fromStream(streamed);
+      final response = await _withUploadTimeout(
+        http.Response.fromStream(streamed),
+      );
       if (response.statusCode < 200 || response.statusCode >= 300) {
         final payload = _decodeJsonResponse(response);
         final message = _extractApiError(payload);
@@ -473,6 +482,26 @@ class UploadService {
       rethrow;
     } catch (error) {
       throw UploadException('Failed to upload file: $error');
+    }
+  }
+
+  Future<T> _withUploadTimeout<T>(Future<T> future) async {
+    try {
+      return await future.timeout(_uploadRequestTimeout);
+    } on TimeoutException {
+      throw UploadException(
+        uploadServiceMessageToken(UploadMessageCode.uploadFailed),
+      );
+    }
+  }
+
+  Future<T> _withDeleteTimeout<T>(Future<T> future) async {
+    try {
+      return await future.timeout(_deleteRequestTimeout);
+    } on TimeoutException {
+      throw UploadException(
+        uploadServiceMessageToken(UploadMessageCode.uploadFailed),
+      );
     }
   }
 
