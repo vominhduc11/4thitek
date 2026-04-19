@@ -112,6 +112,10 @@ class SupportTicketMessageRecord {
 
 class SupportTicketContextRecord {
   const SupportTicketContextRecord({
+    this.returnRequestId,
+    this.returnRequestCode,
+    this.returnStatus,
+    this.orderId,
     this.orderCode,
     this.transactionCode,
     this.paidAmount,
@@ -120,6 +124,10 @@ class SupportTicketContextRecord {
     this.returnReason,
   });
 
+  final int? returnRequestId;
+  final String? returnRequestCode;
+  final String? returnStatus;
+  final int? orderId;
   final String? orderCode;
   final String? transactionCode;
   final num? paidAmount;
@@ -128,6 +136,10 @@ class SupportTicketContextRecord {
   final String? returnReason;
 
   bool get isEmpty =>
+      returnRequestId == null &&
+      _isBlank(returnRequestCode) &&
+      _isBlank(returnStatus) &&
+      orderId == null &&
       _isBlank(orderCode) &&
       _isBlank(transactionCode) &&
       paidAmount == null &&
@@ -137,6 +149,18 @@ class SupportTicketContextRecord {
 
   Map<String, dynamic>? toJson() {
     final payload = <String, dynamic>{};
+    if (returnRequestId != null) {
+      payload['returnRequestId'] = returnRequestId;
+    }
+    if (!_isBlank(returnRequestCode)) {
+      payload['returnRequestCode'] = returnRequestCode!.trim();
+    }
+    if (!_isBlank(returnStatus)) {
+      payload['returnStatus'] = returnStatus!.trim();
+    }
+    if (orderId != null) {
+      payload['orderId'] = orderId;
+    }
     if (!_isBlank(orderCode)) {
       payload['orderCode'] = orderCode!.trim();
     }
@@ -239,6 +263,24 @@ class SupportService {
     if (data == null) {
       return null;
     }
+    if (data is! Map<String, dynamic>) {
+      throw SupportException(
+        supportServiceMessageToken(SupportMessageCode.invalidTicketPayload),
+      );
+    }
+    return _mapTicket(data);
+  }
+
+  Future<DealerSupportTicketRecord> fetchTicket(int ticketId) async {
+    final response = await _client.get(
+      DealerApiConfig.resolveApiUri('/dealer/support-tickets/$ticketId'),
+      headers: await _authorizedHeaders(),
+    );
+    final payload = _decodeBody(response.bodyBytes);
+    if (response.statusCode >= 400) {
+      throw SupportException(_extractErrorMessage(payload));
+    }
+    final data = payload['data'];
     if (data is! Map<String, dynamic>) {
       throw SupportException(
         supportServiceMessageToken(SupportMessageCode.invalidTicketPayload),
@@ -506,6 +548,10 @@ SupportTicketContextRecord? _mapContextData(Object? raw) {
     return null;
   }
   final context = SupportTicketContextRecord(
+    returnRequestId: _parseOptionalIntStatic(raw['returnRequestId']),
+    returnRequestCode: _parseOptionalStringStatic(raw['returnRequestCode']),
+    returnStatus: _parseOptionalStringStatic(raw['returnStatus']),
+    orderId: _parseOptionalIntStatic(raw['orderId']),
     orderCode: _parseOptionalStringStatic(raw['orderCode']),
     transactionCode: _parseOptionalStringStatic(raw['transactionCode']),
     paidAmount: raw['paidAmount'] as num?,

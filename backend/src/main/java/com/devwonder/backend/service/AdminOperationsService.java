@@ -100,6 +100,14 @@ public class AdminOperationsService {
                 .map(ticket -> toSupportTicketResponse(ticket, viewer));
     }
 
+    @Transactional(readOnly = true)
+    public AdminSupportTicketResponse getSupportTicketById(Long id, String actorUsername) {
+        Admin viewer = requireAdmin(actorUsername);
+        DealerSupportTicket ticket = dealerSupportTicketRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Support ticket not found"));
+        return toSupportTicketResponse(ticket, viewer);
+    }
+
     @Transactional
     public AdminSupportTicketResponse updateSupportTicket(
             Long id,

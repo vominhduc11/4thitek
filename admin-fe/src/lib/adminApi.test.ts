@@ -233,4 +233,46 @@ describe('adminApi importAdminSerials', () => {
       }),
     })
   })
+
+  it('fetches admin support ticket by id using the dedicated endpoint', async () => {
+    vi.stubEnv('VITE_API_BASE_URL', 'https://api.example.com/api/v1')
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          success: true,
+          data: {
+            id: 77,
+            ticketCode: 'TK-77',
+            contextData: {
+              returnRequestId: 901,
+              returnRequestCode: 'RET-901',
+              returnStatus: 'UNDER_REVIEW',
+              orderId: 88,
+              orderCode: 'ORD-88',
+            },
+          },
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { fetchAdminSupportTicket } = await importAdminApi()
+    const response = await fetchAdminSupportTicket('access-token', 77)
+
+    expect(String(fetchMock.mock.calls[0]?.[0])).toMatch(
+      /\/api\/v1\/admin\/support-tickets\/77$/,
+    )
+    expect(response).toMatchObject({
+      id: 77,
+      ticketCode: 'TK-77',
+      contextData: {
+        returnRequestId: 901,
+        returnRequestCode: 'RET-901',
+      },
+    })
+  })
 })

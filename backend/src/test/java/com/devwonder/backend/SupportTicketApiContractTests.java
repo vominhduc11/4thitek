@@ -278,6 +278,60 @@ class SupportTicketApiContractTests {
                 .isEqualTo("example-proof.png");
     }
 
+    @Test
+    void dealerSupportTicketByIdRespectsOwnership() throws Exception {
+        String ownerToken = registerDealerAndExtractAccessToken("support-ticket-owner");
+        Long ticketId = readTicketId(createSupportTicket(ownerToken).andExpect(status().isOk()).andReturn());
+        String otherDealerToken = registerDealerAndExtractAccessToken("support-ticket-other");
+
+        mockMvc.perform(get("/api/v1/dealer/support-tickets/{id}", ticketId)
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(ticketId));
+
+        mockMvc.perform(get("/api/v1/dealer/support-tickets/{id}", ticketId)
+                        .header("Authorization", "Bearer " + otherDealerToken))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void adminCanFetchSupportTicketByIdWithStructuredReturnContext() throws Exception {
+        String dealerToken = registerDealerAndExtractAccessToken("support-ticket-admin-by-id");
+
+        MvcResult createResult = mockMvc.perform(post("/api/v1/dealer/support-tickets")
+                        .contentType(APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + dealerToken)
+                        .content("""
+                                {
+                                  "category": "returnOrder",
+                                  "priority": "normal",
+                                  "subject": "Return follow-up",
+                                  "message": "Please support return workflow.",
+                                  "contextData": {
+                                    "returnRequestId": 321,
+                                    "returnRequestCode": "RET-321",
+                                    "returnStatus": "UNDER_REVIEW",
+                                    "orderId": 654,
+                                    "orderCode": "ORD-654"
+                                  }
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn();
+        Long ticketId = readTicketId(createResult);
+        String adminToken = login("support.admin@example.com", "ChangedPass#456");
+
+        mockMvc.perform(get("/api/v1/admin/support-tickets/{id}", ticketId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(ticketId))
+                .andExpect(jsonPath("$.data.contextData.returnRequestId").value(321))
+                .andExpect(jsonPath("$.data.contextData.returnRequestCode").value("RET-321"))
+                .andExpect(jsonPath("$.data.contextData.returnStatus").value("UNDER_REVIEW"))
+                .andExpect(jsonPath("$.data.contextData.orderId").value(654))
+                .andExpect(jsonPath("$.data.contextData.orderCode").value("ORD-654"));
+    }
+
     private org.springframework.test.web.servlet.ResultActions createSupportTicket(String dealerToken) throws Exception {
         return mockMvc.perform(post("/api/v1/dealer/support-tickets")
                 .contentType(APPLICATION_JSON)

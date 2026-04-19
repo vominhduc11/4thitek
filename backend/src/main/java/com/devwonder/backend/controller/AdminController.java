@@ -271,6 +271,16 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success(PagedResponse.from(result, "createdAt")));
     }
 
+    @GetMapping("/support-tickets/{id}")
+    public ResponseEntity<ApiResponse<AdminSupportTicketResponse>> supportTicketDetail(
+            @PathVariable("id") Long id,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                adminOperationsService.getSupportTicketById(id, extractUsername(authentication))
+        ));
+    }
+
     @PatchMapping("/support-tickets/{id}")
     public ResponseEntity<ApiResponse<AdminSupportTicketResponse>> updateSupportTicket(
             @PathVariable("id") Long id,

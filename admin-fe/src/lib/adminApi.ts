@@ -348,6 +348,10 @@ export type BackendSupportTicketResponse = {
   subject?: string | null
   message?: string | null
   contextData?: {
+    returnRequestId?: number | null
+    returnRequestCode?: string | null
+    returnStatus?: string | null
+    orderId?: number | null
     orderCode?: string | null
     transactionCode?: string | null
     paidAmount?: number | string | null
@@ -1338,6 +1342,12 @@ export const fetchAdminSupportTickets = (
     path: '/admin/support-tickets',
     token,
     params,
+  })
+
+export const fetchAdminSupportTicket = (token: string, id: number) =>
+  authorizedJsonRequest<BackendSupportTicketResponse>({
+    path: `/admin/support-tickets/${id}`,
+    token,
   })
 
 export const fetchAllAdminSupportTickets = (token: string, size?: number) =>

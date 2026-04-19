@@ -29,6 +29,7 @@ import com.devwonder.backend.entity.ReturnRequest;
 import com.devwonder.backend.entity.ReturnRequestAttachment;
 import com.devwonder.backend.entity.ReturnRequestEvent;
 import com.devwonder.backend.entity.ReturnRequestItem;
+import com.devwonder.backend.entity.SupportTicketMessage;
 import com.devwonder.backend.entity.enums.DealerSupportCategory;
 import com.devwonder.backend.entity.enums.DealerSupportPriority;
 import com.devwonder.backend.entity.enums.OrderAdjustmentType;
@@ -38,6 +39,7 @@ import com.devwonder.backend.entity.enums.ReturnRequestItemFinalResolution;
 import com.devwonder.backend.entity.enums.ReturnRequestItemStatus;
 import com.devwonder.backend.entity.enums.ReturnRequestType;
 import com.devwonder.backend.entity.enums.ReturnRequestStatus;
+import com.devwonder.backend.entity.enums.SupportTicketMessageAuthorRole;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.service.FileStorageService;
@@ -49,6 +51,7 @@ import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.ReturnRequestItemRepository;
 import com.devwonder.backend.repository.ReturnRequestRepository;
 import com.devwonder.backend.service.support.DealerPortalLookupSupport;
+import com.devwonder.backend.service.support.SupportTicketPayloadSupport;
 import com.devwonder.backend.service.returns.ReturnRequestPolicy;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -104,6 +107,16 @@ public class ReturnRequestService {
             ReturnRequestItemStatus.CREDITED
     );
 
+    private static final Set<ReturnRequestStatus> SUPPORT_MILESTONE_STATUSES = EnumSet.of(
+            ReturnRequestStatus.UNDER_REVIEW,
+            ReturnRequestStatus.APPROVED,
+            ReturnRequestStatus.REJECTED,
+            ReturnRequestStatus.RECEIVED,
+            ReturnRequestStatus.INSPECTING,
+            ReturnRequestStatus.COMPLETED,
+            ReturnRequestStatus.CANCELLED
+    );
+
     private final DealerPortalLookupSupport dealerPortalLookupSupport;
     private final ReturnRequestRepository returnRequestRepository;
     private final ReturnRequestItemRepository returnRequestItemRepository;
@@ -117,6 +130,7 @@ public class ReturnRequestService {
     private final AdminFinancialService adminFinancialService;
     private final AdminRmaService adminRmaService;
     private final ReturnRequestPolicy returnRequestPolicy;
+    private final SupportTicketPayloadSupport supportTicketPayloadSupport;
     private final ObjectMapper objectMapper;
 
     @Transactional(readOnly = true)
@@ -268,7 +282,7 @@ public class ReturnRequestService {
 
         ReturnRequest saved = returnRequestRepository.save(request);
         linkReturnAttachmentMediaAssets(saved, dealer);
-        saved.setSupportTicket(maybeCreateLinkedSupportTicket(username, order, payload, serials));
+        saved.setSupportTicket(maybeCreateLinkedSupportTicket(username, saved, payload, serials));
         appendEvent(request, "REQUEST_SUBMITTED", username, "DEALER", Map.of(
                 "orderId", order.getId(),
                 "orderCode", order.getOrderCode(),
@@ -295,12 +309,14 @@ public class ReturnRequestService {
                 || request.getStatus() == ReturnRequestStatus.PARTIALLY_RESOLVED) {
             throw new BadRequestException("Return request cannot be cancelled after warehouse processing has started");
         }
+        ReturnRequestStatus previousStatus = request.getStatus();
         request.setStatus(ReturnRequestStatus.CANCELLED);
         request.setUpdatedBy(username);
         appendEvent(request, "REQUEST_CANCELLED", username, "DEALER", Map.of(
                 "requestId", request.getId(),
                 "requestCode", request.getRequestCode()
         ));
+        syncLinkedSupportTicketOnStatusChange(request, previousStatus, username);
         return toDetailResponse(returnRequestRepository.save(request));
     }
 
@@ -373,6 +389,7 @@ public class ReturnRequestService {
         if (request.getStatus() == ReturnRequestStatus.CANCELLED || request.getStatus() == ReturnRequestStatus.COMPLETED) {
             throw new BadRequestException("Closed return request cannot be reviewed");
         }
+        ReturnRequestStatus previousStatus = request.getStatus();
 
         Map<Long, ReturnRequestItem> itemsById = request.getItems().stream()
                 .collect(java.util.stream.Collectors.toMap(ReturnRequestItem::getId, item -> item));
@@ -398,6 +415,7 @@ public class ReturnRequestService {
                 "decisionCount", payload.decisions().size(),
                 "status", request.getStatus().name()
         ));
+        syncLinkedSupportTicketOnStatusChange(request, previousStatus, actorUsername);
         return toDetailResponse(returnRequestRepository.save(request));
     }
 
@@ -410,6 +428,7 @@ public class ReturnRequestService {
                 && request.getStatus() != ReturnRequestStatus.RECEIVED) {
             throw new BadRequestException("Request is not ready for warehouse receipt");
         }
+        ReturnRequestStatus previousStatus = request.getStatus();
 
         Set<Long> explicitItemIds = payload.itemIds() == null
                 ? Set.of()
@@ -447,6 +466,7 @@ public class ReturnRequestService {
             eventPayload.put("note", note);
         }
         appendEvent(request, "REQUEST_RECEIVED", actorUsername, "ADMIN", eventPayload);
+        syncLinkedSupportTicketOnStatusChange(request, previousStatus, actorUsername);
         return toDetailResponse(returnRequestRepository.save(request));
     }
 
@@ -458,6 +478,7 @@ public class ReturnRequestService {
             String actorUsername
     ) {
         ReturnRequest request = requireAdminEditableRequest(requestId);
+        ReturnRequestStatus previousStatus = request.getStatus();
         ReturnRequestItem item = request.getItems().stream()
                 .filter(candidate -> Objects.equals(candidate.getId(), itemId))
                 .findFirst()
@@ -539,6 +560,7 @@ public class ReturnRequestService {
             eventPayload.put("orderAdjustmentId", item.getOrderAdjustmentId());
         }
         appendEvent(request, "ITEM_INSPECTED", actorUsername, "ADMIN", eventPayload);
+        syncLinkedSupportTicketOnStatusChange(request, previousStatus, actorUsername);
         return toDetailResponse(returnRequestRepository.save(request));
     }
 
@@ -552,6 +574,7 @@ public class ReturnRequestService {
         if (request.getStatus() == ReturnRequestStatus.CANCELLED) {
             throw new BadRequestException("Cancelled request cannot be completed");
         }
+        ReturnRequestStatus previousStatus = request.getStatus();
         List<ReturnRequestItem> unresolved = request.getItems().stream()
                 .filter(item -> !TERMINAL_ITEM_STATUSES.contains(item.getItemStatus()))
                 .toList();
@@ -570,6 +593,7 @@ public class ReturnRequestService {
             eventPayload.put("note", note);
         }
         appendEvent(request, "REQUEST_COMPLETED", actorUsername, "ADMIN", eventPayload);
+        syncLinkedSupportTicketOnStatusChange(request, previousStatus, actorUsername);
         return toDetailResponse(returnRequestRepository.save(request));
     }
 
@@ -902,10 +926,14 @@ public class ReturnRequestService {
 
     private DealerSupportTicket maybeCreateLinkedSupportTicket(
             String username,
-            Order order,
+            ReturnRequest request,
             CreateDealerReturnRequest payload,
             List<ProductSerial> serials
     ) {
+        Order order = request.getOrder();
+        if (order == null || request.getId() == null) {
+            return null;
+        }
         String message = "Return request created for order "
                 + safeValue(order.getOrderCode(), "#" + order.getId())
                 + " with " + serials.size() + " serial(s). Requested resolution: "
@@ -914,7 +942,9 @@ public class ReturnRequestService {
                 ? ""
                 : ". Detail: " + payload.reasonDetail().trim());
         message = message.length() > 500 ? message.substring(0, 500) : message;
-        String subject = "Return request " + safeValue(order.getOrderCode(), "#" + order.getId());
+        String subject = "Return request "
+                + safeValue(request.getRequestCode(), "#" + request.getId())
+                + " (" + safeValue(order.getOrderCode(), "#" + order.getId()) + ")";
         subject = subject.length() > 80 ? subject.substring(0, 80) : subject;
         String serialPreview = serials.stream()
                 .map(ProductSerial::getSerial)
@@ -922,31 +952,109 @@ public class ReturnRequestService {
                 .limit(1)
                 .findFirst()
                 .orElse(null);
-        try {
-            var support = dealerSupportTicketService.createTicket(username, new CreateDealerSupportTicketRequest(
-                    DealerSupportCategory.RETURN,
-                    DealerSupportPriority.NORMAL,
-                    subject,
-                    message,
-                    new SupportTicketContextPayload(
-                            order.getOrderCode(),
-                            null,
-                            null,
-                            null,
-                            serialPreview,
-                            trimOrNull(payload.reasonDetail())
-                    ),
-                    List.of(),
-                    List.of()
-            ));
-            if (support == null || support.id() == null) {
-                return null;
-            }
-            return dealerSupportTicketRepository.findById(support.id()).orElse(null);
-        } catch (RuntimeException ex) {
-            log.warn("Unable to create linked support ticket for return request orderId={}: {}", order.getId(), ex.getMessage());
+        var support = dealerSupportTicketService.createTicketBestEffort(username, new CreateDealerSupportTicketRequest(
+                DealerSupportCategory.RETURN,
+                DealerSupportPriority.NORMAL,
+                subject,
+                message,
+                new SupportTicketContextPayload(
+                        request.getId(),
+                        request.getRequestCode(),
+                        request.getStatus() == null ? null : request.getStatus().name(),
+                        order.getId(),
+                        order.getOrderCode(),
+                        null,
+                        null,
+                        null,
+                        serialPreview,
+                        trimOrNull(payload.reasonDetail())
+                ),
+                List.of(),
+                List.of()
+        ));
+        if (support == null || support.id() == null) {
+            log.warn(
+                    "Unable to create linked support ticket for return request returnRequestId={}, orderId={}, dealerId={}",
+                    request.getId(),
+                    order.getId(),
+                    request.getDealer() == null ? null : request.getDealer().getId()
+            );
             return null;
         }
+        return dealerSupportTicketRepository.findById(support.id()).orElse(null);
+    }
+
+    private void syncLinkedSupportTicketOnStatusChange(
+            ReturnRequest request,
+            ReturnRequestStatus previousStatus,
+            String actorUsername
+    ) {
+        if (request == null || request.getStatus() == null || request.getStatus() == previousStatus) {
+            return;
+        }
+        Long ticketId = request.getSupportTicket() == null ? null : request.getSupportTicket().getId();
+        if (ticketId == null) {
+            return;
+        }
+        DealerSupportTicket ticket = dealerSupportTicketRepository.findById(ticketId).orElse(null);
+        if (ticket == null) {
+            return;
+        }
+        try {
+            SupportTicketContextPayload existingContext = supportTicketPayloadSupport.readContext(ticket.getContextData());
+            ticket.setContextData(supportTicketPayloadSupport.writeContext(mergeReturnContext(request, existingContext)));
+            if (SUPPORT_MILESTONE_STATUSES.contains(request.getStatus())) {
+                ticket.addMessage(buildReturnStatusSystemMessage(request, actorUsername));
+            }
+            dealerSupportTicketRepository.save(ticket);
+        } catch (RuntimeException ex) {
+            log.warn(
+                    "Unable to sync linked support ticket for return request returnRequestId={}, supportTicketId={}: {}",
+                    request.getId(),
+                    ticketId,
+                    ex.getMessage()
+            );
+        }
+    }
+
+    private SupportTicketContextPayload mergeReturnContext(
+            ReturnRequest request,
+            SupportTicketContextPayload existingContext
+    ) {
+        Order order = request.getOrder();
+        return new SupportTicketContextPayload(
+                request.getId(),
+                safeValue(request.getRequestCode(), null),
+                request.getStatus() == null ? null : request.getStatus().name(),
+                order == null ? null : order.getId(),
+                order == null ? (existingContext == null ? null : existingContext.orderCode()) : order.getOrderCode(),
+                existingContext == null ? null : existingContext.transactionCode(),
+                existingContext == null ? null : existingContext.paidAmount(),
+                existingContext == null ? null : existingContext.paymentReference(),
+                existingContext == null ? null : existingContext.serial(),
+                firstNonBlank(
+                        existingContext == null ? null : existingContext.returnReason(),
+                        request.getReasonDetail(),
+                        request.getReasonCode()
+                )
+        );
+    }
+
+    private SupportTicketMessage buildReturnStatusSystemMessage(ReturnRequest request, String actorUsername) {
+        SupportTicketMessage message = new SupportTicketMessage();
+        message.setAuthorRole(SupportTicketMessageAuthorRole.SYSTEM);
+        message.setAuthorName("System");
+        message.setInternalNote(Boolean.FALSE);
+        message.setMessage(
+                "Return request "
+                        + safeValue(request.getRequestCode(), "#" + request.getId())
+                        + " status updated to "
+                        + request.getStatus().name()
+                        + " by "
+                        + safeValue(trimOrNull(actorUsername), "system")
+                        + "."
+        );
+        return message;
     }
 
     private record ActiveRequestRef(Long requestId, String requestCode) {

@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'app_settings_controller.dart';
 import 'business_profile.dart';
 import 'breakpoints.dart';
+import 'dealer_navigation.dart';
 import 'dealer_routes.dart';
 import 'support_attachment_download.dart';
 import 'notification_controller.dart';
@@ -59,6 +60,7 @@ class _SupportScreenState extends State<SupportScreen> {
   late final SupportService _supportService;
   NotificationController? _notificationController;
   int? _pendingInitialTicketId;
+  bool _respectInitialTicketSelection = false;
 
   SupportCategory _category = SupportCategory.order;
   SupportPriority _priority = SupportPriority.normal;
@@ -110,7 +112,11 @@ class _SupportScreenState extends State<SupportScreen> {
     super.initState();
     _supportService = widget.supportService ?? SupportService();
     _pendingInitialTicketId = widget.initialTicketId;
+    _respectInitialTicketSelection = _pendingInitialTicketId != null;
     SupportScreenDiagnostics.instance.attach();
+    if (_pendingInitialTicketId != null && _pendingInitialTicketId! > 0) {
+      unawaited(_resolveInitialTicketDeepLink(_pendingInitialTicketId!));
+    }
     _loadLatestTicket();
     _loadTicketHistory();
   }
@@ -198,6 +204,34 @@ class _SupportScreenState extends State<SupportScreen> {
     }
   }
 
+  Future<void> _resolveInitialTicketDeepLink(int ticketId) async {
+    try {
+      final ticket = await _supportService.fetchTicket(ticketId);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _upsertTicketInHistory(ticket);
+        _selectedTicketForReply = ticket;
+        _pendingInitialTicketId = null;
+        _respectInitialTicketSelection = false;
+      });
+    } on SupportException {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _pendingInitialTicketId = null;
+      });
+      final texts = _SupportTexts(
+        isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(texts.deepLinkTicketUnavailableWarning)),
+      );
+    }
+  }
+
   void _applyTicket(DealerSupportTicketRecord ticket) {
     setState(() {
       _lastTicketNumericId = ticket.id;
@@ -205,12 +239,23 @@ class _SupportScreenState extends State<SupportScreen> {
       _lastSubmittedAt = ticket.createdAt;
       _lastPriority = _parsePriority(ticket.priority);
       _lastStatus = ticket.status;
-      _selectedTicketForReply = _resolveSelectedTicket(ticket.id) ?? ticket;
+      if (!_respectInitialTicketSelection) {
+        _selectedTicketForReply = _resolveSelectedTicket(ticket.id) ?? ticket;
+      }
       if (_interactionMode == SupportInteractionMode.followingUp) {
         _followUpMessageController.text =
             _followUpDraftsByTicketId[ticket.id] ?? '';
       }
     });
+  }
+
+  void _upsertTicketInHistory(DealerSupportTicketRecord ticket) {
+    final index = _ticketHistory.indexWhere((entry) => entry.id == ticket.id);
+    if (index >= 0) {
+      _ticketHistory[index] = ticket;
+      return;
+    }
+    _ticketHistory.insert(0, ticket);
   }
 
   Future<void> _loadTicketHistory({bool loadMore = false}) async {
@@ -237,11 +282,17 @@ class _SupportScreenState extends State<SupportScreen> {
         _ticketHistoryLoadErrorMessage = null;
         final previousSelectedId = _selectedTicketForReply?.id;
         if (!loadMore) {
+          final preservedTicket = _selectedTicketForReply;
           _ticketHistory
             ..clear()
             ..addAll(response.items);
+          if (preservedTicket != null) {
+            _upsertTicketInHistory(preservedTicket);
+          }
         } else {
-          _ticketHistory.addAll(response.items);
+          for (final ticket in response.items) {
+            _upsertTicketInHistory(ticket);
+          }
         }
         _ticketPage = response.page;
         _hasMoreTickets = response.page + 1 < response.totalPages;
@@ -250,12 +301,15 @@ class _SupportScreenState extends State<SupportScreen> {
         );
         if (preferredInitial != null) {
           _pendingInitialTicketId = null;
+          _respectInitialTicketSelection = false;
         }
         _selectedTicketForReply =
             _resolveSelectedTicket(previousSelectedId) ??
             preferredInitial ??
             _resolveSelectedTicket(_lastTicketNumericId) ??
-            (_ticketHistory.isNotEmpty ? _ticketHistory.first : null);
+            (_respectInitialTicketSelection
+                ? null
+                : (_ticketHistory.isNotEmpty ? _ticketHistory.first : null));
         if (_interactionMode == SupportInteractionMode.followingUp &&
             _selectedTicketForReply != null) {
           _followUpMessageController.text =
@@ -576,6 +630,7 @@ class _SupportScreenState extends State<SupportScreen> {
     _persistFollowUpDraftForSelectedTicket();
     setState(() {
       _selectedTicketForReply = ticket;
+      _respectInitialTicketSelection = false;
       if (_interactionMode == SupportInteractionMode.creating) {
         _interactionMode = SupportInteractionMode.viewing;
       } else if (_interactionMode == SupportInteractionMode.followingUp &&
@@ -891,6 +946,13 @@ class _SupportScreenState extends State<SupportScreen> {
           if (ticket.contextData != null) ...[
             const SizedBox(height: 14),
             _TicketContextPanel(contextData: ticket.contextData!, texts: texts),
+          ],
+          if (ticket.contextData?.returnRequestId != null) ...[
+            const SizedBox(height: 14),
+            _LinkedReturnTicketCard(
+              contextData: ticket.contextData!,
+              texts: texts,
+            ),
           ],
           const SizedBox(height: 16),
           Row(
@@ -1811,12 +1873,17 @@ class _SupportTexts {
   String get confirmSubmitDescription => isEnglish
       ? 'Please review the request details before submitting.'
       : 'Vui lòng kiểm tra thông tin yêu cầu trước khi gửi.';
+  
   String get latestTicketLoadWarning => isEnglish
       ? 'Unable to load the latest support status right now.'
-      : 'Chưa thể tải trạng thái hỗ trợ mới nhất lúc này.';
+      : 'Chua the tai trang thai ho tro moi nhat luc nay.';
   String get historyLoadWarning => isEnglish
       ? 'Unable to load support request history right now.'
-      : 'Chưa thể tải lịch sử yêu cầu hỗ trợ lúc này.';
+      : 'Chua the tai lich su yeu cau ho tro luc nay.';
+  
+  String get deepLinkTicketUnavailableWarning => isEnglish
+      ? 'The requested support ticket is unavailable or you do not have access.'
+      : 'Khong mo duoc ticket ho tro theo lien ket hoac ban khong co quyen truy cap.';
   String get statusSyncWarningTitle =>
       isEnglish ? 'Support status' : 'Trạng thái hỗ trợ';
   String get retryAction => isEnglish ? 'Retry' : 'Thử lại';
@@ -2082,13 +2149,26 @@ extension _SupportTextsSupportExtras on _SupportTexts {
   String get followUpHelper => isEnglish
       ? 'Your message will be added to the conversation history of the selected request.'
       : 'Nội dung này sẽ được thêm vào lịch sử trao đổi của yêu cầu đang xem.';
+  
   String get contextSectionTitle =>
-      isEnglish ? 'Related information' : 'Thông tin liên quan';
+      isEnglish ? 'Related information' : 'Thong tin lien quan';
   String get contextSectionDescription => isEnglish
       ? 'Add the order code, payment reference, serial, or return reason so support can handle the request faster.'
-      : 'Bổ sung mã đơn, giao dịch, serial hoặc lý do trả hàng để đội hỗ trợ xử lý nhanh hơn.';
+      : 'Bo sung ma don, giao dich, serial hoac ly do tra hang de doi ho tro xu ly nhanh hon.';
+  
   String get contextSummaryTitle =>
-      isEnglish ? 'Related information' : 'Thông tin liên quan';
+      isEnglish ? 'Related information' : 'Thong tin lien quan';
+  
+  String get linkedReturnCardTitle => isEnglish
+      ? 'Related return request'
+      : 'Yeu cau doi tra lien quan';
+  String get returnCodeLabel =>
+      isEnglish ? 'Return code' : 'Ma yeu cau';
+  String get returnStatusLabel =>
+      isEnglish ? 'Return status' : 'Trang thai doi tra';
+  String get openLinkedReturnAction => isEnglish
+      ? 'Open return detail'
+      : 'Mo chi tiet doi tra';
   String get createdLabel => isEnglish ? 'Submitted' : 'Gửi lúc';
   String get resolvedLabel => isEnglish ? 'Resolved' : 'Xử lý xong lúc';
   String get closedLabel => isEnglish ? 'Closed' : 'Kết thúc lúc';
@@ -2758,6 +2838,76 @@ class _TicketContextPanel extends StatelessWidget {
             children: entries
                 .map((entry) => _MetaPill(label: '', value: entry))
                 .toList(growable: false),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LinkedReturnTicketCard extends StatelessWidget {
+  const _LinkedReturnTicketCard({
+    required this.contextData,
+    required this.texts,
+  });
+
+  final SupportTicketContextRecord contextData;
+  final _SupportTexts texts;
+
+  @override
+  Widget build(BuildContext context) {
+    final returnRequestId = contextData.returnRequestId;
+    if (returnRequestId == null || returnRequestId <= 0) {
+      return const SizedBox.shrink();
+    }
+    final returnCode =
+        contextData.returnRequestCode?.trim().isNotEmpty == true
+            ? contextData.returnRequestCode!.trim()
+            : '#$returnRequestId';
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        color: Theme.of(context).colorScheme.surfaceContainerLowest,
+        border: Border.all(
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.28),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            texts.linkedReturnCardTitle,
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _MetaPill(label: texts.returnCodeLabel, value: returnCode),
+              if (contextData.returnStatus != null)
+                _MetaPill(
+                  label: texts.returnStatusLabel,
+                  value: contextData.returnStatus!,
+                ),
+              if (contextData.orderCode != null)
+                _MetaPill(
+                  label: texts.orderCodeFieldLabel,
+                  value: contextData.orderCode!,
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => context.pushDealerReturnDetail(returnRequestId),
+            icon: const Icon(Icons.assignment_return_outlined),
+            label: Text(texts.openLinkedReturnAction),
           ),
         ],
       ),
@@ -3967,3 +4117,6 @@ class _FaqTile extends StatelessWidget {
     );
   }
 }
+
+
+

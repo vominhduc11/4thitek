@@ -1,6 +1,6 @@
 ﻿// @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import SupportTicketsPageRevamp, {
   SupportAttachmentView,
@@ -8,6 +8,7 @@ import SupportTicketsPageRevamp, {
 
 const {
   fetchAdminSupportTicketsMock,
+  fetchAdminSupportTicketMock,
   fetchAllAdminSupportTicketsMock,
   fetchAdminUsersMock,
   updateAdminSupportTicketMock,
@@ -17,6 +18,7 @@ const {
   notifyMock,
 } = vi.hoisted(() => ({
   fetchAdminSupportTicketsMock: vi.fn(),
+  fetchAdminSupportTicketMock: vi.fn(),
   fetchAllAdminSupportTicketsMock: vi.fn(),
   fetchAdminUsersMock: vi.fn(),
   updateAdminSupportTicketMock: vi.fn(),
@@ -50,6 +52,7 @@ vi.mock("../lib/adminApi", async () => {
   return {
     ...actual,
     fetchAdminSupportTickets: fetchAdminSupportTicketsMock,
+    fetchAdminSupportTicket: fetchAdminSupportTicketMock,
     fetchAllAdminSupportTickets: fetchAllAdminSupportTicketsMock,
     fetchAdminUsers: fetchAdminUsersMock,
     updateAdminSupportTicket: updateAdminSupportTicketMock,
@@ -62,9 +65,9 @@ vi.mock("../lib/supportMediaUpload", () => ({
   uploadSupportMediaAsset: uploadSupportMediaAssetMock,
 }));
 
-const renderPage = () =>
+const renderPage = (initialEntries: string[] = ["/support-tickets"]) =>
   render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={initialEntries}>
       <SupportTicketsPageRevamp />
     </MemoryRouter>,
   );
@@ -98,6 +101,7 @@ const ticketPayload = {
 describe("SupportTicketsPageRevamp", () => {
   beforeEach(() => {
     fetchAdminSupportTicketsMock.mockReset();
+    fetchAdminSupportTicketMock.mockReset();
     fetchAllAdminSupportTicketsMock.mockReset();
     fetchAdminUsersMock.mockReset();
     updateAdminSupportTicketMock.mockReset();
@@ -112,6 +116,7 @@ describe("SupportTicketsPageRevamp", () => {
       totalPages: 1,
       totalElements: 1,
     });
+    fetchAdminSupportTicketMock.mockResolvedValue(ticketPayload);
     fetchAllAdminSupportTicketsMock.mockResolvedValue([ticketPayload]);
     fetchAdminUsersMock.mockResolvedValue([]);
     updateAdminSupportTicketMock.mockResolvedValue(ticketPayload);
@@ -165,6 +170,26 @@ describe("SupportTicketsPageRevamp", () => {
         100,
       );
     });
+  });
+
+  it("fetches and selects deep-linked ticket by id even when it is not in first page", async () => {
+    fetchAdminSupportTicketMock.mockResolvedValueOnce({
+      ...ticketPayload,
+      id: 999,
+      ticketCode: "TK-999",
+      subject: "Linked deep ticket",
+      message: "Loaded by id",
+    });
+
+    renderPage(["/support-tickets?ticketId=999"]);
+
+    await waitFor(() => {
+      expect(fetchAdminSupportTicketMock).toHaveBeenCalledWith(
+        "admin-token",
+        999,
+      );
+    });
+    expect(await screen.findByText("TK-999")).toBeTruthy();
   });
 
   it("submits mediaAssetIds when reply includes uploaded media", async () => {
@@ -458,5 +483,37 @@ describe("SupportTicketsPageRevamp", () => {
 
     expect(container.querySelector("video")).toBeTruthy();
     expect(screen.getByRole("link", { name: /evidence.mp4/i })).toBeTruthy();
+  });
+
+  it("renders linked return card and navigates to return detail", async () => {
+    fetchAdminSupportTicketsMock.mockResolvedValueOnce({
+      items: [
+        {
+          ...ticketPayload,
+          contextData: {
+            returnRequestId: 901,
+            returnRequestCode: "RET-901",
+            returnStatus: "UNDER_REVIEW",
+            orderCode: "ORD-901",
+          },
+        },
+      ],
+      page: 0,
+      totalPages: 1,
+      totalElements: 1,
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/support-tickets"]}>
+        <Routes>
+          <Route path="/support-tickets" element={<SupportTicketsPageRevamp />} />
+          <Route path="/returns/:id" element={<div>return-901</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("Yêu cầu đổi trả liên quan")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Mở chi tiết đổi trả" }));
+    expect(await screen.findByText("return-901")).toBeTruthy();
   });
 });

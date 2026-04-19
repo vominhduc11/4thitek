@@ -425,6 +425,16 @@ public class DealerController {
         return ResponseEntity.ok(ApiResponse.success(dealerSupportTicketService.getLatestTicket(extractUsername(authentication))));
     }
 
+    @GetMapping("/support-tickets/{id}")
+    public ResponseEntity<ApiResponse<DealerSupportTicketResponse>> supportTicketDetail(
+            Authentication authentication,
+            @PathVariable("id") Long id
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                dealerSupportTicketService.getTicketById(extractUsername(authentication), id)
+        ));
+    }
+
     @GetMapping("/support-tickets/page")
     public ResponseEntity<ApiResponse<PagedResponse<DealerSupportTicketResponse>>> supportTicketsPaged(
             Authentication authentication,

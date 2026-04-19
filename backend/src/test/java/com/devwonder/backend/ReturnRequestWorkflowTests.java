@@ -23,8 +23,10 @@ import com.devwonder.backend.entity.OrderItem;
 import com.devwonder.backend.entity.Payment;
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.ProductSerial;
+import com.devwonder.backend.entity.SupportTicketMessage;
 import com.devwonder.backend.entity.WarrantyRegistration;
 import com.devwonder.backend.entity.enums.CustomerStatus;
+import com.devwonder.backend.entity.enums.DealerSupportCategory;
 import com.devwonder.backend.entity.enums.DealerSupportTicketStatus;
 import com.devwonder.backend.entity.enums.MediaCategory;
 import com.devwonder.backend.entity.enums.MediaLinkedEntityType;
@@ -43,6 +45,7 @@ import com.devwonder.backend.entity.enums.ReturnRequestResolution;
 import com.devwonder.backend.entity.enums.ReturnRequestStatus;
 import com.devwonder.backend.entity.enums.ReturnRequestType;
 import com.devwonder.backend.entity.enums.StorageProvider;
+import com.devwonder.backend.entity.enums.SupportTicketMessageAuthorRole;
 import com.devwonder.backend.entity.enums.WarrantyStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.repository.DealerRepository;
@@ -161,6 +164,13 @@ class ReturnRequestWorkflowTests {
         assertThat(created.items()).hasSize(1);
         assertThat(created.items().get(0).itemStatus()).isEqualTo(ReturnRequestItemStatus.REQUESTED);
         assertThat(created.supportTicketId()).isNotNull();
+        var supportTicket = dealerSupportTicketRepository.findById(created.supportTicketId()).orElseThrow();
+        assertThat(supportTicket.getCategory()).isEqualTo(DealerSupportCategory.RETURN);
+        assertThat(supportTicket.getContextData()).contains("\"returnRequestId\":" + created.id());
+        assertThat(supportTicket.getContextData()).contains("\"returnRequestCode\":\"" + created.requestCode() + "\"");
+        assertThat(supportTicket.getContextData()).contains("\"returnStatus\":\"SUBMITTED\"");
+        assertThat(supportTicket.getContextData()).contains("\"orderId\":" + order.getId());
+        assertThat(supportTicket.getContextData()).contains("\"orderCode\":\"" + order.getOrderCode() + "\"");
     }
 
     @Test
@@ -1322,6 +1332,83 @@ class ReturnRequestWorkflowTests {
         ReturnRequestDetailResponse detail = returnRequestService.getAdminReturnDetail(created.id());
         assertThat(detail.status()).isEqualTo(ReturnRequestStatus.SUBMITTED);
         assertThat(detail.supportTicketId()).isEqualTo(supportTicketId);
+    }
+
+    @Test
+    void milestoneStatusChangesUpdateLinkedSupportContextAndThread() {
+        Dealer dealer = dealerRepository.save(createDealer("dealer-return-support-milestone@example.com"));
+        Product product = productRepository.save(createProduct("SKU-RET-MILESTONE", BigDecimal.valueOf(191_000)));
+        Order order = orderRepository.save(createOrder(dealer, product, 1, "RET-ORDER-MILESTONE", OrderStatus.COMPLETED));
+        ProductSerial serial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer, order, product, "RET-SERIAL-MILESTONE", ProductSerialStatus.ASSIGNED
+        ));
+
+        ReturnRequestDetailResponse created = returnRequestService.createDealerReturnRequest(
+                dealer.getUsername(), createRequest(order.getId(), serial.getId())
+        );
+        Long supportTicketId = created.supportTicketId();
+        assertThat(supportTicketId).isNotNull();
+
+        ReturnRequestDetailResponse reviewed = returnRequestService.reviewReturnRequest(
+                created.id(),
+                new AdminReviewReturnRequest(
+                        List.of(new AdminReviewReturnItemDecision(created.items().get(0).id(), true, "approve")),
+                        false
+                ),
+                "admin-review"
+        );
+        ReturnRequestDetailResponse received = returnRequestService.receiveReturnRequest(
+                reviewed.id(),
+                new AdminReceiveReturnRequest(List.of(reviewed.items().get(0).id()), "received"),
+                "admin-receive"
+        );
+        ReturnRequestDetailResponse inspecting = returnRequestService.inspectReturnItem(
+                received.id(),
+                received.items().get(0).id(),
+                new AdminInspectReturnItemRequest(
+                        AdminRmaRequest.RmaAction.START_INSPECTION,
+                        "inspect",
+                        List.of("https://proof/inspect.jpg"),
+                        null,
+                        null,
+                        null,
+                        null
+                ),
+                "admin-qc"
+        );
+        ReturnRequestDetailResponse resolved = returnRequestService.inspectReturnItem(
+                inspecting.id(),
+                inspecting.items().get(0).id(),
+                new AdminInspectReturnItemRequest(
+                        AdminRmaRequest.RmaAction.PASS_QC,
+                        "pass",
+                        List.of("https://proof/pass.jpg"),
+                        ReturnRequestItemFinalResolution.RESTOCK,
+                        null,
+                        null,
+                        null
+                ),
+                "admin-qc"
+        );
+        ReturnRequestDetailResponse completed = returnRequestService.completeReturnRequest(
+                resolved.id(),
+                new AdminCompleteReturnRequest("complete"),
+                "admin-complete"
+        );
+
+        var supportTicket = dealerSupportTicketRepository.findById(supportTicketId).orElseThrow();
+        assertThat(completed.status()).isEqualTo(ReturnRequestStatus.COMPLETED);
+        assertThat(supportTicket.getStatus()).isEqualTo(DealerSupportTicketStatus.OPEN);
+        assertThat(supportTicket.getContextData()).contains("\"returnStatus\":\"COMPLETED\"");
+
+        List<SupportTicketMessage> systemMessages = supportTicket.getMessages().stream()
+                .filter(message -> message.getAuthorRole() == SupportTicketMessageAuthorRole.SYSTEM)
+                .filter(message -> !Boolean.TRUE.equals(message.getInternalNote()))
+                .toList();
+        assertThat(systemMessages).anyMatch(message -> message.getMessage().contains("APPROVED"));
+        assertThat(systemMessages).anyMatch(message -> message.getMessage().contains("RECEIVED"));
+        assertThat(systemMessages).anyMatch(message -> message.getMessage().contains("INSPECTING"));
+        assertThat(systemMessages).anyMatch(message -> message.getMessage().contains("COMPLETED"));
     }
 
     @Test

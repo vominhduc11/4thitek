@@ -32,6 +32,10 @@ public class SupportTicketPayloadSupport {
             return null;
         }
         SupportTicketContextPayload normalized = new SupportTicketContextPayload(
+                contextData.returnRequestId(),
+                DealerRequestSupport.normalize(contextData.returnRequestCode()),
+                DealerRequestSupport.normalize(contextData.returnStatus()),
+                contextData.orderId(),
                 DealerRequestSupport.normalize(contextData.orderCode()),
                 DealerRequestSupport.normalize(contextData.transactionCode()),
                 normalizeAmount(contextData.paidAmount()),
@@ -39,7 +43,11 @@ public class SupportTicketPayloadSupport {
                 DealerRequestSupport.normalize(contextData.serial()),
                 DealerRequestSupport.normalize(contextData.returnReason())
         );
-        if (normalized.orderCode() == null
+        if (normalized.returnRequestId() == null
+                && normalized.returnRequestCode() == null
+                && normalized.returnStatus() == null
+                && normalized.orderId() == null
+                && normalized.orderCode() == null
                 && normalized.transactionCode() == null
                 && normalized.paidAmount() == null
                 && normalized.paymentReference() == null

@@ -23,15 +23,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @Service
 @RequiredArgsConstructor
 public class DealerSupportTicketService {
+
+    private static final Logger log = LoggerFactory.getLogger(DealerSupportTicketService.class);
 
     private final DealerRepository dealerRepository;
     private final DealerSupportTicketRepository dealerSupportTicketRepository;
@@ -56,10 +61,34 @@ public class DealerSupportTicketService {
                 .map(ticket -> toResponse(ticket, dealer));
     }
 
+    @Transactional(readOnly = true)
+    public DealerSupportTicketResponse getTicketById(String username, Long ticketId) {
+        Dealer dealer = requireDealerByUsername(username);
+        DealerSupportTicket ticket = requireTicketForDealer(ticketId, dealer.getId());
+        return toResponse(ticket, dealer);
+    }
+
     @Transactional
     public DealerSupportTicketResponse createTicket(String username, CreateDealerSupportTicketRequest request) {
-        Dealer dealer = requireDealerByUsername(username);
+        return createTicketInternal(username, request, false);
+    }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public DealerSupportTicketResponse createTicketBestEffort(String username, CreateDealerSupportTicketRequest request) {
+        try {
+            return createTicketInternal(username, request, true);
+        } catch (RuntimeException ex) {
+            log.warn("Unable to create support ticket in best-effort mode for username={}: {}", username, ex.getMessage());
+            return null;
+        }
+    }
+
+    private DealerSupportTicketResponse createTicketInternal(
+            String username,
+            CreateDealerSupportTicketRequest request,
+            boolean suppressSideEffectsError
+    ) {
+        Dealer dealer = requireDealerByUsername(username);
         DealerSupportTicket ticket = new DealerSupportTicket();
         ticket.setDealer(dealer);
         ticket.setTicketCode(buildUniqueTicketCode());
@@ -85,24 +114,7 @@ public class DealerSupportTicketService {
                 countLegacyVideos(request.attachments())
         );
         dealerSupportTicketRepository.save(saved);
-        webSocketEventPublisher.publishAdminNewSupportTicket(new AdminNewSupportTicketEvent(
-                saved.getId(),
-                saved.getTicketCode(),
-                dealer.getId(),
-                dealer.getBusinessName(),
-                saved.getCategory(),
-                saved.getPriority(),
-                saved.getSubject(),
-                saved.getCreatedAt()
-        ));
-        notificationService.create(new CreateNotifyRequest(
-                dealer.getId(),
-                appMessageSupport.get("notification.support.created.title"),
-                appMessageSupport.get("notification.support.created.content", saved.getTicketCode()),
-                NotifyType.SYSTEM,
-                "/support",
-                null
-        ));
+        publishTicketCreatedSideEffects(saved, dealer, suppressSideEffectsError);
         return toResponse(saved, dealer);
     }
 
@@ -160,6 +172,53 @@ public class DealerSupportTicketService {
     private Dealer requireDealerByUsername(String username) {
         return dealerRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Dealer not found"));
+    }
+
+    private DealerSupportTicket requireTicketForDealer(Long ticketId, Long dealerId) {
+        return dealerSupportTicketRepository.findById(ticketId)
+                .filter(candidate -> candidate.getDealer() != null
+                        && Objects.equals(candidate.getDealer().getId(), dealerId))
+                .orElseThrow(() -> new ResourceNotFoundException("Support ticket not found"));
+    }
+
+    private void publishTicketCreatedSideEffects(
+            DealerSupportTicket ticket,
+            Dealer dealer,
+            boolean suppressErrors
+    ) {
+        try {
+            webSocketEventPublisher.publishAdminNewSupportTicket(new AdminNewSupportTicketEvent(
+                    ticket.getId(),
+                    ticket.getTicketCode(),
+                    dealer.getId(),
+                    dealer.getBusinessName(),
+                    ticket.getCategory(),
+                    ticket.getPriority(),
+                    ticket.getSubject(),
+                    ticket.getCreatedAt()
+            ));
+        } catch (RuntimeException ex) {
+            if (!suppressErrors) {
+                throw ex;
+            }
+            log.warn("Unable to publish support ticket websocket event ticketId={}: {}", ticket.getId(), ex.getMessage());
+        }
+
+        try {
+            notificationService.create(new CreateNotifyRequest(
+                    dealer.getId(),
+                    appMessageSupport.get("notification.support.created.title"),
+                    appMessageSupport.get("notification.support.created.content", ticket.getTicketCode()),
+                    NotifyType.SYSTEM,
+                    "/support",
+                    null
+            ));
+        } catch (RuntimeException ex) {
+            if (!suppressErrors) {
+                throw ex;
+            }
+            log.warn("Unable to publish support ticket notification ticketId={}: {}", ticket.getId(), ex.getMessage());
+        }
     }
 
     private String buildUniqueTicketCode() {

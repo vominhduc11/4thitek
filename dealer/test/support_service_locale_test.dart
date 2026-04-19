@@ -217,6 +217,53 @@ void main() {
 
     service.close();
   });
+
+  test('fetchTicket loads a ticket by id with structured return context', () async {
+    Uri? requestedUri;
+    final client = MockClient((request) async {
+      requestedUri = request.url;
+      if (request.method == 'GET' &&
+          request.url.path.endsWith('/dealer/support-tickets/77')) {
+        return http.Response(
+          jsonEncode({
+            'success': true,
+            'data': {
+              ..._ticketResponsePayload(),
+              'id': 77,
+              'ticketCode': 'TK-77',
+              'contextData': {
+                'returnRequestId': 901,
+                'returnRequestCode': 'RET-901',
+                'returnStatus': 'UNDER_REVIEW',
+                'orderId': 77,
+                'orderCode': 'ORD-77',
+              },
+            },
+          }),
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      }
+      return http.Response('{}', 404);
+    });
+
+    final service = SupportService(
+      authStorage: _FakeAuthStorage('dealer-token'),
+      client: client,
+    );
+
+    final ticket = await service.fetchTicket(77);
+
+    expect(requestedUri?.path, '/api/v1/dealer/support-tickets/77');
+    expect(ticket.id, 77);
+    expect(ticket.contextData?.returnRequestId, 901);
+    expect(ticket.contextData?.returnRequestCode, 'RET-901');
+    expect(ticket.contextData?.returnStatus, 'UNDER_REVIEW');
+    expect(ticket.contextData?.orderId, 77);
+    expect(ticket.contextData?.orderCode, 'ORD-77');
+
+    service.close();
+  });
 }
 
 Map<String, dynamic> _ticketResponsePayload() {

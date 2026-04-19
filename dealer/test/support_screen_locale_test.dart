@@ -184,6 +184,169 @@ void main() {
     );
   });
 
+  testWidgets(
+    'Support deep-link ticketId fetches by id and selects ticket outside first page',
+    (WidgetTester tester) async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final linkedTicket = DealerSupportTicketRecord(
+        id: 77,
+        ticketCode: 'TK-77',
+        category: 'returnOrder',
+        priority: 'NORMAL',
+        status: 'OPEN',
+        subject: 'Linked return support',
+        message: 'Need return support',
+        createdAt: DateTime(2026, 1, 2, 8),
+        updatedAt: DateTime(2026, 1, 2, 8),
+      );
+      final supportService = _FakeSupportService(
+        historyItems: <DealerSupportTicketRecord>[
+          DealerSupportTicketRecord(
+            id: 1,
+            ticketCode: 'TK-1',
+            category: 'order',
+            priority: 'NORMAL',
+            status: 'OPEN',
+            subject: 'History ticket',
+            message: 'History message',
+            createdAt: DateTime(2026, 1, 1, 8),
+            updatedAt: DateTime(2026, 1, 1, 8),
+          ),
+        ],
+        ticketById: <int, DealerSupportTicketRecord>{77: linkedTicket},
+      );
+
+      await tester.pumpWidget(
+        await _buildApp(
+          const Locale('en'),
+          supportService: supportService,
+          initialTicketId: 77,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(supportService.fetchedTicketIds, contains(77));
+      expect(find.text('TK-77'), findsWidgets);
+    },
+  );
+
+  testWidgets(
+    'Support deep-link shows safe warning and keeps history when ticket cannot be fetched',
+    (WidgetTester tester) async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final supportService = _FakeSupportService(
+        historyItems: <DealerSupportTicketRecord>[
+          DealerSupportTicketRecord(
+            id: 1,
+            ticketCode: 'TK-1',
+            category: 'order',
+            priority: 'NORMAL',
+            status: 'OPEN',
+            subject: 'History ticket',
+            message: 'History message',
+            createdAt: DateTime(2026, 1, 1, 8),
+            updatedAt: DateTime(2026, 1, 1, 8),
+          ),
+        ],
+        fetchTicketError: const SupportException('Support ticket not found'),
+      );
+
+      await tester.pumpWidget(
+        await _buildApp(
+          const Locale('en'),
+          supportService: supportService,
+          initialTicketId: 88,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'The requested support ticket is unavailable or you do not have access.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Choose a request to view the full conversation'),
+        findsOneWidget,
+      );
+      expect(find.text('TK-1'), findsOneWidget);
+    },
+  );
+
+  testWidgets('Support detail shows linked return card and opens return detail', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final linkedTicket = DealerSupportTicketRecord(
+      id: 55,
+      ticketCode: 'TK-55',
+      category: 'returnOrder',
+      priority: 'NORMAL',
+      status: 'OPEN',
+      subject: 'Return support',
+      message: 'Please review return',
+      contextData: const SupportTicketContextRecord(
+        returnRequestId: 901,
+        returnRequestCode: 'RET-901',
+        returnStatus: 'UNDER_REVIEW',
+        orderCode: 'ORD-901',
+      ),
+      createdAt: DateTime(2026, 1, 3, 8),
+      updatedAt: DateTime(2026, 1, 3, 8),
+    );
+    final supportService = _FakeSupportService(
+      latestTicket: linkedTicket,
+      historyItems: <DealerSupportTicketRecord>[linkedTicket],
+    );
+    final settingsController = AppSettingsController();
+    await settingsController.setLocale(const Locale('en'));
+    final notificationController = NotificationController();
+
+    await tester.pumpWidget(
+      AppSettingsScope(
+        controller: settingsController,
+        child: NotificationScope(
+          controller: notificationController,
+          child: MaterialApp.router(
+            locale: const Locale('en'),
+            supportedLocales: const <Locale>[Locale('vi'), Locale('en')],
+            localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            routerConfig: GoRouter(
+              initialLocation: DealerRoutePath.support,
+              routes: <RouteBase>[
+                GoRoute(
+                  path: DealerRoutePath.support,
+                  builder: (context, state) =>
+                      SupportScreen(supportService: supportService),
+                ),
+                GoRoute(
+                  path: '${DealerRoutePath.returns}/:requestId',
+                  builder: (context, state) => Scaffold(
+                    body: Text(
+                      'Return detail ${state.pathParameters['requestId']}',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Related return request'), findsOneWidget);
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Open return detail'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Return detail 901'), findsOneWidget);
+  });
+
   testWidgets('Support screen root fallback goes to home', (
     WidgetTester tester,
   ) async {
@@ -265,6 +428,7 @@ Future<Widget> _buildApp(
   required SupportService supportService,
   UploadService Function()? uploadServiceFactory,
   Future<XFile?> Function()? attachmentPicker,
+  int? initialTicketId,
 }) async {
   final settingsController = AppSettingsController();
   await settingsController.setLocale(locale);
@@ -286,6 +450,7 @@ Future<Widget> _buildApp(
           supportService: supportService,
           uploadServiceFactory: uploadServiceFactory,
           attachmentPicker: attachmentPicker,
+          initialTicketId: initialTicketId,
         ),
       ),
     ),
@@ -335,13 +500,18 @@ Future<Widget> _buildRouterApp(
 class _FakeSupportService extends SupportService {
   _FakeSupportService({
     this.submitError,
+    this.fetchTicketError,
     this.latestTicket,
     this.historyItems = const <DealerSupportTicketRecord>[],
+    this.ticketById,
   }) : super();
 
   final SupportException? submitError;
+  final SupportException? fetchTicketError;
   final DealerSupportTicketRecord? latestTicket;
   final List<DealerSupportTicketRecord> historyItems;
+  final Map<int, DealerSupportTicketRecord>? ticketById;
+  final List<int> fetchedTicketIds = <int>[];
 
   @override
   Future<DealerSupportTicketRecord?> fetchLatestTicket() async => latestTicket;
@@ -406,6 +576,19 @@ class _FakeUploadService extends UploadService {
   }) async {
     onProgress?.call(100);
     return uploadResult;
+  }
+
+  @override
+  Future<DealerSupportTicketRecord> fetchTicket(int ticketId) async {
+    fetchedTicketIds.add(ticketId);
+    if (fetchTicketError != null) {
+      throw fetchTicketError!;
+    }
+    final mapped = ticketById?[ticketId];
+    if (mapped != null) {
+      return mapped;
+    }
+    throw const SupportException('Support ticket not found');
   }
 
   @override

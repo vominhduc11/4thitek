@@ -8,12 +8,13 @@
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   createAdminSupportTicketMessage,
   deleteMediaAsset,
   deleteUploadUrl,
   fetchAllAdminSupportTickets,
+  fetchAdminSupportTicket,
   fetchAdminSupportTickets,
   fetchAdminUsers,
   updateAdminSupportTicket,
@@ -223,6 +224,22 @@ const validateSupportAttachmentFile = (file: File): string | null => {
   }
 
   return "Định dạng tệp không hợp lệ.";
+};
+
+const upsertTicket = (
+  tickets: BackendSupportTicketResponse[],
+  ticket: BackendSupportTicketResponse | null,
+) => {
+  if (!ticket) {
+    return tickets;
+  }
+  const index = tickets.findIndex((entry) => entry.id === ticket.id);
+  if (index < 0) {
+    return [ticket, ...tickets];
+  }
+  const next = [...tickets];
+  next[index] = ticket;
+  return next;
 };
 
 function createDraft(ticket: BackendSupportTicketResponse): TicketDraftState {
@@ -555,10 +572,13 @@ function SupportTicketsPageRevamp() {
   const { accessToken } = useAuth();
   const { notify } = useToast();
   const location = useLocation();
+  const navigate = useNavigate();
   const [tickets, setTickets] = useState<BackendSupportTicketResponse[]>([]);
   const [allTickets, setAllTickets] = useState<BackendSupportTicketResponse[]>(
     [],
   );
+  const [queriedTicket, setQueriedTicket] =
+    useState<BackendSupportTicketResponse | null>(null);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
@@ -583,7 +603,6 @@ function SupportTicketsPageRevamp() {
   );
   const [showQuickStats, setShowQuickStats] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const hasAppliedTicketQueryRef = useRef(false);
   const draftsByTicketIdRef = useRef(draftsByTicketId);
   const accessTokenRef = useRef(accessToken);
   const hasActiveFilters = query.trim().length > 0 || statusFilter !== "all";
@@ -663,11 +682,16 @@ function SupportTicketsPageRevamp() {
         if (response.items.length > 0) {
           setSelectedId(
             (current) =>
+              (queryTicketId && current === queryTicketId
+                ? current
+                : null) ??
               response.items.find((item) => item.id === current)?.id ??
               response.items[0].id,
           );
         } else {
-          setSelectedId(null);
+          setSelectedId((current) =>
+            queryTicketId && current === queryTicketId ? current : null,
+          );
         }
       } catch (loadError) {
         setError(
@@ -677,7 +701,7 @@ function SupportTicketsPageRevamp() {
         setIsLoading(false);
       }
     },
-    [accessToken, copy.loadFallback, mergeTickets],
+    [accessToken, copy.loadFallback, mergeTickets, queryTicketId],
   );
 
   useEffect(() => {
@@ -693,6 +717,32 @@ function SupportTicketsPageRevamp() {
       .catch(() => setStaffUsers([]));
   }, [accessToken]);
 
+  useEffect(() => {
+    if (!accessToken || !queryTicketId) {
+      setQueriedTicket(null);
+      return;
+    }
+    let active = true;
+    void fetchAdminSupportTicket(accessToken, queryTicketId)
+      .then((ticket) => {
+        if (!active) {
+          return;
+        }
+        mergeTickets([ticket]);
+        setQueriedTicket(ticket);
+        setSelectedId(ticket.id);
+      })
+      .catch(() => {
+        if (!active) {
+          return;
+        }
+        setQueriedTicket(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [accessToken, mergeTickets, queryTicketId]);
+
   const loadAllTickets = useCallback(async () => {
     if (!accessToken) return;
     setIsFilterLoading(true);
@@ -703,10 +753,14 @@ function SupportTicketsPageRevamp() {
       if (response.length > 0) {
         setSelectedId(
           (current) =>
-            response.find((item) => item.id === current)?.id ?? response[0].id,
+            (queryTicketId && current === queryTicketId ? current : null) ??
+            response.find((item) => item.id === current)?.id ??
+            response[0].id,
         );
       } else {
-        setSelectedId(null);
+        setSelectedId((current) =>
+          queryTicketId && current === queryTicketId ? current : null,
+        );
       }
     } catch (loadError) {
       setError(
@@ -715,7 +769,7 @@ function SupportTicketsPageRevamp() {
     } finally {
       setIsFilterLoading(false);
     }
-  }, [accessToken, copy.loadFallback, mergeTickets]);
+  }, [accessToken, copy.loadFallback, mergeTickets, queryTicketId]);
 
   useEffect(() => {
     if (!hasActiveFilters) {
@@ -738,10 +792,14 @@ function SupportTicketsPageRevamp() {
   }, [hasActiveFilters, loadAllTickets, loadTickets, page]);
 
   const sourceTickets = hasActiveFilters ? allTickets : tickets;
+  const mergedSourceTickets = useMemo(
+    () => upsertTicket(sourceTickets, queriedTicket),
+    [queriedTicket, sourceTickets],
+  );
 
   const filteredTickets = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    return sourceTickets.filter((ticket) => {
+    return mergedSourceTickets.filter((ticket) => {
       const matchesStatus =
         statusFilter === "all" ? true : ticket.status === statusFilter;
       const haystack = [
@@ -761,7 +819,7 @@ function SupportTicketsPageRevamp() {
         (!normalizedQuery || haystack.includes(normalizedQuery))
       );
     });
-  }, [query, sourceTickets, statusFilter]);
+  }, [mergedSourceTickets, query, statusFilter]);
 
   useEffect(() => {
     if (filteredTickets.length === 0) {
@@ -773,18 +831,6 @@ function SupportTicketsPageRevamp() {
       setSelectedId(filteredTickets[0].id);
     }
   }, [filteredTickets, selectedId]);
-
-  useEffect(() => {
-    if (hasAppliedTicketQueryRef.current || !queryTicketId || filteredTickets.length === 0) {
-      return;
-    }
-    const matched = filteredTickets.find((ticket) => ticket.id === queryTicketId);
-    if (!matched) {
-      return;
-    }
-    hasAppliedTicketQueryRef.current = true;
-    setSelectedId(matched.id);
-  }, [filteredTickets, queryTicketId]);
 
   const selectedTicket =
     filteredTickets.find((ticket) => ticket.id === selectedId) ?? null;
@@ -872,6 +918,9 @@ function SupportTicketsPageRevamp() {
     );
     setAllTickets((current) =>
       current.map((ticket) => (ticket.id === updated.id ? updated : ticket)),
+    );
+    setQueriedTicket((current) =>
+      current?.id === updated.id ? updated : current,
     );
     setDraftsByTicketId((current) => ({
       ...current,
@@ -1414,6 +1463,42 @@ function SupportTicketsPageRevamp() {
                           {selectedTicket.contextData.returnReason}
                         </p>
                       ) : null}
+                    </div>
+                  </div>
+                ) : null}
+
+                {selectedTicket.contextData?.returnRequestId ? (
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+                    <p className={`${tableMetaClass} mb-2`}>
+                      {t("Yêu cầu đổi trả liên quan")}
+                    </p>
+                    <div className="grid gap-2 text-sm text-[var(--ink)] sm:grid-cols-2">
+                      <p>
+                        <span className="font-medium">{t("Mã yêu cầu")}:</span>{" "}
+                        {selectedTicket.contextData.returnRequestCode ??
+                          `#${selectedTicket.contextData.returnRequestId}`}
+                      </p>
+                      <p>
+                        <span className="font-medium">{t("Trạng thái")}:</span>{" "}
+                        {selectedTicket.contextData.returnStatus ?? "-"}
+                      </p>
+                      <p className="sm:col-span-2">
+                        <span className="font-medium">{t("Mã đơn hàng")}:</span>{" "}
+                        {selectedTicket.contextData.orderCode ?? "-"}
+                      </p>
+                    </div>
+                    <div className="mt-3">
+                      <button
+                        type="button"
+                        className="rounded-full border border-[var(--accent)] bg-[var(--accent-soft)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:border-[var(--accent)]"
+                        onClick={() =>
+                          navigate(
+                            `/returns/${selectedTicket.contextData?.returnRequestId}`,
+                          )
+                        }
+                      >
+                        {t("Mở chi tiết đổi trả")}
+                      </button>
                     </div>
                   </div>
                 ) : null}
