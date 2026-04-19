@@ -34,7 +34,12 @@ _ProductListTexts _productListTexts(BuildContext context) => _ProductListTexts(
 );
 
 class ProductListScreen extends StatefulWidget {
-  const ProductListScreen({super.key});
+  const ProductListScreen({
+    super.key,
+    this.showFallbackNavigation = true,
+  });
+
+  final bool showFallbackNavigation;
 
   @override
   State<ProductListScreen> createState() => _ProductListScreenState();
@@ -159,9 +164,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
       data: mediaQuery.copyWith(textScaler: safeTextScaler),
       child: Scaffold(
         appBar: AppBar(
-          leading: const DealerFallbackBackButton(
-            fallbackPath: DealerRoutePath.home,
-          ),
+          leading: widget.showFallbackNavigation
+              ? const DealerFallbackBackButton(
+                  fallbackPath: DealerRoutePath.home,
+                )
+              : null,
           title: BrandAppBarTitle(texts.screenTitle),
           actions: [
             const GlobalSearchIconButton(),

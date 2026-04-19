@@ -142,7 +142,10 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
         label: l10n.tabProducts,
         icon: Icons.storefront_outlined,
         activeIcon: Icons.storefront,
-        widget: const ProductListScreen(key: PageStorageKey('tab-products')),
+        widget: const ProductListScreen(
+          key: PageStorageKey('tab-products'),
+          showFallbackNavigation: false,
+        ),
       ),
       _TabItem(
         label: l10n.tabOrders,
@@ -151,6 +154,7 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
         widget: OrdersScreen(
           key: const PageStorageKey('tab-orders'),
           onSwitchTab: _switchToTab,
+          showFallbackNavigation: false,
         ),
       ),
       _TabItem(
@@ -166,7 +170,10 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
         label: l10n.tabInventory,
         icon: Icons.inventory_2_outlined,
         activeIcon: Icons.inventory_2,
-        widget: const InventoryScreen(key: PageStorageKey('tab-inventory')),
+        widget: const InventoryScreen(
+          key: PageStorageKey('tab-inventory'),
+          showFallbackNavigation: false,
+        ),
       ),
       _TabItem(
         label: l10n.tabAccount,

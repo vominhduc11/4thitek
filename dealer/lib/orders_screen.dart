@@ -30,9 +30,14 @@ _OrdersTexts _ordersTexts(BuildContext context) => _OrdersTexts(
 );
 
 class OrdersScreen extends StatefulWidget {
-  const OrdersScreen({super.key, this.onSwitchTab});
+  const OrdersScreen({
+    super.key,
+    this.onSwitchTab,
+    this.showFallbackNavigation = true,
+  });
 
   final ValueChanged<int>? onSwitchTab;
+  final bool showFallbackNavigation;
 
   @override
   State<OrdersScreen> createState() => _OrdersScreenState();
@@ -1248,9 +1253,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: const DealerFallbackBackButton(
-          fallbackPath: DealerRoutePath.home,
-        ),
+        leading: widget.showFallbackNavigation
+            ? const DealerFallbackBackButton(
+                fallbackPath: DealerRoutePath.home,
+              )
+            : null,
         title: BrandAppBarTitle(texts.screenTitle),
         actions: [
           const GlobalSearchIconButton(),

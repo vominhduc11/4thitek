@@ -41,10 +41,12 @@ class InventoryScreen extends StatefulWidget {
     super.key,
     this.initialStockFilter = InventoryStockFilter.all,
     this.inventoryService,
+    this.showFallbackNavigation = true,
   });
 
   final InventoryStockFilter initialStockFilter;
   final InventoryService? inventoryService;
+  final bool showFallbackNavigation;
 
   @override
   State<InventoryScreen> createState() => _InventoryScreenState();
@@ -235,9 +237,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: const DealerFallbackBackButton(
-          fallbackPath: DealerRoutePath.home,
-        ),
+        leading: widget.showFallbackNavigation
+            ? const DealerFallbackBackButton(
+                fallbackPath: DealerRoutePath.home,
+              )
+            : null,
         title: BrandAppBarTitle(texts.screenTitle),
         actions: const [GlobalSearchIconButton()],
       ),
