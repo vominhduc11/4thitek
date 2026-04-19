@@ -35,6 +35,10 @@ public class ReturnRequestAttachment {
     @JoinColumn(name = "request_item_id")
     private ReturnRequestItem item;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "media_asset_id")
+    private MediaAsset mediaAsset;
+
     @Column(name = "url", nullable = false)
     private String url;
 

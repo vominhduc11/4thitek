@@ -16,6 +16,7 @@ import com.devwonder.backend.dto.dealer.UpdateDealerSerialStatusRequest;
 import com.devwonder.backend.dto.returns.ReturnEligibilityResponse;
 import com.devwonder.backend.dto.returns.ReturnRequestDetailResponse;
 import com.devwonder.backend.entity.Dealer;
+import com.devwonder.backend.entity.MediaAsset;
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.OrderAdjustment;
 import com.devwonder.backend.entity.OrderItem;
@@ -25,6 +26,10 @@ import com.devwonder.backend.entity.ProductSerial;
 import com.devwonder.backend.entity.WarrantyRegistration;
 import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.entity.enums.DealerSupportTicketStatus;
+import com.devwonder.backend.entity.enums.MediaCategory;
+import com.devwonder.backend.entity.enums.MediaLinkedEntityType;
+import com.devwonder.backend.entity.enums.MediaStatus;
+import com.devwonder.backend.entity.enums.MediaType;
 import com.devwonder.backend.entity.enums.OrderAdjustmentType;
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.PaymentMethod;
@@ -37,10 +42,12 @@ import com.devwonder.backend.entity.enums.ReturnRequestItemStatus;
 import com.devwonder.backend.entity.enums.ReturnRequestResolution;
 import com.devwonder.backend.entity.enums.ReturnRequestStatus;
 import com.devwonder.backend.entity.enums.ReturnRequestType;
+import com.devwonder.backend.entity.enums.StorageProvider;
 import com.devwonder.backend.entity.enums.WarrantyStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.DealerSupportTicketRepository;
+import com.devwonder.backend.repository.MediaAssetRepository;
 import com.devwonder.backend.repository.NotifyRepository;
 import com.devwonder.backend.repository.OrderAdjustmentRepository;
 import com.devwonder.backend.repository.OrderRepository;
@@ -51,7 +58,9 @@ import com.devwonder.backend.repository.ReturnRequestRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
 import com.devwonder.backend.service.AdminRmaService;
 import com.devwonder.backend.service.DealerPortalService;
+import com.devwonder.backend.service.FileStorageService;
 import com.devwonder.backend.service.ReturnRequestService;
+import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -109,10 +118,17 @@ class ReturnRequestWorkflowTests {
     @Autowired
     private NotifyRepository notifyRepository;
 
+    @Autowired
+    private MediaAssetRepository mediaAssetRepository;
+
+    @Autowired
+    private FileStorageService fileStorageService;
+
     @BeforeEach
     void setUp() {
         returnRequestRepository.deleteAll();
         dealerSupportTicketRepository.deleteAll();
+        mediaAssetRepository.deleteAll();
         notifyRepository.deleteAll();
         orderAdjustmentRepository.deleteAll();
         paymentRepository.deleteAll();
@@ -145,6 +161,51 @@ class ReturnRequestWorkflowTests {
         assertThat(created.items()).hasSize(1);
         assertThat(created.items().get(0).itemStatus()).isEqualTo(ReturnRequestItemStatus.REQUESTED);
         assertThat(created.supportTicketId()).isNotNull();
+    }
+
+    @Test
+    void dealerCanSubmitReturnRequestWithAttachedMediaAssetId() throws Exception {
+        Dealer dealer = dealerRepository.save(createDealer("dealer-return-media@example.com"));
+        Product product = productRepository.save(createProduct("SKU-RET-MEDIA", BigDecimal.valueOf(101_000)));
+        Order order = orderRepository.save(createOrder(dealer, product, 1, "RET-ORDER-MEDIA", OrderStatus.COMPLETED));
+        ProductSerial serial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "RET-SERIAL-MEDIA",
+                ProductSerialStatus.ASSIGNED
+        ));
+        MediaAsset mediaAsset = createDealerReturnMediaAsset(dealer, "proof.pdf");
+
+        ReturnRequestDetailResponse created = returnRequestService.createDealerReturnRequest(
+                dealer.getUsername(),
+                new CreateDealerReturnRequest(
+                        order.getId(),
+                        ReturnRequestType.DEFECTIVE_RETURN,
+                        ReturnRequestResolution.REPLACE,
+                        "DAMAGED",
+                        "Attachment with media asset id",
+                        List.of(new DealerReturnRequestItemPayload(
+                                serial.getId(),
+                                ReturnRequestItemCondition.DEFECTIVE
+                        )),
+                        List.of(new DealerReturnRequestAttachmentPayload(
+                                serial.getId(),
+                                serial.getId(),
+                                mediaAsset.getId(),
+                                "https://cdn.example.com/proof.pdf",
+                                "proof.pdf",
+                                ReturnRequestAttachmentCategory.PROOF
+                        ))
+                )
+        );
+
+        assertThat(created.attachments()).hasSize(1);
+        assertThat(created.attachments().get(0).mediaAssetId()).isEqualTo(mediaAsset.getId());
+        MediaAsset linkedAsset = mediaAssetRepository.findById(mediaAsset.getId()).orElseThrow();
+        assertThat(linkedAsset.getStatus()).isEqualTo(MediaStatus.ACTIVE);
+        assertThat(linkedAsset.getLinkedEntityType()).isEqualTo(MediaLinkedEntityType.RETURN_REQUEST);
+        assertThat(linkedAsset.getLinkedEntityId()).isEqualTo(created.id());
     }
 
     @Test
@@ -1427,6 +1488,7 @@ class ReturnRequestWorkflowTests {
                 List.of(new DealerReturnRequestAttachmentPayload(
                         attachmentItemId,
                         attachmentProductSerialId,
+                        null,
                         "https://cdn.example.com/proof.jpg",
                         "proof.jpg",
                         ReturnRequestAttachmentCategory.PROOF
@@ -1480,6 +1542,31 @@ class ReturnRequestWorkflowTests {
         warranty.setWarrantyEnd(warrantyEnd);
         warranty.setStatus(status);
         return warranty;
+    }
+
+    private MediaAsset createDealerReturnMediaAsset(Dealer dealer, String fileName) throws Exception {
+        byte[] bytes = "%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF"
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        String objectKey = fileStorageService.createRandomObjectKey(
+                "support/evidence/dealers/" + dealer.getId(),
+                "pdf"
+        );
+        fileStorageService.write(objectKey, new ByteArrayInputStream(bytes), bytes.length, "application/pdf");
+
+        MediaAsset mediaAsset = new MediaAsset();
+        mediaAsset.setObjectKey(objectKey);
+        mediaAsset.setOriginalFileName(fileName);
+        mediaAsset.setStoredFileName(fileName);
+        mediaAsset.setContentType("application/pdf");
+        mediaAsset.setMediaType(MediaType.DOCUMENT);
+        mediaAsset.setCategory(MediaCategory.SUPPORT_TICKET);
+        mediaAsset.setSizeBytes((long) bytes.length);
+        mediaAsset.setStorageProvider(StorageProvider.LOCAL);
+        mediaAsset.setOwnerAccount(dealer);
+        mediaAsset.setUploadedByAccount(dealer);
+        mediaAsset.setStatus(MediaStatus.PENDING);
+        mediaAsset.setFinalizedAt(Instant.now());
+        return mediaAssetRepository.save(mediaAsset);
     }
 
     private Dealer createDealer(String username) {

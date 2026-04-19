@@ -274,6 +274,49 @@ class MediaApiContractTests {
     }
 
     @Test
+    void deleteMediaAssetAllowsOwnerAndRemovesStorageObject() throws Exception {
+        String dealerToken = registerDealerAndExtractAccessToken("media-delete-owner");
+
+        long mediaAssetId = createUploadSession(dealerToken, "owner-proof.png", "image/png", SAMPLE_PNG_BYTES.length);
+        uploadSessionContent(dealerToken, mediaAssetId, "owner-proof.png", "image/png", SAMPLE_PNG_BYTES);
+        finalizeUpload(dealerToken, mediaAssetId)
+                .andExpect(status().isOk());
+
+        MediaAsset mediaAsset = mediaAssetRepository.findById(mediaAssetId).orElseThrow();
+        assertThat(fileStorageService.exists(mediaAsset.getObjectKey())).isTrue();
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/v1/media/{id}", mediaAssetId)
+                        .header("Authorization", "Bearer " + dealerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("deleted"))
+                .andExpect(jsonPath("$.data.id").value(mediaAssetId));
+
+        assertThat(mediaAssetRepository.findById(mediaAssetId)).isEmpty();
+        assertThat(fileStorageService.exists(mediaAsset.getObjectKey())).isFalse();
+    }
+
+    @Test
+    void deleteMediaAssetRejectsOtherDealerAndAllowsAdmin() throws Exception {
+        String dealerToken = registerDealerAndExtractAccessToken("media-delete-owner-two");
+        String otherDealerToken = registerDealerAndExtractAccessToken("media-delete-other");
+        String adminToken = login("media.admin@example.com", "ChangedPass#456");
+
+        long mediaAssetId = createUploadSession(dealerToken, "owner-proof-two.png", "image/png", SAMPLE_PNG_BYTES.length);
+        uploadSessionContent(dealerToken, mediaAssetId, "owner-proof-two.png", "image/png", SAMPLE_PNG_BYTES);
+        finalizeUpload(dealerToken, mediaAssetId)
+                .andExpect(status().isOk());
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/v1/media/{id}", mediaAssetId)
+                        .header("Authorization", "Bearer " + otherDealerToken))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/v1/media/{id}", mediaAssetId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk());
+        assertThat(mediaAssetRepository.findById(mediaAssetId)).isEmpty();
+    }
+
+    @Test
     void supportTicketRejectsUnfinalizedMediaAttachment() throws Exception {
         String dealerToken = registerDealerAndExtractAccessToken("media-unfinalized");
         long mediaAssetId = createUploadSession(dealerToken, "proof.png", "image/png", SAMPLE_PNG_BYTES.length);
@@ -290,6 +333,34 @@ class MediaApiContractTests {
                                   "mediaAssetIds": [%d]
                                 }
                                 """.formatted(mediaAssetId)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void deleteMediaAssetRejectsAssetsAttachedToSupportMessages() throws Exception {
+        String dealerToken = registerDealerAndExtractAccessToken("media-delete-attached");
+
+        long mediaAssetId = createUploadSession(dealerToken, "attached-proof.png", "image/png", SAMPLE_PNG_BYTES.length);
+        uploadSessionContent(dealerToken, mediaAssetId, "attached-proof.png", "image/png", SAMPLE_PNG_BYTES);
+        finalizeUpload(dealerToken, mediaAssetId)
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/dealer/support-tickets")
+                        .contentType(APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + dealerToken)
+                        .content("""
+                                {
+                                  "category": "payment",
+                                  "priority": "normal",
+                                  "subject": "Delete attached media",
+                                  "message": "Should attach media",
+                                  "mediaAssetIds": [%d]
+                                }
+                                """.formatted(mediaAssetId)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/v1/media/{id}", mediaAssetId)
+                        .header("Authorization", "Bearer " + dealerToken))
                 .andExpect(status().isBadRequest());
     }
 

@@ -11,6 +11,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import {
   createAdminSupportTicketMessage,
+  deleteMediaAsset,
+  deleteUploadUrl,
   fetchAllAdminSupportTickets,
   fetchAdminSupportTickets,
   fetchAdminUsers,
@@ -574,6 +576,7 @@ function SupportTicketsPageRevamp() {
   const [isSavingProcessing, setIsSavingProcessing] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+  const [isDeletingAttachment, setIsDeletingAttachment] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadingFileName, setUploadingFileName] = useState<string | null>(
     null,
@@ -581,6 +584,8 @@ function SupportTicketsPageRevamp() {
   const [showQuickStats, setShowQuickStats] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasAppliedTicketQueryRef = useRef(false);
+  const draftsByTicketIdRef = useRef(draftsByTicketId);
+  const accessTokenRef = useRef(accessToken);
   const hasActiveFilters = query.trim().length > 0 || statusFilter !== "all";
   const isSaving = isSavingProcessing || isSendingMessage;
   const queryTicketId = useMemo(() => {
@@ -605,6 +610,41 @@ function SupportTicketsPageRevamp() {
     },
     [],
   );
+
+  useEffect(() => {
+    draftsByTicketIdRef.current = draftsByTicketId;
+  }, [draftsByTicketId]);
+
+  useEffect(() => {
+    accessTokenRef.current = accessToken;
+  }, [accessToken]);
+
+  useEffect(() => {
+    return () => {
+      const token = accessTokenRef.current;
+      if (!token) {
+        return;
+      }
+      const attachments = Object.values(draftsByTicketIdRef.current).flatMap(
+        (draft) => draft.attachments,
+      );
+      if (attachments.length === 0) {
+        return;
+      }
+      void (async () => {
+        for (const attachment of attachments) {
+          if (!attachment.id || attachment.id <= 0) {
+            continue;
+          }
+          try {
+            await deleteMediaAsset(token, attachment.id);
+          } catch {
+            // Best-effort cleanup on exit.
+          }
+        }
+      })();
+    };
+  }, []);
 
   const loadTickets = useCallback(
     async (nextPage: number) => {
@@ -879,7 +919,7 @@ function SupportTicketsPageRevamp() {
   };
 
   const handleAttachmentUpload = async (file: File | null) => {
-    if (!file || !accessToken || !selectedTicket) {
+    if (!file || !accessToken || !selectedTicket || isDeletingAttachment) {
       return;
     }
 
@@ -944,31 +984,56 @@ function SupportTicketsPageRevamp() {
   };
 
   const removeDraftAttachment = useCallback(
-    async (attachmentKey: string) => {
-      if (!selectedTicket) {
+    async (attachment: DraftAttachment) => {
+      if (!accessToken || !selectedTicket || isDeletingAttachment) {
         return;
       }
 
-      setDraftsByTicketId((current) => {
-        const existingDraft =
-          current[selectedTicket.id] ?? createDraft(selectedTicket);
-        return {
-          ...current,
-          [selectedTicket.id]: {
-            ...existingDraft,
-            attachments: existingDraft.attachments.filter(
-              (attachment) =>
-                String(attachment.id ?? attachment.url) !== attachmentKey,
-            ),
+      const ticketId = selectedTicket.id;
+      const attachmentKey = String(attachment.id ?? attachment.url);
+      setIsDeletingAttachment(true);
+      try {
+        if (attachment.id && attachment.id > 0) {
+          await deleteMediaAsset(accessToken, attachment.id);
+        } else if (attachment.url.trim()) {
+          await deleteUploadUrl(accessToken, attachment.url.trim());
+        }
+        setDraftsByTicketId((current) => {
+          const existingDraft = current[ticketId] ?? createDraft(selectedTicket);
+          return {
+            ...current,
+            [ticketId]: {
+              ...existingDraft,
+              attachments: existingDraft.attachments.filter(
+                (item) => String(item.id ?? item.url) !== attachmentKey,
+              ),
+            },
+          };
+        });
+      } catch (deleteError) {
+        notify(
+          deleteError instanceof Error
+            ? deleteError.message
+            : t("Cannot remove attachment."),
+          {
+            title: copy.title,
+            variant: "error",
           },
-        };
-      });
+        );
+      } finally {
+        setIsDeletingAttachment(false);
+      }
     },
-    [selectedTicket],
+    [accessToken, copy.title, isDeletingAttachment, notify, selectedTicket, t],
   );
 
   const handleSendMessage = async () => {
-    if (!accessToken || !selectedTicket || !selectedDraft?.replyDraft.trim()) {
+    if (
+      !accessToken ||
+      !selectedTicket ||
+      !selectedDraft?.replyDraft.trim() ||
+      isDeletingAttachment
+    ) {
       return;
     }
     setIsSendingMessage(true);
@@ -1421,7 +1486,7 @@ function SupportTicketsPageRevamp() {
                       </p>
                     </div>
                     <PrimaryButton
-                      disabled={isSaving}
+                      disabled={isSaving || isDeletingAttachment}
                       onClick={() => void handleSave()}
                       type="button"
                     >
@@ -1523,7 +1588,7 @@ function SupportTicketsPageRevamp() {
                           ? "bg-[var(--accent)] text-white"
                           : "text-[var(--muted)] hover:text-[var(--ink)]",
                       ].join(" ")}
-                      disabled={isSaving}
+                      disabled={isSaving || isDeletingAttachment}
                       onClick={() => updateSelectedDraft({ internalNote: false })}
                     >
                       {t("Gửi cho đại lý")}
@@ -1582,7 +1647,11 @@ function SupportTicketsPageRevamp() {
                         <input
                           accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,application/pdf,.jpg,.jpeg,.png,.webp,.mp4,.webm,.pdf"
                           className="hidden"
-                          disabled={isUploadingAttachment || isSaving}
+                          disabled={
+                            isUploadingAttachment ||
+                            isSaving ||
+                            isDeletingAttachment
+                          }
                           onChange={(event) => {
                             const file = event.target.files?.[0] ?? null;
                             void handleAttachmentUpload(file);
@@ -1608,10 +1677,10 @@ function SupportTicketsPageRevamp() {
                             t={t}
                             accessToken={accessToken}
                             removable
-                            onRemove={() =>
-                              void removeDraftAttachment(
-                                String(attachment.id ?? attachment.url),
-                              )
+                            onRemove={
+                              isDeletingAttachment
+                                ? undefined
+                                : () => void removeDraftAttachment(attachment)
                             }
                           />
                         ))}
@@ -1625,7 +1694,11 @@ function SupportTicketsPageRevamp() {
 
                   <div className="mt-4 flex flex-wrap justify-end gap-3">
                     <GhostButton
-                      disabled={isSaving || !selectedDraft.replyDraft.trim()}
+                      disabled={
+                        isSaving ||
+                        isDeletingAttachment ||
+                        !selectedDraft.replyDraft.trim()
+                      }
                       onClick={() => void handleSendMessage()}
                       type="button"
                     >

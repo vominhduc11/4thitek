@@ -14,6 +14,7 @@ import com.devwonder.backend.dto.support.SupportTicketAttachmentResponse;
 import com.devwonder.backend.entity.Account;
 import com.devwonder.backend.entity.DealerSupportTicket;
 import com.devwonder.backend.entity.MediaAsset;
+import com.devwonder.backend.entity.ReturnRequest;
 import com.devwonder.backend.entity.SupportTicketMessage;
 import com.devwonder.backend.entity.SupportTicketMessageAttachment;
 import com.devwonder.backend.entity.enums.MediaCategory;
@@ -25,6 +26,7 @@ import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.repository.AccountRepository;
 import com.devwonder.backend.repository.MediaAssetRepository;
+import com.devwonder.backend.repository.ReturnRequestRepository;
 import com.devwonder.backend.repository.SupportTicketMessageRepository;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -54,6 +56,7 @@ public class MediaAssetService {
 
     private final MediaAssetRepository mediaAssetRepository;
     private final SupportTicketMessageRepository supportTicketMessageRepository;
+    private final ReturnRequestRepository returnRequestRepository;
     private final AccountRepository accountRepository;
     private final FileStorageService fileStorageService;
     private final MediaFileValidationService mediaFileValidationService;
@@ -63,6 +66,7 @@ public class MediaAssetService {
     public MediaAssetService(
             MediaAssetRepository mediaAssetRepository,
             SupportTicketMessageRepository supportTicketMessageRepository,
+            ReturnRequestRepository returnRequestRepository,
             AccountRepository accountRepository,
             FileStorageService fileStorageService,
             MediaFileValidationService mediaFileValidationService,
@@ -71,6 +75,7 @@ public class MediaAssetService {
     ) {
         this.mediaAssetRepository = mediaAssetRepository;
         this.supportTicketMessageRepository = supportTicketMessageRepository;
+        this.returnRequestRepository = returnRequestRepository;
         this.accountRepository = accountRepository;
         this.fileStorageService = fileStorageService;
         this.mediaFileValidationService = mediaFileValidationService;
@@ -250,6 +255,29 @@ public class MediaAssetService {
         String token = mediaSignedUrlService.sign(mediaAsset.getId(), actor.getId(), expiresAt);
         String accessUrl = appBaseUrl + "/api/v1/media/" + mediaAsset.getId() + "/download?token=" + token;
         return new MediaAccessUrlResponse(mediaAsset.getId(), accessUrl, expiresAt);
+    }
+
+    @Transactional
+    public void deleteMediaAsset(Long mediaAssetId, Account actor) {
+        MediaAsset mediaAsset = mediaAssetRepository.findById(mediaAssetId)
+                .orElseThrow(() -> new ResourceNotFoundException("Media asset not found"));
+
+        if (mediaAsset.getStatus() != MediaStatus.PENDING && mediaAsset.getStatus() != MediaStatus.ACTIVE) {
+            throw new BadRequestException("Media asset is not deletable in current state");
+        }
+        if (mediaAsset.getLinkedEntityType() != null && mediaAsset.getLinkedEntityId() != null) {
+            throw new BadRequestException("Media asset is already attached to a request");
+        }
+        if (!isAdmin(actor) && !Objects.equals(
+                mediaAsset.getUploadedByAccount() == null ? null : mediaAsset.getUploadedByAccount().getId(),
+                actor == null ? null : actor.getId())) {
+            throw new AccessDeniedException("Access denied");
+        }
+
+        if (!fileStorageService.delete(mediaAsset.getObjectKey())) {
+            throw new ResourceNotFoundException("Uploaded file not found");
+        }
+        mediaAssetRepository.delete(mediaAsset);
     }
 
     @Transactional(readOnly = true)
@@ -715,6 +743,13 @@ public class MediaAssetService {
         }
 
         Long actorId = actor.getId();
+        if (Objects.equals(
+                mediaAsset.getUploadedByAccount() == null ? null : mediaAsset.getUploadedByAccount().getId(),
+                actorId
+        ) && mediaAsset.getStatus() != MediaStatus.DELETED && mediaAsset.getStatus() != MediaStatus.ORPHANED) {
+            return true;
+        }
+
         if (mediaAsset.getStatus() == MediaStatus.PENDING) {
             return Objects.equals(
                     mediaAsset.getUploadedByAccount() == null ? null : mediaAsset.getUploadedByAccount().getId(),
@@ -724,7 +759,11 @@ public class MediaAssetService {
 
         if (mediaAsset.getLinkedEntityType() != MediaLinkedEntityType.SUPPORT_TICKET_MESSAGE
                 || mediaAsset.getLinkedEntityId() == null) {
-            return false;
+            if (mediaAsset.getLinkedEntityType() != MediaLinkedEntityType.RETURN_REQUEST
+                    || mediaAsset.getLinkedEntityId() == null) {
+                return false;
+            }
+            return returnRequestRepository.findByIdAndDealerId(mediaAsset.getLinkedEntityId(), actorId).isPresent();
         }
 
         return supportTicketMessageRepository.findWithTicketById(mediaAsset.getLinkedEntityId())

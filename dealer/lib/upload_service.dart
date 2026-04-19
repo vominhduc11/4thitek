@@ -371,6 +371,37 @@ class UploadService {
     }
   }
 
+  Future<void> deleteMediaAsset(int mediaAssetId) async {
+    if (mediaAssetId <= 0 || !DealerApiConfig.isConfigured) {
+      return;
+    }
+    final accessToken = await _authStorage.readAccessToken();
+    if (accessToken == null || accessToken.trim().isEmpty) {
+      throw UploadException(
+        uploadServiceMessageToken(UploadMessageCode.unauthenticated),
+      );
+    }
+
+    final response = await _withDeleteTimeout(
+      _client.delete(
+        DealerApiConfig.resolveApiUri('/media/$mediaAssetId'),
+        headers: <String, String>{
+          HttpHeaders.authorizationHeader: 'Bearer ${accessToken.trim()}',
+          HttpHeaders.acceptHeader: 'application/json',
+        },
+      ),
+    );
+    final decoded = jsonDecode(response.body.isEmpty ? '{}' : response.body);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = decoded is Map<String, dynamic>
+          ? decoded['error']?.toString()
+          : null;
+      throw UploadException(
+        message ?? uploadServiceMessageToken(UploadMessageCode.uploadFailed),
+      );
+    }
+  }
+
   Future<void> _uploadMultipartSession({
     required String accessToken,
     required String uploadUrl,

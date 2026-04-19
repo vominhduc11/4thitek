@@ -83,6 +83,7 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
   bool _isLoading = true;
   bool _isSubmitting = false;
   bool _isUploadingAttachment = false;
+  bool _isDeletingAttachment = false;
   double? _attachmentUploadProgress;
   int _eligibilityLoadGeneration = 0;
   String? _errorMessage;
@@ -113,11 +114,17 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
   void dispose() {
     _reasonCodeController.dispose();
     _reasonDetailController.dispose();
+    if (widget.uploadService == null) {
+      unawaited(
+        _cleanupPendingAttachments().whenComplete(() {
+          _uploadService.close();
+        }),
+      );
+    } else {
+      unawaited(_cleanupPendingAttachments());
+    }
     if (widget.returnRequestService == null) {
       _returnService.close();
-    }
-    if (widget.uploadService == null) {
-      _uploadService.close();
     }
     super.dispose();
   }
@@ -365,6 +372,7 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
       setState(() {
         _attachments.add(
           _AttachmentDraft(
+            mediaAssetId: uploaded.mediaAssetId,
             url: uploaded.url,
             fileName: uploaded.fileName,
             accessUrl: uploaded.accessUrl,
@@ -515,11 +523,50 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
   }
 
   Future<void> _removeAttachment(_AttachmentDraft attachment) async {
-    setState(() => _attachments.remove(attachment));
+    if (_isDeletingAttachment) {
+      return;
+    }
+    final texts = _dealerReturnCreateTexts(context);
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _isDeletingAttachment = true);
     try {
-      await _uploadService.deleteUrl(attachment.url);
-    } catch (_) {
-      // The attachment was removed from draft already.
+      if (attachment.mediaAssetId != null && attachment.mediaAssetId! > 0) {
+        await _uploadService.deleteMediaAsset(attachment.mediaAssetId!);
+      } else {
+        await _uploadService.deleteUrl(attachment.url);
+      }
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _attachments.removeWhere((item) => identical(item, attachment));
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      messenger.showSnackBar(
+        SnackBar(content: Text(texts.attachmentUploadFailed(error))),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isDeletingAttachment = false);
+      }
+    }
+  }
+
+  Future<void> _cleanupPendingAttachments() async {
+    final attachments = List<_AttachmentDraft>.from(_attachments);
+    for (final attachment in attachments) {
+      try {
+        if (attachment.mediaAssetId != null && attachment.mediaAssetId! > 0) {
+          await _uploadService.deleteMediaAsset(attachment.mediaAssetId!);
+        } else {
+          await _uploadService.deleteUrl(attachment.url);
+        }
+      } catch (_) {
+        // Best-effort cleanup on exit.
+      }
     }
   }
 
@@ -529,6 +576,12 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
       return;
     }
     if (_isUploadingAttachment) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(texts.attachmentUploadInProgressMessage)),
+      );
+      return;
+    }
+    if (_isDeletingAttachment) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(texts.attachmentUploadInProgressMessage)),
       );
@@ -595,6 +648,7 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
           .map(
             (attachment) => DealerCreateReturnRequestAttachmentPayload(
               productSerialId: attachmentProductSerialId,
+              mediaAssetId: attachment.mediaAssetId,
               url: attachment.url,
               fileName: attachment.fileName,
               category: attachment.category,
@@ -614,6 +668,7 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
       if (!mounted) {
         return;
       }
+      setState(() => _attachments.clear());
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(texts.createSuccessMessage)));
@@ -649,6 +704,7 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
         !_isSubmitting &&
         !_isLoading &&
         !_isUploadingAttachment &&
+        !_isDeletingAttachment &&
         hasEligibleSerials;
     final orderHintText = _isLoading
         ? texts.checkingEligibilityMessage
@@ -989,7 +1045,9 @@ class _DealerReturnCreateScreenState extends State<DealerReturnCreateScreen> {
                                 (attachment) => _DraftAttachmentPreview(
                                   attachment: attachment,
                                   openLabel: texts.openAttachmentAction,
-                                  onRemove: _isSubmitting
+                                  onRemove: (_isSubmitting ||
+                                          _isUploadingAttachment ||
+                                          _isDeletingAttachment)
                                       ? null
                                       : () => _removeAttachment(attachment),
                                 ),
@@ -1763,6 +1821,7 @@ Future<void> _openAttachmentFullscreen(
 
 class _AttachmentDraft {
   const _AttachmentDraft({
+    this.mediaAssetId,
     required this.url,
     required this.fileName,
     required this.category,
@@ -1772,6 +1831,7 @@ class _AttachmentDraft {
     this.sizeBytes,
   });
 
+  final int? mediaAssetId;
   final String url;
   final String? fileName;
   final DealerReturnAttachmentCategory category;

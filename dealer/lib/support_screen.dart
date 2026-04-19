@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
@@ -29,10 +31,18 @@ enum SupportInteractionMode { viewing, creating, followingUp }
 enum _SupportAttachmentPickerChoice { image, video, document }
 
 class SupportScreen extends StatefulWidget {
-  const SupportScreen({super.key, this.supportService, this.initialTicketId});
+  const SupportScreen({
+    super.key,
+    this.supportService,
+    this.initialTicketId,
+    this.uploadServiceFactory,
+    this.attachmentPicker,
+  });
 
   final SupportService? supportService;
   final int? initialTicketId;
+  final UploadService Function()? uploadServiceFactory;
+  final Future<XFile?> Function()? attachmentPicker;
 
   @override
   State<SupportScreen> createState() => _SupportScreenState();
@@ -77,6 +87,7 @@ class _SupportScreenState extends State<SupportScreen> {
   bool _hasMoreTickets = true;
   bool _isSubmitting = false;
   bool _isUploadingAttachment = false;
+  bool _isDeletingAttachment = false;
   double? _attachmentUploadProgress;
   int _handledSupportEventVersion = 0;
   SupportInteractionMode _interactionMode = SupportInteractionMode.viewing;
@@ -90,6 +101,9 @@ class _SupportScreenState extends State<SupportScreen> {
   static const _maxImageBytes = 10 * 1024 * 1024;
   static const _maxVideoBytes = 50 * 1024 * 1024;
   static const _maxDocumentBytes = 10 * 1024 * 1024;
+
+  UploadService _createUploadService() =>
+      widget.uploadServiceFactory?.call() ?? UploadService();
 
   @override
   void initState() {
@@ -148,7 +162,7 @@ class _SupportScreenState extends State<SupportScreen> {
     _contextSerialController.dispose();
     _contextReturnReasonController.dispose();
     _scrollController.dispose();
-    _cleanupPendingAttachments();
+    unawaited(_cleanupPendingAttachments());
     _supportService.close();
     super.dispose();
   }
@@ -763,7 +777,9 @@ class _SupportScreenState extends State<SupportScreen> {
                     ),
                   ),
                   OutlinedButton.icon(
-                    onPressed: _isSubmitting || _isUploadingAttachment
+                    onPressed: _isSubmitting ||
+                            _isUploadingAttachment ||
+                            _isDeletingAttachment
                         ? null
                         : () => _handleAddAttachment(texts),
                     icon: _isUploadingAttachment
@@ -821,9 +837,13 @@ class _SupportScreenState extends State<SupportScreen> {
                           downloadLabel: texts.downloadAttachmentAction,
                           onDownload: (attachment, asset) =>
                               _downloadAttachment(attachment, asset, texts),
-                          onRemove: _isSubmitting
+                          onRemove: _isSubmitting ||
+                                  _isUploadingAttachment ||
+                                  _isDeletingAttachment
                               ? null
-                              : () => _removeDraftAttachment(attachment),
+                              : () => unawaited(
+                                  _removeDraftAttachment(attachment),
+                                ),
                         ),
                       )
                       .toList(growable: false),
@@ -934,7 +954,9 @@ class _SupportScreenState extends State<SupportScreen> {
           Align(
             alignment: Alignment.centerRight,
             child: TextButton.icon(
-              onPressed: _isSubmitting || _isUploadingAttachment
+              onPressed: _isSubmitting ||
+                      _isUploadingAttachment ||
+                      _isDeletingAttachment
                   ? null
                   : _setViewingMode,
               icon: const Icon(Icons.visibility_off_outlined, size: 18),
@@ -1105,7 +1127,9 @@ class _SupportScreenState extends State<SupportScreen> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: _isSubmitting || _isUploadingAttachment
+                  onPressed: _isSubmitting ||
+                          _isUploadingAttachment ||
+                          _isDeletingAttachment
                       ? null
                       : () => _handleFollowUp(texts),
                   icon: const Icon(Icons.send_outlined),
@@ -1163,7 +1187,7 @@ class _SupportScreenState extends State<SupportScreen> {
       _showSnackBar(texts.selectTicketToReplyMessage);
       return;
     }
-    final picked = await _pickSupportAttachmentFile(texts);
+    final picked = await (widget.attachmentPicker ?? () => _pickSupportAttachmentFile(texts))();
     if (picked == null || !mounted) {
       return;
     }
@@ -1177,7 +1201,7 @@ class _SupportScreenState extends State<SupportScreen> {
       _isUploadingAttachment = true;
       _attachmentUploadProgress = 0;
     });
-    final uploadService = UploadService();
+    final uploadService = _createUploadService();
     try {
       final uploaded = await uploadService.uploadSupportMediaFile(
         file: picked,
@@ -1332,11 +1356,60 @@ class _SupportScreenState extends State<SupportScreen> {
   Future<void> _removeDraftAttachment(
     SupportTicketAttachmentRecord attachment,
   ) async {
-    setState(() {
-      _activeDraftAttachments().removeWhere(
-        (item) => item.id == attachment.id && item.url == attachment.url,
-      );
-    });
+    if (_isDeletingAttachment) {
+      return;
+    }
+    final isCreatingMode = _interactionMode == SupportInteractionMode.creating;
+    final ticketId = _selectedTicketForReply?.id;
+    final uploadService = _createUploadService();
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _isDeletingAttachment = true);
+    try {
+      final mediaAssetId = attachment.id;
+      if (mediaAssetId != null && mediaAssetId > 0) {
+        await uploadService.deleteMediaAsset(mediaAssetId);
+      } else {
+        await uploadService.deleteUrl(attachment.url);
+      }
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        final attachmentKey = attachment.id?.toString() ?? attachment.url;
+        if (isCreatingMode) {
+          _createDraftAttachments.removeWhere(
+            (item) => (item.id?.toString() ?? item.url) == attachmentKey,
+          );
+        } else if (ticketId != null) {
+          final target = _followUpAttachmentsByTicketId[ticketId];
+          target?.removeWhere(
+            (item) => (item.id?.toString() ?? item.url) == attachmentKey,
+          );
+          if (target != null && target.isEmpty) {
+            _followUpAttachmentsByTicketId.remove(ticketId);
+          }
+        }
+      });
+    } catch (error) {
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              uploadServiceErrorMessage(
+                error,
+                isEnglish:
+                    AppSettingsScope.of(context).locale.languageCode == 'en',
+              ),
+            ),
+          ),
+        );
+      }
+    } finally {
+      uploadService.close();
+      if (mounted) {
+        setState(() => _isDeletingAttachment = false);
+      }
+    }
   }
 
   void _copyToClipboard(String value, {String? message}) {
@@ -1596,8 +1669,32 @@ class _SupportScreenState extends State<SupportScreen> {
   }
 
   Future<void> _cleanupPendingAttachments() async {
-    // Pending media assets are cleaned up server-side by retention jobs.
-    return;
+    final attachments = <SupportTicketAttachmentRecord>[
+      ..._createDraftAttachments,
+      ..._followUpAttachmentsByTicketId.values.expand(
+        (items) => items,
+      ),
+    ];
+    if (attachments.isEmpty) {
+      return;
+    }
+    final uploadService = _createUploadService();
+    try {
+      for (final attachment in attachments) {
+        try {
+          final mediaAssetId = attachment.id;
+          if (mediaAssetId != null && mediaAssetId > 0) {
+            await uploadService.deleteMediaAsset(mediaAssetId);
+          } else {
+            await uploadService.deleteUrl(attachment.url);
+          }
+        } catch (_) {
+          // Best-effort cleanup on exit.
+        }
+      }
+    } finally {
+      uploadService.close();
+    }
   }
 
   Widget _buildCounter(

@@ -6,12 +6,14 @@ import java.util.Locale;
 
 public enum MediaLinkedEntityType {
     SUPPORT_TICKET_MESSAGE,
+    RETURN_REQUEST,
     OTHER;
 
     @JsonValue
     public String toJson() {
         return switch (this) {
             case SUPPORT_TICKET_MESSAGE -> "support_ticket_message";
+            case RETURN_REQUEST -> "return_request";
             case OTHER -> "other";
         };
     }
@@ -23,6 +25,7 @@ public enum MediaLinkedEntityType {
         }
         return switch (value.trim().toLowerCase(Locale.ROOT)) {
             case "support_ticket_message", "support-ticket-message", "supportticketmessage" -> SUPPORT_TICKET_MESSAGE;
+            case "return_request", "return-request", "returnrequest" -> RETURN_REQUEST;
             case "other" -> OTHER;
             default -> throw new IllegalArgumentException("Unsupported media linked entity type: " + value);
         };

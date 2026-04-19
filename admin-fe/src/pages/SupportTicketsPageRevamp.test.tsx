@@ -13,6 +13,7 @@ const {
   updateAdminSupportTicketMock,
   createAdminSupportTicketMessageMock,
   uploadSupportMediaAssetMock,
+  deleteMediaAssetMock,
   notifyMock,
 } = vi.hoisted(() => ({
   fetchAdminSupportTicketsMock: vi.fn(),
@@ -21,6 +22,7 @@ const {
   updateAdminSupportTicketMock: vi.fn(),
   createAdminSupportTicketMessageMock: vi.fn(),
   uploadSupportMediaAssetMock: vi.fn(),
+  deleteMediaAssetMock: vi.fn(),
   notifyMock: vi.fn(),
 }));
 
@@ -52,6 +54,7 @@ vi.mock("../lib/adminApi", async () => {
     fetchAdminUsers: fetchAdminUsersMock,
     updateAdminSupportTicket: updateAdminSupportTicketMock,
     createAdminSupportTicketMessage: createAdminSupportTicketMessageMock,
+    deleteMediaAsset: deleteMediaAssetMock,
   };
 });
 
@@ -100,6 +103,7 @@ describe("SupportTicketsPageRevamp", () => {
     updateAdminSupportTicketMock.mockReset();
     createAdminSupportTicketMessageMock.mockReset();
     uploadSupportMediaAssetMock.mockReset();
+    deleteMediaAssetMock.mockReset();
     notifyMock.mockReset();
 
     fetchAdminSupportTicketsMock.mockResolvedValue({
@@ -122,6 +126,9 @@ describe("SupportTicketsPageRevamp", () => {
       contentType: "video/mp4",
       sizeBytes: 1234,
       createdAt: "2026-04-10T00:00:00Z",
+    });
+    deleteMediaAssetMock.mockResolvedValue({
+      data: { status: "deleted", id: 909 },
     });
   });
 
@@ -197,6 +204,34 @@ describe("SupportTicketsPageRevamp", () => {
         }),
       );
     });
+  });
+
+  it("removes draft media attachments through the media delete API", async () => {
+    const { container } = renderPage();
+    await screen.findByText("TK-001");
+
+    const input = container.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement | null;
+    expect(input).toBeTruthy();
+    if (!input) return;
+
+    const file = new File(["proof-bytes"], "proof.pdf", {
+      type: "application/pdf",
+    });
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(uploadSupportMediaAssetMock).toHaveBeenCalled();
+    });
+    expect(screen.getByText("evidence.mp4")).toBeTruthy();
+
+    fireEvent.click(screen.getByLabelText("Xóa tệp đính kèm"));
+
+    await waitFor(() => {
+      expect(deleteMediaAssetMock).toHaveBeenCalledWith("admin-token", 909);
+    });
+    expect(screen.queryByText("evidence.mp4")).toBeNull();
   });
 
   it("renders image attachments as thumbnails and falls back to a file link on load error", () => {

@@ -12,6 +12,7 @@ import com.devwonder.backend.service.FileStorageService;
 import com.devwonder.backend.service.MediaAssetService;
 import jakarta.validation.Valid;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.ContentDisposition;
@@ -22,6 +23,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -112,6 +114,19 @@ public class MediaController {
         Account actor = requireAccount(authentication);
         MediaAccessUrlResponse response = mediaAssetService.createSignedAccessUrl(mediaAssetId, actor, appBaseUrl());
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> delete(
+            @PathVariable("id") Long mediaAssetId,
+            Authentication authentication
+    ) {
+        Account actor = requireAccount(authentication);
+        mediaAssetService.deleteMediaAsset(mediaAssetId, actor);
+        return ResponseEntity.ok(ApiResponse.success(Map.of(
+                "status", "deleted",
+                "id", mediaAssetId
+        )));
     }
 
     private Account requireAccount(Authentication authentication) {

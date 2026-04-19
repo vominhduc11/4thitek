@@ -429,6 +429,7 @@ export type BackendReturnRequestItemResponse = {
 export type BackendReturnRequestAttachmentResponse = {
   id: number
   itemId?: number | null
+  mediaAssetId?: number | null
   url?: string | null
   fileName?: string | null
   category?: BackendReturnRequestAttachmentCategory | null
@@ -1402,6 +1403,21 @@ export const finalizeMediaUpload = (
     token,
     method: 'POST',
     body: { mediaAssetId },
+  })
+
+export const deleteMediaAsset = (token: string, mediaAssetId: number) =>
+  authorizedJsonRequest<{ status?: string; id?: number }>({
+    path: `/media/${mediaAssetId}`,
+    token,
+    method: 'DELETE',
+  })
+
+export const deleteUploadUrl = (token: string, url: string) =>
+  authorizedJsonRequest<{ status?: string; url?: string }>({
+    path: '/upload',
+    token,
+    method: 'DELETE',
+    params: { url },
   })
 
 export const fetchMediaAccessUrl = (token: string, mediaAssetId: number) =>

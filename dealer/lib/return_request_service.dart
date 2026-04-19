@@ -329,6 +329,7 @@ class DealerReturnRequestAttachmentRecord {
   const DealerReturnRequestAttachmentRecord({
     required this.id,
     required this.itemId,
+    this.mediaAssetId,
     required this.url,
     required this.fileName,
     required this.category,
@@ -336,6 +337,7 @@ class DealerReturnRequestAttachmentRecord {
 
   final int id;
   final int? itemId;
+  final int? mediaAssetId;
   final String url;
   final String? fileName;
   final DealerReturnAttachmentCategory category;
@@ -408,6 +410,7 @@ class DealerCreateReturnRequestAttachmentPayload {
   const DealerCreateReturnRequestAttachmentPayload({
     this.itemId,
     this.productSerialId,
+    this.mediaAssetId,
     required this.url,
     this.fileName,
     required this.category,
@@ -415,6 +418,7 @@ class DealerCreateReturnRequestAttachmentPayload {
 
   final int? itemId;
   final int? productSerialId;
+  final int? mediaAssetId;
   final String url;
   final String? fileName;
   final DealerReturnAttachmentCategory category;
@@ -422,6 +426,7 @@ class DealerCreateReturnRequestAttachmentPayload {
   Map<String, dynamic> toJson() => <String, dynamic>{
     if (itemId != null) 'itemId': itemId,
     if (productSerialId != null) 'productSerialId': productSerialId,
+    if (mediaAssetId != null) 'mediaAssetId': mediaAssetId,
     'url': url.trim(),
     if (fileName != null && fileName!.trim().isNotEmpty)
       'fileName': fileName!.trim(),
@@ -745,6 +750,7 @@ class ReturnRequestService {
             (attachment) => DealerReturnRequestAttachmentRecord(
               id: _parseInt(attachment['id']),
               itemId: _parseOptionalInt(attachment['itemId']),
+              mediaAssetId: _parseOptionalInt(attachment['mediaAssetId']),
               url: (attachment['url'] ?? '').toString(),
               fileName: _parseOptionalString(attachment['fileName']),
               category: DealerReturnAttachmentCategory.fromApi(

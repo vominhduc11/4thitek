@@ -20,6 +20,7 @@ import com.devwonder.backend.dto.returns.ReturnRequestSummaryResponse;
 import com.devwonder.backend.dto.support.SupportTicketContextPayload;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.DealerSupportTicket;
+import com.devwonder.backend.entity.MediaAsset;
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.OrderAdjustment;
 import com.devwonder.backend.entity.OrderItem;
@@ -39,9 +40,11 @@ import com.devwonder.backend.entity.enums.ReturnRequestType;
 import com.devwonder.backend.entity.enums.ReturnRequestStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
+import com.devwonder.backend.service.FileStorageService;
 import com.devwonder.backend.repository.DealerSupportTicketRepository;
 import com.devwonder.backend.repository.OrderAdjustmentRepository;
 import com.devwonder.backend.repository.OrderRepository;
+import com.devwonder.backend.repository.MediaAssetRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.ReturnRequestItemRepository;
 import com.devwonder.backend.repository.ReturnRequestRepository;
@@ -109,6 +112,8 @@ public class ReturnRequestService {
     private final DealerSupportTicketRepository dealerSupportTicketRepository;
     private final OrderRepository orderRepository;
     private final OrderAdjustmentRepository orderAdjustmentRepository;
+    private final MediaAssetRepository mediaAssetRepository;
+    private final FileStorageService fileStorageService;
     private final AdminFinancialService adminFinancialService;
     private final AdminRmaService adminRmaService;
     private final ReturnRequestPolicy returnRequestPolicy;
@@ -157,6 +162,7 @@ public class ReturnRequestService {
         }
 
         Set<Long> seenSerialIds = new HashSet<>();
+        Set<Long> seenMediaAssetIds = new HashSet<>();
         List<ProductSerial> serials = new ArrayList<>();
         Map<Long, ReturnRequestItem> itemBySerialId = new HashMap<>();
         for (DealerReturnRequestItemPayload itemPayload : payload.items()) {
@@ -233,10 +239,19 @@ public class ReturnRequestService {
 
         if (payload.attachments() != null) {
             for (DealerReturnRequestAttachmentPayload attachmentPayload : payload.attachments()) {
+                Long mediaAssetId = attachmentPayload.mediaAssetId();
+                MediaAsset mediaAsset = null;
+                if (mediaAssetId != null) {
+                    if (!seenMediaAssetIds.add(mediaAssetId)) {
+                        throw new BadRequestException("Duplicate media asset detected in request payload: " + mediaAssetId);
+                    }
+                    mediaAsset = resolveReturnAttachmentMediaAsset(dealer, mediaAssetId);
+                }
                 ReturnRequestAttachment attachment = new ReturnRequestAttachment();
                 attachment.setUrl(attachmentPayload.url().trim());
                 attachment.setFileName(trimOrNull(attachmentPayload.fileName()));
                 attachment.setCategory(attachmentPayload.category());
+                attachment.setMediaAsset(mediaAsset);
                 Long linkedSerialId = attachmentPayload.productSerialId() != null
                         ? attachmentPayload.productSerialId()
                         : attachmentPayload.itemId();
@@ -251,7 +266,9 @@ public class ReturnRequestService {
             }
         }
 
-        request.setSupportTicket(maybeCreateLinkedSupportTicket(username, order, payload, serials));
+        ReturnRequest saved = returnRequestRepository.save(request);
+        linkReturnAttachmentMediaAssets(saved, dealer);
+        saved.setSupportTicket(maybeCreateLinkedSupportTicket(username, order, payload, serials));
         appendEvent(request, "REQUEST_SUBMITTED", username, "DEALER", Map.of(
                 "orderId", order.getId(),
                 "orderCode", order.getOrderCode(),
@@ -260,8 +277,7 @@ public class ReturnRequestService {
                 "requestedResolution", request.getRequestedResolution().name()
         ));
 
-        ReturnRequest saved = returnRequestRepository.save(request);
-        return toDetailResponse(saved);
+        return toDetailResponse(returnRequestRepository.save(saved));
     }
 
     @Transactional
@@ -560,6 +576,45 @@ public class ReturnRequestService {
     private ReturnRequest requireAdminEditableRequest(Long requestId) {
         return returnRequestRepository.findDetailById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Return request not found"));
+    }
+
+    private MediaAsset resolveReturnAttachmentMediaAsset(Dealer dealer, Long mediaAssetId) {
+        MediaAsset mediaAsset = mediaAssetRepository.findById(mediaAssetId)
+                .orElseThrow(() -> new ResourceNotFoundException("Media asset not found"));
+        if (mediaAsset.getCategory() != com.devwonder.backend.entity.enums.MediaCategory.SUPPORT_TICKET) {
+            throw new BadRequestException("Unsupported media category for return attachment");
+        }
+        if (mediaAsset.getFinalizedAt() == null) {
+            throw new BadRequestException("Media asset is not finalized");
+        }
+        if (!fileStorageService.exists(mediaAsset.getObjectKey())) {
+            throw new BadRequestException("Media asset object is missing");
+        }
+        Long uploadedById = mediaAsset.getUploadedByAccount() == null ? null : mediaAsset.getUploadedByAccount().getId();
+        if (!Objects.equals(uploadedById, dealer.getId())) {
+            throw new BadRequestException("Media asset does not belong to dealer");
+        }
+        if (mediaAsset.getLinkedEntityType() != null) {
+            throw new BadRequestException("Media asset is already linked to another entity");
+        }
+        return mediaAsset;
+    }
+
+    private void linkReturnAttachmentMediaAssets(ReturnRequest request, Dealer dealer) {
+        if (request == null || request.getAttachments() == null || request.getAttachments().isEmpty()) {
+            return;
+        }
+        for (ReturnRequestAttachment attachment : request.getAttachments()) {
+            MediaAsset mediaAsset = attachment.getMediaAsset();
+            if (mediaAsset == null) {
+                continue;
+            }
+            mediaAsset.setStatus(com.devwonder.backend.entity.enums.MediaStatus.ACTIVE);
+            mediaAsset.setLinkedEntityType(com.devwonder.backend.entity.enums.MediaLinkedEntityType.RETURN_REQUEST);
+            mediaAsset.setLinkedEntityId(request.getId());
+            mediaAsset.setDeletedAt(null);
+            mediaAssetRepository.save(mediaAsset);
+        }
     }
 
     private void applyFinalResolution(
@@ -992,6 +1047,7 @@ public class ReturnRequestService {
                 .map(attachment -> new ReturnRequestAttachmentResponse(
                         attachment.getId(),
                         attachment.getItem() == null ? null : attachment.getItem().getId(),
+                        attachment.getMediaAsset() == null ? null : attachment.getMediaAsset().getId(),
                         attachment.getUrl(),
                         attachment.getFileName(),
                         attachment.getCategory()

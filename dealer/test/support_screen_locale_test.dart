@@ -1,12 +1,15 @@
+import 'dart:typed_data';
 import 'package:dealer_hub/app_settings_controller.dart';
 import 'package:dealer_hub/dealer_routes.dart';
 import 'package:dealer_hub/notification_controller.dart';
 import 'package:dealer_hub/support_screen.dart';
 import 'package:dealer_hub/support_service.dart';
+import 'package:dealer_hub/upload_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -199,11 +202,69 @@ void main() {
 
     expect(find.text('Home landing'), findsOneWidget);
   });
+
+  testWidgets('Support draft attachment remove deletes the uploaded media asset', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final uploadService = _FakeUploadService(
+      uploadResult: const UploadedSupportMediaRef(
+        mediaAssetId: 777,
+        url: 'https://api.example.com/api/v1/media/777/download',
+        fileName: 'support-proof.pdf',
+        accessUrl:
+            'https://api.example.com/api/v1/media/777/download?token=abc',
+        mediaType: 'document',
+        contentType: 'application/pdf',
+        sizeBytes: 123,
+      ),
+    );
+
+    await tester.pumpWidget(
+      await _buildApp(
+        const Locale('en'),
+        supportService: _FakeSupportService(),
+        uploadServiceFactory: () => uploadService,
+        attachmentPicker: () async => XFile.fromData(
+          Uint8List.fromList(<int>[1, 2, 3, 4]),
+          name: 'support-proof.pdf',
+          mimeType: 'application/pdf',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey<String>('support-open-create-button')));
+    await tester.pumpAndSettle();
+    final addAttachmentButton = find.widgetWithText(OutlinedButton, 'Add attachment');
+    await tester.scrollUntilVisible(
+      addAttachmentButton,
+      300,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey<String>('support-scroll-view')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    final addAttachment = tester.widget<OutlinedButton>(addAttachmentButton);
+    addAttachment.onPressed!.call();
+    await tester.pumpAndSettle();
+
+    expect(find.text('support-proof.pdf'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.close_rounded));
+    await tester.pumpAndSettle();
+
+    expect(uploadService.deletedMediaAssetIds, <int>[777]);
+    expect(find.text('support-proof.pdf'), findsNothing);
+  });
 }
 
 Future<Widget> _buildApp(
   Locale locale, {
   required SupportService supportService,
+  UploadService Function()? uploadServiceFactory,
+  Future<XFile?> Function()? attachmentPicker,
 }) async {
   final settingsController = AppSettingsController();
   await settingsController.setLocale(locale);
@@ -221,7 +282,11 @@ Future<Widget> _buildApp(
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        home: SupportScreen(supportService: supportService),
+        home: SupportScreen(
+          supportService: supportService,
+          uploadServiceFactory: uploadServiceFactory,
+          attachmentPicker: attachmentPicker,
+        ),
       ),
     ),
   );
@@ -319,6 +384,38 @@ class _FakeSupportService extends SupportService {
       createdAt: DateTime(2026, 1, 1),
       updatedAt: DateTime(2026, 1, 1),
     );
+  }
+
+  @override
+  void close() {}
+}
+
+class _FakeUploadService extends UploadService {
+  _FakeUploadService({
+    required this.uploadResult,
+  }) : super();
+
+  final UploadedSupportMediaRef uploadResult;
+  final List<int> deletedMediaAssetIds = <int>[];
+  final List<String> deletedUrls = <String>[];
+
+  @override
+  Future<UploadedSupportMediaRef> uploadSupportMediaFile({
+    required XFile file,
+    void Function(double progress)? onProgress,
+  }) async {
+    onProgress?.call(100);
+    return uploadResult;
+  }
+
+  @override
+  Future<void> deleteMediaAsset(int mediaAssetId) async {
+    deletedMediaAssetIds.add(mediaAssetId);
+  }
+
+  @override
+  Future<void> deleteUrl(String url) async {
+    deletedUrls.add(url);
   }
 
   @override

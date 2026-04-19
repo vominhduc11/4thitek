@@ -1,12 +1,15 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:dealer_hub/app_settings_controller.dart';
 import 'package:dealer_hub/auth_storage.dart';
 import 'package:dealer_hub/order_controller.dart';
 import 'package:dealer_hub/return_create_screen.dart';
 import 'package:dealer_hub/return_request_service.dart';
+import 'package:dealer_hub/upload_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -150,6 +153,204 @@ void main() {
     expect(find.text('Choose PDF document'), findsOneWidget);
   });
 
+  testWidgets('removes uploaded attachments through mediaAssetId delete', (
+    WidgetTester tester,
+  ) async {
+    final uploadService = _FakeUploadService(
+      uploadResult: const UploadedSupportMediaRef(
+        mediaAssetId: 321,
+        url: 'https://api.example.com/api/v1/media/321/download',
+        fileName: 'proof.pdf',
+        accessUrl: 'https://api.example.com/api/v1/media/321/download?token=abc',
+        mediaType: 'document',
+        contentType: 'application/pdf',
+        sizeBytes: 123,
+      ),
+    );
+    await tester.pumpWidget(
+      await _buildApp(
+        orderController: _FakeOrderController(remoteOrderId: 101),
+        returnService: _FakeReturnRequestService(
+          eligibilityFuture: Future<List<DealerReturnEligibilityRecord>>.value(
+            <DealerReturnEligibilityRecord>[_eligibility(serialId: 9)],
+          ),
+        ),
+        uploadService: uploadService,
+        attachmentPicker: () async => XFile.fromData(
+          Uint8List.fromList(<int>[1, 2, 3, 4]),
+          name: 'proof.pdf',
+          mimeType: 'application/pdf',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _scrollToAttachmentSection(tester);
+
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Upload attachment'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('proof.pdf'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.close_rounded));
+    await tester.pumpAndSettle();
+
+    expect(uploadService.deletedMediaAssetIds, <int>[321]);
+    expect(find.text('proof.pdf'), findsNothing);
+  });
+
+  testWidgets('falls back to deleteUrl for legacy attachments without mediaAssetId', (
+    WidgetTester tester,
+  ) async {
+    final uploadService = _FakeUploadService(
+      uploadResult: const UploadedSupportMediaRef(
+        mediaAssetId: 0,
+        url: 'https://api.example.com/api/v1/upload/support/legacy-1.pdf',
+        fileName: 'legacy-1.pdf',
+        accessUrl: 'https://api.example.com/api/v1/upload/support/legacy-1.pdf',
+        mediaType: 'document',
+        contentType: 'application/pdf',
+        sizeBytes: 123,
+      ),
+    );
+    await tester.pumpWidget(
+      await _buildApp(
+        orderController: _FakeOrderController(remoteOrderId: 101),
+        returnService: _FakeReturnRequestService(
+          eligibilityFuture: Future<List<DealerReturnEligibilityRecord>>.value(
+            <DealerReturnEligibilityRecord>[_eligibility(serialId: 9)],
+          ),
+        ),
+        uploadService: uploadService,
+        attachmentPicker: () async => XFile.fromData(
+          Uint8List.fromList(<int>[9, 8, 7, 6]),
+          name: 'legacy-1.pdf',
+          mimeType: 'application/pdf',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _scrollToAttachmentSection(tester);
+
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Upload attachment'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.close_rounded));
+    await tester.pumpAndSettle();
+
+    expect(uploadService.deletedUrls, <String>[
+      'https://api.example.com/api/v1/upload/support/legacy-1.pdf',
+    ]);
+  });
+
+  testWidgets('keeps attachment visible when delete fails', (
+    WidgetTester tester,
+  ) async {
+    final uploadService = _FakeUploadService(
+      uploadResult: const UploadedSupportMediaRef(
+        mediaAssetId: 654,
+        url: 'https://api.example.com/api/v1/media/654/download',
+        fileName: 'evidence.pdf',
+        accessUrl: 'https://api.example.com/api/v1/media/654/download?token=abc',
+        mediaType: 'document',
+        contentType: 'application/pdf',
+        sizeBytes: 123,
+      ),
+      deleteError: Exception('delete failed'),
+    );
+    await tester.pumpWidget(
+      await _buildApp(
+        orderController: _FakeOrderController(remoteOrderId: 101),
+        returnService: _FakeReturnRequestService(
+          eligibilityFuture: Future<List<DealerReturnEligibilityRecord>>.value(
+            <DealerReturnEligibilityRecord>[_eligibility(serialId: 9)],
+          ),
+        ),
+        uploadService: uploadService,
+        attachmentPicker: () async => XFile.fromData(
+          Uint8List.fromList(<int>[5, 4, 3, 2]),
+          name: 'evidence.pdf',
+          mimeType: 'application/pdf',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _scrollToAttachmentSection(tester);
+
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Upload attachment'));
+    await tester.pumpAndSettle();
+    expect(find.text('evidence.pdf'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.close_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.text('evidence.pdf'), findsOneWidget);
+    expect(uploadService.deletedMediaAssetIds, <int>[654]);
+  });
+
+  testWidgets('disables submit while attachment delete is in progress', (
+    WidgetTester tester,
+  ) async {
+    final deleteCompleter = Completer<void>();
+    final uploadService = _FakeUploadService(
+      uploadResult: const UploadedSupportMediaRef(
+        mediaAssetId: 888,
+        url: 'https://api.example.com/api/v1/media/888/download',
+        fileName: 'pending-delete.pdf',
+        accessUrl: 'https://api.example.com/api/v1/media/888/download?token=abc',
+        mediaType: 'document',
+        contentType: 'application/pdf',
+        sizeBytes: 123,
+      ),
+      deleteCompleter: deleteCompleter,
+    );
+    await tester.pumpWidget(
+      await _buildApp(
+        orderController: _FakeOrderController(remoteOrderId: 101),
+        returnService: _FakeReturnRequestService(
+          eligibilityFuture: Future<List<DealerReturnEligibilityRecord>>.value(
+            <DealerReturnEligibilityRecord>[_eligibility(serialId: 9)],
+          ),
+        ),
+        uploadService: uploadService,
+        attachmentPicker: () async => XFile.fromData(
+          Uint8List.fromList(<int>[1, 1, 1, 1]),
+          name: 'pending-delete.pdf',
+          mimeType: 'application/pdf',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _scrollToAttachmentSection(tester);
+
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Upload attachment'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.close_rounded));
+    await tester.pump();
+
+    final submitButtonFinder = find.text('Submit return request');
+    await tester.scrollUntilVisible(
+      submitButtonFinder,
+      300,
+      scrollable: find
+          .descendant(
+            of: find.byType(ListView),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+
+    final submitButton = tester.widget<FilledButton>(
+      find.ancestor(
+        of: submitButtonFinder,
+        matching: find.byType(FilledButton),
+      ),
+    );
+    expect(submitButton.onPressed, isNull);
+
+    deleteCompleter.complete();
+    await tester.pumpAndSettle();
+  });
+
   testWidgets(
     'active request status lookup does not block eligibility render',
     (WidgetTester tester) async {
@@ -203,6 +404,8 @@ Future<Widget> _buildApp({
   required ReturnRequestService returnService,
   int? prefilledSerialId,
   DealerReturnRequestType? initialRequestType,
+  UploadService? uploadService,
+  Future<XFile?> Function()? attachmentPicker,
 }) async {
   SharedPreferences.setMockInitialValues(<String, Object>{});
   final settingsController = AppSettingsController();
@@ -219,6 +422,8 @@ Future<Widget> _buildApp({
             prefilledSerialId: prefilledSerialId,
             initialRequestType: initialRequestType,
             returnRequestService: returnService,
+            uploadService: uploadService,
+            attachmentPicker: attachmentPicker,
           ),
         ),
       ),
@@ -271,6 +476,54 @@ class _FakeReturnRequestService extends ReturnRequestService {
     }
     return Future<DealerReturnRequestDetailRecord>.value(_returnDetail());
   }
+}
+
+class _FakeUploadService extends UploadService {
+  _FakeUploadService({
+    required this.uploadResult,
+    this.deleteError,
+    this.deleteCompleter,
+  }) : super(authStorage: _FakeAuthStorage(), client: _NoopClient());
+
+  final UploadedSupportMediaRef uploadResult;
+  final Object? deleteError;
+  final Completer<void>? deleteCompleter;
+  final List<int> deletedMediaAssetIds = <int>[];
+  final List<String> deletedUrls = <String>[];
+
+  @override
+  Future<UploadedSupportMediaRef> uploadSupportMediaFile({
+    required XFile file,
+    void Function(double progress)? onProgress,
+  }) async {
+    onProgress?.call(100);
+    return uploadResult;
+  }
+
+  @override
+  Future<void> deleteMediaAsset(int mediaAssetId) async {
+    deletedMediaAssetIds.add(mediaAssetId);
+    if (deleteCompleter != null) {
+      await deleteCompleter!.future;
+    }
+    if (deleteError != null) {
+      throw deleteError!;
+    }
+  }
+
+  @override
+  Future<void> deleteUrl(String url) async {
+    deletedUrls.add(url);
+    if (deleteCompleter != null) {
+      await deleteCompleter!.future;
+    }
+    if (deleteError != null) {
+      throw deleteError!;
+    }
+  }
+
+  @override
+  void close() {}
 }
 
 DealerReturnEligibilityRecord _eligibility({
