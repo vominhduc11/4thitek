@@ -5,7 +5,6 @@ import 'breakpoints.dart';
 import 'dealer_navigation.dart';
 import 'models.dart';
 import 'order_controller.dart';
-import 'order_detail_screen.dart';
 import 'utils.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
@@ -68,11 +67,7 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
       if (!mounted) {
         return;
       }
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => OrderDetailScreen(orderId: widget.orderId),
-        ),
-      );
+      context.goDealerOrderDetail(widget.orderId);
     });
   }
 

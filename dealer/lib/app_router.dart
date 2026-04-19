@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'account_settings_screen.dart';
@@ -212,7 +212,7 @@ class _LaunchRouteScreen extends StatelessWidget {
     final isEnglish = Localizations.localeOf(context).languageCode == 'en';
     final statusLabel = isEnglish
         ? 'Preparing the dealer workspace...'
-        : 'Đang chuẩn bị không gian làm việc cho đại lý...';
+        : 'Äang chuáº©n bá»‹ khĂ´ng gian lĂ m viá»‡c cho Ä‘áº¡i lĂ½...';
     return Scaffold(
       body: DecoratedBox(
         decoration: BoxDecoration(
@@ -324,14 +324,11 @@ class _RouteNotFoundScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isEnglish = Localizations.localeOf(context).languageCode == 'en';
-    final title = isEnglish ? 'Content not found' : 'Không tìm thấy nội dung';
+    final title = isEnglish ? 'Content not found' : 'KhĂ´ng tĂ¬m tháº¥y ná»™i dung';
     final message = isEnglish
         ? 'The destination may have changed or is no longer available.'
-        : 'Điểm đến có thể đã thay đổi hoặc hiện không còn khả dụng.';
-    final actionLabel = isEnglish ? 'Back to home' : 'Quay về trang chính';
-    final secondaryActionLabel = isEnglish
-        ? 'Open catalog'
-        : 'Mở danh mục sản phẩm';
+        : 'Äiá»ƒm Ä‘áº¿n cĂ³ thá»ƒ Ä‘Ă£ thay Ä‘á»•i hoáº·c hiá»‡n khĂ´ng cĂ²n kháº£ dá»¥ng.';
+    final actionLabel = isEnglish ? 'Back to home' : 'Quay vá» trang chĂ­nh';
 
     return Scaffold(
       appBar: AppBar(title: const BrandAppBarTitle(BusinessProfile.brandName)),
@@ -398,11 +395,6 @@ class _RouteNotFoundScreen extends StatelessWidget {
                           icon: const Icon(Icons.home_outlined),
                           label: Text(actionLabel),
                         ),
-                        OutlinedButton.icon(
-                          onPressed: () => context.go(DealerRoutePath.products),
-                          icon: const Icon(Icons.storefront_outlined),
-                          label: Text(secondaryActionLabel),
-                        ),
                       ],
                     ),
                   ],
@@ -415,3 +407,4 @@ class _RouteNotFoundScreen extends StatelessWidget {
     );
   }
 }
+
