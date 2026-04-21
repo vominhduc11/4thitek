@@ -3,6 +3,7 @@ package com.devwonder.backend.service;
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.service.support.InventoryAlertSupport;
+import com.devwonder.backend.service.support.ProductStockSyncSupport;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -19,6 +20,7 @@ public class InventoryAlertSweepJob {
 
     private final ProductRepository productRepository;
     private final InventoryAlertSupport inventoryAlertSupport;
+    private final ProductStockSyncSupport productStockSyncSupport;
     @Scheduled(fixedDelayString = "${app.inventory.alert-scan-interval-ms:3600000}")
     @Transactional
     public void scanExistingLowStockProducts() {
@@ -31,7 +33,9 @@ public class InventoryAlertSweepJob {
 
         int productsRequiringAttention = 0;
         for (Product product : lowStockProducts) {
-            if (inventoryAlertSupport.shouldSurfaceAttention(product, safeStock(product))) {
+            int stock = safeStock(product);
+            if (inventoryAlertSupport.shouldSurfaceAttention(product, stock)) {
+                productStockSyncSupport.notifyAdminsForCurrentStock(product);
                 productsRequiringAttention++;
             }
         }
