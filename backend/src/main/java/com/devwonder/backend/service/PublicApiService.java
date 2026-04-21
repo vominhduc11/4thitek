@@ -102,7 +102,7 @@ public class PublicApiService {
     public PublicProductDetailResponse getProduct(Long id) {
         Product product = productRepository.findByIdAndIsDeletedFalseAndPublishStatus(id, PublishStatus.PUBLISHED)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-        return toDetail(product, resolveAvailableStock(product));
+        return toDetail(product, safeStock(product));
     }
 
     @Transactional(readOnly = true)
@@ -208,13 +208,6 @@ public class PublicApiService {
                 stock,
                 product.getWarrantyPeriod() == null ? 12 : product.getWarrantyPeriod()
         );
-    }
-
-    private int resolveAvailableStock(Product product) {
-        if (product == null || product.getId() == null) {
-            return 0;
-        }
-        return productStockSyncSupport.countAvailableStock(product.getId());
     }
 
     private Map<Long, Integer> resolveAvailableStocks(Collection<Product> products) {
