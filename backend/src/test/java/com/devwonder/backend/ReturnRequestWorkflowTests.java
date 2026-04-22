@@ -1162,7 +1162,9 @@ class ReturnRequestWorkflowTests {
                 "admin-qc"
         ))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("WARRANTY_RMA SCRAP supports REPLACE or REJECT_WARRANTY only");
+                .hasMessageContaining(
+                        "WARRANTY_RMA only allows REPLACE, REPAIR, RETURN_TO_CUSTOMER or REJECT_WARRANTY final resolution"
+                );
 
         ProductSerial serialAfterCreditAttempt = productSerialRepository.findById(fixture.serial().getId()).orElseThrow();
         assertThat(serialAfterCreditAttempt.getStatus()).isEqualTo(ProductSerialStatus.INSPECTING);
@@ -1184,7 +1186,9 @@ class ReturnRequestWorkflowTests {
                 "admin-qc"
         ))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("WARRANTY_RMA SCRAP supports REPLACE or REJECT_WARRANTY only");
+                .hasMessageContaining(
+                        "WARRANTY_RMA only allows REPLACE, REPAIR, RETURN_TO_CUSTOMER or REJECT_WARRANTY final resolution"
+                );
 
         assertThatThrownBy(() -> returnRequestService.inspectReturnItem(
                 fixture.requestId(),
@@ -1201,7 +1205,9 @@ class ReturnRequestWorkflowTests {
                 "admin-qc"
         ))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("WARRANTY_RMA SCRAP supports REPLACE or REJECT_WARRANTY only");
+                .hasMessageContaining(
+                        "WARRANTY_RMA only allows REPLACE, REPAIR, RETURN_TO_CUSTOMER or REJECT_WARRANTY final resolution"
+                );
 
         ProductSerial serialAfterRefundAttempt = productSerialRepository.findById(fixture.serial().getId()).orElseThrow();
         assertThat(serialAfterRefundAttempt.getStatus()).isEqualTo(ProductSerialStatus.INSPECTING);
@@ -1223,7 +1229,9 @@ class ReturnRequestWorkflowTests {
                 "admin-qc"
         ))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("REPLACE or REJECT_WARRANTY only");
+                .hasMessageContaining(
+                        "WARRANTY_RMA only allows REPLACE, REPAIR, RETURN_TO_CUSTOMER or REJECT_WARRANTY final resolution"
+                );
     }
 
     @Test

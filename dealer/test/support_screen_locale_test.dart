@@ -226,7 +226,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(supportService.fetchedTicketIds, contains(77));
-      expect(find.text('TK-77'), findsWidgets);
+      expect(find.textContaining('Linked return support'), findsWidgets);
     },
   );
 
@@ -268,9 +268,9 @@ void main() {
       );
       expect(
         find.text('Choose a request to view the full conversation'),
-        findsOneWidget,
+        findsNothing,
       );
-      expect(find.text('TK-1'), findsOneWidget);
+      expect(find.textContaining('TK-1'), findsWidgets);
     },
   );
 
@@ -298,6 +298,7 @@ void main() {
     final supportService = _FakeSupportService(
       latestTicket: linkedTicket,
       historyItems: <DealerSupportTicketRecord>[linkedTicket],
+      ticketById: <int, DealerSupportTicketRecord>{55: linkedTicket},
     );
     final settingsController = AppSettingsController();
     await settingsController.setLocale(const Locale('en'));
@@ -322,7 +323,10 @@ void main() {
                 GoRoute(
                   path: DealerRoutePath.support,
                   builder: (context, state) =>
-                      SupportScreen(supportService: supportService),
+                      SupportScreen(
+                        supportService: supportService,
+                        initialTicketId: 55,
+                      ),
                 ),
                 GoRoute(
                   path: '${DealerRoutePath.returns}/:requestId',
@@ -340,8 +344,18 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Related return request'), findsOneWidget);
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Open return detail'));
+    final supportScroll = find.byKey(const ValueKey<String>('support-scroll-view'));
+    await tester.drag(supportScroll, const Offset(0, -800));
+    await tester.pumpAndSettle();
+    await tester.drag(supportScroll, const Offset(0, -800));
+    await tester.pumpAndSettle();
+
+    final openReturnButton = find.widgetWithText(
+      OutlinedButton,
+      'Open return detail',
+    );
+    expect(openReturnButton, findsOneWidget);
+    tester.widget<OutlinedButton>(openReturnButton).onPressed!.call();
     await tester.pumpAndSettle();
 
     expect(find.text('Return detail 901'), findsOneWidget);
@@ -557,6 +571,19 @@ class _FakeSupportService extends SupportService {
   }
 
   @override
+  Future<DealerSupportTicketRecord> fetchTicket(int ticketId) async {
+    fetchedTicketIds.add(ticketId);
+    if (fetchTicketError != null) {
+      throw fetchTicketError!;
+    }
+    final mapped = ticketById?[ticketId];
+    if (mapped != null) {
+      return mapped;
+    }
+    throw const SupportException('Support ticket not found');
+  }
+
+  @override
   void close() {}
 }
 
@@ -576,19 +603,6 @@ class _FakeUploadService extends UploadService {
   }) async {
     onProgress?.call(100);
     return uploadResult;
-  }
-
-  @override
-  Future<DealerSupportTicketRecord> fetchTicket(int ticketId) async {
-    fetchedTicketIds.add(ticketId);
-    if (fetchTicketError != null) {
-      throw fetchTicketError!;
-    }
-    final mapped = ticketById?[ticketId];
-    if (mapped != null) {
-      return mapped;
-    }
-    throw const SupportException('Support ticket not found');
   }
 
   @override

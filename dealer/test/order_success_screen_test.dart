@@ -88,7 +88,7 @@ void main() {
       await tester.tap(find.text('View order details'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Order detail landing'), findsOneWidget);
+      expect(find.byType(OrderDetailScreen), findsOneWidget);
     },
   );
 }
@@ -125,10 +125,34 @@ Future<Widget> _buildApp(OrderController orderController) async {
     child: CartScope(
       controller: _FakeCartController(),
       child: OrderScope(
-        controller: orderController,
-        child: MaterialApp(
+      controller: orderController,
+        child: MaterialApp.router(
           supportedLocales: AppLocalizations.supportedLocales,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
+          routerConfig: GoRouter(
+            initialLocation: '/success',
+            routes: <RouteBase>[
+              GoRoute(
+                path: '/success',
+                builder: (context, state) => const OrderSuccessHost(),
+              ),
+              GoRoute(
+                path: DealerRoutePath.home,
+                builder: (context, state) =>
+                    const Scaffold(body: Text('Home landing')),
+              ),
+              GoRoute(
+                path: '${DealerRoutePath.orders}/:orderId',
+                builder: (context, state) {
+                  final orderId = state.pathParameters['orderId'];
+                  if (orderId == null || orderId.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+                  return OrderDetailScreen(orderId: orderId);
+                },
+              ),
+            ],
+          ),
           builder: (context, child) {
             final mediaQuery = MediaQuery.of(context);
             return MediaQuery(
@@ -136,11 +160,6 @@ Future<Widget> _buildApp(OrderController orderController) async {
               child: child!,
             );
           },
-          home: const OrderSuccessScreen(
-            orderId: 'DH-001',
-            itemCount: 1,
-            totalPrice: 1000000,
-          ),
         ),
       ),
     ),
@@ -174,8 +193,13 @@ Future<Widget> _buildRouterApp(OrderController orderController) async {
               ),
               GoRoute(
                 path: '${DealerRoutePath.orders}/:orderId',
-                builder: (context, state) =>
-                    const Scaffold(body: Text('Order detail landing')),
+                builder: (context, state) {
+                  final orderId = state.pathParameters['orderId'];
+                  if (orderId == null || orderId.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+                  return OrderDetailScreen(orderId: orderId);
+                },
               ),
             ],
           ),
