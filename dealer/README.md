@@ -94,8 +94,12 @@ Neu chua cau hinh `key.properties`, Gradle se fail som thay vi am tham dung debu
 
 ## Tai khoan demo
 
-- `daily.hn@4thitek.vn` / `123456`
-- `duc123@gmail.com` / `123456`
+Khong commit/ghi password demo trong tai lieu.
+Neu can du lieu demo cho local/staging, bat backend seed an toan:
+
+- `APP_SEED_DEMO_DATA=true`
+- `APP_SEED_DEMO_PASSWORD=<strong-password>`
+- Khong su dung demo seed trong production.
 
 ## Kiem tra nhanh
 

@@ -5,12 +5,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.jdbc.datasource.init.ScriptUtils;
 
 class DataConsistencyMigrationTests {
 
@@ -78,6 +82,7 @@ class DataConsistencyMigrationTests {
                 .cleanDisabled(false)
                 .dataSource(dataSource)
                 .locations("classpath:db/migration")
+                .target(MigrationVersion.fromVersion("15"))
                 .load()
                 .migrate();
 
@@ -136,6 +141,7 @@ class DataConsistencyMigrationTests {
                 .cleanDisabled(false)
                 .dataSource(dataSource)
                 .locations("classpath:db/migration")
+                .target(MigrationVersion.fromVersion("16"))
                 .load()
                 .migrate();
 
@@ -150,5 +156,53 @@ class DataConsistencyMigrationTests {
             assertThat(resultSet.next()).isTrue();
             assertThat(resultSet.getInt("NULLABLE")).isEqualTo(java.sql.DatabaseMetaData.columnNoNulls);
         }
+    }
+
+    @Test
+    void noBusinessTableColumnsRemainTimestampWithoutTimeZoneAfterFullMigration() {
+        String url = "jdbc:h2:mem:timestamp_timezone_alignment;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE";
+        DataSource dataSource = new DriverManagerDataSource(url, "sa", "");
+
+        Flyway.configure()
+                .cleanDisabled(false)
+                .dataSource(dataSource)
+                .locations("classpath:db/migration")
+                .target(MigrationVersion.fromVersion("35"))
+                .load()
+                .migrate();
+
+        try (Connection connection = dataSource.getConnection()) {
+            ScriptUtils.executeSqlScript(connection, new ClassPathResource("db/migration/V39__add_hot_path_indexes.sql"));
+            ScriptUtils.executeSqlScript(connection, new ClassPathResource("db/migration/V40__normalize_timestamp_timezones.sql"));
+        } catch (SQLException ex) {
+            throw new RuntimeException("Could not execute V39/V40 migration scripts in test setup", ex);
+        }
+
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+        List<String> offenders = new ArrayList<>();
+        jdbcTemplate.query(
+                """
+                select table_name, column_name, data_type
+                from information_schema.columns
+                where table_schema = 'PUBLIC'
+                  and upper(data_type) like 'TIMESTAMP%'
+                order by table_name, column_name
+                """,
+                rs -> {
+                    String tableName = rs.getString("table_name");
+                    String columnName = rs.getString("column_name");
+                    String typeName = rs.getString("data_type");
+                    boolean isAllowedFlywayColumn = "FLYWAY_SCHEMA_HISTORY".equalsIgnoreCase(tableName)
+                            && "INSTALLED_ON".equalsIgnoreCase(columnName);
+                    boolean isTimezoneAware = typeName != null && typeName.toUpperCase().contains("WITH TIME ZONE");
+                    if (!isAllowedFlywayColumn && !isTimezoneAware) {
+                        offenders.add(tableName + "." + columnName + " => " + typeName);
+                    }
+                }
+        );
+
+        assertThat(offenders)
+                .as("Business tables must not use TIMESTAMP WITHOUT TIME ZONE after normalization")
+                .isEmpty();
     }
 }

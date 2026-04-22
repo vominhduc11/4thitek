@@ -1,0 +1,138 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install gitleaks
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Run gitleaks
+        run: |
+          if [ -f .gitleaks.toml ]; then
+            gitleaks detect --source . --config .gitleaks.toml --verbose
+          else
+            gitleaks detect --source . --verbose
+          fi
+
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Verify backend
+        working-directory: backend
+        run: ./mvnw -B verify
+
+  main-fe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: main-fe/package-lock.json
+
+      - name: Install dependencies
+        working-directory: main-fe
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Security audit (high)
+        working-directory: main-fe
+        run: npm audit --audit-level=high
+
+      - name: Run tests
+        working-directory: main-fe
+        run: npm run test -- --run
+
+      - name: Build
+        working-directory: main-fe
+        run: npm run build
+
+  admin-fe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: admin-fe/package-lock.json
+
+      - name: Install dependencies
+        working-directory: admin-fe
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Security audit (high)
+        working-directory: admin-fe
+        run: npm audit --audit-level=high
+
+      - name: Run tests
+        working-directory: admin-fe
+        run: npm run test -- --run
+
+      - name: Build
+        working-directory: admin-fe
+        run: npm run build
+
+  dealer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter (stable)
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        working-directory: dealer
+        run: flutter pub get
+
+      - name: Analyze
+        working-directory: dealer
+        run: flutter analyze
+
+      - name: Test
+        working-directory: dealer
+        run: flutter test

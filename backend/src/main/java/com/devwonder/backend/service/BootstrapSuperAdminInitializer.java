@@ -14,6 +14,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,8 +30,9 @@ public class BootstrapSuperAdminInitializer implements ApplicationRunner {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailVerificationService emailVerificationService;
+    private final Environment environment;
 
-    @Value("${app.bootstrap-super-admin.enabled:true}")
+    @Value("${app.bootstrap-super-admin.enabled:false}")
     private boolean bootstrapEnabled;
 
     @Value("${app.bootstrap-super-admin.email:}")
@@ -41,11 +44,20 @@ public class BootstrapSuperAdminInitializer implements ApplicationRunner {
     @Value("${app.bootstrap-super-admin.name:System Owner}")
     private String bootstrapName;
 
+    @Value("${app.allow-production-bootstrap:false}")
+    private boolean allowProductionBootstrap;
+
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
         if (!bootstrapEnabled) {
             return;
+        }
+        if (isProductionRuntimeActive() && !allowProductionBootstrap) {
+            throw new IllegalStateException(
+                    "SUPER_ADMIN bootstrap is blocked when production profile is active. "
+                            + "Set APP_ALLOW_PRODUCTION_BOOTSTRAP=true only for an explicit one-time emergency flow."
+            );
         }
         if (adminRepository.existsByRoles_Name("SUPER_ADMIN")) {
             return;
@@ -55,8 +67,9 @@ public class BootstrapSuperAdminInitializer implements ApplicationRunner {
         String password = normalize(bootstrapPassword);
         String displayName = normalize(bootstrapName);
         if (email == null || password == null) {
-            log.warn("Skipping SUPER_ADMIN bootstrap because app.bootstrap-super-admin.email/password are not configured.");
-            return;
+            throw new IllegalStateException(
+                    "SUPER_ADMIN bootstrap is enabled but app.bootstrap-super-admin.email/password are missing."
+            );
         }
         AccountValidationSupport.assertStrongPassword(password, "app.bootstrap-super-admin.password");
         if (accountRepository.existsByUsernameIgnoreCase(email) || accountRepository.findByEmailIgnoreCase(email).isPresent()) {
@@ -78,6 +91,23 @@ public class BootstrapSuperAdminInitializer implements ApplicationRunner {
         )));
         adminRepository.save(admin);
         log.info("Bootstrapped initial SUPER_ADMIN account for {}", email);
+    }
+
+    private boolean isProductionRuntimeActive() {
+        if (environment.acceptsProfiles(Profiles.of("production", "prod"))) {
+            return true;
+        }
+        return isProductionEnvironmentValue(environment.getProperty("app.env"))
+                || isProductionEnvironmentValue(environment.getProperty("APP_ENV"))
+                || isProductionEnvironmentValue(environment.getProperty("env"))
+                || isProductionEnvironmentValue(environment.getProperty("ENV"))
+                || isProductionEnvironmentValue(environment.getProperty("environment"))
+                || isProductionEnvironmentValue(environment.getProperty("ENVIRONMENT"));
+    }
+
+    private boolean isProductionEnvironmentValue(String value) {
+        String normalized = normalize(value);
+        return "production".equalsIgnoreCase(normalized) || "prod".equalsIgnoreCase(normalized);
     }
 
     private Role resolveRole(String roleName, String description) {

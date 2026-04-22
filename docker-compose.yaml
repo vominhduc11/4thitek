@@ -1,8 +1,7 @@
-# docker-compose.yaml — single compose file for local, staging, and production
+# docker-compose.yaml - single compose file for local, staging, and production
 #
 # USAGE:
-#   cp .env.example .env          # for local / staging
-#   cp .env.production.example .env  # for production — fill in every CHANGE_ME_*
+#   cp .env.example .env  # for local / staging / production (fill in real secrets)
 #   docker compose up -d
 #
 # SECRETS: No fallback defaults for the five required credentials below.
@@ -27,6 +26,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
 
   redis:
     image: redis:7-alpine
@@ -49,6 +53,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
 
   minio:
     image: minio/minio:latest
@@ -67,6 +76,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
 
   minio-init:
     image: minio/mc:latest
@@ -188,6 +202,8 @@ services:
       APP_FCM_ENABLED: ${APP_FCM_ENABLED:-false}
       APP_FCM_PROJECT_ID: ${APP_FCM_PROJECT_ID:-}
       APP_FCM_CREDENTIALS_JSON_BASE64: ${APP_FCM_CREDENTIALS_JSON_BASE64:-}
+      APP_SEED_DEMO_PASSWORD: ${APP_SEED_DEMO_PASSWORD:-}
+      APP_ALLOW_PRODUCTION_BOOTSTRAP: ${APP_ALLOW_PRODUCTION_BOOTSTRAP:-false}
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
     volumes:
@@ -198,6 +214,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
 
   main-fe:
     build:
@@ -216,6 +237,11 @@ services:
         condition: service_healthy
     ports:
       - "127.0.0.1:${MAIN_FE_PORT:-3000}:3000"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
 
   admin-fe:
     build:
@@ -235,6 +261,11 @@ services:
       API_BASE_URL: ${API_BASE_URL:-http://localhost:${BACKEND_PORT:-8080}/api/v1}
     ports:
       - "127.0.0.1:${ADMIN_FE_PORT:-4173}:80"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
 
   # dealer:
   #   build:
@@ -258,3 +289,4 @@ volumes:
   redis-data:
   minio-data:
   upload-data:
+

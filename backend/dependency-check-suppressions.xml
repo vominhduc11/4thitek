@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+  <!--
+    Placeholder suppression file for weekly security scans.
+    Keep this file intentionally minimal. Add entries only with documented risk acceptance.
+  -->
+</suppressions>
