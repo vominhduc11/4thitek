@@ -42,8 +42,9 @@ class _SkeletonBoxState extends State<SkeletonBox>
 
   @override
   Widget build(BuildContext context) {
-    const baseColor = Color(0xFF162230);
-    const highlightColor = Color(0xFF25384A);
+    final colorScheme = Theme.of(context).colorScheme;
+    final baseColor = colorScheme.surfaceContainerHighest;
+    final highlightColor = colorScheme.surfaceContainer;
 
     return AnimatedBuilder(
       animation: _shimmer,

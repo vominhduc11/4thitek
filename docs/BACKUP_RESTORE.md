@@ -69,7 +69,94 @@ Moi drill phai ghi:
 - sai lech du lieu neu co
 - action items
 
-## 7) RPO / RTO De xuat
+## 7) Sao luu tu dong voi backup.sh
+
+Script `backup.sh` tai thu muc goc repo thuc hien day du mot phien backup production:
+
+- **Tu dong load `.env`** — doc `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` ma khong can hardcode.
+- **Backup PostgreSQL** bang `pg_dump | gzip` → `backups/<timestamp>/postgres.sql.gz`.
+- **Backup MinIO** bang `tar czf` qua container Alpine → `backups/<timestamp>/minio.tar.gz`.
+- **Kiem tra file rong** — thoat ngay voi loi neu bat ky file nao co kich thuoc 0 byte.
+- **Tao SHA-256 checksum** cho moi file backup (`.sha256`) de kiem tra toan ven khi restore.
+- **Don backup cu** theo bien `RETENTION_DAYS` (mac dinh: 7 ngay).
+
+Moi phien backup duoc luu trong `./backups/<YYYYMMDD_HHMMSS>/`:
+
+```
+backups/
+  20260423_020001/
+    postgres.sql.gz
+    postgres.sql.gz.sha256
+    minio.tar.gz
+    minio.tar.gz.sha256
+```
+
+### Chay thu cong
+
+```bash
+cd /opt/4thitek
+./backup.sh
+```
+
+Script tu tim Docker volume co ten ket thuc bang `_minio-data`. Neu co nhieu volume khop hoac can chi dinh ro:
+
+```bash
+MINIO_VOLUME=my_project_minio-data ./backup.sh
+```
+
+De giu lai backup lau hon 7 ngay:
+
+```bash
+RETENTION_DAYS=30 ./backup.sh
+```
+
+### Cai dat cron job (chay hang ngay luc 2h sang)
+
+Mo crontab cua user chay Docker:
+
+```bash
+crontab -e
+```
+
+Them dong sau (thay `/opt/4thitek` bang duong dan thuc):
+
+```cron
+0 2 * * * cd /opt/4thitek && ./backup.sh >> /var/log/4thitek-backup.log 2>&1
+```
+
+Tao file log truoc neu chua co:
+
+```bash
+sudo touch /var/log/4thitek-backup.log
+sudo chown $(whoami) /var/log/4thitek-backup.log
+```
+
+Kiem tra cron da chay thanh cong:
+
+```bash
+tail -n 30 /var/log/4thitek-backup.log
+ls -lh backups/
+```
+
+### Kiem tra toan ven checksum
+
+Truoc khi restore, nen xac minh file backup khong bi hu:
+
+```bash
+cd backups/<timestamp>
+sha256sum -c postgres.sql.gz.sha256
+sha256sum -c minio.tar.gz.sha256
+```
+
+Ket qua mong doi: `postgres.sql.gz: OK` va `minio.tar.gz: OK`. Neu bao `FAILED`, khong dung file nay de restore.
+
+### Luu y quan trong
+
+- **Backup luu cung host** — neu disk may chu hong toan bo, backup cung mat. Nen copy offsite dinh ky (rclone → S3, rsync → may khac) sau khi script chay xong.
+- **Redis khong duoc backup** theo script nay — Redis chi luu cache va rate-limit state, mat di duoc chap nhan (toan bo user bi dang xuat, cache reset). Neu can consistent Redis state, them `redis-cli BGSAVE` vao script tuy chinh.
+- Script yeu cau container `postgres` dang chay. Neu chay cron khi stack down, script se thoat voi loi ro rang thay vi tao file rong.
+
+## 8) RPO / RTO De xuat
 
 - RPO: <= 15 phut (neu co WAL/incremental), neu chi logical dump thi <= 24h.
 - RTO: <= 2 gio cho su co service-level, <= 4 gio cho full environment rebuild.

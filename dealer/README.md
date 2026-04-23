@@ -4,8 +4,9 @@ Flutter dealer application cho he thong 4thitek.
 
 ## Che do du lieu
 
-- App mac dinh dung `https://api.4thitek.vn`; co the override bang `API_BASE_URL` khi chay local hoac build theo moi truong khac.
-- Socket mac dinh di qua `WS_BASE_URL` neu duoc cung cap, neu khong se fallback ve `API_BASE_URL + /ws`.
+- App mac dinh dung `https://api.4thitek.vn`; co the override bang `API_ORIGIN` (uu tien) hoac `API_BASE_URL` (legacy alias) khi chay local hoac build theo moi truong khac.
+- `API_VERSION` cho phep chi dinh phien ban API rieng (mac dinh `v1`, tuong duong `/api/v1`). Neu dung `API_BASE_URL` co duong dan `/api/v2`, version se tu dong suy ra tu URL.
+- Socket mac dinh di qua `WS_BASE_URL` neu duoc cung cap, neu khong se fallback ve URL goc cua API (tu `API_ORIGIN` hoac `API_BASE_URL`) + `/ws`.
 - Link quay lai main site/public reseller page lay tu `PUBLIC_SITE_BASE_URL`.
 - San pham, gio hang, don hang, warranty, thong bao va profile dealer deu lay tu backend.
 - `SharedPreferences` chi duoc dung de cache mot so state cuc bo va token, khong cung cap mock data.
@@ -14,13 +15,19 @@ Flutter dealer application cho he thong 4thitek.
 
 ```bash
 flutter pub get
-flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8080 --dart-define=PUBLIC_SITE_BASE_URL=http://localhost:3000
+flutter run -d chrome --dart-define=API_ORIGIN=http://localhost:8080 --dart-define=PUBLIC_SITE_BASE_URL=http://localhost:3000
 ```
 
 Neu chay Android emulator, dung:
 
 ```bash
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080 --dart-define=PUBLIC_SITE_BASE_URL=http://10.0.2.2:3000
+flutter run --dart-define=API_ORIGIN=http://10.0.2.2:8080 --dart-define=PUBLIC_SITE_BASE_URL=http://10.0.2.2:3000
+```
+
+Neu backend expose API theo phien ban khac (vi du v2), bo sung `API_VERSION`:
+
+```bash
+flutter run -d chrome --dart-define=API_ORIGIN=http://localhost:8080 --dart-define=API_VERSION=v2 --dart-define=PUBLIC_SITE_BASE_URL=http://localhost:3000
 ```
 
 ## Cau hinh Firebase FCM
@@ -40,7 +47,7 @@ dealer/android/app/google-services.json
 Android local/dev khong co `google-services.json`:
 
 ```bash
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080 --dart-define=PUBLIC_SITE_BASE_URL=http://10.0.2.2:3000 --dart-define=FIREBASE_PROJECT_ID=your-project-id --dart-define=FIREBASE_MESSAGING_SENDER_ID=your-sender-id --dart-define=FIREBASE_STORAGE_BUCKET=your-project-id.firebasestorage.app --dart-define=FIREBASE_ANDROID_API_KEY=your-android-api-key --dart-define=FIREBASE_ANDROID_APP_ID=your-android-app-id
+flutter run --dart-define=API_ORIGIN=http://10.0.2.2:8080 --dart-define=PUBLIC_SITE_BASE_URL=http://10.0.2.2:3000 --dart-define=FIREBASE_PROJECT_ID=your-project-id --dart-define=FIREBASE_MESSAGING_SENDER_ID=your-sender-id --dart-define=FIREBASE_STORAGE_BUCKET=your-project-id.firebasestorage.app --dart-define=FIREBASE_ANDROID_API_KEY=your-android-api-key --dart-define=FIREBASE_ANDROID_APP_ID=your-android-app-id
 ```
 
 Neu build iOS, bo sung:
@@ -56,7 +63,7 @@ Luu y iOS can them buoc Xcode/APNs tren may Mac: bat `Push Notifications`, bat `
 Neu can test socket qua domain rieng tren production build:
 
 ```bash
-flutter build web --release --dart-define=API_BASE_URL=https://api.4thitek.vn --dart-define=WS_BASE_URL=https://ws.4thitek.vn --dart-define=PUBLIC_SITE_BASE_URL=https://4thitek.vn
+flutter build web --release --dart-define=API_ORIGIN=https://api.4thitek.vn --dart-define=WS_BASE_URL=https://ws.4thitek.vn --dart-define=PUBLIC_SITE_BASE_URL=https://4thitek.vn
 ```
 
 ## Android release signing
@@ -81,13 +88,13 @@ keyPassword=your_key_password
 3. Build Android release:
 
 ```bash
-flutter build appbundle --release --dart-define=API_BASE_URL=https://api.4thitek.vn --dart-define=WS_BASE_URL=https://ws.4thitek.vn --dart-define=PUBLIC_SITE_BASE_URL=https://4thitek.vn
+flutter build appbundle --release --dart-define=API_ORIGIN=https://api.4thitek.vn --dart-define=WS_BASE_URL=https://ws.4thitek.vn --dart-define=PUBLIC_SITE_BASE_URL=https://4thitek.vn
 ```
 
 Hoac:
 
 ```bash
-flutter build apk --release --dart-define=API_BASE_URL=https://api.4thitek.vn --dart-define=WS_BASE_URL=https://ws.4thitek.vn --dart-define=PUBLIC_SITE_BASE_URL=https://4thitek.vn
+flutter build apk --release --dart-define=API_ORIGIN=https://api.4thitek.vn --dart-define=WS_BASE_URL=https://ws.4thitek.vn --dart-define=PUBLIC_SITE_BASE_URL=https://4thitek.vn
 ```
 
 Neu chua cau hinh `key.properties`, Gradle se fail som thay vi am tham dung debug key.

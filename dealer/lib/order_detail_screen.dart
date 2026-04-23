@@ -78,59 +78,110 @@ class OrderDetailScreen extends StatelessWidget {
       requestFocus: true,
       builder: (dialogContext) {
         final colors = Theme.of(context).colorScheme;
-        return RepaintBoundary(
-          child: AlertDialog(
-            scrollable: true,
-            insetPadding: const EdgeInsets.symmetric(
-              horizontal: 24,
-              vertical: 20,
-            ),
-            title: Text(texts.confirmCancelTitle),
-            content: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: _buildConfirmationSummary(
-                context,
-                order,
-                texts,
-                footerMessage: texts.irreversibleWarning,
-                footerColor: colors.error,
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(),
-                child: Text(texts.noAction),
-              ),
-              FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: colors.errorContainer,
-                  foregroundColor: colors.onErrorContainer,
+        String? selectedReason;
+        String? reasonError;
+        return StatefulBuilder(
+          builder: (ctx, setState) {
+            return RepaintBoundary(
+              child: AlertDialog(
+                scrollable: true,
+                insetPadding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 20,
                 ),
-                onPressed: () async {
-                  Navigator.of(dialogContext).pop();
-                  final orderController = OrderScope.of(context);
-                  final success = await orderController.updateOrderStatus(
-                    order.id,
-                    OrderStatus.cancelled,
-                  );
-                  if (!context.mounted || success) {
-                    return;
-                  }
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        orderControllerErrorMessage(
-                          orderController.lastActionMessage,
-                          isEnglish: texts.isEnglish,
-                        ),
+                title: Text(texts.confirmCancelTitle),
+                content: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildConfirmationSummary(
+                        context,
+                        order,
+                        texts,
+                        footerMessage: texts.irreversibleWarning,
+                        footerColor: colors.error,
                       ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        value: selectedReason,
+                        decoration: InputDecoration(
+                          labelText: texts.cancelReasonLabel,
+                          errorText: reasonError,
+                          border: const OutlineInputBorder(),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                        ),
+                        hint: Text(
+                          texts.cancelReasonPlaceholder,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: colors.outline),
+                        ),
+                        items: texts.cancelReasonOptions
+                            .map(
+                              (r) => DropdownMenuItem(
+                                value: r,
+                                child: Text(r),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedReason = value;
+                            reasonError = null;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    child: Text(texts.noAction),
+                  ),
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: colors.errorContainer,
+                      foregroundColor: colors.onErrorContainer,
                     ),
-                  );
-                },
-                child: Text(texts.cancelOrderAction),
+                    onPressed: () async {
+                      if (selectedReason == null) {
+                        setState(() {
+                          reasonError = texts.cancelReasonRequired;
+                        });
+                        return;
+                      }
+                      Navigator.of(dialogContext).pop();
+                      final orderController = OrderScope.of(context);
+                      final success = await orderController.updateOrderStatus(
+                        order.id,
+                        OrderStatus.cancelled,
+                        cancelReason: selectedReason,
+                      );
+                      if (!context.mounted || success) {
+                        return;
+                      }
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            orderControllerErrorMessage(
+                              orderController.lastActionMessage,
+                              isEnglish: texts.isEnglish,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                    child: Text(texts.cancelOrderAction),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -532,12 +583,36 @@ class OrderDetailScreen extends StatelessWidget {
     ).whenComplete(amountController.dispose);
   }
 
+  Future<void> _updateOrderStatus(
+    BuildContext context,
+    Order order,
+    OrderStatus newStatus,
+  ) async {
+    final texts = _orderDetailTexts(context);
+    final orderController = OrderScope.of(context);
+    final success = await orderController.updateOrderStatus(order.id, newStatus);
+    if (!context.mounted || success) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          orderControllerErrorMessage(
+            orderController.lastActionMessage,
+            isEnglish: texts.isEnglish,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildStickyActionBar({
     required BuildContext context,
     required Order order,
     required CartController cart,
     required bool canProcessSerial,
     required bool canCancel,
+    required bool canConfirm,
+    required bool canStartShipping,
+    required bool canComplete,
   }) {
     final texts = _orderDetailTexts(context);
     final colors = Theme.of(context).colorScheme;
@@ -548,10 +623,31 @@ class OrderDetailScreen extends StatelessWidget {
     final canRecordPayment =
         order.paymentMethod != OrderPaymentMethod.bankTransfer &&
         order.outstandingAmount > 0;
-    final paymentActionIsPrimary = canShowBankTransferInfo || canRecordPayment;
-    final processSerialIsPrimary = !paymentActionIsPrimary && canProcessSerial;
+    final hasForwardAction = canConfirm || canStartShipping || canComplete;
+    final paymentActionIsPrimary =
+        !hasForwardAction && (canShowBankTransferInfo || canRecordPayment);
+    final processSerialIsPrimary =
+        !paymentActionIsPrimary && !hasForwardAction && canProcessSerial;
 
     final actions = <Widget>[
+      if (canConfirm)
+        FilledButton.icon(
+          onPressed: () => _updateOrderStatus(context, order, OrderStatus.confirmed),
+          icon: const Icon(Icons.check_rounded, size: 18),
+          label: Text(texts.confirmOrderAction),
+        ),
+      if (canStartShipping)
+        FilledButton.icon(
+          onPressed: () => _updateOrderStatus(context, order, OrderStatus.shipping),
+          icon: const Icon(Icons.local_shipping_outlined, size: 18),
+          label: Text(texts.startShippingAction),
+        ),
+      if (canComplete)
+        FilledButton.icon(
+          onPressed: () => _updateOrderStatus(context, order, OrderStatus.completed),
+          icon: const Icon(Icons.task_alt_rounded, size: 18),
+          label: Text(texts.completeOrderAction),
+        ),
       if (canReorder)
         OutlinedButton(
           onPressed: () => _reorder(context, cart, order),
@@ -688,12 +784,18 @@ class OrderDetailScreen extends StatelessWidget {
     final canCancel =
         order.status == OrderStatus.pending ||
         order.status == OrderStatus.confirmed;
+    final canConfirm = order.status == OrderStatus.pending;
+    final canStartShipping = order.status == OrderStatus.confirmed;
+    final canComplete = order.status == OrderStatus.shipping;
     final stickyActionBar = _buildStickyActionBar(
       context: context,
       order: order,
       cart: cart,
       canProcessSerial: canProcessSerial,
       canCancel: canCancel,
+      canConfirm: canConfirm,
+      canStartShipping: canStartShipping,
+      canComplete: canComplete,
     );
     final payments = OrderScope.of(
       context,
@@ -1398,6 +1500,27 @@ class _OrderDetailTexts {
       : 'Không thể cập nhật trạng thái đơn hàng. Vui lòng thử lại.';
   String get confirmCancelTitle =>
       isEnglish ? 'Confirm order cancellation' : 'Xác nhận hủy đơn';
+  String get cancelReasonLabel =>
+      isEnglish ? 'Reason for cancellation' : 'Lý do hủy';
+  String get cancelReasonPlaceholder =>
+      isEnglish ? 'Select a reason...' : 'Chọn lý do...';
+  String get cancelReasonRequired =>
+      isEnglish ? 'Please select a reason.' : 'Vui lòng chọn lý do.';
+  List<String> get cancelReasonOptions => isEnglish
+      ? [
+          'Customer request',
+          'Out of stock',
+          'Price error',
+          'Duplicate order',
+          'Other',
+        ]
+      : [
+          'Khách yêu cầu hủy',
+          'Hết hàng',
+          'Lỗi giá',
+          'Đơn bị trùng',
+          'Lý do khác',
+        ];
   String orderCodeSummary(String orderId) =>
       isEnglish ? 'Order: #$orderId' : 'Đơn hàng: #$orderId';
   String totalAmountSummary(String amount) =>
@@ -1415,6 +1538,12 @@ class _OrderDetailTexts {
       ? 'Payment will be marked complete for this order.'
       : 'Thanh toán sẽ được đánh dấu hoàn tất cho đơn hàng này.';
   String get confirmAction => isEnglish ? 'Confirm' : 'Xác nhận';
+  String get confirmOrderAction =>
+      isEnglish ? 'Confirm order' : 'Xác nhận đơn';
+  String get startShippingAction =>
+      isEnglish ? 'Start shipping' : 'Giao hàng';
+  String get completeOrderAction =>
+      isEnglish ? 'Mark complete' : 'Hoàn thành';
   String get confirmReceivedAction =>
       isEnglish ? 'Confirm received' : 'Xác nhận đã nhận hàng';
   String get cannotOpenPhoneAppMessage => isEnglish

@@ -1,10 +1,45 @@
 import { defineConfig, type Plugin, type PluginOption } from 'vite'
 import react from '@vitejs/plugin-react-swc'
+import { VitePWA } from 'vite-plugin-pwa'
 import type { OutputBundle, OutputChunk } from 'rollup'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  const plugins: PluginOption[] = [react()]
+  const plugins: PluginOption[] = [
+    react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['logo.png', 'favicon.ico'],
+      manifest: {
+        name: '4T HITEK Admin',
+        short_name: '4THITEK',
+        description: 'Admin panel for 4T HITEK',
+        theme_color: '#0f172a',
+        background_color: '#0f172a',
+        display: 'standalone',
+        icons: [
+          { src: '/logo.png', sizes: '192x192', type: 'image/png' },
+          { src: '/logo.png', sizes: '512x512', type: 'image/png' },
+        ],
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        navigateFallback: '/offline.html',
+        navigateFallbackDenylist: [/^\/api\//],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/.+\/api\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-cache',
+              expiration: { maxEntries: 50, maxAgeSeconds: 300 },
+              networkTimeoutSeconds: 10,
+            },
+          },
+        ],
+      },
+    }),
+  ]
 
   if (process.env.ANALYZE === 'true') {
     const bundleReportPlugin: Plugin = {

@@ -588,11 +588,11 @@ const translations: Record<Language, TranslationMap> = {
     "Đã kích hoạt": "Activated",
     "Chờ duyệt hồ sơ": "Pending review",
     "Tạm khóa": "Suspended",
-    "Đại lý đã được phê duyệt và có thể đăng nhập ứng dụng dealer.":
+    "Đại lý đã được phê duyệt và có thể đăng nhập ứng dụng đại lý.":
       "The dealer has been approved and can sign in to the dealer app.",
-    "Hồ sơ đang chờ admin xác minh trước khi kích hoạt.":
-      "Profile is pending admin verification before activation.",
-    "Tài khoản đại lý đã bị tạm khóa, không thể đăng nhập ứng dụng dealer.":
+    "Hồ sơ đang chờ xác minh trước khi kích hoạt.":
+      "Profile is pending verification before activation.",
+    "Tài khoản đại lý đã bị tạm khóa, không thể đăng nhập ứng dụng đại lý.":
       "Dealer account has been suspended and cannot sign in to the dealer app.",
     "Sắp xếp": "Sort",
     "Mới nhất": "Latest",
@@ -634,8 +634,8 @@ const translations: Record<Language, TranslationMap> = {
     "Anh dai dien (URL)": "Cover image (URL)",
     "Áp dụng cho upload ảnh hoặc chứng từ qua giao diện quản trị.":
       "Applies to image and proof uploads in the admin interface.",
-    "Backend chưa trả về dữ liệu dashboard.":
-      "The backend has not returned dashboard data.",
+    "Dữ liệu tổng quan chưa sẵn sàng. Vui lòng tải lại trang.":
+      "Dashboard data is not yet available. Please reload the page.",
     "Bài {id} không tồn tại hoặc đã bị xóa.":
       "Post {id} does not exist or has been deleted.",
     "Bài viết này chưa có nội dung.": "This post has no content yet.",
@@ -845,8 +845,8 @@ const translations: Record<Language, TranslationMap> = {
     "Họ và tên": "Full name",
     "Họ và tên cần có ít nhất 2 ký tự.":
       "Full name must be at least 2 characters.",
-    "Hoàn tất xác minh để tránh ảnh hưởng kích hoạt dealer app.":
-      "Complete verification to avoid dealer-app activation delays.",
+    "Hoàn tất xác minh để tránh ảnh hưởng kích hoạt ứng dụng đại lý.":
+      "Complete verification to avoid dealer app activation delays.",
     "Hỗ trợ": "Support",
     "https://cdn.example.com/proof-1.jpg":
       "https://cdn.example.com/proof-1.jpg",

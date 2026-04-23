@@ -11,17 +11,20 @@ import {
 
 type ToastVariant = 'success' | 'error' | 'info'
 
+type ToastAction = { label: string; onAction: () => void }
+
 type ToastItem = {
   id: number
   message: string
   title?: string
   variant: ToastVariant
+  action?: ToastAction
 }
 
 type ToastContextValue = {
   notify: (
     message: string,
-    options?: { title?: string; variant?: ToastVariant; durationMs?: number },
+    options?: { title?: string; variant?: ToastVariant; durationMs?: number; action?: ToastAction },
   ) => void
 }
 
@@ -60,6 +63,7 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
       message,
       title: options?.title,
       variant: options?.variant ?? 'success',
+      action: options?.action,
     }
     setToasts((prev) => {
       const trimmed = prev.length >= 4 ? prev.slice(1) : prev
@@ -103,10 +107,22 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
                     </p>
                   ) : null}
                   <p className="text-sm font-medium">{toast.message}</p>
+                  {toast.action ? (
+                    <button
+                      className="mt-1.5 text-xs font-semibold underline underline-offset-2 transition hover:opacity-70 focus-visible:outline-none"
+                      onClick={() => {
+                        toast.action!.onAction()
+                        dismiss(toast.id)
+                      }}
+                      type="button"
+                    >
+                      {toast.action.label}
+                    </button>
+                  ) : null}
                 </div>
                 <button
                   aria-label="Dismiss"
-                  className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[var(--surface)]/70 text-[var(--muted)] transition hover:bg-[var(--surface)] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
+                  className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--surface)]/70 text-[var(--muted)] transition hover:bg-[var(--surface)] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
                   onClick={() => dismiss(toast.id)}
                   type="button"
                 >

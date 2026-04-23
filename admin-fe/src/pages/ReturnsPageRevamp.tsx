@@ -29,6 +29,7 @@ import {
   type BackendReturnRequestType,
 } from "../lib/adminApi";
 import { formatDateTime } from "../lib/formatters";
+import { returnRequestStatusLabel, returnRequestTypeLabel } from "../lib/adminLabels";
 
 const STATUS_OPTIONS: BackendReturnRequestStatus[] = [
   "SUBMITTED",
@@ -67,12 +68,12 @@ const statusTone: Record<
 
 const statusLabel = (status?: BackendReturnRequestStatus | null) => {
   if (!status) return "-";
-  return status.replaceAll("_", " ");
+  return returnRequestStatusLabel[status] ?? status.replaceAll("_", " ");
 };
 
 const typeLabel = (type?: BackendReturnRequestType | null) => {
   if (!type) return "-";
-  return type.replaceAll("_", " ");
+  return returnRequestTypeLabel[type] ?? type.replaceAll("_", " ");
 };
 
 const resolvedCount = (item: BackendReturnRequestSummaryResponse) =>

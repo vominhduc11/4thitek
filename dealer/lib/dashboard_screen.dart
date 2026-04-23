@@ -412,6 +412,9 @@ class _DashboardTexts {
       ? 'Keep track of the latest orders in the current reporting window.'
       : 'Theo dõi những đơn mới nhất trong kỳ đang xem.';
   String get viewAllAction => isEnglish ? 'View all' : 'Xem tất cả';
+  String pendingOrdersAction(int count) =>
+      isEnglish ? '$count pending' : '$count đơn chờ';
+  String get processOrderLabel => isEnglish ? 'Process' : 'Xử lý';
   String get recentOrdersEmptyMessage => isEnglish
       ? 'There are no orders in the selected period yet.'
       : 'Chưa có đơn hàng nào trong kỳ đã chọn.';
@@ -630,9 +633,14 @@ class _DashboardTexts {
 }
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key, this.onSwitchTab});
+  const DashboardScreen({
+    super.key,
+    this.onSwitchTab,
+    this.onOpenPendingOrders,
+  });
 
   final ValueChanged<int>? onSwitchTab;
+  final VoidCallback? onOpenPendingOrders;
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -651,6 +659,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<WarrantyActivationRecord>? _lastSnapshotActivations;
   _DashboardTimeFilter? _lastSnapshotFilter;
   DateTime? _lastSnapshotPeriod;
+  int _snapshotComputeToken = 0;
   List<_DashboardLowStockItem>? _cachedLowStockProducts;
   List<Order>? _lastLowStockOrders;
   List<WarrantyActivationRecord>? _lastLowStockActivations;
@@ -730,6 +739,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
+  Future<void> _recomputeSnapshotAsync(_DashboardSnapshotArgs args) async {
+    final token = ++_snapshotComputeToken;
+    final snapshot = await compute(_computeDashboardSnapshotIsolate, args);
+    if (!mounted || token != _snapshotComputeToken) return;
+    setState(() => _cachedSnapshot = snapshot);
+  }
+
   void _openCreateOrderFlow() {
     if (widget.onSwitchTab != null) {
       widget.onSwitchTab!(0);
@@ -753,6 +769,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _openOrdersScreen() {
     if (widget.onSwitchTab != null) {
       widget.onSwitchTab!(1);
+      return;
+    }
+    context.pushDealerOrders();
+  }
+
+  void _openPendingOrdersScreen() {
+    if (widget.onOpenPendingOrders != null) {
+      widget.onOpenPendingOrders!();
       return;
     }
     context.pushDealerOrders();
@@ -805,14 +829,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _lastSnapshotActivations = snapshotActivations;
       _lastSnapshotFilter = _timeFilter;
       _lastSnapshotPeriod = _selectedPeriod;
-      _cachedSnapshot = _buildDashboardSnapshot(
-        orders: snapshotOrders,
-        activations: snapshotActivations,
-        timeFilter: _timeFilter,
-        selectedPeriod: _selectedPeriod,
-        now: now,
-        isEnglish: texts.isEnglish,
-      );
+      if (snapshotOrders.length > 500) {
+        unawaited(_recomputeSnapshotAsync(_DashboardSnapshotArgs(
+          orders: snapshotOrders,
+          activations: snapshotActivations,
+          timeFilter: _timeFilter,
+          selectedPeriod: _selectedPeriod,
+          now: now,
+          isEnglish: texts.isEnglish,
+        )));
+      } else {
+        _cachedSnapshot = _buildDashboardSnapshot(
+          orders: snapshotOrders,
+          activations: snapshotActivations,
+          timeFilter: _timeFilter,
+          selectedPeriod: _selectedPeriod,
+          now: now,
+          isEnglish: texts.isEnglish,
+        );
+      }
+    }
+    if (_cachedSnapshot == null) {
+      return const _DashboardLoadingView(horizontalPadding: 16);
     }
     final snapshot = _cachedSnapshot!;
     final periodAnchor = snapshot.periodAnchor;
@@ -921,8 +959,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final timeFilterLabel = _timeFilter == _DashboardTimeFilter.month
         ? texts.filterByMonthLabel
         : texts.filterByQuarterLabel;
-    final collapseSecondaryInsights = screenWidth < 1180;
-
     Widget buildInsightGrid(List<Widget> cards) {
       return LayoutBuilder(
         builder: (context, constraints) {
@@ -1046,21 +1082,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ] else ...[
               buildInsightGrid(primaryTrackingCards),
               SizedBox(height: sectionSpacing),
-              if (collapseSecondaryInsights)
-                _DashboardExpandableInsights(
-                  title: texts.secondaryInsightsTitle,
-                  subtitle: texts.secondaryInsightsSubtitle,
-                  children: secondaryTrackingCards,
-                )
-              else ...[
-                _SectionTitle(
-                  title: texts.secondaryInsightsTitle,
-                  subtitle: texts.secondaryInsightsSubtitle,
-                  compact: true,
-                ),
-                const SizedBox(height: 8),
-                buildInsightGrid(secondaryTrackingCards),
-              ],
+              _DashboardExpandableInsights(
+                storageKey: 'dashboard-desktop-insights',
+                title: texts.secondaryInsightsTitle,
+                subtitle: texts.secondaryInsightsSubtitle,
+                children: secondaryTrackingCards,
+              ),
             ],
             SizedBox(height: sectionSpacing),
             FadeSlideIn(
@@ -1068,6 +1095,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final isCompactHeader = constraints.maxWidth < 360;
+                  final pendingCount = periodOrders
+                      .where((o) => o.status == OrderStatus.pending)
+                      .length;
+                  final hasPending = pendingCount > 0;
                   final actionButton = TextButton.icon(
                     onPressed: _openOrdersScreen,
                     style: TextButton.styleFrom(
@@ -1078,6 +1109,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     icon: const Icon(Icons.open_in_new_rounded, size: 16),
                     label: Text(texts.viewAllAction),
                   );
+                  final pendingButton = hasPending
+                      ? FilledButton.tonalIcon(
+                          onPressed: _openPendingOrdersScreen,
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(0, 36),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          icon: const Icon(Icons.pending_actions_rounded, size: 16),
+                          label: Text(texts.pendingOrdersAction(pendingCount)),
+                        )
+                      : null;
 
                   if (periodOrders.isEmpty) {
                     return _SectionTitle(
@@ -1094,7 +1137,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           subtitle: texts.recentOrdersSubtitle,
                         ),
                         const SizedBox(height: 4),
-                        actionButton,
+                        Row(
+                          children: [
+                            if (pendingButton != null) ...[
+                              pendingButton,
+                              const SizedBox(width: 8),
+                            ],
+                            actionButton,
+                          ],
+                        ),
                       ],
                     );
                   }
@@ -1106,6 +1157,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           subtitle: texts.recentOrdersSubtitle,
                         ),
                       ),
+                      if (pendingButton != null) ...[
+                        pendingButton,
+                        const SizedBox(width: 8),
+                      ],
                       actionButton,
                     ],
                   );
@@ -1124,36 +1179,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ctaIcon: Icons.add_shopping_cart_outlined,
                 onCtaPressed: _openCreateOrderFlow,
               )
-            else
-              ...periodOrders
-                  .take(5)
-                  .toList(growable: false)
-                  .asMap()
-                  .entries
-                  .map((entry) {
-                    final index = entry.key;
-                    final order = entry.value;
-                    final shouldAnimate = index < 4;
-                    return FadeSlideIn(
-                      animate: shouldAnimate,
-                      delay: shouldAnimate
-                          ? Duration(milliseconds: 170 + 30 * index)
-                          : Duration.zero,
-                      child: Padding(
-                        padding: EdgeInsets.only(
-                          bottom: index == math.min(periodOrders.length, 5) - 1
-                              ? 0
-                              : 10,
-                        ),
-                        child: RepaintBoundary(
-                          child: _RecentOrderCard(
-                            order: order,
-                            onTap: () => _openOrderDetail(order.id),
-                          ),
+            else ...[
+              ...() {
+                // Pending orders first, then others sorted by newest
+                final pending = periodOrders
+                    .where((o) => o.status == OrderStatus.pending)
+                    .toList(growable: false);
+                final others = periodOrders
+                    .where((o) => o.status != OrderStatus.pending)
+                    .toList(growable: false);
+                final sorted = [...pending, ...others].take(5).toList();
+                return sorted.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final order = entry.value;
+                  final shouldAnimate = index < 4;
+                  return FadeSlideIn(
+                    animate: shouldAnimate,
+                    delay: shouldAnimate
+                        ? Duration(milliseconds: 170 + 30 * index)
+                        : Duration.zero,
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        bottom: index == math.min(sorted.length, 5) - 1
+                            ? 0
+                            : 10,
+                      ),
+                      child: RepaintBoundary(
+                        child: _RecentOrderCard(
+                          order: order,
+                          onTap: () => _openOrderDetail(order.id),
+                          processLabel: texts.processOrderLabel,
                         ),
                       ),
-                    );
-                  }),
+                    ),
+                  );
+                });
+              }(),
+            ],
           ],
         ),
       );
@@ -1427,11 +1489,13 @@ class _DashboardExpandableInsights extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.children,
+    this.storageKey = 'dashboard-insights',
   });
 
   final String title;
   final String subtitle;
   final List<Widget> children;
+  final String storageKey;
 
   @override
   Widget build(BuildContext context) {
@@ -1441,7 +1505,7 @@ class _DashboardExpandableInsights extends StatelessWidget {
       child: Theme(
         data: theme.copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
-          key: const PageStorageKey<String>('dashboard-mobile-insights'),
+          key: PageStorageKey<String>(storageKey),
           tilePadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
           childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
           title: Text(
@@ -2208,30 +2272,34 @@ class _InsightChip extends StatelessWidget {
 }
 
 class _RecentOrderCard extends StatelessWidget {
-  const _RecentOrderCard({required this.order, this.onTap});
+  const _RecentOrderCard({
+    required this.order,
+    this.onTap,
+    this.processLabel,
+  });
 
   final Order order;
   final VoidCallback? onTap;
+  final String? processLabel;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final texts = _DashboardTexts(
       isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
     );
-    final statusColor = _statusColor(
-      order.status,
-      Theme.of(context).colorScheme,
-    );
+    final statusColor = _statusColor(order.status, cs);
+    final isPending = order.status == OrderStatus.pending;
 
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: Theme.of(
-            context,
-          ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+          color: isPending
+              ? cs.primary.withValues(alpha: 0.35)
+              : cs.outlineVariant.withValues(alpha: 0.6),
         ),
       ),
       child: InkWell(
@@ -2250,7 +2318,7 @@ class _RecentOrderCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleMedium?.copyWith(
-                        color: theme.colorScheme.onSurface,
+                        color: cs.onSurface,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -2263,12 +2331,38 @@ class _RecentOrderCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              Text(
-                formatVnd(order.total),
-                style: theme.textTheme.titleLarge?.copyWith(
-                  color: theme.colorScheme.onSurface,
-                  fontWeight: FontWeight.w900,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      formatVnd(order.total),
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: cs.onSurface,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  if (isPending && processLabel != null)
+                    FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, 36),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 0,
+                        ),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      onPressed: onTap,
+                      icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+                      label: Text(
+                        processLabel!,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: cs.onPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 8),
               Text(

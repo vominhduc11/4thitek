@@ -19,6 +19,7 @@ import 'utils.dart';
 import 'warranty_controller.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/dealer_fallback_back_button.dart';
+import 'widgets/error_state_with_retry.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/skeleton_box.dart';
 import 'dealer_routes.dart';
@@ -34,10 +35,12 @@ class OrdersScreen extends StatefulWidget {
     super.key,
     this.onSwitchTab,
     this.showFallbackNavigation = true,
+    this.pendingFilterRevision = 0,
   });
 
   final ValueChanged<int>? onSwitchTab;
   final bool showFallbackNavigation;
+  final int pendingFilterRevision;
 
   @override
   State<OrdersScreen> createState() => _OrdersScreenState();
@@ -55,7 +58,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
   Timer? _orderRefreshDebounce;
   String _lastOrderSnapshot = '';
   bool _hasInitializedSnapshot = false;
-  bool _compactFiltersExpanded = false;
   OrderController? _observedOrderController;
   OrderQueryRepository? _orderQueryRepository;
   int _queryRevision = 0;
@@ -95,6 +97,15 @@ class _OrdersScreenState extends State<OrdersScreen> {
       _observedOrderController?.addListener(_handleOrderControllerChanged);
       _syncOrderSnapshot(controller.orders);
       _refreshOrders();
+    }
+  }
+
+  @override
+  void didUpdateWidget(OrdersScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.pendingFilterRevision != oldWidget.pendingFilterRevision &&
+        widget.pendingFilterRevision > 0) {
+      _setStatusFilter(OrderStatus.pending);
     }
   }
 
@@ -178,6 +189,34 @@ class _OrdersScreenState extends State<OrdersScreen> {
       return;
     }
     context.pushDealerProducts();
+  }
+
+  void _openFilterSheet(
+    BuildContext context, {
+    required _OrdersTexts texts,
+    required List<OrderStatus?> statusFilters,
+    required List<OrderPaymentStatus?> paymentFilters,
+  }) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) => _OrdersFilterSheet(
+        texts: texts,
+        initialQuery: _query,
+        statusFilters: statusFilters,
+        paymentFilters: paymentFilters,
+        onApply: (pending) {
+          if (!mounted) return;
+          setState(() => _query = pending);
+          _refreshOrders();
+        },
+        onClear: _clearAllCriteria,
+      ),
+    );
   }
 
   Widget _buildFilterChips<T>({
@@ -490,62 +529,22 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   isActive: _query.onlyOutstanding,
                   onTap: _toggleOutstandingQuickFilter,
                 ),
-              PopupMenuButton<OrderSortOption>(
-                tooltip: texts.sortTooltip,
-                onSelected: _setSort,
-                itemBuilder: (context) => OrderSortOption.values
-                    .map(
-                      (sort) => PopupMenuItem<OrderSortOption>(
-                        value: sort,
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: 22,
-                              child: _query.sort == sort
-                                  ? Icon(
-                                      Icons.check,
-                                      size: 18,
-                                      color: colors.primary,
-                                    )
-                                  : null,
-                            ),
-                            Text(texts.sortLabel(sort)),
-                          ],
-                        ),
-                      ),
-                    )
-                    .toList(),
-                child: _OrdersCompactActionChip(
-                  icon: Icons.swap_vert_rounded,
-                  label: texts.sortLabel(_query.sort),
-                  isActive: _query.sort != OrderSortOption.newest,
-                ),
-              ),
               _OrdersCompactActionChip(
-                icon: _compactFiltersExpanded
-                    ? Icons.expand_less_rounded
-                    : Icons.tune_rounded,
+                icon: Icons.tune_rounded,
                 label: _activeFilterCount > 0
-                    ? '${texts.isEnglish ? 'Filters' : 'Bộ lọc'} ($_activeFilterCount)'
-                    : (texts.isEnglish ? 'Filters' : 'Bộ lọc'),
-                isActive: _compactFiltersExpanded || _activeFilterCount > 0,
-                onTap: () {
-                  setState(
-                    () => _compactFiltersExpanded = !_compactFiltersExpanded,
-                  );
-                },
-              ),
-              if (hasActiveCriteria)
-                _OrdersCompactActionChip(
-                  icon: Icons.filter_alt_off_outlined,
-                  label: texts.isEnglish ? 'Clear' : 'Xóa',
-                  onTap: _clearAllCriteria,
+                    ? '${texts.filterSheetTitle} ($_activeFilterCount)'
+                    : texts.filterSheetTitle,
+                isActive: _activeFilterCount > 0,
+                onTap: () => _openFilterSheet(
+                  context,
+                  texts: texts,
+                  statusFilters: statusFilters,
+                  paymentFilters: paymentFilters,
                 ),
+              ),
             ],
           ),
-          if (hasActiveCriteria &&
-              activeCriteriaSummary.isNotEmpty &&
-              !_compactFiltersExpanded) ...[
+          if (hasActiveCriteria && activeCriteriaSummary.isNotEmpty) ...[
             const SizedBox(height: 10),
             _buildActiveCriteriaBanner(
               context,
@@ -554,53 +553,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
               compact: true,
             ),
           ],
-          AnimatedSize(
-            duration: const Duration(milliseconds: 180),
-            curve: Curves.easeOutCubic,
-            child: _compactFiltersExpanded
-                ? Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (hasActiveCriteria &&
-                            activeCriteriaSummary.isNotEmpty) ...[
-                          _buildActiveCriteriaBanner(
-                            context,
-                            colors: colors,
-                            summary: activeCriteriaSummary,
-                            compact: true,
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-                        _buildFilterChips<OrderStatus>(
-                          context: context,
-                          label: texts.statusFilterLabel,
-                          options: statusFilters,
-                          selected: _query.status,
-                          onSelected: _setStatusFilter,
-                          labelFor: (status) => status == null
-                              ? texts.allFilterOption
-                              : texts.orderStatusLabel(status),
-                          useWrapLayout: false,
-                        ),
-                        const SizedBox(height: 12),
-                        _buildFilterChips<OrderPaymentStatus>(
-                          context: context,
-                          label: texts.paymentFilterLabel,
-                          options: paymentFilters,
-                          selected: _query.paymentStatus,
-                          onSelected: _setPaymentStatusFilter,
-                          labelFor: (status) => status == null
-                              ? texts.allFilterOption
-                              : texts.orderPaymentStatusLabel(status),
-                          useWrapLayout: false,
-                        ),
-                      ],
-                    ),
-                  )
-                : const SizedBox.shrink(),
-          ),
         ],
       ),
     );
@@ -838,8 +790,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
         final card = FadeSlideIn(
           key: ValueKey(order.id),
           animate: shouldAnimate,
-          delay: shouldAnimate
-              ? Duration(milliseconds: math.min(25 * pageIndex, 150))
+          delay: shouldAnimate && pageIndex < 3
+              ? Duration(milliseconds: 50 * pageIndex)
               : Duration.zero,
           child: Semantics(
             container: true,
@@ -1070,20 +1022,53 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     if (canCancel)
                       Padding(
                         padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: colors.error,
-                              side: BorderSide(
-                                color: colors.error.withValues(alpha: 0.3),
+                        child: Row(
+                          children: [
+                            OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: colors.error,
+                                side: BorderSide(
+                                  color: colors.error.withValues(alpha: 0.3),
+                                ),
+                                minimumSize: const Size(0, 44),
                               ),
-                              minimumSize: const Size(0, 44),
+                              onPressed: () => _confirmCancel(context, order),
+                              icon: const Icon(Icons.close_rounded, size: 18),
+                              label: Text(texts.cancelOrderAction),
                             ),
-                            onPressed: () => _confirmCancel(context, order),
-                            icon: const Icon(Icons.close_rounded, size: 18),
-                            label: Text(texts.cancelOrderAction),
-                          ),
+                            const Spacer(),
+                            if (order.status == OrderStatus.pending)
+                              FilledButton.icon(
+                                style: FilledButton.styleFrom(
+                                  minimumSize: const Size(0, 44),
+                                ),
+                                onPressed: () => _quickUpdateStatus(
+                                  context,
+                                  order,
+                                  OrderStatus.confirmed,
+                                  texts,
+                                ),
+                                icon: const Icon(Icons.check_rounded, size: 18),
+                                label: Text(texts.confirmOrderAction),
+                              )
+                            else if (order.status == OrderStatus.confirmed)
+                              FilledButton.icon(
+                                style: FilledButton.styleFrom(
+                                  minimumSize: const Size(0, 44),
+                                ),
+                                onPressed: () => _quickUpdateStatus(
+                                  context,
+                                  order,
+                                  OrderStatus.shipping,
+                                  texts,
+                                ),
+                                icon: const Icon(
+                                  Icons.local_shipping_outlined,
+                                  size: 18,
+                                ),
+                                label: Text(texts.startShippingAction),
+                              ),
+                          ],
                         ),
                       ),
                   ],
@@ -1176,15 +1161,17 @@ class _OrdersScreenState extends State<OrdersScreen> {
         );
       },
       firstPageErrorIndicatorBuilder: (context) {
-        return _PagedErrorState(
+        return ErrorStateWithRetry(
           onRetry: _pagingController.refresh,
           message: texts.loadOrdersFailedMessage,
+          retryLabel: texts.retryAction,
         );
       },
       newPageErrorIndicatorBuilder: (context) {
-        return _PagedErrorState(
+        return ErrorStateWithRetry(
           onRetry: _pagingController.retryLastFailedRequest,
           message: texts.loadMoreOrdersFailedMessage,
+          retryLabel: texts.retryAction,
         );
       },
     );
@@ -1343,42 +1330,6 @@ class _EmptyOrders extends StatelessWidget {
               onPressed: onCreateOrder,
               icon: const Icon(Icons.add_shopping_cart_outlined),
               label: Text(texts.createFirstOrderAction),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PagedErrorState extends StatelessWidget {
-  const _PagedErrorState({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final texts = _ordersTexts(context);
-    final colors = Theme.of(context).colorScheme;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline, color: colors.error, size: 40),
-            const SizedBox(height: 10),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 10),
-            OutlinedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: Text(texts.retryAction),
             ),
           ],
         ),
@@ -1899,6 +1850,9 @@ class _OrdersTexts {
   String get filteredBadgeLabel => isEnglish ? 'Filtered' : 'Đang lọc';
   String get clearFiltersTooltip => isEnglish ? 'Clear filters' : 'Xóa bộ lọc';
   String get sortTooltip => isEnglish ? 'Sort orders' : 'Sắp xếp đơn hàng';
+  String get filterSheetTitle => isEnglish ? 'Sort & Filter' : 'Sắp xếp & Lọc';
+  String get applyFiltersAction => isEnglish ? 'Apply' : 'Áp dụng';
+  String get clearFiltersAction => isEnglish ? 'Clear all' : 'Xóa tất cả';
   String get createOrderAction => isEnglish ? 'Create order' : 'Tạo đơn';
   String get createFirstOrderAction =>
       isEnglish ? 'Create your first order' : 'Tạo đơn hàng đầu tiên';
@@ -1928,6 +1882,8 @@ class _OrdersTexts {
       isEnglish ? 'Confirm cancellation' : 'Xác nhận hủy đơn';
   String get noAction => isEnglish ? 'No' : 'Không';
   String get cancelOrderAction => isEnglish ? 'Cancel order' : 'Hủy đơn';
+  String get confirmOrderAction => isEnglish ? 'Confirm' : 'Xác nhận';
+  String get startShippingAction => isEnglish ? 'Ship' : 'Giao hàng';
   String get updateOrderStatusFailedMessage => isEnglish
       ? 'Unable to update the order status. Please try again.'
       : 'Không thể cập nhật trạng thái đơn hàng. Vui lòng thử lại.';
@@ -1991,8 +1947,8 @@ class _OrdersTexts {
       '${isEnglish ? 'Keyword' : 'Từ khóa'}: "$value"';
 
   String confirmCancelDescription(String orderId) => isEnglish
-      ? 'Are you sure you want to cancel order $orderId?'
-      : 'Bạn có chắc muốn hủy đơn hàng $orderId?';
+      ? 'Cancel order $orderId? This cannot be undone and the customer will be notified.'
+      : 'Hủy đơn hàng $orderId? Thao tác này không thể hoàn tác và khách hàng sẽ được thông báo.';
 
   String orderSemanticsLabel(Order order) {
     final count = itemCountLabel(order.totalItems);

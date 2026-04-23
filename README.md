@@ -74,9 +74,17 @@ cp .env.example .env
 docker compose up -d
 ```
 
-Neu da tung tao volume Postgres bang password cu hoac backend bao Flyway checksum mismatch sau khi migration da bi sua, can reset volume local:
+### Canh bao: Reset toan bo du lieu local
+
+Lenh `npm run docker:reset` thuc hien `docker compose down -v` — **xoa toan bo Docker volume**, bao gom toan bo du lieu trong Postgres, Redis va MinIO. **Tuyet doi khong chay lenh nay tren moi truong staging/production.**
+
+Chi su dung khi:
+
+- Dang phat trien local va muon xoa sach de bat dau lai.
+- Gap loi Flyway checksum mismatch khong the sua bang migration moi (chi xay ra khi migration da release bi sua noi dung).
 
 ```bash
+# Chi chay local — mat toan bo du lieu!
 npm run docker:reset
 ```
 

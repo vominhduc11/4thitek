@@ -1134,12 +1134,13 @@ export const updateAdminOrderStatus = (
   token: string,
   id: number,
   status: BackendOrderStatus,
+  cancelReason?: string,
 ) =>
   authorizedJsonRequest<BackendOrderResponse>({
     path: `/admin/orders/${id}/status`,
     token,
     method: 'PATCH',
-    body: { status },
+    body: { status, ...(cancelReason ? { cancelReason } : {}) },
   })
 
 export const recordAdminOrderPayment = (

@@ -28,8 +28,8 @@ String resolveAuthServiceMessage(String? message, {required bool isEnglish}) {
   switch (normalized) {
     case 'auth.message.apiNotConfigured':
       return isEnglish
-          ? 'API base URL is not configured for the dealer app.'
-          : 'Chưa cấu hình API_BASE_URL cho dealer app.';
+          ? 'The app is not configured. Please contact support.'
+          : 'Ứng dụng chưa được cấu hình. Vui lòng liên hệ hỗ trợ.';
     case 'auth.message.loginSessionUnavailable':
       return isEnglish
           ? 'Unable to create a login session.'

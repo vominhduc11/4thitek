@@ -225,6 +225,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final filteredLowStockCount = filteredItems
         .where((item) => item.stockStatus == InventoryStockStatus.lowStock)
         .length;
+    final totalLowStockCount = inventoryItems
+        .where((item) => item.stockStatus == InventoryStockStatus.lowStock)
+        .length;
+    final totalOutOfStockCount = inventoryItems
+        .where((item) => item.stockStatus == InventoryStockStatus.outOfStock)
+        .length;
+    final showLowStockBanner =
+        (totalLowStockCount + totalOutOfStockCount) > 0 &&
+        _stockFilter == InventoryStockFilter.all;
     const heroMetrics = <Widget>[];
     final warningMessage = _syncWarningMessage?.trim();
     final hasActiveFilters =
@@ -291,6 +300,20 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         keyboardDismissBehavior:
                             ScrollViewKeyboardDismissBehavior.onDrag,
                         slivers: <Widget>[
+                          if (inventoryItems.isNotEmpty && showLowStockBanner)
+                            SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: _InventoryLowStockBanner(
+                                  lowStockCount: totalLowStockCount,
+                                  outOfStockCount: totalOutOfStockCount,
+                                  texts: texts,
+                                  onTap: () => _onStockFilterChanged(
+                                    InventoryStockFilter.lowStock,
+                                  ),
+                                ),
+                              ),
+                            ),
                           if (inventoryItems.isNotEmpty) ...<Widget>[
                             SliverToBoxAdapter(
                               child: _InventoryOverviewCard(
@@ -1116,20 +1139,19 @@ class _InventoryCatalogHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final warnColor = colorScheme.tertiary;
     final highlight = lowStockCount > 0
         ? Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFFB45309).withValues(alpha: 0.12),
+              color: warnColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: const Color(0xFFB45309).withValues(alpha: 0.3),
-              ),
+              border: Border.all(color: warnColor.withValues(alpha: 0.35)),
             ),
             child: Text(
               texts.lowStockHighlight(lowStockCount),
               style: theme.textTheme.labelMedium?.copyWith(
-                color: const Color(0xFFF6AD55),
+                color: warnColor,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -1991,18 +2013,25 @@ class _InventoryTexts {
       : '$filteredCount sản phẩm khớp bộ lọc hiện tại';
   String lowStockHighlight(int count) =>
       isEnglish ? '$count low-stock SKUs' : '$count SKU sắp hết';
+  String lowStockWarningTitle(int count) => isEnglish
+      ? '$count product${count == 1 ? '' : 's'} need restocking'
+      : '$count sản phẩm cần nhập thêm hàng';
+  String get lowStockWarningAction =>
+      isEnglish ? 'View all' : 'Xem danh sách';
+  String get outOfStockWarningTitle =>
+      isEnglish ? 'Some products are out of stock' : 'Một số sản phẩm đã hết hàng';
 
   String inventorySourceSummary(String? warrantySyncAt) {
     if (isEnglish) {
       if (warrantySyncAt != null) {
-        return 'Inventory is synced from dealer-owned serials. Latest serial sync: $warrantySyncAt.';
+        return 'Inventory is calculated from your product serials. Last sync: $warrantySyncAt.';
       }
-      return 'Inventory is synced from dealer-owned serials in the backend inventory.';
+      return 'Inventory is calculated automatically from your product serials.';
     }
     if (warrantySyncAt != null) {
-      return 'Kho đang đồng bộ trực tiếp từ serial thuộc dealer. Lần đồng bộ serial gần nhất: $warrantySyncAt.';
+      return 'Tồn kho được tính từ serial sản phẩm của bạn. Đồng bộ lần cuối: $warrantySyncAt.';
     }
-    return 'Kho đang đồng bộ trực tiếp từ serial thuộc dealer trên backend.';
+    return 'Tồn kho được tính tự động từ serial sản phẩm của bạn.';
   }
 
   String get screenTitle => isEnglish ? 'Inventory' : 'Kho';

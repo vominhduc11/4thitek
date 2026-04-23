@@ -98,9 +98,9 @@ export const resolveAllowedDealerStatuses = (
 }
 
 export const dealerStatusDescription: Record<DealerStatus, string> = {
-  active: 'Đại lý đã được phê duyệt và có thể đăng nhập ứng dụng dealer.',
-  under_review: 'Hồ sơ đang chờ admin xác minh trước khi kích hoạt.',
-  suspended: 'Tài khoản đại lý đã bị tạm khóa, không thể đăng nhập ứng dụng dealer.',
+  active: 'Đại lý đã được phê duyệt và có thể đăng nhập ứng dụng đại lý.',
+  under_review: 'Hồ sơ đang chờ xác minh trước khi kích hoạt.',
+  suspended: 'Tài khoản đại lý đã bị tạm khóa, không thể đăng nhập ứng dụng đại lý.',
 }
 
 export const userStatusLabel: Record<UserStatus, string> = {
@@ -121,4 +121,53 @@ export const ruleStatusLabel: Record<RuleStatus, string> = {
 export const ruleStatusTone: Record<RuleStatus, BadgeTone> = {
   active: 'success',
   draft: 'neutral',
+}
+
+export const returnRequestStatusLabel: Record<string, string> = {
+  SUBMITTED: 'Đã gửi yêu cầu',
+  UNDER_REVIEW: 'Đang xem xét',
+  APPROVED: 'Đã duyệt',
+  REJECTED: 'Từ chối',
+  AWAITING_RECEIPT: 'Chờ nhận hàng',
+  RECEIVED: 'Đã nhận hàng',
+  INSPECTING: 'Đang kiểm tra',
+  PARTIALLY_RESOLVED: 'Giải quyết một phần',
+  COMPLETED: 'Hoàn tất',
+  CANCELLED: 'Đã hủy',
+}
+
+export const returnRequestItemStatusLabel: Record<string, string> = {
+  REQUESTED: 'Đã yêu cầu',
+  APPROVED: 'Đã duyệt',
+  REJECTED: 'Từ chối',
+  RECEIVED: 'Đã nhận',
+  INSPECTING: 'Đang kiểm tra',
+  QC_PASSED: 'Đạt kiểm tra',
+  QC_FAILED: 'Không đạt kiểm tra',
+  RESTOCKED: 'Đã nhập kho lại',
+  SCRAPPED: 'Đã hủy hàng',
+  REPLACED: 'Đã thay thế',
+  CREDITED: 'Đã ghi có',
+  REPAIRED: 'Đã sửa chữa',
+  RETURNED_TO_CUSTOMER: 'Đã trả khách',
+  WARRANTY_REJECTED: 'Từ chối bảo hành',
+}
+
+export const returnRequestTypeLabel: Record<string, string> = {
+  COMMERCIAL_RETURN: 'Đổi trả thương mại',
+  DEFECTIVE_RETURN: 'Trả hàng lỗi',
+  WARRANTY_RMA: 'Bảo hành RMA',
+}
+
+export const returnRequestResolutionLabel: Record<string, string> = {
+  REFUND: 'Hoàn tiền',
+  REPLACEMENT: 'Thay thế',
+  CREDIT: 'Ghi có',
+  RESTOCK: 'Nhập kho lại',
+  SCRAP: 'Hủy hàng',
+  REPAIR: 'Sửa chữa',
+  REPLACE: 'Thay thế',
+  CREDIT_NOTE: 'Phiếu ghi có',
+  RETURN_TO_CUSTOMER: 'Trả lại khách',
+  REJECT_WARRANTY: 'Từ chối bảo hành',
 }

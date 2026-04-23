@@ -402,7 +402,11 @@ class OrderController extends ChangeNotifier {
         OrderStatus.cancelled: {},
       };
 
-  Future<bool> updateOrderStatus(String orderId, OrderStatus status) async {
+  Future<bool> updateOrderStatus(
+    String orderId,
+    OrderStatus status, {
+    String? cancelReason,
+  }) async {
     _lastActionMessage = null;
     final current = _orderById[orderId];
     if (current == null) {
@@ -426,6 +430,8 @@ class OrderController extends ChangeNotifier {
         headers: await _authorizedJsonHeaders(),
         body: jsonEncode(<String, dynamic>{
           'status': _toRemoteOrderStatus(status),
+          if (cancelReason != null && cancelReason.trim().isNotEmpty)
+            'cancelReason': cancelReason.trim(),
         }),
         ),
       );
@@ -526,7 +532,7 @@ class OrderController extends ChangeNotifier {
     final prev = _lastPayment[orderId];
     if (prev != null &&
         prev.amount == safeAmount &&
-        DateTime.now().difference(prev.at).inSeconds < 30) {
+        DateTime.now().difference(prev.at).inSeconds < 300) {
       return false;
     }
     _lastPayment[orderId] = (amount: safeAmount, at: DateTime.now());

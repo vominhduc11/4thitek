@@ -6,6 +6,8 @@ import 'breakpoints.dart';
 import 'dashboard_screen.dart';
 import 'inventory_screen.dart';
 import 'l10n/app_localizations.dart';
+import 'models.dart';
+import 'order_controller.dart';
 import 'orders_screen.dart';
 import 'product_list_screen.dart';
 import 'widgets/brand_identity.dart';
@@ -22,6 +24,7 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
   static const _onboardingSeenKey = 'onboarding_seen_v1';
 
   int _currentIndex = 0;
+  int _pendingFilterRevision = 0;
   final PageStorageBucket _pageStorageBucket = PageStorageBucket();
 
   @override
@@ -37,6 +40,13 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
       return;
     }
     setState(() => _currentIndex = index);
+  }
+
+  void _openOrdersPendingFilter() {
+    setState(() {
+      _pendingFilterRevision++;
+      _currentIndex = 1;
+    });
   }
 
   Future<void> _maybeShowOnboarding() async {
@@ -136,7 +146,7 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
     await prefs.setBool(_onboardingSeenKey, true);
   }
 
-  List<_TabItem> _buildTabs(AppLocalizations l10n) {
+  List<_TabItem> _buildTabs(AppLocalizations l10n, {required int pendingBadgeCount}) {
     return [
       _TabItem(
         label: l10n.tabProducts,
@@ -151,10 +161,12 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
         label: l10n.tabOrders,
         icon: Icons.receipt_long_outlined,
         activeIcon: Icons.receipt_long,
+        badgeCount: pendingBadgeCount,
         widget: OrdersScreen(
           key: const PageStorageKey('tab-orders'),
           onSwitchTab: _switchToTab,
           showFallbackNavigation: false,
+          pendingFilterRevision: _pendingFilterRevision,
         ),
       ),
       _TabItem(
@@ -164,6 +176,7 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
         widget: DashboardScreen(
           key: const PageStorageKey('tab-dashboard'),
           onSwitchTab: _switchToTab,
+          onOpenPendingOrders: _openOrdersPendingFilter,
         ),
       ),
       _TabItem(
@@ -187,7 +200,11 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final tabs = _buildTabs(l10n);
+    final pendingBadgeCount = OrderScope.of(context)
+        .orders
+        .where((o) => o.status == OrderStatus.pending)
+        .length;
+    final tabs = _buildTabs(l10n, pendingBadgeCount: pendingBadgeCount);
     final safeIndex = _currentIndex >= tabs.length
         ? tabs.length - 1
         : _currentIndex;
@@ -265,18 +282,33 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
                               extended: useExtendedRail,
                               groupAlignment: -0.78,
                               onDestinationSelected: _switchToTab,
-                              destinations: tabs
-                                  .map(
-                                    (tab) => NavigationRailDestination(
-                                      icon: Icon(tab.icon),
-                                      selectedIcon: Icon(
-                                        tab.activeIcon,
-                                        color: colors.primary,
-                                      ),
+                              destinations: tabs.asMap().entries.map((entry) {
+                                    final tab = entry.value;
+                                    final hasBadge = (tab.badgeCount ?? 0) > 0;
+                                    Widget icon = Icon(tab.icon);
+                                    Widget selectedIcon = Icon(
+                                      tab.activeIcon,
+                                      color: colors.primary,
+                                    );
+                                    if (hasBadge) {
+                                      final badgeLabel = Text(
+                                        '${tab.badgeCount}',
+                                      );
+                                      icon = Badge(
+                                        label: badgeLabel,
+                                        child: icon,
+                                      );
+                                      selectedIcon = Badge(
+                                        label: Text('${tab.badgeCount}'),
+                                        child: selectedIcon,
+                                      );
+                                    }
+                                    return NavigationRailDestination(
+                                      icon: icon,
+                                      selectedIcon: selectedIcon,
                                       label: Text(tab.label),
-                                    ),
-                                  )
-                                  .toList(),
+                                    );
+                                  }).toList(),
                             ),
                           ),
                           Padding(
@@ -349,6 +381,7 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
                 tabs: tabs,
                 currentIndex: safeIndex,
                 onDestinationSelected: _switchToTab,
+                pendingBadgeCount: pendingBadgeCount,
               ),
             ),
           ),
@@ -364,12 +397,14 @@ class _TabItem {
     required this.icon,
     required this.activeIcon,
     required this.widget,
+    this.badgeCount,
   });
 
   final String label;
   final IconData icon;
   final IconData activeIcon;
   final Widget widget;
+  final int? badgeCount;
 }
 
 class _OnboardingStepTile extends StatelessWidget {
@@ -415,11 +450,13 @@ class _MobileBottomNavigationBar extends StatelessWidget {
     required this.tabs,
     required this.currentIndex,
     required this.onDestinationSelected,
+    required this.pendingBadgeCount,
   });
 
   final List<_TabItem> tabs;
   final int currentIndex;
   final ValueChanged<int> onDestinationSelected;
+  final int pendingBadgeCount;
 
   @override
   Widget build(BuildContext context) {
@@ -450,16 +487,26 @@ class _MobileBottomNavigationBar extends StatelessWidget {
         child: MediaQuery(
           data: mediaQuery.copyWith(textScaler: navigationTextScaler),
           child: NavigationBar(
-            height: 68,
+            height: 72,
             selectedIndex: currentIndex,
             backgroundColor: colors.surfaceContainerLow.withValues(alpha: 0.98),
-            labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
             onDestinationSelected: onDestinationSelected,
             destinations: [
               for (final tab in tabs)
                 NavigationDestination(
-                  icon: Icon(tab.icon),
-                  selectedIcon: Icon(tab.activeIcon),
+                  icon: (tab.badgeCount ?? 0) > 0
+                      ? Badge(
+                          label: Text('${tab.badgeCount}'),
+                          child: Icon(tab.icon),
+                        )
+                      : Icon(tab.icon),
+                  selectedIcon: (tab.badgeCount ?? 0) > 0
+                      ? Badge(
+                          label: Text('${tab.badgeCount}'),
+                          child: Icon(tab.activeIcon),
+                        )
+                      : Icon(tab.activeIcon),
                   label: tab.label,
                 ),
             ],

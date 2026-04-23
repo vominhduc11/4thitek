@@ -1,5 +1,5 @@
-import { AlertTriangle, FileDown, Package, Plus, ShoppingBag } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { AlertTriangle, FileDown, Package, Plus, ShoppingBag, X } from 'lucide-react'
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ErrorState,
@@ -46,6 +46,7 @@ function ProductsPage() {
     restoreProduct,
     togglePublishStatus,
     deleteProduct,
+    addProduct,
   } = useProducts()
 
   const [filter, setFilter] = useState<ProductFilter>('all')
@@ -57,6 +58,13 @@ function ProductsPage() {
   const [sortDir, setSortDir] = useState<ProductsSortDir>('desc')
   const [currentPage, setCurrentPage] = useState(0)
   const [actionMessage, setActionMessage] = useState('')
+
+  const [showQuickAdd, setShowQuickAdd] = useState(false)
+  const [isQuickAdding, setIsQuickAdding] = useState(false)
+  const [quickAddName, setQuickAddName] = useState('')
+  const [quickAddPrice, setQuickAddPrice] = useState('')
+  const [quickAddDesc, setQuickAddDesc] = useState('')
+  const quickAddNameRef = useRef<HTMLInputElement>(null)
 
   const inventoryAlertTone = useMemo(() => {
     const tone = searchParams.get('inventoryAlert')
@@ -167,6 +175,55 @@ function ProductsPage() {
     nextParams.delete('productId')
     setSearchParams(nextParams, { replace: true })
   }
+
+  const openQuickAdd = useCallback(() => {
+    setQuickAddName('')
+    setQuickAddPrice('')
+    setQuickAddDesc('')
+    setShowQuickAdd(true)
+    window.requestAnimationFrame(() => quickAddNameRef.current?.focus())
+  }, [])
+
+  const closeQuickAdd = useCallback(() => setShowQuickAdd(false), [])
+
+  useEffect(() => {
+    if (!showQuickAdd) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeQuickAdd()
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [showQuickAdd, closeQuickAdd])
+
+  const handleQuickAdd = useCallback(
+    async (e: FormEvent) => {
+      e.preventDefault()
+      const name = quickAddName.trim()
+      if (!name) return
+      setIsQuickAdding(true)
+      try {
+        const created = await addProduct({
+          name,
+          retailPrice: Number(quickAddPrice) || 0,
+          shortDescription: quickAddDesc.trim(),
+          publishStatus: 'DRAFT',
+        })
+        closeQuickAdd()
+        notify(t('Đã tạo sản phẩm "{name}".', { name }), { title: pageTitle, variant: 'success' })
+        if (created?.id) {
+          navigate(`/products/${created.id}`)
+        }
+      } catch (err) {
+        notify(err instanceof Error ? err.message : t('Không thể tạo sản phẩm'), {
+          title: pageTitle,
+          variant: 'error',
+        })
+      } finally {
+        setIsQuickAdding(false)
+      }
+    },
+    [addProduct, closeQuickAdd, navigate, notify, pageTitle, quickAddDesc, quickAddName, quickAddPrice, t],
+  )
 
   const clearInventoryAlertContext = useCallback(() => {
     const nextParams = new URLSearchParams(searchParams)
@@ -355,7 +412,7 @@ function ProductsPage() {
             <PrimaryButton
               className="w-full sm:w-auto"
               icon={<Plus className="h-4 w-4" />}
-              onClick={() => navigate('/products/new')}
+              onClick={openQuickAdd}
               type="button"
             >
               {t('Thêm sản phẩm')}
@@ -466,6 +523,95 @@ function ProductsPage() {
       ) : null}
 
       {confirmDialog}
+
+      {showQuickAdd ? (
+        <div
+          aria-labelledby="quick-add-title"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          role="dialog"
+          onClick={(e) => { if (e.target === e.currentTarget) closeQuickAdd() }}
+        >
+          <div aria-hidden="true" className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div className="relative w-full max-w-sm rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-base font-semibold text-[var(--ink)]" id="quick-add-title">
+                {t('Thêm sản phẩm nhanh')}
+              </h2>
+              <button
+                aria-label={t('Đóng')}
+                className="rounded-xl p-1.5 text-[var(--muted)] transition hover:bg-[var(--surface-muted)] hover:text-[var(--ink)]"
+                onClick={closeQuickAdd}
+                type="button"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <form className="space-y-4" onSubmit={handleQuickAdd}>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-[var(--ink)]" htmlFor="qa-name">
+                  {t('Tên sản phẩm')} <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  autoComplete="off"
+                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+                  id="qa-name"
+                  onChange={(e) => setQuickAddName(e.target.value)}
+                  placeholder={t('VD: Mũ bảo hiểm Nón Sơn')}
+                  ref={quickAddNameRef}
+                  required
+                  type="text"
+                  value={quickAddName}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-[var(--ink)]" htmlFor="qa-price">
+                  {t('Giá bán lẻ (VNĐ)')}
+                </label>
+                <input
+                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+                  id="qa-price"
+                  min="0"
+                  onChange={(e) => setQuickAddPrice(e.target.value)}
+                  placeholder="0"
+                  type="number"
+                  value={quickAddPrice}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-[var(--ink)]" htmlFor="qa-desc">
+                  {t('Mô tả ngắn')}
+                </label>
+                <input
+                  autoComplete="off"
+                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+                  id="qa-desc"
+                  onChange={(e) => setQuickAddDesc(e.target.value)}
+                  placeholder={t('VD: Dành cho xe máy, size M')}
+                  type="text"
+                  value={quickAddDesc}
+                />
+              </div>
+              <div className="flex items-center gap-3 pt-1">
+                <PrimaryButton
+                  className="flex-1"
+                  disabled={isQuickAdding || !quickAddName.trim()}
+                  type="submit"
+                >
+                  {isQuickAdding ? t('Đang tạo…') : t('Tạo sản phẩm')}
+                </PrimaryButton>
+                <button
+                  className="shrink-0 text-xs font-semibold text-[var(--accent)] underline underline-offset-2 transition hover:opacity-80"
+                  onClick={() => { closeQuickAdd(); navigate('/products/new') }}
+                  type="button"
+                >
+                  {t('Tạo đầy đủ')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </PagePanel>
   )
 }

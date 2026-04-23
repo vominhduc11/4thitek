@@ -1,4 +1,4 @@
-import { ArrowLeft, Eye, EyeOff, FileText, Pencil, Save, Trash2, X } from "lucide-react";
+import { ArrowLeft, ChevronDown, Eye, EyeOff, FileText, Pencil, Save, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { BlogBlockEditor } from "../components/blog-editor/BlogBlockEditor";
@@ -116,6 +116,8 @@ function BlogDetailPageRevamp() {
   const [editScheduledAt, setEditScheduledAt] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const editUploadedAssetUrlsRef = useRef<Set<string>>(new Set());
+  const handleSaveRef = useRef<(() => Promise<void>) | null>(null);
+  const handleCancelEditRef = useRef<(() => Promise<void>) | null>(null);
 
   const cleanupEditUploadedAssets = useCallback(
     async (urls: Array<string | null | undefined>) => {
@@ -184,6 +186,20 @@ function BlogDetailPageRevamp() {
     };
   }, [cleanupEditUploadedAssets]);
 
+  useEffect(() => {
+    if (!isEditing) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        void handleCancelEditRef.current?.();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        if (!isSaving) void handleSaveRef.current?.();
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [isEditing, isSaving]);
+
   if (postsState.status === "loading" || postsState.status === "idle") {
     return (
       <PagePanel>
@@ -233,6 +249,7 @@ function BlogDetailPageRevamp() {
     setEditBlocks(contentBlocks);
     setIsEditing(false);
   };
+  handleCancelEditRef.current = handleCancelEdit;
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -261,6 +278,7 @@ function BlogDetailPageRevamp() {
       setIsSaving(false);
     }
   };
+  handleSaveRef.current = handleSave;
 
   return (
     <PagePanel>
@@ -369,7 +387,7 @@ function BlogDetailPageRevamp() {
                   />
                 </label>
               )}
-              <div className="flex gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <PrimaryButton
                   disabled={isSaving}
                   icon={<Save className="h-4 w-4" />}
@@ -386,6 +404,9 @@ function BlogDetailPageRevamp() {
                 >
                   {copy.cancel}
                 </GhostButton>
+                <span className="text-xs text-[var(--muted)]">
+                  Ctrl+S để lưu · Esc để huỷ
+                </span>
               </div>
             </div>
           ) : showPreview ? (
@@ -398,6 +419,9 @@ function BlogDetailPageRevamp() {
                   <img
                     src={resolveBackendAssetUrl(post.imageUrl)}
                     alt={post.title}
+                    width="1200"
+                    height="630"
+                    loading="lazy"
                     className="aspect-[16/9] w-full object-cover"
                   />
                 </div>
@@ -447,6 +471,9 @@ function BlogDetailPageRevamp() {
                   <img
                     src={resolveBackendAssetUrl(post.imageUrl)}
                     alt={post.title}
+                    width="1200"
+                    height="630"
+                    loading="lazy"
                     className="aspect-[16/9] w-full object-cover"
                   />
                 </div>
@@ -521,6 +548,40 @@ function BlogDetailPageRevamp() {
               ))}
             </select>
           </div>
+
+          <details className="group overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--surface-muted)]">
+              <span>Cài đặt SEO</span>
+              <ChevronDown className="h-4 w-4 shrink-0 text-[var(--muted)] transition-transform duration-200 group-open:rotate-180" />
+            </summary>
+            <div className="border-t border-[var(--border)] px-4 py-3 space-y-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">Tiêu đề SEO</p>
+                <p className="mt-1 text-sm text-[var(--ink)] line-clamp-2">
+                  {isEditing ? editTitle || post.title : post.title}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">Mô tả SEO</p>
+                <p className="mt-1 text-sm text-[var(--muted)] line-clamp-3">
+                  {isEditing
+                    ? editExcerpt || post.excerpt || copy.summaryFallback
+                    : post.excerpt || copy.summaryFallback}
+                </p>
+              </div>
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-3 space-y-0.5">
+                <p className="text-[10px] text-[var(--muted)]">Google Preview</p>
+                <p className="text-sm font-medium text-blue-600 truncate leading-snug">
+                  {isEditing ? editTitle || post.title : post.title}
+                </p>
+                <p className="text-xs text-[var(--muted)] line-clamp-2 leading-relaxed">
+                  {isEditing
+                    ? editExcerpt || post.excerpt || "Chưa có mô tả."
+                    : post.excerpt || "Chưa có mô tả."}
+                </p>
+              </div>
+            </div>
+          </details>
 
           <div className="rounded-3xl border border-rose-300/70 bg-rose-50/70 p-4">
             <p className="text-sm font-semibold text-rose-700">

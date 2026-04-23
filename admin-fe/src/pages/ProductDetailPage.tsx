@@ -1069,6 +1069,9 @@ function ProductDetailPage() {
               <img
                 src={resolveBackendAssetUrl(imageUrl)}
                 alt={item.caption || t("Xem trước")}
+                width="800"
+                height="448"
+                loading="lazy"
                 className="h-56 w-full rounded-[1.35rem] border border-slate-200 object-cover shadow-[0_12px_32px_rgba(15,23,42,0.08)] sm:h-64"
               />
             )

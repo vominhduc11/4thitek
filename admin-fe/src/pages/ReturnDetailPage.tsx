@@ -31,6 +31,12 @@ import {
   type BackendReturnRequestItemResponse,
   type BackendRmaAction,
 } from "../lib/adminApi";
+import {
+  returnRequestItemStatusLabel,
+  returnRequestResolutionLabel,
+  returnRequestStatusLabel,
+  returnRequestTypeLabel,
+} from "../lib/adminLabels";
 import { formatDateTime } from "../lib/formatters";
 
 type ReviewDraft = {
@@ -80,6 +86,9 @@ const itemStatusTone = {
 
 const toDisplay = (value?: string | null) =>
   value ? value.replaceAll("_", " ") : "-";
+
+const labelOrDisplay = (map: Record<string, string>, value?: string | null) =>
+  value ? (map[value] ?? toDisplay(value)) : "-";
 
 const parseAmount = (value: string) => {
   const trimmed = value.trim();
@@ -632,14 +641,14 @@ function ReturnDetailPage() {
               <p className={tableMetaClass}>Status</p>
               <div className="mt-2">
                 <StatusBadge tone={statusTone[requestStatus]}>
-                  {toDisplay(detail.status)}
+                  {labelOrDisplay(returnRequestStatusLabel, detail.status)}
                 </StatusBadge>
               </div>
             </article>
-            <DetailStatCard label="Type" value={toDisplay(detail.type)} />
+            <DetailStatCard label="Loại" value={labelOrDisplay(returnRequestTypeLabel, detail.type)} />
             <DetailStatCard
-              label="Requested resolution"
-              value={toDisplay(detail.requestedResolution)}
+              label="Giải quyết yêu cầu"
+              value={labelOrDisplay(returnRequestResolutionLabel, detail.requestedResolution)}
             />
             <DetailStatCard
               label="Requested at"
@@ -735,7 +744,7 @@ function ReturnDetailPage() {
                       </p>
                     </div>
                     <StatusBadge tone={itemStatusTone[item.itemStatus ?? "REQUESTED"]}>
-                      {toDisplay(item.itemStatus)}
+                      {labelOrDisplay(returnRequestItemStatusLabel, item.itemStatus)}
                     </StatusBadge>
                   </div>
                   <div className="mt-3 grid gap-2 md:grid-cols-[12rem_1fr]">
@@ -852,7 +861,7 @@ function ReturnDetailPage() {
                       </p>
                       {item.finalResolution ? (
                         <p className={tableMetaClass}>
-                          Current resolution: {toDisplay(item.finalResolution)}
+                          Current resolution: {labelOrDisplay(returnRequestResolutionLabel, item.finalResolution)}
                         </p>
                       ) : null}
                       {item.replacementOrderId ? (
@@ -908,11 +917,11 @@ function ReturnDetailPage() {
                           {item.serialSnapshot ?? `Item #${item.id}`}
                         </p>
                         <p className={tableMetaClass}>
-                          Current status: {toDisplay(item.itemStatus)}
+                          Current status: {labelOrDisplay(returnRequestItemStatusLabel, item.itemStatus)}
                         </p>
                         {item.finalResolution ? (
                           <p className={tableMetaClass}>
-                            Current resolution: {toDisplay(item.finalResolution)}
+                            Current resolution: {labelOrDisplay(returnRequestResolutionLabel, item.finalResolution)}
                           </p>
                         ) : null}
                         {item.replacementOrderId ? (

@@ -1,5 +1,5 @@
-﻿import { AlertTriangle, LoaderCircle, Package, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+﻿import { AlertTriangle, ChevronDown, LoaderCircle, Package, Trash2, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   EmptyState,
@@ -12,8 +12,6 @@ import {
   SearchInput,
   StatCard,
   StatusBadge,
-  inputClass,
-  tableActionSelectClass,
   tableCardClass,
   tableHeadClass,
   tableMetaClass,
@@ -75,19 +73,32 @@ const copyByLanguage = {
     shippingOverdue: "Chậm giao",
     changeStatusTitle: "Xác nhận đổi trạng thái",
     changeStatusMessage: 'Bạn có chắc muốn chuyển đơn này sang trạng thái "{status}" không?',
+    cancelReasonTitle: "Xác nhận hủy đơn",
+    cancelReasonMessage: "Vui lòng nhập lý do hủy. Hành động này không thể hoàn tác.",
+    cancelReasonLabel: "Lý do hủy",
+    cancelReasonPlaceholder: "Ví dụ: Khách yêu cầu hủy, Hết hàng, Lỗi giá...",
+    cancelOrderLabel: "Hủy đơn",
+    cancelAbortLabel: "Không hủy",
     deleteTitle: "Xóa đơn hàng",
-    deleteMessage: "Hành động này sẽ xóa đơn hàng khỏi danh sách quản trị.",
+    deleteMessage: "Đơn hàng sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.",
     confirmDelete: "Xóa đơn",
     updateFailed: "Không cập nhật được đơn hàng",
     deleteFailed: "Không xóa được đơn hàng",
     deleteLabel: "Xóa",
+    changeStatusLabel: "Đổi trạng thái",
     loading: "Đang cập nhật...",
     previousLabel: "Trước",
     nextLabel: "Tiếp",
+    undoLabel: "Hoàn tác",
+    selectedLabel: "đã chọn",
+    clearSelection: "Bỏ chọn",
+    batchChangeStatus: "Đổi trạng thái hàng loạt",
+    mixedStatusHint: "Chọn đơn cùng trạng thái để đổi hàng loạt",
+    batchUpdated: "Đã cập nhật {count} đơn hàng",
   },
   en: {
     title: "Orders",
-    allStatuses: "All statuses",
+    allStatuses: "All",
     description: "Track order processing, confirm statuses, and keep shipping priorities clear.",
     searchLabel: "Search orders",
     searchPlaceholder: "Search by order code or dealer...",
@@ -108,17 +119,90 @@ const copyByLanguage = {
     shippingOverdue: "Overdue to ship",
     changeStatusTitle: "Confirm status update",
     changeStatusMessage: 'Do you want to move this order to "{status}"?',
+    cancelReasonTitle: "Confirm order cancellation",
+    cancelReasonMessage: "Please provide a reason. This action cannot be undone.",
+    cancelReasonLabel: "Reason for cancellation",
+    cancelReasonPlaceholder: "E.g. Customer request, Out of stock, Price error...",
+    cancelOrderLabel: "Cancel order",
+    cancelAbortLabel: "Keep order",
     deleteTitle: "Delete order",
-    deleteMessage: "This will remove the order from the admin list.",
+    deleteMessage: "The order will be permanently deleted. This action cannot be undone.",
     confirmDelete: "Delete order",
     updateFailed: "Could not update the order",
     deleteFailed: "Could not delete the order",
     deleteLabel: "Delete",
+    changeStatusLabel: "Change status",
     loading: "Updating...",
     previousLabel: "Previous",
     nextLabel: "Next",
+    undoLabel: "Undo",
+    selectedLabel: "selected",
+    clearSelection: "Clear",
+    batchChangeStatus: "Batch change status",
+    mixedStatusHint: "Select orders with the same status to batch update",
+    batchUpdated: "Updated {count} orders",
   },
 } as const;
+
+function StatusActionMenu({
+  options,
+  onSelect,
+  disabled,
+  label,
+  buttonLabel,
+}: {
+  options: Array<{ value: OrderStatus; label: string }>;
+  onSelect: (status: OrderStatus) => void;
+  disabled: boolean;
+  label: string;
+  buttonLabel: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  if (options.length === 0) return null;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        aria-label={label}
+        className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full border border-[var(--border)] px-3.5 text-sm font-semibold text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1"
+        disabled={disabled}
+        onClick={() => setOpen((v) => !v)}
+        type="button"
+      >
+        <span>{buttonLabel}</span>
+        <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+      </button>
+      {open && (
+        <div className="absolute right-0 z-20 mt-1 min-w-[160px] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-lg">
+          {options.map((option) => (
+            <button
+              key={option.value}
+              className="block w-full px-4 py-2.5 text-left text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)]"
+              onClick={() => {
+                onSelect(option.value);
+                setOpen(false);
+              }}
+              type="button"
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function OrdersPageRevamp() {
   const { t, language } = useLanguage();
@@ -136,7 +220,7 @@ function OrdersPageRevamp() {
   const [searchParams] = useSearchParams();
   const { accessToken } = useAuth();
   const { deleteOrder, updateOrderStatus } = useAdminData();
-  const { confirm, confirmDialog } = useConfirmDialog();
+  const { confirm, prompt, confirmDialog, promptDialog } = useConfirmDialog();
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [page, setPage] = useState(0);
@@ -151,6 +235,8 @@ function OrdersPageRevamp() {
     parseStatusFilter(searchParams.get("status")),
   );
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBatchUpdating, setIsBatchUpdating] = useState(false);
   const toolbarSearchClass = "w-full sm:max-w-sm lg:w-72 xl:w-80";
   const requestIdRef = useRef(0);
   const summaryRequestIdRef = useRef(0);
@@ -166,6 +252,10 @@ function OrdersPageRevamp() {
     const nextFilter = parseStatusFilter(searchParams.get("status"));
     setStatusFilter((current) => (current === nextFilter ? current : nextFilter));
   }, [searchParams]);
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [statusFilter, debouncedQuery]);
 
   const loadSummary = useCallback(async () => {
     if (!accessToken) {
@@ -250,35 +340,131 @@ function OrdersPageRevamp() {
     [loadPage, loadSummary, page],
   );
 
-  const handleStatusChange = async (orderId: string, currentStatus: OrderStatus, nextStatus: OrderStatus, revert: () => void) => {
-    if (nextStatus === currentStatus || updatingOrderId) {
-      return;
-    }
-
-    const approved = await confirm({
-      title: copy.changeStatusTitle,
-      message: copy.changeStatusMessage.replace("{status}", t(orderStatusLabel[nextStatus])),
-      tone: nextStatus === "cancelled" ? "danger" : "warning",
-      confirmLabel: t(orderStatusLabel[nextStatus]),
+  const toggleSelected = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
     });
+  }, []);
 
-    if (!approved) {
-      revert();
-      return;
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds((prev) =>
+      prev.size === orders.length ? new Set() : new Set(orders.map((o) => o.id)),
+    );
+  }, [orders]);
+
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
+
+  const batchStatusOptions = useMemo(() => {
+    const selected = orders.filter((o) => selectedIds.has(o.id));
+    if (selected.length === 0) return [];
+    const firstStatus = selected[0].status;
+    if (!selected.every((o) => o.status === firstStatus)) return [];
+    return resolveAllowedOrderStatuses(firstStatus, selected[0].allowedTransitions)
+      .filter((s) => s !== firstStatus)
+      .map((s) => ({ value: s, label: t(orderStatusLabel[s]) }));
+  }, [orders, selectedIds, t]);
+
+  const handleStatusChange = async (
+    orderId: string,
+    currentStatus: OrderStatus,
+    nextStatus: OrderStatus,
+    isUndo = false,
+  ) => {
+    if (nextStatus === currentStatus || updatingOrderId) return;
+
+    let cancelReason: string | undefined;
+    if (nextStatus === 'cancelled' && !isUndo) {
+      const reason = await prompt({
+        title: copy.cancelReasonTitle,
+        message: copy.cancelReasonMessage,
+        inputLabel: copy.cancelReasonLabel,
+        inputPlaceholder: copy.cancelReasonPlaceholder,
+        tone: 'danger',
+        confirmLabel: copy.cancelOrderLabel,
+        cancelLabel: copy.cancelAbortLabel,
+        required: true,
+      });
+      if (reason === null) return;
+      cancelReason = reason;
     }
+
+    const statDelta = (status: OrderStatus, field: "pending" | "shipping") => (status === field ? 1 : 0);
+
+    // Optimistic update
+    setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: nextStatus } : o)));
+    setStats((prev) => ({
+      ...prev,
+      pending: prev.pending - statDelta(currentStatus, "pending") + statDelta(nextStatus, "pending"),
+      shipping: prev.shipping - statDelta(currentStatus, "shipping") + statDelta(nextStatus, "shipping"),
+    }));
 
     try {
       setUpdatingOrderId(orderId);
-      await updateOrderStatus(orderId, nextStatus);
-      await reloadCurrentPage();
+      await updateOrderStatus(orderId, nextStatus, cancelReason);
+      if (!isUndo) {
+        notify(t(orderStatusLabel[nextStatus]), {
+          title: copy.changeStatusLabel,
+          variant: "success",
+          durationMs: 5000,
+          action: {
+            label: copy.undoLabel,
+            onAction: () => void handleStatusChange(orderId, nextStatus, currentStatus, true),
+          },
+        });
+      }
     } catch (updateError) {
+      // Rollback
+      setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: currentStatus } : o)));
+      setStats((prev) => ({
+        ...prev,
+        pending: prev.pending + statDelta(currentStatus, "pending") - statDelta(nextStatus, "pending"),
+        shipping: prev.shipping + statDelta(currentStatus, "shipping") - statDelta(nextStatus, "shipping"),
+      }));
       notify(updateError instanceof Error ? updateError.message : copy.updateFailed, {
         title: copy.title,
         variant: "error",
       });
-      revert();
     } finally {
       setUpdatingOrderId(null);
+    }
+  };
+
+  const handleBatchStatusChange = async (nextStatus: OrderStatus) => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0 || isBatchUpdating) return;
+
+    const prevStatuses = new Map(
+      orders.filter((o) => selectedIds.has(o.id)).map((o) => [o.id, o.status]),
+    );
+
+    setOrders((prev) =>
+      prev.map((o) => (selectedIds.has(o.id) ? { ...o, status: nextStatus } : o)),
+    );
+
+    try {
+      setIsBatchUpdating(true);
+      await Promise.all(ids.map((id) => updateOrderStatus(id, nextStatus)));
+      clearSelection();
+      notify(
+        copy.batchUpdated.replace("{count}", String(ids.length)),
+        { title: copy.title, variant: "success" },
+      );
+    } catch (err) {
+      setOrders((prev) =>
+        prev.map((o) => {
+          const prev_s = prevStatuses.get(o.id);
+          return prev_s ? { ...o, status: prev_s } : o;
+        }),
+      );
+      notify(err instanceof Error ? err.message : copy.updateFailed, {
+        title: copy.title,
+        variant: "error",
+      });
+    } finally {
+      setIsBatchUpdating(false);
     }
   };
 
@@ -326,7 +512,7 @@ function OrdersPageRevamp() {
     <PagePanel>
       <PageHeader title={copy.title} subtitle={copy.description} />
 
-      <div className="mt-4 flex flex-wrap items-center gap-3">
+      <div className="mt-4 space-y-3">
         <SearchInput
           id="orders-search"
           label={copy.searchLabel}
@@ -335,25 +521,62 @@ function OrdersPageRevamp() {
           onChange={(event) => setQuery(event.target.value)}
           className={toolbarSearchClass}
         />
-        <select
+        <div
           aria-label={copy.status}
-          className={`${inputClass} w-full sm:max-w-[14rem] lg:w-56`}
-          onChange={(event) => setStatusFilter(event.target.value as "all" | OrderStatus)}
-          value={statusFilter}
+          className="flex flex-wrap gap-1.5"
+          role="tablist"
         >
           {orderStatusOptions.map((option) => (
-            <option key={option.value} value={option.value}>
+            <button
+              key={option.value}
+              aria-selected={statusFilter === option.value}
+              className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 ${
+                statusFilter === option.value
+                  ? "bg-[var(--accent)] text-white shadow-sm"
+                  : "border border-[var(--border)] bg-[var(--surface)] text-[var(--ink)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
+              }`}
+              onClick={() => setStatusFilter(option.value)}
+              role="tab"
+              type="button"
+            >
               {option.label}
-            </option>
+            </button>
           ))}
-        </select>
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="mt-4 grid gap-4 md:grid-cols-3">
         <StatCard label={copy.totalOrders} value={stats.total} tone="neutral" />
         <StatCard label={copy.pendingOrders} value={stats.pending} tone="warning" />
         <StatCard label={copy.shippingOrders} value={stats.shipping} tone="info" />
       </div>
+
+      {selectedIds.size > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--brand-border)] bg-[var(--accent-soft)] px-4 py-2.5 shadow-sm">
+          <span className="text-sm font-semibold text-[var(--accent-strong)]">
+            {selectedIds.size} {copy.selectedLabel}
+          </span>
+          {batchStatusOptions.length > 0 ? (
+            <StatusActionMenu
+              disabled={isBatchUpdating || !!updatingOrderId}
+              label={copy.batchChangeStatus}
+              buttonLabel={copy.batchChangeStatus}
+              onSelect={(s) => void handleBatchStatusChange(s)}
+              options={batchStatusOptions}
+            />
+          ) : (
+            <span className="text-xs text-[var(--muted)]">{copy.mixedStatusHint}</span>
+          )}
+          <button
+            aria-label={copy.clearSelection}
+            className="ml-auto inline-flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+            onClick={clearSelection}
+            type="button"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
 
       <div className="mt-6">
         {isLoading ? (
@@ -365,46 +588,61 @@ function OrdersPageRevamp() {
             <div className="grid gap-3 md:hidden">
               {orders.map((order) => {
                 const isUpdating = updatingOrderId === order.id;
+                const isSelected = selectedIds.has(order.id);
                 return (
-                  <article key={order.id} className={tableCardClass}>
-                    <button className="w-full text-left" onClick={() => navigate(`/orders/${encodeURIComponent(order.id)}`)} type="button">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className={tableValueClass}>
-                            {order.orderCode}
-                            {order.staleReviewRequired ? (
-                              <AlertTriangle className="ml-1 inline h-3 w-3 text-rose-500" aria-label={copy.reviewRequired} />
-                            ) : null}
-                            {order.shippingOverdue ? (
-                              <AlertTriangle className="ml-1 inline h-3 w-3 text-amber-500" aria-label={copy.shippingOverdue} />
-                            ) : null}
-                          </p>
-                          <p className={tableMetaClass}>#{order.id} · {order.dealer}</p>
+                  <article
+                    key={order.id}
+                    className={`${tableCardClass} ${isSelected ? "border-[var(--brand-border)] bg-[var(--accent-soft)]/40" : ""}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <input
+                        aria-label={`Chọn ${order.orderCode}`}
+                        checked={isSelected}
+                        className="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent)]"
+                        onChange={() => toggleSelected(order.id)}
+                        type="checkbox"
+                      />
+                      <button
+                        className="min-w-0 flex-1 text-left"
+                        onClick={() => navigate(`/orders/${encodeURIComponent(order.id)}`)}
+                        type="button"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className={tableValueClass}>
+                              {order.orderCode}
+                              {order.staleReviewRequired ? (
+                                <AlertTriangle className="ml-1 inline h-3 w-3 text-rose-500" aria-label={copy.reviewRequired} title={copy.reviewRequired} />
+                              ) : null}
+                              {order.shippingOverdue ? (
+                                <AlertTriangle className="ml-1 inline h-3 w-3 text-amber-500" aria-label={copy.shippingOverdue} title={copy.shippingOverdue} />
+                              ) : null}
+                            </p>
+                            <p className={tableMetaClass}>#{order.id} · {order.dealer}</p>
+                          </div>
+                          <StatusBadge tone={orderStatusTone[order.status]}>
+                            {t(orderStatusLabel[order.status])}
+                          </StatusBadge>
                         </div>
-                        <StatusBadge tone={orderStatusTone[order.status]}>{t(orderStatusLabel[order.status])}</StatusBadge>
-                      </div>
-                      <p className="mt-4 text-sm font-semibold text-[var(--accent)]">{formatCurrency(order.total)}</p>
-                    </button>
+                        <p className="mt-3 text-sm font-semibold text-[var(--accent)]">
+                          {formatCurrency(order.total)}
+                        </p>
+                      </button>
+                    </div>
                     <div className="mt-4 grid gap-2">
                       <div className="flex items-center gap-2">
-                        <select
-                          aria-label={`${copy.status} ${order.id}`}
-                          className={`w-full ${tableActionSelectClass}`}
-                          disabled={isUpdating}
-                          onChange={(event) =>
-                            void handleStatusChange(order.id, order.status, event.target.value as OrderStatus, () => {
-                              event.currentTarget.value = order.status;
-                            })
-                          }
-                          value={order.status}
-                        >
-                          {resolveAllowedOrderStatuses(order.status, order.allowedTransitions).map((option) => (
-                            <option key={`${order.id}-${option}`} value={option}>
-                              {t(orderStatusLabel[option])}
-                            </option>
-                          ))}
-                        </select>
-                        {isUpdating ? <LoaderCircle aria-label={copy.loading} className="h-4 w-4 shrink-0 animate-spin text-[var(--muted)]" /> : null}
+                        <StatusActionMenu
+                          disabled={!!updatingOrderId}
+                          label={`${copy.status} ${order.id}`}
+                          buttonLabel={copy.changeStatusLabel}
+                          onSelect={(nextStatus) => void handleStatusChange(order.id, order.status, nextStatus)}
+                          options={resolveAllowedOrderStatuses(order.status, order.allowedTransitions)
+                            .filter((s) => s !== order.status)
+                            .map((s) => ({ value: s, label: t(orderStatusLabel[s]) }))}
+                        />
+                        {isUpdating ? (
+                          <LoaderCircle aria-label={copy.loading} className="h-4 w-4 shrink-0 animate-spin text-[var(--muted)]" />
+                        ) : null}
                       </div>
                       <GhostButton
                         className="w-full"
@@ -426,6 +664,16 @@ function OrdersPageRevamp() {
               <table className="min-w-full border-separate border-spacing-y-2" role="table">
                 <thead>
                   <tr className={tableHeadClass}>
+                    <th className="w-10 px-3 py-2">
+                      <input
+                        aria-label="Chọn tất cả"
+                        checked={orders.length > 0 && selectedIds.size === orders.length}
+                        className="h-4 w-4 cursor-pointer accent-[var(--accent)]"
+                        onChange={toggleSelectAll}
+                        ref={(el) => { if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < orders.length; }}
+                        type="checkbox"
+                      />
+                    </th>
                     <th className="px-3 py-2 font-semibold">{copy.orderCode}</th>
                     <th className="px-3 py-2 font-semibold">{copy.dealer}</th>
                     <th className="px-3 py-2 font-semibold">{copy.total}</th>
@@ -436,9 +684,22 @@ function OrdersPageRevamp() {
                 <tbody>
                   {orders.map((order) => {
                     const isUpdating = updatingOrderId === order.id;
+                    const isSelected = selectedIds.has(order.id);
                     return (
-                      <tr key={order.id} className={`${tableRowClass} cursor-default`}>
-                        <td className="rounded-l-2xl px-3 py-3 font-semibold text-[var(--ink)]">
+                      <tr
+                        key={order.id}
+                        className={`${tableRowClass} cursor-default ${isSelected ? "!bg-[var(--accent-soft)]/50" : ""}`}
+                      >
+                        <td className="rounded-l-2xl px-3 py-3">
+                          <input
+                            aria-label={`Chọn ${order.orderCode}`}
+                            checked={isSelected}
+                            className="h-4 w-4 cursor-pointer accent-[var(--accent)]"
+                            onChange={() => toggleSelected(order.id)}
+                            type="checkbox"
+                          />
+                        </td>
+                        <td className="px-3 py-3 font-semibold text-[var(--ink)]">
                           <div className="flex items-center gap-1">
                             <Link
                               className="rounded-md text-[var(--ink)] underline-offset-4 transition hover:text-[var(--accent)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
@@ -469,23 +730,15 @@ function OrdersPageRevamp() {
                               {copy.detail}
                             </Link>
                             <div className="flex items-center gap-2">
-                              <select
-                                aria-label={`${copy.status} ${order.id}`}
-                                className={tableActionSelectClass}
-                                disabled={isUpdating}
-                                onChange={(event) =>
-                                  void handleStatusChange(order.id, order.status, event.target.value as OrderStatus, () => {
-                                    event.currentTarget.value = order.status;
-                                  })
-                                }
-                                value={order.status}
-                              >
-                                {resolveAllowedOrderStatuses(order.status, order.allowedTransitions).map((option) => (
-                                  <option key={`${order.id}-${option}`} value={option}>
-                                    {t(orderStatusLabel[option])}
-                                  </option>
-                                ))}
-                              </select>
+                              <StatusActionMenu
+                                disabled={!!updatingOrderId}
+                                label={`${copy.status} ${order.id}`}
+                                buttonLabel={copy.changeStatusLabel}
+                                onSelect={(nextStatus) => void handleStatusChange(order.id, order.status, nextStatus)}
+                                options={resolveAllowedOrderStatuses(order.status, order.allowedTransitions)
+                                  .filter((s) => s !== order.status)
+                                  .map((s) => ({ value: s, label: t(orderStatusLabel[s]) }))}
+                              />
                               {isUpdating ? <LoaderCircle aria-label={copy.loading} className="h-4 w-4 shrink-0 animate-spin text-[var(--muted)]" /> : null}
                             </div>
                             <GhostButton
@@ -519,6 +772,7 @@ function OrdersPageRevamp() {
         )}
       </div>
       {confirmDialog}
+      {promptDialog}
     </PagePanel>
   );
 }

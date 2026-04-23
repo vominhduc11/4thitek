@@ -243,7 +243,6 @@ extension _OrdersScreenSupport on _OrdersScreenState {
     _searchController.clear();
     setState(() {
       _query = const OrderListQuery();
-      _compactFiltersExpanded = false;
     });
     _refreshOrders();
   }
@@ -261,6 +260,30 @@ extension _OrdersScreenSupport on _OrdersScreenState {
     }
     setState(() => _query = _query.copyWith(sort: sort));
     _refreshOrders();
+  }
+
+  Future<void> _quickUpdateStatus(
+    BuildContext context,
+    Order order,
+    OrderStatus newStatus,
+    _OrdersTexts texts,
+  ) async {
+    final orderController = OrderScope.of(context);
+    final success = await orderController.updateOrderStatus(
+      order.id,
+      newStatus,
+    );
+    if (!context.mounted || success) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          orderControllerErrorMessage(
+            orderController.lastActionMessage,
+            isEnglish: texts.isEnglish,
+          ),
+        ),
+      ),
+    );
   }
 
   void _syncOrderSnapshot(List<Order> orders) {
@@ -306,5 +329,208 @@ extension _OrdersScreenSupport on _OrdersScreenState {
       parts.add(texts.keywordCriteriaLabel(_query.normalizedSearchText));
     }
     return parts.join(' | ');
+  }
+}
+
+class _OrdersFilterSheet extends StatefulWidget {
+  const _OrdersFilterSheet({
+    required this.texts,
+    required this.initialQuery,
+    required this.statusFilters,
+    required this.paymentFilters,
+    required this.onApply,
+    required this.onClear,
+  });
+
+  final _OrdersTexts texts;
+  final OrderListQuery initialQuery;
+  final List<OrderStatus?> statusFilters;
+  final List<OrderPaymentStatus?> paymentFilters;
+  final ValueChanged<OrderListQuery> onApply;
+  final VoidCallback onClear;
+
+  @override
+  State<_OrdersFilterSheet> createState() => _OrdersFilterSheetState();
+}
+
+class _OrdersFilterSheetState extends State<_OrdersFilterSheet> {
+  late OrderListQuery _pending;
+
+  @override
+  void initState() {
+    super.initState();
+    _pending = widget.initialQuery;
+  }
+
+  Widget _buildChips<T>(
+    List<T?> options,
+    T? selected,
+    String Function(T?) labelFor,
+    void Function(T?) onSelect,
+    ColorScheme colors,
+    TextTheme textTheme,
+  ) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: options.map((option) {
+        final isSelected = selected == option;
+        return FilterChip(
+          label: Text(labelFor(option)),
+          selected: isSelected,
+          onSelected: (_) => setState(() => onSelect(option)),
+          showCheckmark: false,
+          side: BorderSide(
+            color: isSelected
+                ? colors.primary.withValues(alpha: 0.35)
+                : colors.outlineVariant.withValues(alpha: 0.45),
+          ),
+          backgroundColor: colors.surface.withValues(alpha: 0.72),
+          selectedColor: colors.primaryContainer.withValues(alpha: 0.9),
+          labelStyle: textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: isSelected ? colors.onPrimaryContainer : colors.onSurfaceVariant,
+          ),
+          visualDensity: const VisualDensity(horizontal: -1, vertical: -1),
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        );
+      }).toList(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final texts = widget.texts;
+
+    Widget section(String label, Widget content) => Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: colors.onSurfaceVariant,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 10),
+        content,
+      ],
+    );
+
+    return SafeArea(
+      top: false,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: colors.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              texts.filterSheetTitle,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 20),
+            section(
+              texts.sortTooltip,
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: OrderSortOption.values.map((sort) {
+                  final isSelected = _pending.sort == sort;
+                  return ChoiceChip(
+                    label: Text(texts.sortLabel(sort)),
+                    selected: isSelected,
+                    onSelected: (_) => setState(() {
+                      _pending = _pending.copyWith(sort: sort);
+                    }),
+                    showCheckmark: false,
+                    side: BorderSide(
+                      color: isSelected
+                          ? colors.primary.withValues(alpha: 0.35)
+                          : colors.outlineVariant.withValues(alpha: 0.45),
+                    ),
+                    backgroundColor: colors.surface.withValues(alpha: 0.72),
+                    selectedColor: colors.primaryContainer.withValues(alpha: 0.9),
+                    labelStyle: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: isSelected
+                          ? colors.onPrimaryContainer
+                          : colors.onSurfaceVariant,
+                    ),
+                    visualDensity: const VisualDensity(horizontal: -1, vertical: -1),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 20),
+            section(
+              texts.statusFilterLabel,
+              _buildChips<OrderStatus>(
+                widget.statusFilters,
+                _pending.status,
+                (s) => s == null ? texts.allFilterOption : texts.orderStatusLabel(s),
+                (s) => _pending = _pending.copyWith(status: s),
+                colors,
+                theme.textTheme,
+              ),
+            ),
+            const SizedBox(height: 20),
+            section(
+              texts.paymentFilterLabel,
+              _buildChips<OrderPaymentStatus>(
+                widget.paymentFilters,
+                _pending.paymentStatus,
+                (s) => s == null ? texts.allFilterOption : texts.orderPaymentStatusLabel(s),
+                (s) => _pending = _pending.copyWith(paymentStatus: s),
+                colors,
+                theme.textTheme,
+              ),
+            ),
+            const SizedBox(height: 28),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      widget.onClear();
+                      Navigator.pop(context);
+                    },
+                    child: Text(texts.clearFiltersAction),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: FilledButton(
+                    onPressed: () {
+                      widget.onApply(_pending);
+                      Navigator.pop(context);
+                    },
+                    child: Text(texts.applyFiltersAction),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

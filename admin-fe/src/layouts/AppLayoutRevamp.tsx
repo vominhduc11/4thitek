@@ -167,7 +167,7 @@ const copyKeys = {
       "Ưu tiên kiểm tra SKU tồn dưới hoặc bằng 10 để tránh gián đoạn đơn hàng.",
     scheduledPosts: "Rà soát nội dung trước thời điểm đăng tự động.",
     dealerAttention:
-      "Hoàn tất xác minh để tránh ảnh hưởng kích hoạt dealer app.",
+      "Hoàn tất xác minh để tránh ảnh hưởng kích hoạt ứng dụng đại lý.",
     pendingUsers: "Duyệt quyền truy cập cho tài khoản nội bộ mới.",
   },
   ws: {
@@ -799,6 +799,27 @@ function AppLayoutRevamp() {
     setIsAlertsOpen(false);
     setIsAccountOpen(false);
   }, []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== "/") return;
+      const target = e.target as HTMLElement;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        target.isContentEditable
+      ) return;
+      e.preventDefault();
+      openSearch();
+      window.requestAnimationFrame(() => {
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      });
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [openSearch]);
 
   useEffect(() => {
     setOpenGroups((current) => ({

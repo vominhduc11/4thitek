@@ -131,3 +131,77 @@ List<InventoryProductItem> _filterAndSortItems({
   });
   return filtered;
 }
+
+class _InventoryLowStockBanner extends StatelessWidget {
+  const _InventoryLowStockBanner({
+    required this.lowStockCount,
+    required this.outOfStockCount,
+    required this.texts,
+    required this.onTap,
+  });
+
+  final int lowStockCount;
+  final int outOfStockCount;
+  final _InventoryTexts texts;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final totalCount = lowStockCount + outOfStockCount;
+    final hasOutOfStock = outOfStockCount > 0;
+    final bannerColor = hasOutOfStock ? cs.errorContainer : cs.tertiaryContainer;
+    final textColor =
+        hasOutOfStock ? cs.onErrorContainer : cs.onTertiaryContainer;
+    final icon = hasOutOfStock
+        ? Icons.inventory_2_outlined
+        : Icons.warning_amber_rounded;
+    final title = texts.lowStockWarningTitle(totalCount);
+
+    return Material(
+      color: bannerColor,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Icon(icon, size: 22, color: textColor),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: textColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      texts.lowStockWarningAction,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: textColor.withValues(alpha: 0.75),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_rounded,
+                size: 18,
+                color: textColor.withValues(alpha: 0.7),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

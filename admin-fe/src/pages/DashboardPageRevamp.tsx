@@ -3,14 +3,11 @@ import { Link } from "react-router-dom";
 import { ADMIN_THEME_EVENT } from "../hooks/useTheme";
 import {
   AlertTriangle,
-  CircleDollarSign,
-  Landmark,
   Package,
   ShoppingCart,
   TrendingUp,
 } from "lucide-react";
 import {
-  ArcElement,
   BarElement,
   CategoryScale,
   Chart as ChartJS,
@@ -20,7 +17,7 @@ import {
   type ChartData,
   type ChartOptions,
 } from "chart.js";
-import { Bar, Doughnut } from "react-chartjs-2";
+import { Bar } from "react-chartjs-2";
 import {
   EmptyState,
   ErrorState,
@@ -45,7 +42,6 @@ ChartJS.register(
   CategoryScale,
   LinearScale,
   BarElement,
-  ArcElement,
   Tooltip,
   Legend,
 );
@@ -59,24 +55,24 @@ const copyKeys = {
   description: "Tổng quan vận hành hệ thống theo thời gian thực.",
   loadTitle: "Không tải được dashboard",
   emptyTitle: "Chưa có dữ liệu",
-  emptyMessage: "Backend chưa trả về dữ liệu dashboard.",
+  emptyMessage: "Dữ liệu tổng quan chưa sẵn sàng. Vui lòng tải lại trang.",
   totalOrders: "Tổng đơn hàng",
   lowStock: "Tồn kho thấp",
-  bestSeller: "Sản phẩm bán chạy",
+  bestSeller: "Sản phẩm bán chạy nhất",
   orderStatus: "Phân bổ trạng thái đơn hàng",
   topProducts: "Sản phẩm nổi bật",
-  operations: "Hệ thống và vận hành",
-  revenueProgress: "Tiến độ",
+  operations: "Cảnh báo vận hành",
+  revenueProgress: "Hoàn thành",
   pendingOrders: "đơn chờ xử lý",
-  restock: "SKU cần bổ sung",
-  unmatchedPayments: "Thanh toán không khớp",
-  unmatchedPendingHint: "giao dịch chờ xử lý",
+  restock: "mặt hàng cần nhập thêm",
+  unmatchedPayments: "Thanh toán chưa khớp",
+  unmatchedPendingHint: "giao dịch cần xử lý",
   financialSettlements: "Quyết toán tài chính",
-  settlementPendingHint: "mục chờ xử lý",
-  staleOrders: "Đơn hàng cần xem xét",
-  staleOrdersHint: "đơn có thanh toán không xác nhận được",
-  shippingOverdue: "Đơn xác nhận chậm giao",
-  shippingOverdueHint: "đơn CONFIRMED cần đẩy sang shipping",
+  settlementPendingHint: "mục đang chờ quyết toán",
+  staleOrders: "Đơn hàng chờ xử lý lâu",
+  staleOrdersHint: "đơn chờ xử lý quá 24 giờ, cần kiểm tra",
+  shippingOverdue: "Đơn chưa được giao",
+  shippingOverdueHint: "đơn đã xác nhận nhưng chưa cập nhật vận chuyển",
 } as const;
 
 const getThemeTokens = () => {
@@ -169,38 +165,20 @@ function DashboardPageRevamp() {
 
   useEffect(() => {
     if (!accessToken) {
-      return
+      return;
     }
-    return subscribeAdminDashboardRefresh(() => {
-      void loadDashboard(accessToken)
-    })
+    let debounceTimer: number | undefined;
+    const unsubscribe = subscribeAdminDashboardRefresh(() => {
+      window.clearTimeout(debounceTimer);
+      debounceTimer = window.setTimeout(() => {
+        void loadDashboard(accessToken);
+      }, 1500);
+    });
+    return () => {
+      window.clearTimeout(debounceTimer);
+      unsubscribe();
+    };
   }, [accessToken, loadDashboard]);
-
-  const orderStatusChart = useMemo<ChartData<"doughnut">>(
-    () => ({
-      labels: dashboard?.orderStatus.map((item) => item.label) ?? [],
-      datasets: [
-        {
-          data: dashboard?.orderStatus.map((item) => item.value) ?? [],
-          backgroundColor: themeTokens.palette,
-          borderWidth: 0,
-        },
-      ],
-    }),
-    [dashboard, themeTokens.palette],
-  );
-
-  const orderStatusOptions = useMemo<ChartOptions<"doughnut">>(
-    () => ({
-      responsive: true,
-      maintainAspectRatio: false,
-      cutout: "68%",
-      plugins: {
-        legend: { display: false },
-      },
-    }),
-    [],
-  );
 
   const trendChart = useMemo<ChartData<"bar">>(
     () => ({
@@ -280,14 +258,6 @@ function DashboardPageRevamp() {
               className={`${softCardClass} h-80 animate-pulse bg-[var(--surface-muted)]`}
             />
           </div>
-          <div className="grid gap-6 xl:grid-cols-2">
-            <div
-              className={`${softCardClass} h-72 animate-pulse bg-[var(--surface-muted)]`}
-            />
-            <div
-              className={`${softCardClass} h-72 animate-pulse bg-[var(--surface-muted)]`}
-            />
-          </div>
         </div>
       </PagePanel>
     );
@@ -356,6 +326,7 @@ function DashboardPageRevamp() {
         </Link>
         <Link
           to="/products"
+          title={dashboard.topProducts[0]?.name}
           className="block rounded-3xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
           <StatCard
@@ -391,212 +362,40 @@ function DashboardPageRevamp() {
 
         <div className={softCardClass}>
           <p className="text-sm font-semibold text-[var(--ink)]">
-            {copy.orderStatus}
-          </p>
-          <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,10.5rem)_minmax(0,1fr)] xl:grid-cols-1">
-            <div
-              aria-label={t("Biểu đồ trạng thái đơn hàng")}
-              className="mx-auto aspect-square w-full max-w-[10.5rem] sm:max-w-[11.5rem] xl:max-w-[13rem]"
-              role="img"
-            >
-              <Doughnut data={orderStatusChart} options={orderStatusOptions} />
-            </div>
-            <div className="space-y-3">
-              {dashboard.orderStatus.map((item, index) => (
-                <div
-                  key={`${item.label}-${index}`}
-                  className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
-                >
-                  <div className="flex items-center gap-2">
-                    <span
-                      aria-hidden="true"
-                      className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold text-white"
-                      style={{
-                        backgroundColor:
-                          themeTokens.palette[
-                            index % themeTokens.palette.length
-                          ],
-                      }}
-                    >
-                      {item.label.slice(0, 1).toUpperCase()}
-                    </span>
-                    <span className="font-medium text-[var(--ink)]">
-                      {item.label}
-                    </span>
-                  </div>
-                  <span className="font-semibold text-[var(--ink)]">
-                    {formatNumber(item.value)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-6 grid gap-6 xl:grid-cols-2">
-        <div className={softCardClass}>
-          <p className="text-sm font-semibold text-[var(--ink)]">
             {copy.topProducts}
           </p>
-          <div className="mt-4 space-y-3">
+          <div className="mt-4 space-y-2.5">
             {dashboard.topProducts.length === 0 ? (
               <EmptyState
                 title={copy.topProductsEmptyTitle}
                 message={copy.topProductsEmptyMessage}
+                action={
+                  <Link
+                    to="/orders"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-semibold text-[var(--ink)] transition hover:opacity-80"
+                  >
+                    Xem đơn hàng
+                  </Link>
+                }
               />
             ) : (
-              dashboard.topProducts.map((item) => (
+              dashboard.topProducts.slice(0, 5).map((item, index) => (
                 <div
                   key={`${item.name}-${item.units}`}
-                  className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-sm"
+                  title={item.name}
+                  className="flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm"
                 >
-                  <span className="truncate font-medium text-[var(--ink)]">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[11px] font-bold text-[var(--accent-strong)]">
+                    {index + 1}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate font-medium text-[var(--ink)]">
                     {item.name}
                   </span>
-                  <span className="font-semibold text-[var(--accent)]">
+                  <span className="shrink-0 font-semibold text-[var(--accent)]">
                     {item.units}
                   </span>
                 </div>
               ))
-            )}
-          </div>
-        </div>
-
-        <div className={softCardClass}>
-          <p className="text-sm font-semibold text-[var(--ink)]">
-            {copy.operations}
-          </p>
-          <div className="mt-4 space-y-3">
-            {dashboard.system.map((item) => (
-              <div
-                key={`${item.group}-${item.label}`}
-                className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-[var(--ink)]">
-                      {item.label}
-                    </p>
-                    <p className="text-xs text-[var(--muted)]">
-                      {item.hint || "-"}
-                    </p>
-                  </div>
-                  <StatusBadge
-                    tone={
-                      item.tone === "warn"
-                        ? "warning"
-                        : item.tone === "good"
-                          ? "success"
-                          : "neutral"
-                    }
-                  >
-                    {item.value}
-                  </StatusBadge>
-                </div>
-              </div>
-            ))}
-            {(dashboard.unmatchedPendingCount ?? 0) > 0 && (
-              <Link
-                to="/unmatched-payments"
-                className="block rounded-2xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-              >
-                <div className="rounded-2xl border border-[rgba(189,249,25,0.34)] bg-[rgba(189,249,25,0.16)] px-4 py-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <CircleDollarSign className="h-4 w-4 shrink-0 text-[var(--tone-warning-text)]" />
-                      <div>
-                        <p className="text-sm font-semibold text-[var(--tone-warning-text)]">
-                          {copy.unmatchedPayments}
-                        </p>
-                        <p className="text-xs text-[var(--tone-warning-text)]">
-                          {dashboard.unmatchedPendingCount}{" "}
-                          {copy.unmatchedPendingHint}
-                        </p>
-                      </div>
-                    </div>
-                    <StatusBadge tone="warning">
-                      {String(dashboard.unmatchedPendingCount)}
-                    </StatusBadge>
-                  </div>
-                </div>
-              </Link>
-            )}
-            {(dashboard.settlementPendingCount ?? 0) > 0 && (
-              <Link
-                to="/financial-settlements"
-                className="block rounded-2xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-              >
-                <div className="rounded-2xl border border-[var(--brand-border-strong)] bg-[var(--accent-soft)] px-4 py-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <Landmark className="h-4 w-4 shrink-0 text-[var(--accent-strong)]" />
-                      <div>
-                        <p className="text-sm font-semibold text-[var(--accent-strong)]">
-                          {copy.financialSettlements}
-                        </p>
-                        <p className="text-xs text-[var(--accent-strong)]">
-                          {dashboard.settlementPendingCount}{" "}
-                          {copy.settlementPendingHint}
-                        </p>
-                      </div>
-                    </div>
-                    <StatusBadge tone="info">
-                      {String(dashboard.settlementPendingCount)}
-                    </StatusBadge>
-                  </div>
-                </div>
-              </Link>
-            )}
-            {(dashboard.staleOrdersCount ?? 0) > 0 && (
-              <Link
-                to="/orders?status=pending"
-                className="block rounded-2xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-              >
-                <div className="rounded-2xl border border-[var(--destructive-border)] bg-[var(--destructive-soft)] px-4 py-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4 shrink-0 text-[var(--destructive-text)]" />
-                      <div>
-                        <p className="text-sm font-semibold text-[var(--destructive-text)]">
-                          {copy.staleOrders}
-                        </p>
-                        <p className="text-xs text-[var(--destructive-text)]">
-                          {dashboard.staleOrdersCount} {copy.staleOrdersHint}
-                        </p>
-                      </div>
-                    </div>
-                    <StatusBadge tone="danger">
-                      {String(dashboard.staleOrdersCount)}
-                    </StatusBadge>
-                  </div>
-                </div>
-              </Link>
-            )}
-            {(dashboard.shippingOverdueCount ?? 0) > 0 && (
-              <Link
-                to="/orders?status=confirmed"
-                className="block rounded-2xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-              >
-                <div className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4 shrink-0 text-amber-700" />
-                      <div>
-                        <p className="text-sm font-semibold text-amber-900">
-                          {copy.shippingOverdue}
-                        </p>
-                        <p className="text-xs text-amber-800">
-                          {dashboard.shippingOverdueCount} {copy.shippingOverdueHint}
-                        </p>
-                      </div>
-                    </div>
-                    <StatusBadge tone="warning">
-                      {String(dashboard.shippingOverdueCount)}
-                    </StatusBadge>
-                  </div>
-                </div>
-              </Link>
             )}
           </div>
         </div>

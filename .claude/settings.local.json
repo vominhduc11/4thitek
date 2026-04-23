@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(dart analyze *)",
+      "Bash(xargs -I{} basename {})",
+      "Bash(xargs grep *)",
+      "Bash(xargs -0 grep -l \"creditLimit\\\\|credit_limit\")"
+    ]
+  }
+}

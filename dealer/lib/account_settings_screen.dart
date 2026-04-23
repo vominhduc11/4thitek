@@ -467,6 +467,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     required Widget prefixIcon,
     String? hintText,
     bool alignLabelWithHint = false,
+    bool isRequired = false,
   }) {
     final colors = Theme.of(context).colorScheme;
     final border = OutlineInputBorder(
@@ -475,9 +476,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         color: colors.outlineVariant.withValues(alpha: 0.7),
       ),
     );
+    final displayLabel = isRequired ? '$labelText *' : labelText;
 
     return InputDecoration(
-      labelText: labelText,
+      labelText: displayLabel,
       hintText: hintText,
       hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
         color: colors.onSurfaceVariant.withValues(alpha: 0.9),
@@ -643,6 +645,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             padding: EdgeInsets.all(12),
             child: BrandLogoIcon(size: 20),
           ),
+          isRequired: true,
         ),
       );
 
@@ -656,6 +659,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         decoration: _inputDecoration(
           labelText: texts.contactLabel,
           prefixIcon: const Icon(Icons.person_outline),
+          isRequired: true,
         ),
       );
 
@@ -705,6 +709,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         decoration: _inputDecoration(
           labelText: texts.emailLabel,
           prefixIcon: const Icon(Icons.mail_outline),
+          isRequired: true,
         ),
       );
 
@@ -717,6 +722,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         decoration: _inputDecoration(
           labelText: texts.phoneLabel,
           prefixIcon: const Icon(Icons.phone_outlined),
+          isRequired: true,
         ),
       );
 
@@ -730,6 +736,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         decoration: _inputDecoration(
           labelText: texts.addressLineLabel,
           prefixIcon: const Icon(Icons.location_on_outlined),
+          isRequired: true,
         ),
       );
 
@@ -763,6 +770,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         decoration: _inputDecoration(
           labelText: texts.cityLabel,
           prefixIcon: const Icon(Icons.location_city_outlined),
+          isRequired: true,
         ),
       );
 

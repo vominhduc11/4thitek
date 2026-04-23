@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../file_reference.dart';
+import 'skeleton_box.dart';
 
 typedef LazyImagePlaceholderBuilder = Widget Function(BuildContext context);
 
@@ -104,16 +105,21 @@ class _LazyNetworkImageState extends State<LazyNetworkImage> {
   }
 
   Widget _buildPlaceholder(BuildContext context) {
-    return widget.placeholderBuilder?.call(context) ??
-        Container(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          alignment: Alignment.center,
-          child: const SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        );
+    if (widget.placeholderBuilder != null) {
+      return widget.placeholderBuilder!.call(context);
+    }
+    final w = widget.width;
+    final h = widget.height;
+    if (w != null && h != null) {
+      return SkeletonBox(width: w, height: h);
+    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final side = constraints.maxWidth.isFinite ? constraints.maxWidth : 80.0;
+        final height = constraints.maxHeight.isFinite ? constraints.maxHeight : side;
+        return SkeletonBox(width: side, height: height);
+      },
+    );
   }
 
   @override

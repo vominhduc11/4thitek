@@ -671,7 +671,7 @@ class _WarrantyHubTexts {
       isEnglish ? 'Serial inventory' : 'Kho serial';
   String get serialInventoryDescription => isEnglish
       ? 'Serials are synced automatically when an order reaches completed status. Dealers do not need to record them manually.'
-      : 'Serial được NPP đồng bộ khi đơn chuyển sang hoàn thành. Đại lý không cần ghi nhận thủ công.';
+      : 'Serial được đồng bộ tự động khi đơn hàng hoàn thành. Bạn không cần ghi nhận thủ công.';
   String get importedLabel => isEnglish ? 'Imported' : 'Đã nhập';
   String get availableLabel => isEnglish ? 'Available' : 'Sẵn sàng';
   String get activatedLabel => isEnglish ? 'Activated' : 'Đã kích hoạt';

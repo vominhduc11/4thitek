@@ -67,6 +67,35 @@ debugDashboardWarrantyWindowFor({
   );
 }
 
+class _DashboardSnapshotArgs {
+  const _DashboardSnapshotArgs({
+    required this.orders,
+    required this.activations,
+    required this.timeFilter,
+    required this.selectedPeriod,
+    required this.now,
+    required this.isEnglish,
+  });
+
+  final List<Order> orders;
+  final List<WarrantyActivationRecord> activations;
+  final _DashboardTimeFilter timeFilter;
+  final DateTime selectedPeriod;
+  final DateTime now;
+  final bool isEnglish;
+}
+
+_DashboardSnapshot _computeDashboardSnapshotIsolate(_DashboardSnapshotArgs args) {
+  return _buildDashboardSnapshot(
+    orders: args.orders,
+    activations: args.activations,
+    timeFilter: args.timeFilter,
+    selectedPeriod: args.selectedPeriod,
+    now: args.now,
+    isEnglish: args.isEnglish,
+  );
+}
+
 _DashboardSnapshot _buildDashboardSnapshot({
   required List<Order> orders,
   required List<WarrantyActivationRecord> activations,
