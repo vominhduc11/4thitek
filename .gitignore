@@ -48,3 +48,13 @@ link_auth.txt
 **/*secret*dump*.txt
 **/*token*dump*.txt
 **/*auth*dump*.txt
+
+# ── Local dev / working artifacts ─────────────────────────────────────────────
+# tmp/ contains working files from design audits, brand review sessions, etc.
+tmp/
+# backups/ contains local DB/MinIO snapshots from the backup.sh script.
+# Never commit production backups to the repo — store encrypted off-site.
+backups/
+# backend/uploads/ is the local file upload directory (dev / Docker volume mount).
+# Real uploads live in MinIO in staging/production; this path must never be committed.
+backend/uploads/
