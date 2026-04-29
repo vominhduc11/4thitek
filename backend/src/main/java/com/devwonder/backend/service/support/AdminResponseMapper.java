@@ -184,6 +184,14 @@ public final class AdminResponseMapper {
                 revenue,
                 dealer.getEmail(),
                 dealer.getPhone(),
+                dealer.getTaxCode(),
+                dealer.getAddressLine(),
+                dealer.getWard(),
+                dealer.getDistrict(),
+                dealer.getCity(),
+                dealer.getCountry(),
+                dealer.getAvatarUrl(),
+                dealer.getSalesPolicy(),
                 DealerAccountStatusTransitionPolicy.allowedTransitions(dealer.getCustomerStatus())
         );
     }

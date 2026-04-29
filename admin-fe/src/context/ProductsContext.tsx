@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { Product, PublishStatus } from '../types/product'
 import productPlaceholder from '../assets/product-placeholder.svg'
@@ -228,7 +227,7 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true
     }
-  }, [accessToken, notify, useRemoteData])
+  }, [accessToken, notify, t, useRemoteData])
 
   const archiveProduct = async (sku: string) => {
     if (!useRemoteData || !accessToken) return

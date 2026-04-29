@@ -61,8 +61,32 @@ export type Dealer = {
   revenue: number
   email: string
   phone: string
+  taxCode: string
+  addressLine: string
+  ward: string
+  district: string
+  city: string
+  country: string
+  avatarUrl: string
+  salesPolicy: string
   allowedTransitions?: DealerStatus[]
 }
+
+export type DealerProfileUpdate = Pick<
+  Dealer,
+  | 'businessName'
+  | 'contactName'
+  | 'email'
+  | 'phone'
+  | 'taxCode'
+  | 'addressLine'
+  | 'ward'
+  | 'district'
+  | 'city'
+  | 'country'
+  | 'avatarUrl'
+  | 'salesPolicy'
+>
 
 export type StaffUser = {
   id: string

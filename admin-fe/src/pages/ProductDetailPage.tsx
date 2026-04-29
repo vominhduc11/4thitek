@@ -411,7 +411,6 @@ function ProductDetailPage() {
   useEffect(() => {
     if (product && !isEditing) {
       // Draft state is intentionally reset when the server-backed product changes outside edit mode.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDraft(buildDraft(product));
       setMainImagePreviewUrl("");
     }

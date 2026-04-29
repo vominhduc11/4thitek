@@ -44,8 +44,9 @@ export function useOverlaySurface({
       return;
     }
 
+    const triggerElement = triggerRef?.current ?? null;
     restoreTargetRef.current =
-      triggerRef?.current ?? (document.activeElement as HTMLElement | null);
+      triggerElement ?? (document.activeElement as HTMLElement | null);
 
     const container = containerRef.current;
     if (!container) {
@@ -127,7 +128,7 @@ export function useOverlaySurface({
         return;
       }
 
-      const restoreTarget = triggerRef?.current ?? restoreTargetRef.current;
+      const restoreTarget = triggerElement ?? restoreTargetRef.current;
       if (restoreTarget && document.contains(restoreTarget)) {
         window.requestAnimationFrame(() => {
           restoreTarget.focus();

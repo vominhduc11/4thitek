@@ -251,7 +251,7 @@ function UnmatchedPaymentsPageRevamp() {
           return;
         }
         setMatchedOrderPreview(order);
-      } catch (_) {
+      } catch {
         if (orderPreviewRequestIdRef.current !== requestId) {
           return;
         }

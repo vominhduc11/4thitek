@@ -158,7 +158,7 @@ export const useConfirmDialog = () => {
         ) : null}
       </Modal>
     ),
-    [close, pending],
+    [close, language, pending],
   )
 
   const promptDialog = useMemo(

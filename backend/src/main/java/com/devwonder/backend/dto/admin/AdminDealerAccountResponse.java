@@ -16,6 +16,14 @@ public record AdminDealerAccountResponse(
         BigDecimal revenue,
         String email,
         String phone,
+        String taxCode,
+        String addressLine,
+        String ward,
+        String district,
+        String city,
+        String country,
+        String avatarUrl,
+        String salesPolicy,
         List<CustomerStatus> allowedTransitions
 ) {
 }

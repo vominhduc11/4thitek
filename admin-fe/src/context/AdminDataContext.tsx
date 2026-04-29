@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 import {
   createContext,
   useCallback,
@@ -31,6 +30,7 @@ import {
   updateAdminDiscountRule,
   updateAdminBlog,
   updateAdminDealerAccountStatus,
+  updateAdminDealerProfile,
   updateAdminDiscountRuleStatus,
   updateAdminOrderStatus,
   updateAdminSettings,
@@ -57,6 +57,7 @@ import {
   type BlogPost,
   type BlogStatus,
   type Dealer,
+  type DealerProfileUpdate,
   type DealerStatus,
   type DiscountRule,
   type Order,
@@ -73,6 +74,7 @@ export type {
   BlogPost,
   BlogStatus,
   Dealer,
+  DealerProfileUpdate,
   DealerStatus,
   DiscountRule,
   Order,
@@ -126,6 +128,7 @@ type AdminDataContextValue = {
   deletePost: (id: string) => Promise<void>
   dealers: Dealer[]
   dealersState: AdminResourceState
+  updateDealerProfile: (id: string, payload: DealerProfileUpdate) => Promise<void>
   updateDealerStatus: (id: string, status: DealerStatus, reason?: string) => Promise<void>
   users: StaffUser[]
   usersState: AdminResourceState
@@ -395,7 +398,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
         }
       }
     },
-    [accessToken, canManageUsers, notify, queryClient, setResourceState],
+    [accessToken, canManageUsers, notify, queryClient, setResourceState, t],
   )
 
   const requiredResources = useMemo(
@@ -537,6 +540,30 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     await queryClient.invalidateQueries({ queryKey: resourceQueryKeys.dealers })
   }
 
+  const updateDealerProfile: AdminDataContextValue['updateDealerProfile'] = async (id, payload) => {
+    const token = requireToken()
+    const optionalText = (value: string) => {
+      const trimmed = value.trim()
+      return trimmed ? trimmed : undefined
+    }
+    const updated = await updateAdminDealerProfile(token, Number(id), {
+      businessName: payload.businessName.trim(),
+      contactName: payload.contactName.trim(),
+      email: payload.email.trim(),
+      phone: payload.phone.trim(),
+      taxCode: optionalText(payload.taxCode),
+      addressLine: payload.addressLine.trim(),
+      ward: payload.ward.trim(),
+      district: payload.district.trim(),
+      city: payload.city.trim(),
+      country: payload.country.trim(),
+      avatarUrl: optionalText(payload.avatarUrl),
+      salesPolicy: payload.salesPolicy.trim(),
+    })
+    setDealers((previous) => previous.map((item) => (item.id === id ? mapDealer(updated) : item)))
+    await queryClient.invalidateQueries({ queryKey: resourceQueryKeys.dealers })
+  }
+
   const addUser: AdminDataContextValue['addUser'] = async (payload) => {
     const token = requireToken()
     const created = await createAdminUser(token, {
@@ -648,6 +675,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     deletePost,
     dealers,
     dealersState: resourceStates.dealers,
+    updateDealerProfile,
     updateDealerStatus,
     users,
     usersState: resourceStates.users,

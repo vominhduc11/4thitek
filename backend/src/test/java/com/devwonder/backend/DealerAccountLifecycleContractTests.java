@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.devwonder.backend.dto.admin.UpdateAdminDealerAccountStatusRequest;
+import com.devwonder.backend.dto.dealer.UpdateDealerProfileRequest;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.exception.BadRequestException;
@@ -107,6 +108,45 @@ class DealerAccountLifecycleContractTests {
         assertThat(response.status()).isEqualTo(CustomerStatus.SUSPENDED);
         assertThat(saved.getCustomerStatus()).isEqualTo(CustomerStatus.SUSPENDED);
         assertThat(saved.getSuspendedAt()).isNotNull();
+    }
+
+    @Test
+    void adminCanUpdateDealerProfile() {
+        Dealer dealer = dealerRepository.save(createDealer("dealer-profile-update@example.com", CustomerStatus.ACTIVE));
+
+        var response = adminManagementService.updateDealerProfile(
+                dealer.getId(),
+                new UpdateDealerProfileRequest(
+                        "Dealer Updated",
+                        "Nguyen Admin",
+                        "TAX-2026",
+                        "0901234567",
+                        "123 Le Loi",
+                        "Ben Nghe",
+                        "District 1",
+                        "Ho Chi Minh",
+                        "Vietnam",
+                        "profile-updated@example.com",
+                        "https://cdn.example.com/dealer.png",
+                        "Net 30"
+                )
+        );
+
+        Dealer saved = dealerRepository.findById(dealer.getId()).orElseThrow();
+        assertThat(response.businessName()).isEqualTo("Dealer Updated");
+        assertThat(response.contactName()).isEqualTo("Nguyen Admin");
+        assertThat(response.taxCode()).isEqualTo("TAX-2026");
+        assertThat(response.phone()).isEqualTo("0901234567");
+        assertThat(response.addressLine()).isEqualTo("123 Le Loi");
+        assertThat(response.ward()).isEqualTo("Ben Nghe");
+        assertThat(response.district()).isEqualTo("District 1");
+        assertThat(response.city()).isEqualTo("Ho Chi Minh");
+        assertThat(response.country()).isEqualTo("Vietnam");
+        assertThat(response.email()).isEqualTo("profile-updated@example.com");
+        assertThat(response.avatarUrl()).isEqualTo("https://cdn.example.com/dealer.png");
+        assertThat(response.salesPolicy()).isEqualTo("Net 30");
+        assertThat(saved.getBusinessName()).isEqualTo("Dealer Updated");
+        assertThat(saved.getEmail()).isEqualTo("profile-updated@example.com");
     }
 
     private Dealer createDealer(String username, CustomerStatus status) {

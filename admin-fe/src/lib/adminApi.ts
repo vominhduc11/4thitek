@@ -247,6 +247,14 @@ export type BackendDealerAccountResponse = {
   revenue?: number | string | null
   email?: string | null
   phone?: string | null
+  taxCode?: string | null
+  addressLine?: string | null
+  ward?: string | null
+  district?: string | null
+  city?: string | null
+  country?: string | null
+  avatarUrl?: string | null
+  salesPolicy?: string | null
   allowedTransitions?: BackendDealerAccountStatus[] | null
 }
 
@@ -266,6 +274,21 @@ export type BackendDealerAccountUpsertRequest = {
   revenue?: number
   email: string
   phone: string
+}
+
+export type BackendDealerProfileUpdateRequest = {
+  businessName?: string
+  contactName?: string
+  taxCode?: string
+  phone?: string
+  addressLine?: string
+  ward?: string
+  district?: string
+  city?: string
+  country?: string
+  email?: string
+  avatarUrl?: string
+  salesPolicy?: string
 }
 
 export type BackendStaffUserResponse = {
@@ -1233,6 +1256,18 @@ export const updateAdminDealerAccountStatus = (
     token,
     method: 'PATCH',
     body: { status, reason },
+  })
+
+export const updateAdminDealerProfile = (
+  token: string,
+  id: number,
+  body: BackendDealerProfileUpdateRequest,
+) =>
+  authorizedJsonRequest<BackendDealerAccountResponse>({
+    path: `/admin/dealers/accounts/${id}`,
+    token,
+    method: 'PUT',
+    body,
   })
 
 export const fetchAdminUsers = (token: string) =>

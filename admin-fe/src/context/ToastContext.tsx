@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 import { CheckCircle2, Info, OctagonAlert, X } from 'lucide-react'
 import {
   createContext,

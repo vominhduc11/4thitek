@@ -71,8 +71,10 @@ export const mapBackendPaymentMethod = (method?: BackendPaymentMethod | null): P
   }
 }
 
-export const toBackendPaymentMethod = (_method: Exclude<PaymentMethod, null>): BackendPaymentMethod =>
-  'BANK_TRANSFER'
+export const toBackendPaymentMethod = (method: Exclude<PaymentMethod, null>): BackendPaymentMethod => {
+  void method
+  return 'BANK_TRANSFER'
+}
 
 export const mapBackendPaymentStatus = (status?: BackendPaymentStatus | null): PaymentStatus => {
   switch (status) {
@@ -260,6 +262,14 @@ export const mapDealer = (dealer: BackendDealerAccountResponse): Dealer => ({
   revenue: Number(dealer.revenue ?? 0),
   email: dealer.email || '',
   phone: dealer.phone || '',
+  taxCode: dealer.taxCode || '',
+  addressLine: dealer.addressLine || '',
+  ward: dealer.ward || '',
+  district: dealer.district || '',
+  city: dealer.city || '',
+  country: dealer.country || '',
+  avatarUrl: dealer.avatarUrl || '',
+  salesPolicy: dealer.salesPolicy || '',
   allowedTransitions: mapAllowedDealerTransitions(
     mapBackendDealerAccountStatus(dealer.status),
     dealer.allowedTransitions,

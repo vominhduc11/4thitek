@@ -158,10 +158,10 @@ function ProductsPage() {
     return () => window.clearTimeout(timer)
   }, [actionMessage])
 
-  const showSuccess = (message: string) => {
+  const showSuccess = useCallback((message: string) => {
     setActionMessage(message)
     notify(message, { title: pageTitle, variant: 'success' })
-  }
+  }, [notify, pageTitle])
 
   const resetFilters = () => {
     setFilter('all')
@@ -289,7 +289,7 @@ function ProductsPage() {
         })
       }
     },
-    [confirm, deleteProduct, notify, pageTitle, t],
+    [confirm, deleteProduct, notify, pageTitle, showSuccess, t],
   )
 
   const handleArchiveToggle = useCallback(
@@ -328,7 +328,7 @@ function ProductsPage() {
         })
       }
     },
-    [archiveProduct, confirm, notify, pageTitle, restoreProduct, t],
+    [archiveProduct, confirm, notify, pageTitle, restoreProduct, showSuccess, t],
   )
 
   const handlePublishToggle = useCallback(
@@ -375,7 +375,7 @@ function ProductsPage() {
         })
       }
     },
-    [confirm, notify, pageTitle, t, togglePublishStatus],
+    [confirm, notify, pageTitle, showSuccess, t, togglePublishStatus],
   )
 
   if (isProductsLoading) {

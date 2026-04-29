@@ -22,6 +22,7 @@ import com.devwonder.backend.dto.customer.ChangePasswordRequest;
 import com.devwonder.backend.dto.dealer.RecordPaymentRequest;
 import com.devwonder.backend.dto.dealer.DealerProductSerialResponse;
 import com.devwonder.backend.dto.dealer.UpdateDealerOrderStatusRequest;
+import com.devwonder.backend.dto.dealer.UpdateDealerProfileRequest;
 import com.devwonder.backend.dto.realtime.DealerOrderStatusEvent;
 import com.devwonder.backend.config.CacheNames;
 import com.devwonder.backend.config.OrderProperties;
@@ -69,6 +70,7 @@ import com.devwonder.backend.service.support.BulkDiscountTierSupport;
 import com.devwonder.backend.service.support.DealerOrderNotificationSupport;
 import com.devwonder.backend.service.support.DealerPaymentSupport;
 import com.devwonder.backend.service.support.DealerAccountStatusTransitionPolicy;
+import com.devwonder.backend.service.support.DealerProfileWriteSupport;
 import com.devwonder.backend.service.support.DealerRequestSupport;
 import com.devwonder.backend.service.support.OrderInventorySupport;
 import com.devwonder.backend.service.support.OrderFinancialSnapshotService;
@@ -136,6 +138,7 @@ public class AdminManagementService {
     private final EmailVerificationService emailVerificationService;
     private final OrderProperties orderProperties;
     private final OrderFinancialSnapshotService orderFinancialSnapshotService;
+    private final DealerProfileWriteSupport dealerProfileWriteSupport;
 
     @Transactional(readOnly = true)
     public List<AdminProductResponse> getProducts() {
@@ -586,6 +589,16 @@ public class AdminManagementService {
                 dealerRepository.countByCustomerStatus(CustomerStatus.SUSPENDED),
                 totalRevenue
         );
+    }
+
+    @Transactional
+    @CacheEvict(cacheNames = {CacheNames.ADMIN_DASHBOARD, CacheNames.PUBLIC_DEALERS}, allEntries = true)
+    public AdminDealerAccountResponse updateDealerProfile(Long id, UpdateDealerProfileRequest request) {
+        Dealer dealer = dealerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Dealer account not found"));
+        dealerProfileWriteSupport.applyProfileUpdate(dealer, request);
+        Dealer saved = dealerProfileWriteSupport.saveProfile(dealer);
+        return AdminResponseMapper.toDealerAccountResponse(saved, activeDiscountRules(), currentVatPercent());
     }
 
     @Transactional

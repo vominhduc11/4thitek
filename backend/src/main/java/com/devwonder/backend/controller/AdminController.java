@@ -56,6 +56,7 @@ import com.devwonder.backend.dto.customer.ChangePasswordRequest;
 import com.devwonder.backend.dto.dealer.RecordPaymentRequest;
 import com.devwonder.backend.dto.dealer.DealerProductSerialResponse;
 import com.devwonder.backend.dto.dealer.UpdateDealerOrderStatusRequest;
+import com.devwonder.backend.dto.dealer.UpdateDealerProfileRequest;
 import com.devwonder.backend.dto.returns.ReturnRequestDetailResponse;
 import com.devwonder.backend.dto.returns.ReturnRequestSummaryResponse;
 import com.devwonder.backend.entity.enums.CustomerStatus;
@@ -465,6 +466,14 @@ public class AdminController {
             @Valid @RequestBody UpdateAdminDealerAccountStatusRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.updateDealerAccountStatus(id, request)));
+    }
+
+    @PutMapping("/dealers/accounts/{id}")
+    public ResponseEntity<ApiResponse<AdminDealerAccountResponse>> updateDealerProfile(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody UpdateDealerProfileRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(adminManagementService.updateDealerProfile(id, request)));
     }
 
     @GetMapping("/users")
