@@ -37,7 +37,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import logoMark from "../assets/images/logo-4t.png";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import {
@@ -119,6 +119,7 @@ const copyKeys = {
   alertsEmpty: "Không có cảnh báo cần theo dõi.",
   markAllRead: "Đánh dấu đã đọc",
   account: "Tài khoản",
+  profile: "Hồ sơ tài khoản",
   logout: "Đăng xuất",
   language: "Ngôn ngữ",
   light: "Sáng",
@@ -1253,8 +1254,16 @@ function AppLayoutRevamp() {
                             {language === "vi" ? "Tiếng Việt" : "English"}
                           </p>
                         </div>
+                        <Link
+                          to="/profile"
+                          className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
+                          onClick={() => setIsAccountOpen(false)}
+                        >
+                          <UserCircle className="h-4 w-4" />
+                          {copy.profile}
+                        </Link>
                         <button
-                          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-[18px] border border-[var(--destructive-border)] bg-[var(--destructive-soft)] px-4 py-2 text-sm font-semibold text-[var(--destructive-text)] transition hover:bg-[var(--destructive-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--destructive)]"
+                          className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-[18px] border border-[var(--destructive-border)] bg-[var(--destructive-soft)] px-4 py-2 text-sm font-semibold text-[var(--destructive-text)] transition hover:bg-[var(--destructive-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--destructive)]"
                           onClick={() => {
                             logout();
                             notify(copy.logout, {

@@ -1823,7 +1823,7 @@ export const fetchAdminAuditLogs = (
   token: string,
   page?: number,
   size?: number,
-  filters?: { from?: string; to?: string; actor?: string; action?: string },
+  filters?: { from?: string; to?: string; actor?: string; action?: string; entityType?: string; entityId?: string },
 ) =>
   authorizedJsonRequest<BackendPagedResponse<BackendAuditLogResponse>>({
     path: '/admin/audit-logs',
@@ -1835,6 +1835,8 @@ export const fetchAdminAuditLogs = (
       to: filters?.to,
       actor: filters?.actor,
       action: filters?.action,
+      entityType: filters?.entityType,
+      entityId: filters?.entityId,
     },
   })
 

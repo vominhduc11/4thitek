@@ -732,3 +732,24 @@
   border: 0;
   border-top: 1px solid var(--border);
 }
+
+@media print {
+  aside,
+  header,
+  [data-print-hide] {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+
+  body,
+  .relative.min-h-screen,
+  .relative.flex.min-h-screen,
+  .flex.min-h-screen.min-w-0.flex-1.flex-col {
+    min-height: unset !important;
+    background: white !important;
+    color: black !important;
+  }
+}

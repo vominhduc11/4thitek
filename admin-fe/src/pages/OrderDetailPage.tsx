@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowLeft, ChevronDown, Copy, ExternalLink } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, ChevronDown, Copy, ExternalLink, Printer } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAdminData, type OrderStatus } from '../context/AdminDataContext'
@@ -334,20 +334,19 @@ function OrderDetailPage() {
 
   return (
     <PagePanel>
-      {/* ─── Sticky header ─── */}
+      {/* --- Sticky header --- */}
       <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] bg-[var(--surface)]/95 px-4 py-2.5 backdrop-blur sm:-mx-5 sm:-mt-5 sm:px-5">
         <div className="flex min-w-0 items-center gap-2.5">
-          <GhostButton
-            icon={<ArrowLeft className="h-4 w-4" />}
-            onClick={() => navigate('/orders')}
-            type="button"
-          >
+          <GhostButton icon={<ArrowLeft className="h-4 w-4" />} onClick={() => navigate('/orders')} type="button">
             {t('Về đơn hàng')}
           </GhostButton>
           <span className="hidden text-sm font-semibold text-[var(--ink)] sm:block">{order.orderCode}</span>
           <span className="hidden text-xs text-[var(--muted)] sm:block">#{order.id}</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <GhostButton icon={<Printer className="h-4 w-4" />} onClick={() => window.print()} type="button">
+            {t('In đơn hàng')}
+          </GhostButton>
           <StatusBadge tone={orderStatusTone[order.status]}>{t(orderStatusLabel[order.status])}</StatusBadge>
           <StatusDropdown
             buttonLabel={t('Đổi trạng thái')}

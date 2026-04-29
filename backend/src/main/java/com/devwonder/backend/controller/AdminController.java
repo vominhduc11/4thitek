@@ -769,10 +769,12 @@ public class AdminController {
             @RequestParam(name = "to", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
             @RequestParam(name = "actor", required = false) String actor,
-            @RequestParam(name = "action", required = false) String action
+            @RequestParam(name = "action", required = false) String action,
+            @RequestParam(name = "entityType", required = false) String entityType,
+            @RequestParam(name = "entityId", required = false) String entityId
     ) {
         Pageable pageable = PaginationUtils.toPageable(page, size, "createdAt", "desc", "createdAt");
-        Page<AdminAuditLogResponse> result = auditLogService.getLogs(pageable, from, to, actor, action);
+        Page<AdminAuditLogResponse> result = auditLogService.getLogs(pageable, from, to, actor, action, entityType, entityId);
         return ResponseEntity.ok(ApiResponse.success(PagedResponse.from(result, "createdAt")));
     }
 

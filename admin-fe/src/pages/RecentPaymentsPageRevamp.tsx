@@ -8,6 +8,7 @@ import {
   fetchAdminRecentPayments,
   type BackendRecentPaymentResponse,
 } from "../lib/adminApi";
+import { translateCopy } from "../lib/i18n";
 import { formatCurrency, formatDateTime } from "../lib/formatters";
 import {
   EmptyState,
@@ -27,73 +28,37 @@ import {
 
 const PAGE_SIZE = 20;
 
-const copyByLanguage = {
-  vi: {
-    title: "Thanh toán chuyển khoản",
-    description:
-      "Theo dõi các khoản chuyển khoản đã được ghi nhận, lọc theo đại lý và thời gian.",
-    dealer: "Đại lý",
-    allDealers: "Tất cả đại lý",
-    from: "Từ thời điểm",
-    to: "Đến thời điểm",
-    minAmount: "Số tiền từ",
-    maxAmount: "Số tiền đến",
-    apply: "Áp dụng",
-    reload: "Tải lại",
-    emptyTitle: "Không có giao dịch phù hợp",
-    emptyMessage: "Thử thay đổi bộ lọc hoặc tải lại dữ liệu.",
-    loadTitle: "Không tải được dữ liệu",
-    loadFallback: "Không tải được danh sách giao dịch chuyển khoản.",
-    statTotal: "Tổng giao dịch",
-    queueTitle: "Danh sách giao dịch",
-    queueHint: "Chọn một giao dịch để xem chi tiết thanh toán và thông tin liên quan.",
-    detailTitle: "Chi tiết giao dịch",
-    detailHint: "Kiểm tra đơn hàng, mã giao dịch và thời điểm ghi nhận giao dịch.",
-    order: "Đơn hàng",
-    amount: "Số tiền",
-    channel: "Kênh",
-    note: "Ghi chú",
-    transactionCode: "Mã giao dịch",
-    paidAt: "Thanh toán lúc",
-    createdAt: "Tạo lúc",
-    noSelection: "Chọn một giao dịch để xem chi tiết",
-    missing: "Chưa có",
-    previousLabel: "Trước",
-    nextLabel: "Tiếp",
-  },
-  en: {
-    title: "Recorded bank transfers",
-    description:
-      "Browse recorded bank-transfer payments, then filter by dealer and time window.",
-    dealer: "Dealer",
-    allDealers: "All dealers",
-    from: "From",
-    to: "To",
-    minAmount: "Min amount",
-    maxAmount: "Max amount",
-    apply: "Apply",
-    reload: "Reload",
-    emptyTitle: "No matching payments",
-    emptyMessage: "Try a different filter or reload the data.",
-    loadTitle: "Unable to load data",
-    loadFallback: "Could not load recent transfer payments.",
-    statTotal: "Total payments",
-    queueTitle: "Payment queue",
-    queueHint: "Select a payment to inspect the recorded transfer details.",
-    detailTitle: "Payment details",
-    detailHint: "Review the order, transaction code, and recorded timestamps for this transfer.",
-    order: "Order",
-    amount: "Amount",
-    channel: "Channel",
-    note: "Note",
-    transactionCode: "Transaction code",
-    paidAt: "Paid at",
-    createdAt: "Created at",
-    noSelection: "Select a payment to view details",
-    missing: "Not provided",
-    previousLabel: "Previous",
-    nextLabel: "Next",
-  },
+const copyKeys = {
+  title: "Thanh toán chuyển khoản",
+  description: "Theo dõi các khoản chuyển khoản đã được ghi nhận, lọc theo đại lý và thời gian.",
+  dealer: "Đại lý",
+  allDealers: "Tất cả đại lý",
+  from: "Từ thời điểm",
+  to: "Đến thời điểm",
+  minAmount: "Số tiền từ",
+  maxAmount: "Số tiền đến",
+  apply: "Áp dụng",
+  reload: "Tải lại",
+  emptyTitle: "Không có giao dịch phù hợp",
+  emptyMessage: "Thử thay đổi bộ lọc hoặc tải lại dữ liệu.",
+  loadTitle: "Không tải được dữ liệu",
+  loadFallback: "Không tải được danh sách giao dịch chuyển khoản.",
+  statTotal: "Tổng giao dịch",
+  queueTitle: "Danh sách giao dịch",
+  queueHint: "Chọn một giao dịch để xem chi tiết thanh toán và thông tin liên quan.",
+  detailTitle: "Chi tiết giao dịch",
+  detailHint: "Kiểm tra đơn hàng, mã giao dịch và thời điểm ghi nhận giao dịch.",
+  order: "Đơn hàng",
+  amount: "Số tiền",
+  channel: "Kênh",
+  note: "Ghi chú",
+  transactionCode: "Mã giao dịch",
+  paidAt: "Thanh toán lúc",
+  createdAt: "Tạo lúc",
+  noSelection: "Chọn một giao dịch để xem chi tiết",
+  missing: "Chưa có",
+  previousLabel: "Trước",
+  nextLabel: "Tiếp",
 } as const;
 
 const toIsoDateTime = (value: string) => {
@@ -105,8 +70,8 @@ const toIsoDateTime = (value: string) => {
 };
 
 function RecentPaymentsPageRevamp() {
-  const { language } = useLanguage();
-  const copy = copyByLanguage[language];
+  const { t } = useLanguage();
+  const copy = translateCopy(copyKeys, t);
   const { accessToken } = useAuth();
   const { notify } = useToast();
   const { dealers } = useAdminData();

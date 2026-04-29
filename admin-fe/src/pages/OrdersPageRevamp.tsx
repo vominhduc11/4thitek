@@ -31,6 +31,7 @@ import {
 import { formatCurrency } from "../lib/formatters";
 import { fetchAdminOrdersPaged, fetchAdminOrderSummary } from "../lib/adminApi";
 import { mapOrder, toBackendOrderStatus } from "../lib/adminDataMappers";
+import { translateCopy } from "../lib/i18n";
 
 const PAGE_SIZE = 25;
 
@@ -49,99 +50,51 @@ const parseStatusFilter = (value: string | null): "all" | OrderStatus => {
   }
 };
 
-const copyByLanguage = {
-  vi: {
-    title: "Đơn hàng",
-    allStatuses: "Tất cả",
-    description: "Theo dõi xử lý đơn, xác nhận trạng thái và ưu tiên giao hàng.",
-    searchLabel: "Tìm đơn hàng",
-    searchPlaceholder: "Tìm mã đơn hoặc đại lý...",
-    totalOrders: "Tổng đơn",
-    pendingOrders: "Chờ xử lý",
-    shippingOrders: "Đang giao",
-    emptyTitle: "Không có đơn hàng",
-    emptyMessage: "Thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm.",
-    loadTitle: "Không thể tải đơn hàng",
-    loadFallback: "Không tải được danh sách đơn hàng",
-    orderCode: "Mã đơn",
-    dealer: "Đại lý",
-    total: "Tổng giá trị",
-    status: "Trạng thái",
-    actions: "Thao tác",
-    detail: "Xem chi tiết",
-    reviewRequired: "Cần xem xét",
-    shippingOverdue: "Chậm giao",
-    changeStatusTitle: "Xác nhận đổi trạng thái",
-    changeStatusMessage: 'Bạn có chắc muốn chuyển đơn này sang trạng thái "{status}" không?',
-    cancelReasonTitle: "Xác nhận hủy đơn",
-    cancelReasonMessage: "Vui lòng nhập lý do hủy. Hành động này không thể hoàn tác.",
-    cancelReasonLabel: "Lý do hủy",
-    cancelReasonPlaceholder: "Ví dụ: Khách yêu cầu hủy, Hết hàng, Lỗi giá...",
-    cancelOrderLabel: "Hủy đơn",
-    cancelAbortLabel: "Không hủy",
-    deleteTitle: "Xóa đơn hàng",
-    deleteMessage: "Đơn hàng sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.",
-    confirmDelete: "Xóa đơn",
-    updateFailed: "Không cập nhật được đơn hàng",
-    deleteFailed: "Không xóa được đơn hàng",
-    deleteLabel: "Xóa",
-    changeStatusLabel: "Đổi trạng thái",
-    loading: "Đang cập nhật...",
-    previousLabel: "Trước",
-    nextLabel: "Tiếp",
-    undoLabel: "Hoàn tác",
-    selectedLabel: "đã chọn",
-    clearSelection: "Bỏ chọn",
-    batchChangeStatus: "Đổi trạng thái hàng loạt",
-    mixedStatusHint: "Chọn đơn cùng trạng thái để đổi hàng loạt",
-    batchUpdated: "Đã cập nhật {count} đơn hàng",
-  },
-  en: {
-    title: "Orders",
-    allStatuses: "All",
-    description: "Track order processing, confirm statuses, and keep shipping priorities clear.",
-    searchLabel: "Search orders",
-    searchPlaceholder: "Search by order code or dealer...",
-    totalOrders: "Total orders",
-    pendingOrders: "Pending",
-    shippingOrders: "Shipping",
-    emptyTitle: "No orders found",
-    emptyMessage: "Try another filter or search keyword.",
-    loadTitle: "Unable to load orders",
-    loadFallback: "Could not load the order list",
-    orderCode: "Order code",
-    dealer: "Dealer",
-    total: "Total value",
-    status: "Status",
-    actions: "Actions",
-    detail: "View details",
-    reviewRequired: "Needs review",
-    shippingOverdue: "Overdue to ship",
-    changeStatusTitle: "Confirm status update",
-    changeStatusMessage: 'Do you want to move this order to "{status}"?',
-    cancelReasonTitle: "Confirm order cancellation",
-    cancelReasonMessage: "Please provide a reason. This action cannot be undone.",
-    cancelReasonLabel: "Reason for cancellation",
-    cancelReasonPlaceholder: "E.g. Customer request, Out of stock, Price error...",
-    cancelOrderLabel: "Cancel order",
-    cancelAbortLabel: "Keep order",
-    deleteTitle: "Delete order",
-    deleteMessage: "The order will be permanently deleted. This action cannot be undone.",
-    confirmDelete: "Delete order",
-    updateFailed: "Could not update the order",
-    deleteFailed: "Could not delete the order",
-    deleteLabel: "Delete",
-    changeStatusLabel: "Change status",
-    loading: "Updating...",
-    previousLabel: "Previous",
-    nextLabel: "Next",
-    undoLabel: "Undo",
-    selectedLabel: "selected",
-    clearSelection: "Clear",
-    batchChangeStatus: "Batch change status",
-    mixedStatusHint: "Select orders with the same status to batch update",
-    batchUpdated: "Updated {count} orders",
-  },
+const copyKeys = {
+  title: "Đơn hàng",
+  allStatuses: "Tất cả",
+  description: "Theo dõi xử lý đơn, xác nhận trạng thái và ưu tiên giao hàng.",
+  searchLabel: "Tìm đơn hàng",
+  searchPlaceholder: "Tìm mã đơn hoặc đại lý...",
+  totalOrders: "Tổng đơn hàng",
+  pendingOrders: "Chờ xử lý",
+  shippingOrders: "Đang giao",
+  emptyTitle: "Không có đơn hàng",
+  emptyMessage: "Thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm.",
+  loadTitle: "Không thể tải đơn hàng",
+  loadFallback: "Không tải được danh sách đơn hàng",
+  orderCode: "Mã đơn",
+  dealer: "Đại lý",
+  total: "Tổng giá trị",
+  status: "Trạng thái",
+  actions: "Thao tác",
+  detail: "Xem chi tiết",
+  reviewRequired: "Cần xem xét",
+  shippingOverdue: "Chậm giao",
+  changeStatusTitle: "Xác nhận đổi trạng thái",
+  changeStatusMessage: 'Bạn có chắc muốn chuyển đơn này sang trạng thái "{status}" không?',
+  changeStatusLabel: "Đổi trạng thái",
+  cancelReasonTitle: "Xác nhận hủy đơn",
+  cancelReasonMessage: "Vui lòng nhập lý do hủy. Hành động này không thể hoàn tác.",
+  cancelReasonLabel: "Lý do hủy",
+  cancelReasonPlaceholder: "Ví dụ: Khách yêu cầu hủy, Hết hàng, Lỗi giá...",
+  cancelOrderLabel: "Hủy đơn",
+  cancelAbortLabel: "Không hủy",
+  deleteTitle: "Xóa đơn hàng",
+  deleteMessage: "Hành động này sẽ xóa đơn hàng khỏi danh sách quản trị.",
+  confirmDelete: "Xóa đơn",
+  updateFailed: "Không cập nhật được đơn hàng",
+  deleteFailed: "Không xóa được đơn hàng",
+  deleteLabel: "Xóa",
+  loading: "Đang cập nhật...",
+  previousLabel: "Trước",
+  nextLabel: "Tiếp",
+  undoLabel: "Hoàn tác",
+  selectedLabel: "đã chọn",
+  clearSelection: "Bỏ chọn",
+  batchChangeStatus: "Đổi trạng thái hàng loạt",
+  mixedStatusHint: "Chọn đơn cùng trạng thái để đổi hàng loạt",
+  batchUpdated: "Đã cập nhật {count} đơn hàng",
 } as const;
 
 function StatusActionMenu({
@@ -205,8 +158,8 @@ function StatusActionMenu({
 }
 
 function OrdersPageRevamp() {
-  const { t, language } = useLanguage();
-  const copy = copyByLanguage[language];
+  const { t } = useLanguage();
+  const copy = translateCopy(copyKeys, t);
   const orderStatusOptions: Array<{ value: "all" | OrderStatus; label: string }> = [
     { value: "all", label: copy.allStatuses },
     { value: "pending", label: t(orderStatusLabel.pending) },
@@ -612,10 +565,10 @@ function OrdersPageRevamp() {
                             <p className={tableValueClass}>
                               {order.orderCode}
                               {order.staleReviewRequired ? (
-                                <AlertTriangle className="ml-1 inline h-3 w-3 text-rose-500" aria-label={copy.reviewRequired} title={copy.reviewRequired} />
+                                <AlertTriangle className="ml-1 inline h-3 w-3 text-rose-500" aria-label={copy.reviewRequired} />
                               ) : null}
                               {order.shippingOverdue ? (
-                                <AlertTriangle className="ml-1 inline h-3 w-3 text-amber-500" aria-label={copy.shippingOverdue} title={copy.shippingOverdue} />
+                                <AlertTriangle className="ml-1 inline h-3 w-3 text-amber-500" aria-label={copy.shippingOverdue} />
                               ) : null}
                             </p>
                             <p className={tableMetaClass}>#{order.id} · {order.dealer}</p>

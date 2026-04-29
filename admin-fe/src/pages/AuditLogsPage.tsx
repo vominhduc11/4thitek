@@ -25,9 +25,11 @@ type AuditFilters = {
   to: string
   actor: string
   action: string
+  entityType: string
+  entityId: string
 }
 
-const INITIAL_FILTERS: AuditFilters = { from: '', to: '', actor: '', action: '' }
+const INITIAL_FILTERS: AuditFilters = { from: '', to: '', actor: '', action: '', entityType: '', entityId: '' }
 
 function AuditLogsPage() {
   const { accessToken } = useAuth()
@@ -51,6 +53,8 @@ function AuditLogsPage() {
         to: activeFilters.to || undefined,
         actor: activeFilters.actor.trim() || undefined,
         action: activeFilters.action.trim() || undefined,
+        entityType: activeFilters.entityType.trim() || undefined,
+        entityId: activeFilters.entityId.trim() || undefined,
       })
       setLogs(data.items)
       setPage(data.page)
@@ -84,7 +88,9 @@ function AuditLogsPage() {
     appliedFilters.from !== '' ||
     appliedFilters.to !== '' ||
     appliedFilters.actor.trim() !== '' ||
-    appliedFilters.action.trim() !== ''
+    appliedFilters.action.trim() !== '' ||
+    appliedFilters.entityType.trim() !== '' ||
+    appliedFilters.entityId.trim() !== ''
 
   const renderPagination = () =>
     totalPages > 1 ? (
@@ -122,7 +128,7 @@ function AuditLogsPage() {
 
       {/* Filter panel */}
       <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           <label className="space-y-1">
             <span className={labelClass}>{t('Từ ngày')}</span>
             <input
@@ -163,6 +169,26 @@ function AuditLogsPage() {
               placeholder={t('Ví dụ: UPDATE_ORDER...')}
               value={filters.action}
               onChange={(e) => setFilters((f) => ({ ...f, action: e.target.value }))}
+            />
+          </label>
+          <label className="space-y-1">
+            <span className={labelClass}>{t('Loại thực thể')}</span>
+            <input
+              aria-label={t('Loại thực thể')}
+              className={inputClass}
+              placeholder={t('Ví dụ: Order, ProductSerial...')}
+              value={filters.entityType}
+              onChange={(e) => setFilters((f) => ({ ...f, entityType: e.target.value }))}
+            />
+          </label>
+          <label className="space-y-1">
+            <span className={labelClass}>{t('ID thực thể')}</span>
+            <input
+              aria-label={t('ID thực thể')}
+              className={inputClass}
+              placeholder={t('Mã ID của bản ghi...')}
+              value={filters.entityId}
+              onChange={(e) => setFilters((f) => ({ ...f, entityId: e.target.value }))}
             />
           </label>
         </div>

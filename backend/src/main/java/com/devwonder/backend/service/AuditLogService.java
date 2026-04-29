@@ -23,7 +23,7 @@ public class AuditLogService {
 
     @Transactional(readOnly = true)
     public Page<AdminAuditLogResponse> getLogs(Pageable pageable) {
-        return getLogs(pageable, null, null, null, null);
+        return getLogs(pageable, null, null, null, null, null, null);
     }
 
     @Transactional(readOnly = true)
@@ -32,19 +32,27 @@ public class AuditLogService {
             java.time.Instant from,
             java.time.Instant to,
             String actor,
-            String action
+            String action,
+            String entityType,
+            String entityId
     ) {
         Pageable effectivePageable = pageable == null || pageable.isUnpaged()
                 ? PageRequest.of(0, 50)
                 : pageable;
+        String normalizedActor = (actor != null && !actor.isBlank()) ? actor.trim() : null;
+        String normalizedAction = (action != null && !action.isBlank()) ? action.trim() : null;
+        String normalizedEntityType = (entityType != null && !entityType.isBlank()) ? entityType.trim() : null;
+        String normalizedEntityId = (entityId != null && !entityId.isBlank()) ? entityId.trim() : null;
         boolean hasFilters = from != null || to != null
-                || (actor != null && !actor.isBlank())
-                || (action != null && !action.isBlank());
+                || normalizedActor != null || normalizedAction != null
+                || normalizedEntityType != null || normalizedEntityId != null;
         if (hasFilters) {
             return auditLogRepository.findByFilters(
                     from, to,
-                    (actor != null && !actor.isBlank()) ? actor.trim() : null,
-                    (action != null && !action.isBlank()) ? action.trim() : null,
+                    normalizedActor,
+                    normalizedAction,
+                    normalizedEntityType,
+                    normalizedEntityId,
                     effectivePageable
             ).map(AuditLogService::toResponse);
         }
