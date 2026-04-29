@@ -1,6 +1,6 @@
 # Business Logic - 4thitek Runtime Truth
 
-> Runtime truth version: 2026-04-13
+> Runtime truth version: 2026-04-29
 > Scope: `backend`, `dealer`, `admin-fe`, `main-fe`
 
 ---
