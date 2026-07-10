@@ -61,8 +61,7 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -71,10 +70,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class AdminOperationsService {
-
-    private static final Logger log = LoggerFactory.getLogger(AdminOperationsService.class);
 
     private final DealerSupportTicketRepository dealerSupportTicketRepository;
     private final AdminRepository adminRepository;
