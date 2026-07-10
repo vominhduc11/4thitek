@@ -34,140 +34,20 @@ import {
 } from "./products/editor/constants";
 import { useNumericFormatter } from "./products/editor/useNumericFormatter";
 import { useTrackedUpload } from "./products/editor/useTrackedUpload";
-
-type GalleryItem = {
-  url: string;
-};
-
-type ProductSpecificationItem = {
-  label: string;
-  value: string;
-};
-
-type ProductVideoItem = {
-  title: string;
-  descriptions: string;
-  url: string;
-};
-
-type NewProductDraft = {
-  name: string;
-  sku: string;
-  shortDescription: string;
-  descriptions: DescriptionItem[];
-  specifications: ProductSpecificationItem[];
-  videos: ProductVideoItem[];
-  retailPrice: string;
-  warrantyPeriod: string;
-  publishStatus: "DRAFT" | "PUBLISHED";
-  isFeatured: boolean;
-  showOnHomepage: boolean;
-  imageUrl: string;
-};
-
-type DescriptionItem = {
-  type: "title" | "description" | "image" | "gallery" | "video";
-  text?: string;
-  url?: string;
-  caption?: string;
-  gallery?: GalleryItem[];
-};
-
-type CreateProductErrorField =
-  | "name"
-  | "sku"
-  | "retailPrice"
-  | "warrantyPeriod"
-  | "videos";
-
-const createProductErrorFieldOrder: CreateProductErrorField[] = [
-  "name",
-  "sku",
-  "retailPrice",
-  "warrantyPeriod",
-  "videos",
-];
-
-const createProductErrorTabMap: Record<
-  CreateProductErrorField,
-  "basic" | "description" | "specs" | "videos"
-> = {
-  name: "basic",
-  sku: "basic",
-  retailPrice: "basic",
-  warrantyPeriod: "basic",
-  videos: "videos",
-};
-
-const hasDescriptionContent = (items: DescriptionItem[]) =>
-  items.some((item) => {
-    if ((item.text ?? "").trim()) return true;
-    if ((item.url ?? "").trim()) return true;
-    if ((item.caption ?? "").trim()) return true;
-    return (item.gallery ?? []).some((galleryItem) => galleryItem.url.trim());
-  });
-
-const hasSpecificationContent = (
-  items: Array<{ label: string; value: string }>,
-) => items.some((item) => item.label.trim() || item.value.trim());
-
-const hasVideoContent = (items: ProductVideoItem[]) =>
-  items.some(
-    (item) => item.title.trim() || item.descriptions.trim() || item.url.trim(),
-  );
-
-const sanitizeDescriptionItem = (
-  item: DescriptionItem,
-): DescriptionItem | null => {
-  if (item.type === "description") {
-    const text = item.text?.trim() ?? "";
-    return text ? { type: item.type, text } : null;
-  }
-
-  if (item.type === "image" || item.type === "video") {
-    const url = item.url?.trim() ?? "";
-    const caption = item.caption?.trim() ?? "";
-    if (!url && !caption) return null;
-    return {
-      type: item.type,
-      ...(url ? { url } : {}),
-      ...(caption ? { caption } : {}),
-    };
-  }
-
-  const gallery = (item.gallery ?? [])
-    .map((galleryItem) => ({ url: galleryItem.url.trim() }))
-    .filter((galleryItem) => galleryItem.url);
-  const caption = item.caption?.trim() ?? "";
-
-  if (gallery.length === 0 && !caption) return null;
-
-  return {
-    type: "gallery",
-    ...(gallery.length > 0 ? { gallery } : {}),
-    ...(caption ? { caption } : {}),
-  };
-};
-
-const sanitizeDescriptionItems = (items: DescriptionItem[]) =>
-  items
-    .map((item) => sanitizeDescriptionItem(item))
-    .filter((item): item is DescriptionItem => Boolean(item));
-
-const createInitialNewProduct = (): NewProductDraft => ({
-  name: "",
-  sku: "",
-  shortDescription: "",
-  descriptions: [],
-  specifications: [],
-  videos: [],
-  retailPrice: "",
-  warrantyPeriod: "12",
-  publishStatus: "DRAFT" as "DRAFT" | "PUBLISHED",
-  isFeatured: false,
-  showOnHomepage: false,
-  imageUrl: "",
-});
+import {
+  createInitialNewProduct,
+  createProductErrorFieldOrder,
+  createProductErrorTabMap,
+  hasDescriptionContent,
+  hasSpecificationContent,
+  hasVideoContent,
+  sanitizeDescriptionItems,
+  type CreateProductErrorField,
+  type DescriptionItem,
+  type GalleryItem,
+  type NewProductDraft,
+  type ProductVideoItem,
+} from "./products/editor/createProductModel";
 
 function CreateProductPage() {
   const { t } = useLanguage();
