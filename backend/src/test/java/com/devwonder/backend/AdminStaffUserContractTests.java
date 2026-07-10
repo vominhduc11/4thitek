@@ -316,6 +316,43 @@ class AdminStaffUserContractTests {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    void creatingStaffUserAppliesAssignedSystemRole() throws Exception {
+        String accessToken = login("staff.owner@example.com", "ChangedPass#456");
+
+        mockMvc.perform(post("/api/v1/admin/users")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "warehouse.staff@example.com",
+                                  "name": "Warehouse Staff",
+                                  "role": "Kho vận",
+                                  "systemRole": "WAREHOUSE"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.systemRole").value("WAREHOUSE"));
+    }
+
+    @Test
+    void creatingStaffUserRejectsUnsupportedSystemRole() throws Exception {
+        String accessToken = login("staff.owner@example.com", "ChangedPass#456");
+
+        mockMvc.perform(post("/api/v1/admin/users")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "bad.staff@example.com",
+                                  "name": "Bad Staff",
+                                  "role": "Support",
+                                  "systemRole": "SUPER_ADMIN"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
     private String login(String username, String password) throws Exception {
         MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(APPLICATION_JSON)

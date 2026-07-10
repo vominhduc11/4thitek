@@ -158,7 +158,16 @@ class BulkDiscountTarget {
   final String? rangeLabel;
 }
 
-enum OrderStatus { pending, confirmed, shipping, completed, cancelled }
+enum OrderStatus {
+  pending,
+  confirmed,
+  processing,
+  shipping,
+  completed,
+  cancelRequested,
+  cancelRejected,
+  cancelled,
+}
 
 extension OrderStatusLabel on OrderStatus {
   String get label {
@@ -167,10 +176,16 @@ extension OrderStatusLabel on OrderStatus {
         return 'Ch\u1EDD x\u1EED l\u00FD';
       case OrderStatus.confirmed:
         return '\u0110\u00E3 x\u00E1c nh\u1EADn';
+      case OrderStatus.processing:
+        return '\u0110ang chu\u1EA9n b\u1ECB h\u00E0ng';
       case OrderStatus.shipping:
         return '\u0110ang giao';
       case OrderStatus.completed:
         return 'Ho\u00E0n th\u00E0nh';
+      case OrderStatus.cancelRequested:
+        return '\u0110\u00E3 g\u1EEDi y\u00EAu c\u1EA7u h\u1EE7y';
+      case OrderStatus.cancelRejected:
+        return 'Y\u00EAu c\u1EA7u h\u1EE7y b\u1ECB t\u1EEB ch\u1ED1i';
       case OrderStatus.cancelled:
         return '\u0110\u00E3 h\u1EE7y';
     }

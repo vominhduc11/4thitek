@@ -17,6 +17,15 @@ These rules are the current production contract. If code, UI, tests, or docs dri
 - A new order starts with `order.status = PENDING` and `paymentStatus = PENDING`.
 - Admin must not confirm or process unpaid orders.
 - Payment reconciliation is a bank-transfer flow only.
+- Order status workflow: `PENDING -> CONFIRMED -> PROCESSING -> SHIPPING -> COMPLETED`.
+- A dealer cannot cancel an order directly. From `PENDING` or `CONFIRMED` a dealer raises a
+  cancel request, moving the order to `CANCEL_REQUESTED`. An admin then approves it
+  (`-> CANCELLED`) or rejects it (`-> CANCEL_REJECTED`). A rejected request is resumable:
+  the order returns to the status it held before the request.
+- Inventory and financial side effects of cancellation (serial release, stock restore,
+  `FinancialSettlement`) occur only on the actual transition to `CANCELLED` — never on
+  `CANCEL_REQUESTED` or `CANCEL_REJECTED`.
+- System auto-cancel of stale unpaid `PENDING` orders bypasses the request flow.
 
 ### 0.2 Dealer app runtime
 
@@ -109,6 +118,8 @@ Forgot-password must not leak account existence. Reset validation and completion
 - Dealer creates orders with `BANK_TRANSFER`.
 - Dealer checkout must not expose any alternate payment method.
 - Payment records are created and advanced only through bank-transfer confirmation and reconciliation flows.
+- A dealer cancels an order by submitting a cancel request (order moves to `CANCEL_REQUESTED`),
+  not by cancelling directly. The dealer app surfaces this as "request cancellation".
 
 ### 2.4 Inventory
 
@@ -212,6 +223,26 @@ Forgot-password must not leak account existence. Reset validation and completion
 - Order idempotency must remain intact.
 - Exact-match payment reconciliation rules must not regress.
 - Stale orders with financial evidence must not be cancelled blindly.
+- `OrderStatus` values: `PENDING`, `CONFIRMED`, `PROCESSING`, `SHIPPING`, `COMPLETED`,
+  `CANCEL_REQUESTED`, `CANCEL_REJECTED`, `CANCELLED`.
+- Allowed admin transitions: `PENDING->{CONFIRMED,CANCELLED}`,
+  `CONFIRMED->{PROCESSING,CANCELLED}`, `PROCESSING->{SHIPPING,CANCELLED}`,
+  `SHIPPING->{COMPLETED}`, `CANCEL_REQUESTED->{CANCELLED,CANCEL_REJECTED}`,
+  `CANCEL_REJECTED->{PENDING,CONFIRMED,PROCESSING,CANCELLED}`.
+- Allowed dealer transitions: `PENDING->CANCEL_REQUESTED`, `CONFIRMED->CANCEL_REQUESTED`.
+- `Order.cancelRequestedFrom` records the pre-request status so a rejected cancel request
+  can resume the order; `Order.cancelRequestReason` holds the dealer-supplied reason.
+- The single order-status endpoint enforces per-transition permissions: `orders.approve`
+  for confirming, `orders.process` for processing/shipping/completing, `orders.cancel.review`
+  for cancelling and reviewing cancel requests.
+
+### 5.1a Roles and permissions
+
+- Internal staff roles: `SUPER_ADMIN`, `ADMIN`, `SALES`, `WAREHOUSE`, `ACCOUNTANT`,
+  `CONTENT_EDITOR`. `SUPER_ADMIN` and `ADMIN` implicitly hold every permission code.
+- Admin endpoints are gated by granular permission codes via method-level authorization;
+  see migration `V42` for the role-to-permission catalog.
+- `SUPER_ADMIN`-only surfaces remain restricted: admin user management, settings, audit logs.
 
 ### 5.2 Serial lifecycle
 

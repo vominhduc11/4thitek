@@ -393,12 +393,17 @@ class OrderController extends ChangeNotifier {
   // Admin-only transitions (pending -> confirmed, confirmed -> shipping,
   // shipping -> completed/cancelled) are intentionally absent because the
   // dealer app has no UI to trigger them.
+  // A dealer cannot cancel an order directly. From pending/confirmed the dealer
+  // raises a cancel request; an admin then approves or rejects it.
   static const Map<OrderStatus, Set<OrderStatus>> _validTransitions =
       <OrderStatus, Set<OrderStatus>>{
-        OrderStatus.pending: {OrderStatus.cancelled},
-        OrderStatus.confirmed: {OrderStatus.cancelled},
+        OrderStatus.pending: {OrderStatus.cancelRequested},
+        OrderStatus.confirmed: {OrderStatus.cancelRequested},
+        OrderStatus.processing: {},
         OrderStatus.shipping: {},
         OrderStatus.completed: {},
+        OrderStatus.cancelRequested: {},
+        OrderStatus.cancelRejected: {},
         OrderStatus.cancelled: {},
       };
 
@@ -431,7 +436,7 @@ class OrderController extends ChangeNotifier {
         body: jsonEncode(<String, dynamic>{
           'status': _toRemoteOrderStatus(status),
           if (cancelReason != null && cancelReason.trim().isNotEmpty)
-            'cancelReason': cancelReason.trim(),
+            'reason': cancelReason.trim(),
         }),
         ),
       );
@@ -884,10 +889,16 @@ class OrderController extends ChangeNotifier {
     switch ((raw ?? '').trim().toUpperCase()) {
       case 'CONFIRMED':
         return OrderStatus.confirmed;
+      case 'PROCESSING':
+        return OrderStatus.processing;
       case 'SHIPPING':
         return OrderStatus.shipping;
       case 'COMPLETED':
         return OrderStatus.completed;
+      case 'CANCEL_REQUESTED':
+        return OrderStatus.cancelRequested;
+      case 'CANCEL_REJECTED':
+        return OrderStatus.cancelRejected;
       case 'CANCELLED':
         return OrderStatus.cancelled;
       case 'PENDING':
@@ -902,10 +913,16 @@ class OrderController extends ChangeNotifier {
         return 'PENDING';
       case OrderStatus.confirmed:
         return 'CONFIRMED';
+      case OrderStatus.processing:
+        return 'PROCESSING';
       case OrderStatus.shipping:
         return 'SHIPPING';
       case OrderStatus.completed:
         return 'COMPLETED';
+      case OrderStatus.cancelRequested:
+        return 'CANCEL_REQUESTED';
+      case OrderStatus.cancelRejected:
+        return 'CANCEL_REJECTED';
       case OrderStatus.cancelled:
         return 'CANCELLED';
     }

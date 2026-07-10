@@ -7,6 +7,7 @@ public record AuthUserResponse(
         String username,
         String accountType,
         Set<String> roles,
+        Set<String> permissions,
         boolean requirePasswordChange
 ) {
 }

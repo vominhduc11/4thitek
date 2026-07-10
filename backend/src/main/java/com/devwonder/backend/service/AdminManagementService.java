@@ -97,6 +97,9 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -282,6 +285,7 @@ public class AdminManagementService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
         OrderStatus previousStatus = order.getStatus();
         OrderStatusTransitionPolicy.assertAdminTransitionAllowed(previousStatus, request.status());
+        assertOrderTransitionPermission(previousStatus, request.status());
         if (previousStatus == OrderStatus.PENDING
                 && request.status() == OrderStatus.CONFIRMED
                 && order.getPaymentStatus() != PaymentStatus.PAID) {
@@ -289,6 +293,14 @@ public class AdminManagementService {
         }
         order.setStatus(request.status());
         applyLifecycleTimestamps(order, request.status(), previousStatus);
+        // Clear the cancel-request trace once the request is resolved: either the order is
+        // finally CANCELLED, or a rejected request is resumed back into the active workflow.
+        if (request.status() == OrderStatus.CANCELLED
+                || (previousStatus == OrderStatus.CANCEL_REJECTED
+                        && request.status() != OrderStatus.CANCEL_REJECTED)) {
+            order.setCancelRequestedFrom(null);
+            order.setCancelRequestReason(null);
+        }
         if (previousStatus != OrderStatus.CANCELLED && request.status() == OrderStatus.CANCELLED) {
             productSerialOrderSupport.releaseNonWarrantySerials(order);
             orderInventorySupport.restoreStock(order);
@@ -664,7 +676,8 @@ public class AdminManagementService {
         admin.setRoleTitle(roleTitle);
         admin.setUserStatus(request.status() == null ? StaffUserStatus.PENDING : request.status());
         admin.setRequirePasswordChange(Boolean.TRUE);
-        admin.setRoles(new HashSet<>(List.of(resolveRole("ADMIN", "Admin role"))));
+        String systemRole = resolveAssignableSystemRole(request.systemRole());
+        admin.setRoles(new HashSet<>(List.of(resolveRole(systemRole, systemRole + " role"))));
         Admin saved = adminRepository.save(admin);
         passwordResetService.sendStaffOnboardingLink(saved);
         emailVerificationService.sendVerificationEmail(saved);
@@ -821,6 +834,25 @@ public class AdminManagementService {
         });
     }
 
+    /** Security roles that may be assigned to a staff account through admin user creation. */
+    private static final java.util.Set<String> ASSIGNABLE_SYSTEM_ROLES = java.util.Set.of(
+            "ADMIN", "SALES", "WAREHOUSE", "ACCOUNTANT", "CONTENT_EDITOR"
+    );
+
+    private String resolveAssignableSystemRole(String requested) {
+        String normalized = normalize(requested);
+        if (normalized == null) {
+            return "ADMIN";
+        }
+        String upper = normalized.toUpperCase(java.util.Locale.ROOT);
+        if (!ASSIGNABLE_SYSTEM_ROLES.contains(upper)) {
+            throw new BadRequestException(
+                    "Unsupported systemRole: " + requested
+                            + " (allowed: ADMIN, SALES, WAREHOUSE, ACCOUNTANT, CONTENT_EDITOR)");
+        }
+        return upper;
+    }
+
     private String normalize(String value) {
         return AccountValidationSupport.normalize(value);
     }
@@ -880,6 +912,39 @@ public class AdminManagementService {
             builder.append(TEMP_PASSWORD_CHARS.charAt(index));
         }
         return builder.toString();
+    }
+
+    /**
+     * Enforces segregation of duties on the single order-status endpoint: the required
+     * permission depends on the transition, so it cannot be expressed by a static
+     * {@code @PreAuthorize}. SUPER_ADMIN / ADMIN hold every code and always pass.
+     */
+    private void assertOrderTransitionPermission(OrderStatus previous, OrderStatus next) {
+        if (previous == null || next == null || previous == next) {
+            return;
+        }
+        String required;
+        if (previous == OrderStatus.CANCEL_REJECTED
+                || next == OrderStatus.CANCELLED
+                || next == OrderStatus.CANCEL_REJECTED) {
+            required = "orders.cancel.review";
+        } else if (next == OrderStatus.CONFIRMED) {
+            required = "orders.approve";
+        } else {
+            required = "orders.process";
+        }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        // No authenticated principal => non-HTTP / system / internal call. The HTTP endpoint
+        // is already gated by @PreAuthorize; only enforce the fine-grained code when a real
+        // authenticated request is in flight.
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return;
+        }
+        boolean granted = authentication.getAuthorities().stream()
+                .anyMatch(authority -> required.equals(authority.getAuthority()));
+        if (!granted) {
+            throw new AccessDeniedException("Missing permission for order transition: " + required);
+        }
     }
 
     private void applyLifecycleTimestamps(Order order, OrderStatus nextStatus, OrderStatus previousStatus) {

@@ -1,6 +1,7 @@
 package com.devwonder.backend.config;
 
 import com.devwonder.backend.entity.AuditLog;
+import com.devwonder.backend.security.AdminActorRoleSupport;
 import com.devwonder.backend.service.AuditLogService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -74,12 +75,8 @@ public class AdminAuditLoggingAspect {
 
         AuditLog auditLog = new AuditLog();
         auditLog.setActor(authentication == null ? null : authentication.getName());
-        auditLog.setActorRole(authentication == null
-                ? null
-                : authentication.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .sorted()
-                .collect(Collectors.joining(",")));
+        // Only role names — never permission codes — to keep actor_role within varchar(255).
+        auditLog.setActorRole(AdminActorRoleSupport.resolveRoleNames(authentication));
         auditLog.setAction(resolveAction(request.getMethod(), requestPath));
         auditLog.setRequestMethod(request.getMethod());
         auditLog.setRequestPath(requestPath);

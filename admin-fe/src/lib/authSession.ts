@@ -16,6 +16,7 @@ type AuthApiResponse = {
     username: string
     accountType: string
     roles: string[]
+    permissions?: string[]
     requirePasswordChange?: boolean
   }
 }
@@ -26,6 +27,7 @@ export type StoredAuthSession = {
   accessToken?: string
   accountType?: string
   roles?: string[]
+  permissions?: string[]
   requiresPasswordChange?: boolean
   expiresAt?: number
   refreshCookieIssued?: boolean
@@ -68,6 +70,9 @@ const sanitizeSession = (input: Partial<StoredAuthSession>): StoredAuthSession |
     roles: Array.isArray(input.roles)
       ? input.roles.filter((roleItem): roleItem is string => typeof roleItem === 'string')
       : undefined,
+    permissions: Array.isArray(input.permissions)
+      ? input.permissions.filter((code): code is string => typeof code === 'string')
+      : undefined,
     requiresPasswordChange:
       typeof input.requiresPasswordChange === 'boolean'
         ? input.requiresPasswordChange
@@ -92,6 +97,7 @@ const toPersistedSession = (session: StoredAuthSession): PersistedAuthSession =>
   role: session.role,
   accountType: session.accountType,
   roles: session.roles,
+  permissions: session.permissions,
   requiresPasswordChange: session.requiresPasswordChange,
   refreshCookieIssued: session.refreshCookieIssued,
   persistAcrossRestarts: session.persistAcrossRestarts,
@@ -160,6 +166,38 @@ const writeSessionToStorage = (session: StoredAuthSession, remember: boolean) =>
   emitAuthSessionChange()
 }
 
+// Internal staff roles allowed into admin-fe. Every one of them is an `Admin` entity on the
+// backend (accountType === 'ADMIN'); `DEALER` accounts are rejected client-side. The backend
+// already grants these roles access to /api/v1/admin/** (SecurityConfig), so the client gate now
+// matches the server gate — nav + routes are then filtered by permission code.
+const STAFF_ROLES = new Set([
+  'SUPER_ADMIN',
+  'ADMIN',
+  'SALES',
+  'WAREHOUSE',
+  'ACCOUNTANT',
+  'CONTENT_EDITOR',
+])
+
+// Display label for the account chip, most-privileged role first.
+const ROLE_LABELS: Array<[string, string]> = [
+  ['SUPER_ADMIN', 'Super Admin'],
+  ['ADMIN', 'Admin'],
+  ['SALES', 'Sales'],
+  ['WAREHOUSE', 'Warehouse'],
+  ['ACCOUNTANT', 'Accountant'],
+  ['CONTENT_EDITOR', 'Content Editor'],
+]
+
+const resolveRoleLabel = (roles: string[]): string => {
+  for (const [role, label] of ROLE_LABELS) {
+    if (roles.includes(role)) {
+      return label
+    }
+  }
+  return roles[0] ?? 'Admin'
+}
+
 export const createAuthSessionFromResponse = (
   payload: AuthApiResponse,
   fallbackUsername: string,
@@ -167,8 +205,14 @@ export const createAuthSessionFromResponse = (
   options?: { remember?: boolean },
 ) => {
   const roles = Array.isArray(payload.user?.roles) ? payload.user.roles : []
+  const accountType = (payload.user?.accountType ?? '').toUpperCase()
 
-  if (!roles.includes('ADMIN') && !roles.includes('SUPER_ADMIN')) {
+  // Allow any internal staff account (Admin entity); reject dealers.
+  const isInternalStaff =
+    accountType === 'ADMIN' ||
+    (accountType !== 'DEALER' && roles.some((role) => STAFF_ROLES.has(role)))
+
+  if (!isInternalStaff) {
     return null
   }
 
@@ -179,10 +223,13 @@ export const createAuthSessionFromResponse = (
 
   return sanitizeSession({
     username: payload.user.username || currentSession?.username || fallbackUsername,
-    role: roles.includes('SUPER_ADMIN') ? 'Super Admin' : 'Admin',
+    role: resolveRoleLabel(roles),
     accessToken: payload.accessToken,
     accountType: payload.user.accountType || currentSession?.accountType,
     roles,
+    permissions: Array.isArray(payload.user?.permissions)
+      ? payload.user.permissions
+      : currentSession?.permissions,
     requiresPasswordChange: Boolean(payload.user.requirePasswordChange),
     expiresAt:
       typeof payload.expiresIn === 'number' && Number.isFinite(payload.expiresIn)

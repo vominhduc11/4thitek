@@ -154,7 +154,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   final orderController = OrderScope.of(context);
                   final success = await orderController.updateOrderStatus(
                     order.id,
-                    OrderStatus.cancelled,
+                    OrderStatus.cancelRequested,
                   );
                   if (!context.mounted || success) {
                     return;
@@ -758,8 +758,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
       null,
       OrderStatus.pending,
       OrderStatus.confirmed,
+      OrderStatus.processing,
       OrderStatus.shipping,
       OrderStatus.completed,
+      OrderStatus.cancelRequested,
+      OrderStatus.cancelRejected,
       OrderStatus.cancelled,
     ];
     final paymentFilters = <OrderPaymentStatus?>[
@@ -1024,17 +1027,22 @@ class _OrdersScreenState extends State<OrdersScreen> {
                         padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
                         child: Row(
                           children: [
-                            OutlinedButton.icon(
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: colors.error,
-                                side: BorderSide(
-                                  color: colors.error.withValues(alpha: 0.3),
+                            Flexible(
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: colors.error,
+                                  side: BorderSide(
+                                    color: colors.error.withValues(alpha: 0.3),
+                                  ),
+                                  minimumSize: const Size(0, 44),
                                 ),
-                                minimumSize: const Size(0, 44),
+                                onPressed: () => _confirmCancel(context, order),
+                                icon: const Icon(Icons.close_rounded, size: 18),
+                                label: Text(
+                                  texts.cancelOrderAction,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                              onPressed: () => _confirmCancel(context, order),
-                              icon: const Icon(Icons.close_rounded, size: 18),
-                              label: Text(texts.cancelOrderAction),
                             ),
                             const Spacer(),
                             if (order.status == OrderStatus.pending)
@@ -1879,9 +1887,10 @@ class _OrdersTexts {
   String get outstandingCriteriaLabel =>
       isEnglish ? 'Remaining balance' : 'Còn phải thanh toán';
   String get confirmCancelTitle =>
-      isEnglish ? 'Confirm cancellation' : 'Xác nhận hủy đơn';
+      isEnglish ? 'Request cancellation' : 'Gửi yêu cầu hủy đơn';
   String get noAction => isEnglish ? 'No' : 'Không';
-  String get cancelOrderAction => isEnglish ? 'Cancel order' : 'Hủy đơn';
+  String get cancelOrderAction =>
+      isEnglish ? 'Send cancellation request' : 'Gửi yêu cầu hủy';
   String get confirmOrderAction => isEnglish ? 'Confirm' : 'Xác nhận';
   String get startShippingAction => isEnglish ? 'Ship' : 'Giao hàng';
   String get updateOrderStatusFailedMessage => isEnglish
@@ -1913,10 +1922,16 @@ class _OrdersTexts {
         return isEnglish ? 'Pending' : 'Chờ xử lý';
       case OrderStatus.confirmed:
         return isEnglish ? 'Confirmed' : 'Đã xác nhận';
+      case OrderStatus.processing:
+        return isEnglish ? 'Processing' : 'Đang chuẩn bị hàng';
       case OrderStatus.shipping:
         return isEnglish ? 'Shipping' : 'Đang giao';
       case OrderStatus.completed:
         return isEnglish ? 'Completed' : 'Hoàn thành';
+      case OrderStatus.cancelRequested:
+        return isEnglish ? 'Cancel requested' : 'Đã gửi yêu cầu hủy';
+      case OrderStatus.cancelRejected:
+        return isEnglish ? 'Cancel rejected' : 'Yêu cầu hủy bị từ chối';
       case OrderStatus.cancelled:
         return isEnglish ? 'Cancelled' : 'Đã hủy';
     }
@@ -1947,8 +1962,8 @@ class _OrdersTexts {
       '${isEnglish ? 'Keyword' : 'Từ khóa'}: "$value"';
 
   String confirmCancelDescription(String orderId) => isEnglish
-      ? 'Cancel order $orderId? This cannot be undone and the customer will be notified.'
-      : 'Hủy đơn hàng $orderId? Thao tác này không thể hoàn tác và khách hàng sẽ được thông báo.';
+      ? 'Send a cancellation request for order $orderId? An admin will review and approve or reject it.'
+      : 'Gửi yêu cầu hủy đơn $orderId? Quản trị viên sẽ xem xét và duyệt hoặc từ chối.';
 
   String orderSemanticsLabel(Order order) {
     final count = itemCountLabel(order.totalItems);
@@ -2067,10 +2082,16 @@ Color _backgroundForStatus(OrderStatus status) {
       return const Color(0xFF4C3B16);
     case OrderStatus.confirmed:
       return const Color(0xFF1E3150);
+    case OrderStatus.processing:
+      return const Color(0xFF154052);
     case OrderStatus.shipping:
       return const Color(0xFF154052);
     case OrderStatus.completed:
       return const Color(0xFF1A3F2D);
+    case OrderStatus.cancelRequested:
+      return const Color(0xFF4C3B16);
+    case OrderStatus.cancelRejected:
+      return const Color(0xFF2A3642);
     case OrderStatus.cancelled:
       return const Color(0xFF2A3642);
   }
@@ -2082,10 +2103,16 @@ Color _textForStatus(OrderStatus status) {
       return const Color(0xFFF4D18A);
     case OrderStatus.confirmed:
       return const Color(0xFF93C5FD);
+    case OrderStatus.processing:
+      return const Color(0xFF7DD3FC);
     case OrderStatus.shipping:
       return const Color(0xFF7DD3FC);
     case OrderStatus.completed:
       return const Color(0xFF86EFAC);
+    case OrderStatus.cancelRequested:
+      return const Color(0xFFF4D18A);
+    case OrderStatus.cancelRejected:
+      return const Color(0xFFCBD5E1);
     case OrderStatus.cancelled:
       return const Color(0xFFCBD5E1);
   }

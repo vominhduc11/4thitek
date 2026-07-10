@@ -25,6 +25,7 @@ type AuthUser = {
   accessToken?: string;
   accountType?: string;
   roles?: string[];
+  permissions?: string[];
   requiresPasswordChange?: boolean;
 };
 
@@ -44,6 +45,8 @@ type AuthContextValue = {
   login: (payload: LoginPayload) => Promise<{ ok: boolean; message?: string; code?: string }>;
   logout: () => void;
   hasRole: (role: string) => boolean;
+  permissions: string[];
+  hasPermission: (code: string) => boolean;
   completePasswordChange: () => void;
 };
 
@@ -64,6 +67,7 @@ type AuthApiResponse = {
     username: string;
     accountType: string;
     roles: string[];
+    permissions?: string[];
     requirePasswordChange?: boolean;
   };
 };
@@ -83,6 +87,7 @@ const mapSessionToUser = (
     accessToken: session.accessToken,
     accountType: session.accountType,
     roles: session.roles,
+    permissions: session.permissions,
     requiresPasswordChange: session.requiresPasswordChange,
   };
 };
@@ -238,6 +243,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     [user?.roles],
   );
 
+  const permissions = useMemo(() => user?.permissions ?? [], [user?.permissions]);
+
+  const hasPermission = useCallback(
+    (code: string) =>
+      permissions.includes("*") || permissions.includes(code),
+    [permissions],
+  );
+
   const completePasswordChange = useCallback(() => {
     const nextSession = updateStoredAuthSession((current) => ({
       ...current,
@@ -258,15 +271,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       login,
       logout,
       hasRole,
+      permissions,
+      hasPermission,
       completePasswordChange,
     }),
     [
       completePasswordChange,
+      hasPermission,
       hasRole,
       isInitializing,
       isLoggingIn,
       login,
       logout,
+      permissions,
       user,
     ],
   );

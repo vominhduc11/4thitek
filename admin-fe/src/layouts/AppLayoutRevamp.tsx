@@ -47,6 +47,7 @@ import {
   tableMetaClass,
 } from "../components/ui-kit";
 import { ADMIN_APP_NAME, BRAND_NAME } from "../config/businessProfile";
+import { canAccessPath } from "../config/navPermissions";
 import { useAdminData } from "../context/AdminDataContext";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
@@ -232,7 +233,7 @@ const loadNavGroups = (): Record<NavGroupId, boolean> => {
 function AppLayoutRevamp() {
   const { language, t } = useLanguage();
   const copy = translateCopy(copyKeys, t);
-  const { user, logout, hasRole, accessToken } = useAuth();
+  const { user, logout, hasRole, hasPermission, accessToken } = useAuth();
   const { notify } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -423,29 +424,30 @@ function AppLayoutRevamp() {
       },
     ];
 
-    if (hasRole("SUPER_ADMIN")) {
-      items.unshift({
+    items.push(
+      {
         to: "/users",
         label: copy.nav.users,
         icon: Users,
         group: "system",
-      });
-      items.push({
+      },
+      {
         to: "/audit-logs",
         label: copy.nav.auditLogs,
         icon: ClipboardList,
         group: "system",
-      });
-      items.push({
+      },
+      {
         to: "/settings",
         label: copy.nav.settings,
         icon: Settings,
         group: "system",
-      });
-    }
+      },
+    );
 
-    return items;
-  }, [copy.nav, hasRole]);
+    // Show only modules the user is allowed to reach (permission code or SUPER_ADMIN-only role).
+    return items.filter((item) => canAccessPath(item.to, hasPermission, hasRole));
+  }, [copy.nav, hasPermission, hasRole]);
 
   const groupedNav = useMemo(
     () =>

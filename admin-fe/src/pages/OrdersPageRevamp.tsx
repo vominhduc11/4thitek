@@ -164,8 +164,11 @@ function OrdersPageRevamp() {
     { value: "all", label: copy.allStatuses },
     { value: "pending", label: t(orderStatusLabel.pending) },
     { value: "confirmed", label: t(orderStatusLabel.confirmed) },
+    { value: "processing", label: t(orderStatusLabel.processing) },
     { value: "shipping", label: t(orderStatusLabel.shipping) },
     { value: "completed", label: t(orderStatusLabel.completed) },
+    { value: "cancel_requested", label: t(orderStatusLabel.cancel_requested) },
+    { value: "cancel_rejected", label: t(orderStatusLabel.cancel_rejected) },
     { value: "cancelled", label: t(orderStatusLabel.cancelled) },
   ];
   const { notify } = useToast();

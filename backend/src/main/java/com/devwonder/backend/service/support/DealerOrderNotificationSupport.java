@@ -130,6 +130,40 @@ public class DealerOrderNotificationSupport {
     }
 
     /**
+     * Notifies all ACTIVE admins that a dealer raised a cancel request awaiting review
+     * (order moved to CANCEL_REQUESTED).
+     */
+    public void notifyAdminsDealerCancelRequested(Order order) {
+        if (!adminSettingsService.getEffectiveSettings().orderAlerts()) {
+            return;
+        }
+        if (order == null || order.getId() == null) {
+            return;
+        }
+        Dealer dealer = order.getDealer();
+        String dealerName = dealer == null
+                ? "Đại lý"
+                : firstNonBlank(dealer.getBusinessName(), dealer.getContactName(), dealer.getUsername(), "Đại lý");
+        String orderCode = firstNonBlank(order.getOrderCode(), String.valueOf(order.getId()));
+        for (Admin admin : adminRepository.findAll()) {
+            if (admin == null || admin.getId() == null) {
+                continue;
+            }
+            if (admin.getUserStatus() != null && admin.getUserStatus() != StaffUserStatus.ACTIVE) {
+                continue;
+            }
+            notificationService.create(new CreateNotifyRequest(
+                    admin.getId(),
+                    appMessageSupport.get("notification.admin.dealer-cancel-requested.title"),
+                    appMessageSupport.get("notification.admin.dealer-cancel-requested.content", dealerName, orderCode),
+                    NotifyType.ORDER,
+                    "/orders/" + order.getId(),
+                    null
+            ));
+        }
+    }
+
+    /**
      * Notifies all ACTIVE admins that a cancelled order has a FinancialSettlement pending resolution.
      * Called when order is cancelled and paidAmount > 0 (BUSINESS_LOGIC.md Section 3.4 [Policy]).
      */

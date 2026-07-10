@@ -126,8 +126,11 @@ public class AdminOrderNotificationSupport {
         return switch (status) {
             case PENDING -> "Chờ xử lý";
             case CONFIRMED -> "Đã xác nhận";
+            case PROCESSING -> "Đang chuẩn bị hàng";
             case SHIPPING -> "Đang giao";
             case COMPLETED -> "Hoàn tất";
+            case CANCEL_REQUESTED -> "Chờ duyệt yêu cầu hủy";
+            case CANCEL_REJECTED -> "Yêu cầu hủy bị từ chối";
             case CANCELLED -> "Đã hủy";
         };
     }

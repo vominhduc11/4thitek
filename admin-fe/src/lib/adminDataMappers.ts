@@ -36,10 +36,16 @@ export const mapBackendOrderStatus = (status?: BackendOrderStatus | null): Order
   switch (status) {
     case 'CONFIRMED':
       return 'confirmed'
+    case 'PROCESSING':
+      return 'processing'
     case 'SHIPPING':
       return 'shipping'
     case 'COMPLETED':
       return 'completed'
+    case 'CANCEL_REQUESTED':
+      return 'cancel_requested'
+    case 'CANCEL_REJECTED':
+      return 'cancel_rejected'
     case 'CANCELLED':
       return 'cancelled'
     default:
@@ -51,10 +57,16 @@ export const toBackendOrderStatus = (status: OrderStatus): BackendOrderStatus =>
   switch (status) {
     case 'confirmed':
       return 'CONFIRMED'
+    case 'processing':
+      return 'PROCESSING'
     case 'shipping':
       return 'SHIPPING'
     case 'completed':
       return 'COMPLETED'
+    case 'cancel_requested':
+      return 'CANCEL_REQUESTED'
+    case 'cancel_rejected':
+      return 'CANCEL_REJECTED'
     case 'cancelled':
       return 'CANCELLED'
     default:
@@ -276,11 +288,23 @@ export const mapDealer = (dealer: BackendDealerAccountResponse): Dealer => ({
   ),
 })
 
+const KNOWN_SYSTEM_ROLES = [
+  'SUPER_ADMIN',
+  'ADMIN',
+  'SALES',
+  'WAREHOUSE',
+  'ACCOUNTANT',
+  'CONTENT_EDITOR',
+] as const
+
 export const mapUser = (user: BackendStaffUserResponse): StaffUser => ({
   id: String(user.id),
   name: user.name || user.username || '',
   role: user.role || '',
-  systemRole: user.systemRole === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'ADMIN',
+  systemRole:
+    user.systemRole && KNOWN_SYSTEM_ROLES.includes(user.systemRole)
+      ? user.systemRole
+      : 'ADMIN',
   email: user.email || '',
   status: mapBackendUserStatus(user.status),
 })

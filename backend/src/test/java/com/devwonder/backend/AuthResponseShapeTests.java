@@ -86,6 +86,7 @@ class AuthResponseShapeTests {
                 .andExpect(jsonPath("$.data.user.username").isString())
                 .andExpect(jsonPath("$.data.user.accountType").isString())
                 .andExpect(jsonPath("$.data.user.roles").isArray())
+                .andExpect(jsonPath("$.data.user.permissions").isArray())
                 .andExpect(jsonPath("$.data.user.requirePasswordChange").isBoolean())
                 // Cookie-based refresh token must be set
                 .andExpect(cookie().exists("fourthitek_refresh"));

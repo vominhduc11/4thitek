@@ -7,7 +7,15 @@ import { translateCopy } from "../lib/i18n";
 import { useToast } from "../context/ToastContext";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { resetAdminUserPassword } from "../lib/adminApi";
-import { userStatusLabel, userStatusTone } from "../lib/adminLabels";
+import {
+  ASSIGNABLE_SYSTEM_ROLES,
+  systemRoleDescription,
+  systemRoleLabel,
+  systemRoleTone,
+  userStatusLabel,
+  userStatusTone,
+  type SystemRole,
+} from "../lib/adminLabels";
 import {
   EmptyState,
   ErrorState,
@@ -38,6 +46,7 @@ type InviteForm = {
   email: string;
   name: string;
   role: string;
+  systemRole: SystemRole;
 };
 
 type InviteFormErrors = Partial<Record<keyof InviteForm, string>>;
@@ -46,6 +55,7 @@ const initialForm: InviteForm = {
   email: "",
   name: "",
   role: "",
+  systemRole: "ADMIN",
 };
 
 const isValidEmail = (value: string) =>
@@ -69,7 +79,7 @@ const copyKeys = {
   role: "Chức danh hiển thị",
   systemRole: "Vai trò hệ thống",
   systemRoleDescription:
-    "Quyền backend thật. Tài khoản mới tạo từ màn này luôn mang ADMIN; SUPER_ADMIN không được gán tại đây.",
+    "Quyền backend thật của tài khoản. SUPER_ADMIN không thể gán tại đây.",
   rolePlaceholder: "Ví dụ: Hỗ trợ đại lý",
   roleHint:
     "Chỉ dùng để hiển thị nội bộ; quyền thật vẫn do role hệ thống ADMIN hoặc SUPER_ADMIN quyết định.",
@@ -224,6 +234,7 @@ function UsersPageRevamp() {
         email: form.email.trim(),
         name: form.name.trim(),
         role: form.role.trim(),
+        systemRole: form.systemRole,
       });
       notify(copy.inviteSuccess, { title: copy.title, variant: "success" });
       setShowInvite(false);
@@ -317,13 +328,31 @@ function UsersPageRevamp() {
           </div>
 
           <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 md:col-span-2">
-              <p className={labelClass}>{copy.systemRole}</p>
-              <p className="mt-1 font-semibold text-[var(--ink)]">ADMIN</p>
-              <p className={`${tableMetaClass} mt-1`}>
-                {copy.systemRoleDescription}
+            <label className="space-y-2 md:col-span-2" htmlFor="users-invite-system-role">
+              <span className={labelClass}>{copy.systemRole}</span>
+              <select
+                aria-describedby="users-invite-system-role-hint"
+                className={inputClass}
+                id="users-invite-system-role"
+                onChange={(event) => {
+                  clearFieldError("systemRole");
+                  setForm((current) => ({
+                    ...current,
+                    systemRole: event.target.value as SystemRole,
+                  }));
+                }}
+                value={form.systemRole}
+              >
+                {ASSIGNABLE_SYSTEM_ROLES.map((option) => (
+                  <option key={option} value={option}>
+                    {`${t(systemRoleLabel[option])} (${option})`}
+                  </option>
+                ))}
+              </select>
+              <p className={fieldHintClass} id="users-invite-system-role-hint">
+                {t(systemRoleDescription[form.systemRole])}
               </p>
-            </div>
+            </label>
 
             <label className="space-y-2 md:col-span-2" htmlFor="users-invite-email">
               <span className={labelClass}>{copy.email}</span>
@@ -453,8 +482,8 @@ function UsersPageRevamp() {
                     <p className={tableMetaClass}>{user.email}</p>
                     <p className={`${tableMetaClass} mt-1`}>{user.id}</p>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <StatusBadge tone="info">
-                        {copy.systemRole}: {user.systemRole}
+                      <StatusBadge tone={systemRoleTone[user.systemRole]}>
+                        {copy.systemRole}: {t(systemRoleLabel[user.systemRole])}
                       </StatusBadge>
                       <StatusBadge tone="neutral">
                         {copy.displayTitleLabel}: {user.role}

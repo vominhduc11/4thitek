@@ -1,5 +1,6 @@
 package com.devwonder.backend.config;
 
+import com.devwonder.backend.security.AdminActorRoleSupport;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -43,8 +44,9 @@ public class WebSocketAuthorizationInterceptor implements ChannelInterceptor {
         String destination = accessor.getDestination();
         Authentication authentication = requireAuthenticated(accessor);
         boolean isAdmin = authentication.getAuthorities().stream()
-                .anyMatch(granted -> "ADMIN".equalsIgnoreCase(granted.getAuthority())
-                        || "SUPER_ADMIN".equalsIgnoreCase(granted.getAuthority()));
+                .anyMatch(granted -> AdminActorRoleSupport.isRoleName(
+                        granted.getAuthority() == null ? null : granted.getAuthority().toUpperCase())
+                        && !"DEALER".equalsIgnoreCase(granted.getAuthority()));
 
         if (isUserQueueDestination(destination, "/queue/notifications")) {
             return;

@@ -2,7 +2,12 @@ import { lazy, Suspense, type ComponentType, type LazyExoticComponent } from 're
 import { Navigate, Route, Routes } from 'react-router-dom'
 import RouteErrorBoundary from './components/RouteErrorBoundary'
 import RouteFallback from './components/RouteFallback'
-import { ProtectedRoute, PublicOnlyRoute, SuperAdminRoute } from './components/auth/RouteGuards'
+import {
+  PermissionRoute,
+  ProtectedRoute,
+  PublicOnlyRoute,
+  SuperAdminRoute,
+} from './components/auth/RouteGuards'
 import { AdminDataProvider } from './context/AdminDataContext'
 import { ProductsProvider } from './context/ProductsContext'
 import AppLayout from './layouts/AppLayout'
@@ -71,56 +76,101 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route path="/change-password" element={renderLazyElement(ChangePasswordPage)} />
         <Route element={<AdminShell />}>
-          <Route index element={renderLazyElement(DashboardPage)} />
+          {/* Personal — any authenticated internal user */}
           <Route path="/profile" element={renderLazyElement(ProfilePage)} />
-          <Route path="/products" element={renderLazyElement(ProductsPage)} />
-          <Route path="/products/new" element={renderLazyElement(CreateProductPage)} />
-          <Route
-            path="/products/:sku"
-            element={renderLazyElement(ProductDetailPage)}
-          />
-          <Route path="/orders" element={renderLazyElement(OrdersPage)} />
-          <Route path="/orders/:id" element={renderLazyElement(OrderDetailPage)} />
-          <Route path="/blogs" element={renderLazyElement(BlogsPage)} />
-          <Route path="/blogs/:id" element={renderLazyElement(BlogDetailPage)} />
-          <Route
-            path="/discounts"
-            element={renderLazyElement(WholesaleDiscountsPage)}
-          />
-          <Route path="/dealers" element={renderLazyElement(DealersPage)} />
-          <Route
-            path="/dealers/:id"
-            element={renderLazyElement(DealerDetailPage)}
-          />
-          <Route
-            path="/support-tickets"
-            element={renderLazyElement(SupportTicketsPage)}
-          />
-          <Route path="/media" element={renderLazyElement(MediaLibraryPage)} />
-          <Route path="/returns" element={renderLazyElement(ReturnsPage)} />
-          <Route path="/returns/:id" element={renderLazyElement(ReturnDetailPage)} />
-          <Route
-            path="/warranties"
-            element={renderLazyElement(WarrantiesPage)}
-          />
-          <Route path="/serials" element={renderLazyElement(SerialsPage)} />
-          <Route
-            path="/notifications"
-            element={renderLazyElement(NotificationsPage)}
-          />
-          <Route path="/reports" element={renderLazyElement(ReportsPage)} />
-          <Route
-            path="/unmatched-payments"
-            element={renderLazyElement(UnmatchedPaymentsPage)}
-          />
-          <Route
-            path="/payments/recent"
-            element={renderLazyElement(RecentPaymentsPage)}
-          />
-          <Route
-            path="/financial-settlements"
-            element={renderLazyElement(FinancialSettlementsPage)}
-          />
+
+          {/* Dashboard (index): redirect to first accessible module when dashboard.read is absent */}
+          <Route element={<PermissionRoute required="dashboard.read" redirectOnDeny />}>
+            <Route index element={renderLazyElement(DashboardPage)} />
+          </Route>
+
+          <Route element={<PermissionRoute required="reports.read" />}>
+            <Route path="/reports" element={renderLazyElement(ReportsPage)} />
+          </Route>
+
+          <Route element={<PermissionRoute required="products.write" />}>
+            <Route path="/products" element={renderLazyElement(ProductsPage)} />
+            <Route path="/products/new" element={renderLazyElement(CreateProductPage)} />
+            <Route
+              path="/products/:sku"
+              element={renderLazyElement(ProductDetailPage)}
+            />
+          </Route>
+
+          <Route element={<PermissionRoute required="orders.read" />}>
+            <Route path="/orders" element={renderLazyElement(OrdersPage)} />
+            <Route path="/orders/:id" element={renderLazyElement(OrderDetailPage)} />
+          </Route>
+
+          <Route element={<PermissionRoute required="dealers.read" />}>
+            <Route path="/dealers" element={renderLazyElement(DealersPage)} />
+            <Route
+              path="/dealers/:id"
+              element={renderLazyElement(DealerDetailPage)}
+            />
+          </Route>
+
+          <Route element={<PermissionRoute required="discounts.write" />}>
+            <Route
+              path="/discounts"
+              element={renderLazyElement(WholesaleDiscountsPage)}
+            />
+          </Route>
+
+          <Route element={<PermissionRoute required="blogs.write" />}>
+            <Route path="/blogs" element={renderLazyElement(BlogsPage)} />
+            <Route path="/blogs/:id" element={renderLazyElement(BlogDetailPage)} />
+          </Route>
+
+          <Route element={<PermissionRoute required="warranties.read" />}>
+            <Route
+              path="/warranties"
+              element={renderLazyElement(WarrantiesPage)}
+            />
+          </Route>
+
+          <Route element={<PermissionRoute required="serials.read" />}>
+            <Route path="/serials" element={renderLazyElement(SerialsPage)} />
+          </Route>
+
+          <Route element={<PermissionRoute required="notifications.read" />}>
+            <Route
+              path="/notifications"
+              element={renderLazyElement(NotificationsPage)}
+            />
+          </Route>
+
+          <Route element={<PermissionRoute required="support.read" />}>
+            <Route
+              path="/support-tickets"
+              element={renderLazyElement(SupportTicketsPage)}
+            />
+          </Route>
+
+          <Route element={<PermissionRoute required="media.write" />}>
+            <Route path="/media" element={renderLazyElement(MediaLibraryPage)} />
+          </Route>
+
+          <Route element={<PermissionRoute required="returns.read" />}>
+            <Route path="/returns" element={renderLazyElement(ReturnsPage)} />
+            <Route path="/returns/:id" element={renderLazyElement(ReturnDetailPage)} />
+          </Route>
+
+          <Route element={<PermissionRoute required="orders.payment.confirm" />}>
+            <Route
+              path="/unmatched-payments"
+              element={renderLazyElement(UnmatchedPaymentsPage)}
+            />
+            <Route
+              path="/payments/recent"
+              element={renderLazyElement(RecentPaymentsPage)}
+            />
+            <Route
+              path="/financial-settlements"
+              element={renderLazyElement(FinancialSettlementsPage)}
+            />
+          </Route>
+
           <Route element={<SuperAdminRoute />}>
             <Route path="/users" element={renderLazyElement(UsersPage)} />
             <Route path="/audit-logs" element={renderLazyElement(AuditLogsPage)} />

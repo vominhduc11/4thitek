@@ -117,6 +117,12 @@ public class DealerOrderWorkflowSupport {
         return DealerPortalResponseMapper.toOrderResponse(saved, activeDiscountRules, vatPercent);
     }
 
+    /**
+     * Dealer order-status mutation. A dealer can no longer cancel directly: from
+     * PENDING/CONFIRMED a dealer raises a cancel request (-> CANCEL_REQUESTED), which an
+     * admin then approves or rejects. Inventory/financial side effects run only when an
+     * admin actually cancels the order (see {@code AdminManagementService#updateOrderStatus}).
+     */
     public DealerOrderResponse updateOrderStatus(
             Order order,
             UpdateDealerOrderStatusRequest request,
@@ -125,53 +131,17 @@ public class DealerOrderWorkflowSupport {
     ) {
         OrderStatusTransitionPolicy.assertDealerTransitionAllowed(order.getStatus(), request.status());
         OrderStatus previousStatus = order.getStatus();
-        order.setStatus(request.status());
-        if (request.status() == OrderStatus.COMPLETED && previousStatus != OrderStatus.COMPLETED) {
-            order.setCompletedAt(java.time.Instant.now());
-        } else if (request.status() != OrderStatus.COMPLETED && previousStatus == OrderStatus.COMPLETED) {
-            order.setCompletedAt(null);
+        if (request.status() == OrderStatus.CANCEL_REQUESTED
+                && previousStatus != OrderStatus.CANCEL_REQUESTED) {
+            order.setStatus(OrderStatus.CANCEL_REQUESTED);
+            order.setCancelRequestedFrom(previousStatus);
+            order.setCancelRequestReason(DealerRequestSupport.normalize(request.reason()));
+            Order saved = orderRepository.save(order);
+            dealerOrderNotificationSupport.notifyAdminsDealerCancelRequested(saved);
+            return DealerPortalResponseMapper.toOrderResponse(saved, activeDiscountRules, vatPercent);
         }
-        if (previousStatus != OrderStatus.CANCELLED && request.status() == OrderStatus.CANCELLED) {
-            productSerialOrderSupport.releaseNonWarrantySerials(order);
-            orderInventorySupport.restoreStock(order);
-        }
-        orderFinancialSnapshotService.ensureSnapshot(order, activeDiscountRules, vatPercent);
-        BigDecimal paidAmount = DealerOrderSupport.zeroIfNull(order.getPaidAmount());
-        if (request.status() == OrderStatus.CANCELLED && paidAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            order.setPaymentStatus(PaymentStatus.CANCELLED);
-        } else {
-            order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules, vatPercent));
-        }
-        // FinancialSettlement: if cancelling with paidAmount > 0, create a CANCELLATION_REFUND record
-        if (previousStatus != OrderStatus.CANCELLED
-                && request.status() == OrderStatus.CANCELLED
-                && paidAmount.compareTo(BigDecimal.ZERO) > 0) {
-            order.setFinancialSettlementRequired(Boolean.TRUE);
-        }
-        Order saved = orderRepository.save(order);
-        if (previousStatus != OrderStatus.CANCELLED && request.status() == OrderStatus.CANCELLED) {
-            dealerOrderNotificationSupport.notifyAdminsDealerCancelled(saved);
-            if (paidAmount.compareTo(BigDecimal.ZERO) > 0) {
-                FinancialSettlement settlement = new FinancialSettlement();
-                settlement.setOrder(saved);
-                settlement.setType(FinancialSettlementType.CANCELLATION_REFUND);
-                settlement.setAmount(paidAmount);
-                settlement.setStatus(com.devwonder.backend.entity.enums.FinancialSettlementStatus.PENDING);
-                settlement.setCreatedBy(
-                        saved.getDealer() != null ? saved.getDealer().getUsername() : "dealer"
-                );
-                financialSettlementRepository.save(settlement);
-                BigDecimal finalPaidAmount = paidAmount;
-                Order finalSaved = saved;
-                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                    @Override
-                    public void afterCommit() {
-                        dealerOrderNotificationSupport.notifyAdminsFinancialSettlementRequired(finalSaved, finalPaidAmount);
-                    }
-                });
-            }
-        }
-        return DealerPortalResponseMapper.toOrderResponse(saved, activeDiscountRules, vatPercent);
+        // No-op transition (current == next): nothing to persist.
+        return DealerPortalResponseMapper.toOrderResponse(order, activeDiscountRules, vatPercent);
     }
 
     private void assertBankTransferOnly(PaymentMethod paymentMethod) {

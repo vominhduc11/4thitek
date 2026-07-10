@@ -17,6 +17,7 @@ const {
   toggleThemeMock: vi.fn(),
   authState: {
     superAdmin: false,
+    permissions: new Set<string>(["*"]),
   },
 }));
 
@@ -30,6 +31,8 @@ vi.mock("../context/AuthContext", () => ({
     logout: vi.fn(),
     hasRole: (role: string) =>
       role === "SUPER_ADMIN" ? authState.superAdmin : role === "ADMIN",
+    hasPermission: (code: string) =>
+      authState.permissions.has("*") || authState.permissions.has(code),
   }),
 }));
 
@@ -109,6 +112,7 @@ describe("AppLayoutRevamp", () => {
     notifyMock.mockReset();
     toggleThemeMock.mockReset();
     authState.superAdmin = true;
+    authState.permissions = new Set<string>(["*"]);
     window.localStorage.clear();
   });
 
@@ -144,5 +148,37 @@ describe("AppLayoutRevamp", () => {
         new Set(["orders", "dealers", "posts", "users"]),
       );
     });
+  });
+
+  it("shows only the nav modules a restricted (WAREHOUSE-like) role may access", () => {
+    // A warehouse-scoped account: reads/serials/warranties/returns/orders — no products, discounts,
+    // dealers, payments, or SUPER_ADMIN-only surfaces.
+    authState.superAdmin = false;
+    authState.permissions = new Set<string>([
+      "dashboard.read",
+      "orders.read",
+      "orders.process",
+      "serials.read",
+      "serials.write",
+      "serials.assign",
+      "warranties.read",
+      "warranties.write",
+      "returns.read",
+      "returns.write",
+      "notifications.read",
+    ]);
+
+    renderLayout();
+
+    // Permitted modules render (twice: desktop + mobile sidebar).
+    expect(screen.getAllByText("Serial").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Bảo hành").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Đổi trả").length).toBeGreaterThan(0);
+
+    // Modules the role cannot reach are hidden from the nav entirely.
+    expect(screen.queryAllByText("Chiết khấu sỉ")).toHaveLength(0);
+    expect(screen.queryAllByText("Thư viện media")).toHaveLength(0);
+    expect(screen.queryAllByText("Người dùng")).toHaveLength(0);
+    expect(screen.queryAllByText("Cài đặt")).toHaveLength(0);
   });
 });

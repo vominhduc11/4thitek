@@ -15,6 +15,10 @@ public record AdminStaffUserUpsertRequest(
         @NotBlank(message = "role is required")
         @Size(max = 120, message = "role must be 120 characters or fewer")
         String role,
+        // Optional security role: one of ADMIN, SALES, WAREHOUSE, ACCOUNTANT, CONTENT_EDITOR.
+        // Null/blank defaults to ADMIN for backward compatibility.
+        @Size(max = 32, message = "systemRole must be 32 characters or fewer")
+        String systemRole,
         StaffUserStatus status
 ) {
 }

@@ -509,10 +509,16 @@ class _DashboardTexts {
         return isEnglish ? 'Pending' : 'Chờ xử lý';
       case OrderStatus.confirmed:
         return isEnglish ? 'Confirmed' : 'Đã xác nhận';
+      case OrderStatus.processing:
+        return isEnglish ? 'Processing' : 'Đang chuẩn bị hàng';
       case OrderStatus.shipping:
         return isEnglish ? 'Shipping' : 'Đang giao';
       case OrderStatus.completed:
         return isEnglish ? 'Completed' : 'Hoàn thành';
+      case OrderStatus.cancelRequested:
+        return isEnglish ? 'Cancel requested' : 'Đã gửi yêu cầu hủy';
+      case OrderStatus.cancelRejected:
+        return isEnglish ? 'Cancel rejected' : 'Yêu cầu hủy bị từ chối';
       case OrderStatus.cancelled:
         return isEnglish ? 'Cancelled' : 'Đã hủy';
     }
@@ -3418,10 +3424,16 @@ Color _statusColor(OrderStatus status, ColorScheme colorScheme) {
       return colorScheme.tertiary;
     case OrderStatus.confirmed:
       return colorScheme.primary;
+    case OrderStatus.processing:
+      return colorScheme.secondary;
     case OrderStatus.shipping:
       return colorScheme.secondary;
     case OrderStatus.completed:
       return colorScheme.primaryContainer;
+    case OrderStatus.cancelRequested:
+      return colorScheme.tertiary;
+    case OrderStatus.cancelRejected:
+      return colorScheme.outline;
     case OrderStatus.cancelled:
       return colorScheme.outline;
   }

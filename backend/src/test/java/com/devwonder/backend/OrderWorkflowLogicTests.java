@@ -93,6 +93,9 @@ class OrderWorkflowLogicTests {
     private PaymentRepository paymentRepository;
 
     @Autowired
+    private com.devwonder.backend.repository.FinancialSettlementRepository financialSettlementRepository;
+
+    @Autowired
     private AdminSettingsService adminSettingsService;
 
     @BeforeEach
@@ -102,6 +105,7 @@ class OrderWorkflowLogicTests {
         productSerialRepository.deleteAll();
         orderAdjustmentRepository.deleteAll();
         paymentRepository.deleteAll();
+        financialSettlementRepository.deleteAll();
         orderRepository.deleteAll();
         bulkDiscountRepository.deleteAll();
         productRepository.deleteAll();
@@ -553,10 +557,18 @@ class OrderWorkflowLogicTests {
 
         assertThat(productRepository.findById(product.getId()).orElseThrow().getStock()).isEqualTo(2);
 
+        // Dealer raises a cancel request; an admin then approves it to actually cancel.
         dealerPortalService.updateOrderStatus(
                 dealer.getUsername(),
                 createdOrder.id(),
-                new UpdateDealerOrderStatusRequest(OrderStatus.CANCELLED)
+                new UpdateDealerOrderStatusRequest(OrderStatus.CANCEL_REQUESTED)
+        );
+        assertThat(productRepository.findById(product.getId()).orElseThrow().getStock()).isEqualTo(2);
+
+        adminManagementService.updateOrderStatus(
+                createdOrder.id(),
+                new UpdateDealerOrderStatusRequest(OrderStatus.CANCELLED),
+                "admin@example.com"
         );
 
         assertThat(productRepository.findById(product.getId()).orElseThrow().getStock()).isEqualTo(5);
@@ -589,10 +601,16 @@ class OrderWorkflowLogicTests {
                 ProductSerialStatus.DEFECTIVE
         ));
 
+        // Dealer requests cancellation; the admin approval is what releases the serial.
         dealerPortalService.updateOrderStatus(
                 dealer.getUsername(),
                 createdOrder.id(),
-                new UpdateDealerOrderStatusRequest(OrderStatus.CANCELLED)
+                new UpdateDealerOrderStatusRequest(OrderStatus.CANCEL_REQUESTED)
+        );
+        adminManagementService.updateOrderStatus(
+                createdOrder.id(),
+                new UpdateDealerOrderStatusRequest(OrderStatus.CANCELLED),
+                "admin@example.com"
         );
 
         ProductSerial savedSerial = productSerialRepository.findById(serial.getId()).orElseThrow();
@@ -882,7 +900,7 @@ class OrderWorkflowLogicTests {
     }
 
     @Test
-    void dealerCancellationCreatesNotificationForActiveAdmins() {
+    void dealerCancelRequestCreatesNotificationForActiveAdmins() {
         Dealer dealer = dealerRepository.save(createDealer("dealer-cancel@example.com"));
         Admin admin = adminRepository.save(createAdmin("ops.admin@example.com"));
         Product product = saveProduct("SKU-CANCEL-1", BigDecimal.valueOf(100_000));
@@ -903,7 +921,7 @@ class OrderWorkflowLogicTests {
         dealerPortalService.updateOrderStatus(
                 dealer.getUsername(),
                 createdOrder.id(),
-                new UpdateDealerOrderStatusRequest(OrderStatus.CANCELLED)
+                new UpdateDealerOrderStatusRequest(OrderStatus.CANCEL_REQUESTED)
         );
 
         List<Notify> notifications = notifyRepository.findByAccountIdOrderByCreatedAtDesc(admin.getId());

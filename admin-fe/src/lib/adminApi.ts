@@ -23,7 +23,15 @@ export type BackendPagedResponse<T> = {
 
 export type BackendPublishStatus = 'DRAFT' | 'PUBLISHED'
 export type BackendBlogStatus = 'DRAFT' | 'SCHEDULED' | 'PUBLISHED'
-export type BackendOrderStatus = 'PENDING' | 'CONFIRMED' | 'SHIPPING' | 'COMPLETED' | 'CANCELLED'
+export type BackendOrderStatus =
+  | 'PENDING'
+  | 'CONFIRMED'
+  | 'PROCESSING'
+  | 'SHIPPING'
+  | 'COMPLETED'
+  | 'CANCEL_REQUESTED'
+  | 'CANCEL_REJECTED'
+  | 'CANCELLED'
 export type BackendPaymentMethod = 'BANK_TRANSFER'
 export type BackendPaymentStatus = 'PENDING' | 'PAID' | 'CANCELLED'
 export type BackendDealerAccountStatus = 'ACTIVE' | 'UNDER_REVIEW' | 'SUSPENDED'
@@ -291,11 +299,19 @@ export type BackendDealerProfileUpdateRequest = {
   salesPolicy?: string
 }
 
+export type BackendStaffSystemRole =
+  | 'SUPER_ADMIN'
+  | 'ADMIN'
+  | 'SALES'
+  | 'WAREHOUSE'
+  | 'ACCOUNTANT'
+  | 'CONTENT_EDITOR'
+
 export type BackendStaffUserResponse = {
   id: number
   name: string
   role: string
-  systemRole?: 'ADMIN' | 'SUPER_ADMIN' | null
+  systemRole?: BackendStaffSystemRole | null
   status?: BackendStaffUserStatus | null
   username?: string | null
   email?: string | null
@@ -305,6 +321,7 @@ export type BackendStaffUserUpsertRequest = {
   email: string
   name: string
   role: string
+  systemRole?: BackendStaffSystemRole
   status?: BackendStaffUserStatus
 }
 

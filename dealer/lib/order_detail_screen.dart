@@ -159,7 +159,7 @@ class OrderDetailScreen extends StatelessWidget {
                       final orderController = OrderScope.of(context);
                       final success = await orderController.updateOrderStatus(
                         order.id,
-                        OrderStatus.cancelled,
+                        OrderStatus.cancelRequested,
                         cancelReason: selectedReason,
                       );
                       if (!context.mounted || success) {
@@ -1499,7 +1499,7 @@ class _OrderDetailTexts {
       ? 'Unable to update the order status. Please try again.'
       : 'Không thể cập nhật trạng thái đơn hàng. Vui lòng thử lại.';
   String get confirmCancelTitle =>
-      isEnglish ? 'Confirm order cancellation' : 'Xác nhận hủy đơn';
+      isEnglish ? 'Request order cancellation' : 'Gửi yêu cầu hủy đơn';
   String get cancelReasonLabel =>
       isEnglish ? 'Reason for cancellation' : 'Lý do hủy';
   String get cancelReasonPlaceholder =>
@@ -1528,10 +1528,11 @@ class _OrderDetailTexts {
   String itemCountSummary(int count) =>
       isEnglish ? '$count items' : '$count sản phẩm';
   String get irreversibleWarning => isEnglish
-      ? 'This action cannot be undone.'
-      : 'Hành động này không thể hoàn tác.';
+      ? 'An admin will review your cancellation request.'
+      : 'Quản trị viên sẽ xem xét yêu cầu hủy của bạn.';
   String get noAction => isEnglish ? 'No' : 'Không';
-  String get cancelOrderAction => isEnglish ? 'Cancel order' : 'Hủy đơn';
+  String get cancelOrderAction =>
+      isEnglish ? 'Send cancellation request' : 'Gửi yêu cầu hủy';
   String get confirmReceivedTitle =>
       isEnglish ? 'Confirm delivery received' : 'Xác nhận đã nhận hàng';
   String get paymentWillBeMarkedCompleteMessage => isEnglish
@@ -1680,10 +1681,16 @@ class _OrderDetailTexts {
         return isEnglish ? 'Pending' : 'Chờ xử lý';
       case OrderStatus.confirmed:
         return isEnglish ? 'Confirmed' : 'Đã xác nhận';
+      case OrderStatus.processing:
+        return isEnglish ? 'Processing' : 'Đang chuẩn bị hàng';
       case OrderStatus.shipping:
         return isEnglish ? 'Shipping' : 'Đang giao';
       case OrderStatus.completed:
         return isEnglish ? 'Completed' : 'Hoàn thành';
+      case OrderStatus.cancelRequested:
+        return isEnglish ? 'Cancel requested' : 'Đã gửi yêu cầu hủy';
+      case OrderStatus.cancelRejected:
+        return isEnglish ? 'Cancel rejected' : 'Yêu cầu hủy bị từ chối';
       case OrderStatus.cancelled:
         return isEnglish ? 'Cancelled' : 'Đã hủy';
     }
@@ -2029,10 +2036,16 @@ Color _backgroundForStatus(OrderStatus status) {
       return const Color(0xFF4C3B16);
     case OrderStatus.confirmed:
       return const Color(0xFF1E3150);
+    case OrderStatus.processing:
+      return const Color(0xFF154052);
     case OrderStatus.shipping:
       return const Color(0xFF154052);
     case OrderStatus.completed:
       return const Color(0xFF1A3F2D);
+    case OrderStatus.cancelRequested:
+      return const Color(0xFF4C3B16);
+    case OrderStatus.cancelRejected:
+      return const Color(0xFF2A3642);
     case OrderStatus.cancelled:
       return const Color(0xFF2A3642);
   }
@@ -2044,10 +2057,16 @@ Color _textForStatus(OrderStatus status) {
       return const Color(0xFFF4D18A);
     case OrderStatus.confirmed:
       return const Color(0xFF93C5FD);
+    case OrderStatus.processing:
+      return const Color(0xFF7DD3FC);
     case OrderStatus.shipping:
       return const Color(0xFF7DD3FC);
     case OrderStatus.completed:
       return const Color(0xFF86EFAC);
+    case OrderStatus.cancelRequested:
+      return const Color(0xFFF4D18A);
+    case OrderStatus.cancelRejected:
+      return const Color(0xFFCBD5E1);
     case OrderStatus.cancelled:
       return const Color(0xFFCBD5E1);
   }

@@ -17,6 +17,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -69,6 +70,7 @@ public class AdminMediaController {
     }
 
     @PatchMapping("/{id}")
+    @PreAuthorize("hasAuthority('media.write')")
     public ResponseEntity<ApiResponse<AdminMediaListItemResponse>> softDelete(
             @PathVariable("id") Long mediaAssetId,
             @RequestBody(required = false) UpdateAdminMediaRequest request
@@ -82,6 +84,7 @@ public class AdminMediaController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('media.write')")
     public ResponseEntity<ApiResponse<java.util.Map<String, String>>> hardDelete(@PathVariable("id") Long mediaAssetId) {
         mediaAssetService.hardDeleteMedia(mediaAssetId);
         return ResponseEntity.ok(ApiResponse.success(java.util.Map.of("status", "deleted")));

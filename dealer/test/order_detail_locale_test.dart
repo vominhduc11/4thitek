@@ -30,7 +30,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Cancel order').first);
+    await tester.tap(find.text('Send cancellation request').first);
     await tester.pumpAndSettle();
     await tester.tap(find.byType(FilledButton).last);
     await tester.pumpAndSettle();
@@ -242,7 +242,11 @@ class _FakeOrderController extends OrderController {
   }
 
   @override
-  Future<bool> updateOrderStatus(String orderId, OrderStatus status) async {
+  Future<bool> updateOrderStatus(
+    String orderId,
+    OrderStatus status, {
+    String? cancelReason,
+  }) async {
     return false;
   }
 }

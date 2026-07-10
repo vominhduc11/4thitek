@@ -10,16 +10,22 @@ import type { BadgeTone } from '../components/ui-kit'
 export const orderStatusLabel: Record<OrderStatus, string> = {
   pending: 'Chờ xử lý',
   confirmed: 'Đã xác nhận',
+  processing: 'Đang chuẩn bị hàng',
   shipping: 'Đang giao',
   completed: 'Hoàn tất',
+  cancel_requested: 'Chờ duyệt yêu cầu hủy',
+  cancel_rejected: 'Yêu cầu hủy bị từ chối',
   cancelled: 'Hủy',
 }
 
 export const orderStatusTone: Record<OrderStatus, BadgeTone> = {
   pending: 'warning',
   confirmed: 'info',
+  processing: 'info',
   shipping: 'success',
   completed: 'success',
+  cancel_requested: 'warning',
+  cancel_rejected: 'neutral',
   cancelled: 'danger',
 }
 
@@ -28,9 +34,15 @@ export const getAllowedOrderStatuses = (current: OrderStatus): OrderStatus[] => 
     case 'pending':
       return ['pending', 'confirmed', 'cancelled']
     case 'confirmed':
-      return ['confirmed', 'shipping', 'cancelled']
+      return ['confirmed', 'processing', 'cancelled']
+    case 'processing':
+      return ['processing', 'shipping', 'cancelled']
     case 'shipping':
       return ['shipping', 'completed']
+    case 'cancel_requested':
+      return ['cancel_requested', 'cancelled', 'cancel_rejected']
+    case 'cancel_rejected':
+      return ['cancel_rejected', 'pending', 'confirmed', 'processing', 'cancelled']
     case 'completed':
       return ['completed']
     case 'cancelled':
@@ -170,4 +182,48 @@ export const returnRequestResolutionLabel: Record<string, string> = {
   CREDIT_NOTE: 'Phiếu ghi có',
   RETURN_TO_CUSTOMER: 'Trả lại khách',
   REJECT_WARRANTY: 'Từ chối bảo hành',
+}
+
+export type SystemRole =
+  | 'SUPER_ADMIN'
+  | 'ADMIN'
+  | 'SALES'
+  | 'WAREHOUSE'
+  | 'ACCOUNTANT'
+  | 'CONTENT_EDITOR'
+
+export const systemRoleLabel: Record<SystemRole, string> = {
+  SUPER_ADMIN: 'Quản trị tối cao',
+  ADMIN: 'Quản trị viên',
+  SALES: 'Kinh doanh',
+  WAREHOUSE: 'Kho vận',
+  ACCOUNTANT: 'Kế toán',
+  CONTENT_EDITOR: 'Biên tập nội dung',
+}
+
+export const systemRoleDescription: Record<SystemRole, string> = {
+  SUPER_ADMIN: 'Toàn quyền hệ thống, gồm quản lý người dùng và cấu hình.',
+  ADMIN: 'Toàn quyền vận hành nghiệp vụ.',
+  SALES: 'Duyệt đơn đại lý, quản lý đại lý, đổi trả, hỗ trợ, chiết khấu.',
+  WAREHOUSE: 'Quản lý serial, tồn kho, gán serial, bảo hành, đổi trả.',
+  ACCOUNTANT: 'Xác nhận thanh toán, đối soát SePay, quyết toán tài chính.',
+  CONTENT_EDITOR: 'Quản lý sản phẩm, blog, nội dung công khai và media.',
+}
+
+/** Roles assignable when creating a staff account (SUPER_ADMIN is not assignable here). */
+export const ASSIGNABLE_SYSTEM_ROLES: SystemRole[] = [
+  'ADMIN',
+  'SALES',
+  'WAREHOUSE',
+  'ACCOUNTANT',
+  'CONTENT_EDITOR',
+]
+
+export const systemRoleTone: Record<SystemRole, BadgeTone> = {
+  SUPER_ADMIN: 'danger',
+  ADMIN: 'info',
+  SALES: 'success',
+  WAREHOUSE: 'warning',
+  ACCOUNTANT: 'info',
+  CONTENT_EDITOR: 'neutral',
 }

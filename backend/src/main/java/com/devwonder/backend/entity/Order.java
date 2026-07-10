@@ -60,6 +60,15 @@ public class Order {
     @Column(name = "status")
     private OrderStatus status;
 
+    // Status the order held when a dealer cancel request was raised; lets a rejected
+    // request resume the order to where it was. Null when no cancel request is pending.
+    @Enumerated(EnumType.STRING)
+    @Column(name = "cancel_requested_from")
+    private OrderStatus cancelRequestedFrom;
+
+    @Column(name = "cancel_request_reason", columnDefinition = "text")
+    private String cancelRequestReason;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method")
     private PaymentMethod paymentMethod;

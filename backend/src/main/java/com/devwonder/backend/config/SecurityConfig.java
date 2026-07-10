@@ -13,6 +13,7 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -27,6 +28,7 @@ import org.springframework.http.HttpMethod;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
     @Autowired
     private OurUserDetailsService ourUserDetailsService;
@@ -105,7 +107,8 @@ public class SecurityConfig {
                                 "/api/v1/warranty-activation"
                         ).hasAuthority("DEALER")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/upload").hasAnyAuthority("DEALER", "ADMIN", "SUPER_ADMIN")
-                        .requestMatchers("/api/v1/admin/**").hasAnyAuthority("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers("/api/v1/admin/**").hasAnyAuthority(
+                                "SUPER_ADMIN", "ADMIN", "SALES", "WAREHOUSE", "ACCOUNTANT", "CONTENT_EDITOR")
                         .requestMatchers("/api/v1/dealer/**").hasAuthority("DEALER")
                         .anyRequest().authenticated();
                     if (docsPublicEnabled) {

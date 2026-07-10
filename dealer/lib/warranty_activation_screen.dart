@@ -1553,10 +1553,16 @@ class _WarrantyActivationTexts {
         return isEnglish ? 'Pending' : '\u0043h\u1EDD x\u1EED l\u00FD';
       case OrderStatus.confirmed:
         return isEnglish ? 'Confirmed' : '\u0110\u00E3 x\u00E1c nh\u1EADn';
+      case OrderStatus.processing:
+        return isEnglish ? 'Processing' : '\u0110ang chu\u1EA9n b\u1ECB h\u00E0ng';
       case OrderStatus.shipping:
         return isEnglish ? 'Shipping' : 'Đang giao';
       case OrderStatus.completed:
         return isEnglish ? 'Completed' : 'Hoàn thành';
+      case OrderStatus.cancelRequested:
+        return isEnglish ? 'Cancel requested' : 'Đã gửi yêu cầu hủy';
+      case OrderStatus.cancelRejected:
+        return isEnglish ? 'Cancel rejected' : 'Yêu cầu hủy bị từ chối';
       case OrderStatus.cancelled:
         return isEnglish ? 'Cancelled' : 'Đã hủy';
     }

@@ -1,6 +1,14 @@
 import { AUTOMATED_SENDER_EMAIL, BRAND_NAME } from '../config/businessProfile'
 
-export type OrderStatus = 'pending' | 'confirmed' | 'shipping' | 'completed' | 'cancelled'
+export type OrderStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'processing'
+  | 'shipping'
+  | 'completed'
+  | 'cancel_requested'
+  | 'cancel_rejected'
+  | 'cancelled'
 export type PaymentMethod = 'bank_transfer' | null
 export type PaymentStatus = 'pending' | 'paid' | 'cancelled'
 export type BlogStatus = 'published' | 'scheduled' | 'draft'
@@ -88,11 +96,19 @@ export type DealerProfileUpdate = Pick<
   | 'salesPolicy'
 >
 
+export type StaffSystemRole =
+  | 'SUPER_ADMIN'
+  | 'ADMIN'
+  | 'SALES'
+  | 'WAREHOUSE'
+  | 'ACCOUNTANT'
+  | 'CONTENT_EDITOR'
+
 export type StaffUser = {
   id: string
   name: string
   role: string
-  systemRole: 'ADMIN' | 'SUPER_ADMIN'
+  systemRole: StaffSystemRole
   email: string
   status: UserStatus
 }

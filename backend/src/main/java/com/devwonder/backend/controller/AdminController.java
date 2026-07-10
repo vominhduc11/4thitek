@@ -66,6 +66,7 @@ import com.devwonder.backend.entity.enums.ReturnRequestType;
 import com.devwonder.backend.dto.pagination.PagedResponse;
 import com.devwonder.backend.dto.serial.SerialImportSummaryResponse;
 import com.devwonder.backend.exception.BadRequestException;
+import com.devwonder.backend.security.AdminActorRoleSupport;
 import com.devwonder.backend.service.AdminFinancialService;
 import com.devwonder.backend.service.AdminManagementService;
 import com.devwonder.backend.service.AdminOperationsService;
@@ -90,6 +91,7 @@ import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -137,6 +139,7 @@ public class AdminController {
     }
 
     @PostMapping("/products")
+    @PreAuthorize("hasAuthority('products.write')")
     public ResponseEntity<ApiResponse<AdminProductResponse>> createProduct(
             @Valid @RequestBody AdminProductUpsertRequest request
     ) {
@@ -144,6 +147,7 @@ public class AdminController {
     }
 
     @PutMapping("/products/{id}")
+    @PreAuthorize("hasAuthority('products.write')")
     public ResponseEntity<ApiResponse<AdminProductResponse>> updateProduct(
             @PathVariable("id") Long id,
             @Valid @RequestBody AdminProductUpsertRequest request
@@ -152,17 +156,20 @@ public class AdminController {
     }
 
     @DeleteMapping("/products/{id}")
+    @PreAuthorize("hasAuthority('products.write')")
     public ResponseEntity<ApiResponse<Map<String, String>>> deleteProduct(@PathVariable("id") Long id) {
         adminManagementService.deleteProduct(id);
         return ResponseEntity.ok(ApiResponse.success(Map.of("status", "deleted")));
     }
 
     @GetMapping("/orders")
+    @PreAuthorize("hasAuthority('orders.read')")
     public ResponseEntity<ApiResponse<List<AdminOrderResponse>>> orders() {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.getOrders()));
     }
 
     @GetMapping("/orders/page")
+    @PreAuthorize("hasAuthority('orders.read')")
     public ResponseEntity<ApiResponse<PagedResponse<AdminOrderResponse>>> ordersPaged(
             @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false) Integer size,
@@ -177,16 +184,19 @@ public class AdminController {
     }
 
     @GetMapping("/orders/{id}")
+    @PreAuthorize("hasAuthority('orders.read')")
     public ResponseEntity<ApiResponse<AdminOrderResponse>> orderDetail(@PathVariable("id") Long id) {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.getOrder(id)));
     }
 
     @GetMapping("/orders/summary")
+    @PreAuthorize("hasAuthority('orders.read')")
     public ResponseEntity<ApiResponse<AdminOrderSummaryResponse>> orderSummary() {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.getOrderSummary()));
     }
 
     @PatchMapping("/orders/{id}/status")
+    @PreAuthorize("hasAnyAuthority('orders.approve','orders.process','orders.cancel.review')")
     public ResponseEntity<ApiResponse<AdminOrderResponse>> updateOrderStatus(
             @PathVariable("id") Long id,
             @Valid @RequestBody UpdateDealerOrderStatusRequest request,
@@ -197,6 +207,7 @@ public class AdminController {
     }
 
     @PostMapping("/orders/{id}/assign-serials")
+    @PreAuthorize("hasAuthority('serials.assign')")
     public ResponseEntity<ApiResponse<List<DealerProductSerialResponse>>> assignOrderSerials(
             @PathVariable("id") Long id,
             @Valid @RequestBody AdminAssignOrderSerialsRequest request
@@ -205,6 +216,7 @@ public class AdminController {
     }
 
     @PostMapping("/orders/{id}/payments")
+    @PreAuthorize("hasAuthority('orders.payment.confirm')")
     public ResponseEntity<ApiResponse<AdminOrderResponse>> recordOrderPayment(
             @PathVariable("id") Long id,
             @Valid @RequestBody RecordPaymentRequest request
@@ -213,6 +225,7 @@ public class AdminController {
     }
 
     @GetMapping("/orders/{id}/payments")
+    @PreAuthorize("hasAuthority('orders.read')")
     public ResponseEntity<ApiResponse<List<AdminOrderPaymentResponse>>> getOrderPayments(
             @PathVariable("id") Long id
     ) {
@@ -220,6 +233,7 @@ public class AdminController {
     }
 
     @DeleteMapping("/orders/{id}")
+    @PreAuthorize("hasAnyAuthority('orders.process','orders.cancel.review')")
     public ResponseEntity<ApiResponse<Map<String, String>>> deleteOrder(@PathVariable("id") Long id) {
         adminManagementService.deleteOrder(id);
         return ResponseEntity.ok(ApiResponse.success(Map.of("status", "deleted")));
@@ -239,6 +253,7 @@ public class AdminController {
     }
 
     @PutMapping("/content/{section}")
+    @PreAuthorize("hasAuthority('content.write')")
     public ResponseEntity<ApiResponse<AdminPublicContentSectionResponse>> updatePublicContentSection(
             @PathVariable("section") String section,
             @Valid @RequestBody UpdateAdminPublicContentSectionRequest request
@@ -247,16 +262,19 @@ public class AdminController {
     }
 
     @GetMapping("/dealers")
+    @PreAuthorize("hasAuthority('dealers.read')")
     public ResponseEntity<ApiResponse<List<AdminDealerResponse>>> dealers() {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.getDealers()));
     }
 
     @GetMapping("/serials")
+    @PreAuthorize("hasAuthority('serials.read')")
     public ResponseEntity<ApiResponse<List<DealerProductSerialResponse>>> serials() {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.getSerials()));
     }
 
     @GetMapping("/support-tickets")
+    @PreAuthorize("hasAuthority('support.read')")
     public ResponseEntity<ApiResponse<PagedResponse<AdminSupportTicketResponse>>> supportTickets(
             @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false) Integer size,
@@ -273,6 +291,7 @@ public class AdminController {
     }
 
     @GetMapping("/support-tickets/{id}")
+    @PreAuthorize("hasAuthority('support.read')")
     public ResponseEntity<ApiResponse<AdminSupportTicketResponse>> supportTicketDetail(
             @PathVariable("id") Long id,
             Authentication authentication
@@ -283,6 +302,7 @@ public class AdminController {
     }
 
     @PatchMapping("/support-tickets/{id}")
+    @PreAuthorize("hasAuthority('support.write')")
     public ResponseEntity<ApiResponse<AdminSupportTicketResponse>> updateSupportTicket(
             @PathVariable("id") Long id,
             @Valid @RequestBody UpdateAdminSupportTicketRequest request,
@@ -294,6 +314,7 @@ public class AdminController {
     }
 
     @PostMapping("/support-tickets/{id}/messages")
+    @PreAuthorize("hasAuthority('support.write')")
     public ResponseEntity<ApiResponse<AdminSupportTicketResponse>> addSupportTicketMessage(
             @PathVariable("id") Long id,
             @Valid @RequestBody CreateAdminSupportTicketMessageRequest request,
@@ -305,6 +326,7 @@ public class AdminController {
     }
 
     @GetMapping("/warranties")
+    @PreAuthorize("hasAuthority('warranties.read')")
     public ResponseEntity<ApiResponse<PagedResponse<AdminWarrantyResponse>>> warranties(
             @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false) Integer size,
@@ -317,6 +339,7 @@ public class AdminController {
     }
 
     @PatchMapping("/warranties/{id}/status")
+    @PreAuthorize("hasAuthority('warranties.write')")
     public ResponseEntity<ApiResponse<AdminWarrantyResponse>> updateWarrantyStatus(
             @PathVariable("id") Long id,
             @Valid @RequestBody UpdateAdminWarrantyStatusRequest request
@@ -325,6 +348,7 @@ public class AdminController {
     }
 
     @GetMapping("/serials/page")
+    @PreAuthorize("hasAuthority('serials.read')")
     public ResponseEntity<ApiResponse<PagedResponse<AdminSerialResponse>>> serialsPaged(
             @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false) Integer size,
@@ -337,6 +361,7 @@ public class AdminController {
     }
 
     @PostMapping("/serials/import")
+    @PreAuthorize("hasAuthority('serials.write')")
     public ResponseEntity<ApiResponse<SerialImportSummaryResponse<AdminSerialResponse>>> importSerials(
             @Valid @RequestBody AdminSerialImportRequest request
     ) {
@@ -344,6 +369,7 @@ public class AdminController {
     }
 
     @PatchMapping("/serials/{id}/status")
+    @PreAuthorize("hasAuthority('serials.write')")
     public ResponseEntity<ApiResponse<AdminSerialResponse>> updateSerialStatus(
             @PathVariable("id") Long id,
             @Valid @RequestBody UpdateAdminSerialStatusRequest request
@@ -352,12 +378,14 @@ public class AdminController {
     }
 
     @DeleteMapping("/serials/{id}")
+    @PreAuthorize("hasAuthority('serials.write')")
     public ResponseEntity<ApiResponse<Map<String, String>>> deleteSerial(@PathVariable("id") Long id) {
         adminOperationsService.deleteSerial(id);
         return ResponseEntity.ok(ApiResponse.success(Map.of("status", "deleted")));
     }
 
     @GetMapping("/notifications/page")
+    @PreAuthorize("hasAuthority('notifications.read')")
     public ResponseEntity<ApiResponse<PagedResponse<AdminNotificationResponse>>> notifications(
             @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false) Integer size,
@@ -370,6 +398,7 @@ public class AdminController {
     }
 
     @PostMapping("/notifications")
+    @PreAuthorize("hasAnyAuthority('SUPER_ADMIN','ADMIN')")
     public ResponseEntity<ApiResponse<AdminNotificationDispatchResponse>> createNotification(
             @Valid @RequestBody CreateAdminNotificationRequest request
     ) {
@@ -377,6 +406,7 @@ public class AdminController {
     }
 
     @GetMapping("/reports/export")
+    @PreAuthorize("hasAuthority('reports.read')")
     public ResponseEntity<byte[]> exportReport(
             @RequestParam("type") AdminReportExportType type,
             @RequestParam("format") AdminReportFormat format,
@@ -411,6 +441,7 @@ public class AdminController {
     }
 
     @PostMapping("/blogs")
+    @PreAuthorize("hasAuthority('blogs.write')")
     public ResponseEntity<ApiResponse<AdminBlogResponse>> createBlog(
             @Valid @RequestBody AdminBlogUpsertRequest request
     ) {
@@ -418,6 +449,7 @@ public class AdminController {
     }
 
     @PutMapping("/blogs/{id}")
+    @PreAuthorize("hasAuthority('blogs.write')")
     public ResponseEntity<ApiResponse<AdminBlogResponse>> updateBlog(
             @PathVariable("id") Long id,
             @Valid @RequestBody AdminBlogUpsertRequest request
@@ -426,6 +458,7 @@ public class AdminController {
     }
 
     @DeleteMapping("/blogs/{id}")
+    @PreAuthorize("hasAuthority('blogs.write')")
     public ResponseEntity<ApiResponse<Map<String, String>>> deleteBlog(@PathVariable("id") Long id) {
         adminManagementService.deleteBlog(id);
         return ResponseEntity.ok(ApiResponse.success(Map.of("status", "deleted")));
@@ -437,11 +470,13 @@ public class AdminController {
     }
 
     @GetMapping("/dealers/accounts")
+    @PreAuthorize("hasAuthority('dealers.read')")
     public ResponseEntity<ApiResponse<List<AdminDealerAccountResponse>>> dealerAccounts() {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.getDealerAccounts()));
     }
 
     @GetMapping("/dealers/accounts/page")
+    @PreAuthorize("hasAuthority('dealers.read')")
     public ResponseEntity<ApiResponse<PagedResponse<AdminDealerAccountResponse>>> dealerAccountsPaged(
             @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false) Integer size,
@@ -456,11 +491,13 @@ public class AdminController {
     }
 
     @GetMapping("/dealers/accounts/summary")
+    @PreAuthorize("hasAuthority('dealers.read')")
     public ResponseEntity<ApiResponse<AdminDealerAccountSummaryResponse>> dealerAccountSummary() {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.getDealerAccountSummary()));
     }
 
     @PatchMapping("/dealers/accounts/{id}/status")
+    @PreAuthorize("hasAuthority('dealers.write')")
     public ResponseEntity<ApiResponse<AdminDealerAccountResponse>> updateDealerAccountStatus(
             @PathVariable("id") Long id,
             @Valid @RequestBody UpdateAdminDealerAccountStatusRequest request
@@ -469,6 +506,7 @@ public class AdminController {
     }
 
     @PutMapping("/dealers/accounts/{id}")
+    @PreAuthorize("hasAuthority('dealers.write')")
     public ResponseEntity<ApiResponse<AdminDealerAccountResponse>> updateDealerProfile(
             @PathVariable("id") Long id,
             @Valid @RequestBody UpdateDealerProfileRequest request
@@ -509,6 +547,7 @@ public class AdminController {
     }
 
     @PostMapping("/discount-rules")
+    @PreAuthorize("hasAuthority('discounts.write')")
     public ResponseEntity<ApiResponse<AdminDiscountRuleResponse>> createDiscountRule(
             @Valid @RequestBody AdminDiscountRuleUpsertRequest request
     ) {
@@ -516,6 +555,7 @@ public class AdminController {
     }
 
     @PutMapping("/discount-rules/{id}")
+    @PreAuthorize("hasAuthority('discounts.write')")
     public ResponseEntity<ApiResponse<AdminDiscountRuleResponse>> updateDiscountRule(
             @PathVariable("id") Long id,
             @Valid @RequestBody AdminDiscountRuleUpsertRequest request
@@ -524,6 +564,7 @@ public class AdminController {
     }
 
     @PatchMapping("/discount-rules/{id}/status")
+    @PreAuthorize("hasAuthority('discounts.write')")
     public ResponseEntity<ApiResponse<AdminDiscountRuleResponse>> updateDiscountRuleStatus(
             @PathVariable("id") Long id,
             @Valid @RequestBody UpdateAdminDiscountRuleStatusRequest request
@@ -532,6 +573,7 @@ public class AdminController {
     }
 
     @GetMapping("/dashboard")
+    @PreAuthorize("hasAuthority('dashboard.read')")
     public ResponseEntity<ApiResponse<AdminDashboardResponse>> dashboard() {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.getDashboard()));
     }
@@ -558,6 +600,7 @@ public class AdminController {
     }
 
     @PutMapping("/settings/sepay/webhook-token")
+    @PreAuthorize("hasAuthority('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<AdminSettingsResponse>> replaceSepayWebhookToken(
             @Valid @RequestBody UpdateSepayWebhookTokenRequest request
     ) {
@@ -565,6 +608,7 @@ public class AdminController {
     }
 
     @PostMapping("/settings/test-email")
+    @PreAuthorize("hasAuthority('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<Map<String, String>>> testEmail() {
         if (!mailService.isEnabled()) {
             throw new BadRequestException("Email is not configured or disabled in settings");
@@ -581,6 +625,7 @@ public class AdminController {
     // ---- RMA: Serial lifecycle (BUSINESS_LOGIC.md Section 7.3) ----
 
     @PatchMapping("/serials/{id}/rma")
+    @PreAuthorize("hasAuthority('serials.write')")
     public ResponseEntity<ApiResponse<AdminSerialResponse>> applyRmaAction(
             Authentication authentication,
             @PathVariable("id") Long id,
@@ -591,6 +636,7 @@ public class AdminController {
     }
 
     @GetMapping("/returns/page")
+    @PreAuthorize("hasAuthority('returns.read')")
     public ResponseEntity<ApiResponse<PagedResponse<ReturnRequestSummaryResponse>>> returnRequestsPaged(
             @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false) Integer size,
@@ -609,6 +655,7 @@ public class AdminController {
     }
 
     @GetMapping("/returns/{id}")
+    @PreAuthorize("hasAuthority('returns.read')")
     public ResponseEntity<ApiResponse<ReturnRequestDetailResponse>> returnRequestDetail(
             @PathVariable("id") Long id
     ) {
@@ -616,6 +663,7 @@ public class AdminController {
     }
 
     @PatchMapping("/returns/{id}/review")
+    @PreAuthorize("hasAuthority('returns.write')")
     public ResponseEntity<ApiResponse<ReturnRequestDetailResponse>> reviewReturnRequest(
             Authentication authentication,
             @PathVariable("id") Long id,
@@ -627,6 +675,7 @@ public class AdminController {
     }
 
     @PatchMapping("/returns/{id}/receive")
+    @PreAuthorize("hasAuthority('returns.write')")
     public ResponseEntity<ApiResponse<ReturnRequestDetailResponse>> receiveReturnRequest(
             Authentication authentication,
             @PathVariable("id") Long id,
@@ -641,6 +690,7 @@ public class AdminController {
     }
 
     @PatchMapping("/returns/{id}/items/{itemId}/inspect")
+    @PreAuthorize("hasAuthority('returns.write')")
     public ResponseEntity<ApiResponse<ReturnRequestDetailResponse>> inspectReturnItem(
             Authentication authentication,
             @PathVariable("id") Long id,
@@ -653,6 +703,7 @@ public class AdminController {
     }
 
     @PatchMapping("/returns/{id}/complete")
+    @PreAuthorize("hasAuthority('returns.write')")
     public ResponseEntity<ApiResponse<ReturnRequestDetailResponse>> completeReturnRequest(
             Authentication authentication,
             @PathVariable("id") Long id,
@@ -669,6 +720,7 @@ public class AdminController {
     // ---- FinancialSettlement (BUSINESS_LOGIC.md Section 3.4) ----
 
     @GetMapping("/financial-settlements")
+    @PreAuthorize("hasAuthority('orders.payment.confirm')")
     public ResponseEntity<ApiResponse<List<AdminFinancialSettlementResponse>>> financialSettlements(
             @RequestParam(name = "status", required = false) String status
     ) {
@@ -681,6 +733,7 @@ public class AdminController {
     }
 
     @PatchMapping("/financial-settlements/{id}")
+    @PreAuthorize("hasAuthority('orders.payment.confirm')")
     public ResponseEntity<ApiResponse<AdminFinancialSettlementResponse>> resolveFinancialSettlement(
             Authentication authentication,
             @PathVariable("id") Long id,
@@ -691,6 +744,7 @@ public class AdminController {
     }
 
     @GetMapping("/payments/recent")
+    @PreAuthorize("hasAuthority('orders.payment.confirm')")
     public ResponseEntity<ApiResponse<PagedResponse<AdminRecentPaymentResponse>>> recentPayments(
             @RequestParam(name = "dealerId", required = false) Long dealerId,
             @RequestParam(name = "from", required = false)
@@ -721,6 +775,7 @@ public class AdminController {
     // ---- OrderAdjustment (BUSINESS_LOGIC.md Section 3.25) ----
 
     @GetMapping("/orders/{id}/adjustments")
+    @PreAuthorize("hasAuthority('orders.read')")
     public ResponseEntity<ApiResponse<List<AdminOrderAdjustmentResponse>>> getOrderAdjustments(
             @PathVariable("id") Long id
     ) {
@@ -728,16 +783,14 @@ public class AdminController {
     }
 
     @PostMapping("/orders/{id}/adjustments")
+    @PreAuthorize("hasAuthority('orders.payment.confirm')")
     public ResponseEntity<ApiResponse<AdminOrderAdjustmentResponse>> createOrderAdjustment(
             Authentication authentication,
             @PathVariable("id") Long id,
             @Valid @RequestBody AdminOrderAdjustmentRequest request
     ) {
         String username = extractUsername(authentication);
-        String role = authentication.getAuthorities().stream()
-                .findFirst()
-                .map(a -> a.getAuthority())
-                .orElse("ADMIN");
+        String role = AdminActorRoleSupport.resolvePrimaryRole(authentication);
         return ResponseEntity.ok(ApiResponse.success(
                 adminFinancialService.createOrderAdjustment(id, request, username, role)));
     }
@@ -745,6 +798,7 @@ public class AdminController {
     // ---- UnmatchedPayment (BUSINESS_LOGIC.md Section 3.21) ----
 
     @GetMapping("/unmatched-payments")
+    @PreAuthorize("hasAuthority('orders.payment.confirm')")
     public ResponseEntity<ApiResponse<PagedResponse<AdminUnmatchedPaymentResponse>>> getUnmatchedPayments(
             @RequestParam(name = "status", required = false) String status,
             @RequestParam(name = "reason", required = false) String reason,
@@ -760,6 +814,7 @@ public class AdminController {
     }
 
     @PatchMapping("/unmatched-payments/{id}")
+    @PreAuthorize("hasAuthority('orders.payment.confirm')")
     public ResponseEntity<ApiResponse<AdminUnmatchedPaymentResponse>> resolveUnmatchedPayment(
             Authentication authentication,
             @PathVariable("id") Long id,

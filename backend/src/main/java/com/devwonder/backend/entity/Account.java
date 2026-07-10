@@ -80,9 +80,32 @@ public class Account implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return roles.stream()
-                .map(role -> new SimpleGrantedAuthority(role.getName()))
-                .toList();
+        Set<GrantedAuthority> authorities = new HashSet<>();
+        boolean fullAccess = false;
+        for (Role role : roles) {
+            if (role.getName() != null) {
+                authorities.add(new SimpleGrantedAuthority(role.getName()));
+                if (com.devwonder.backend.security.PermissionCatalog.FULL_ACCESS_ROLES
+                        .contains(role.getName())) {
+                    fullAccess = true;
+                }
+            }
+            if (role.getPermissions() != null) {
+                for (Permission permission : role.getPermissions()) {
+                    if (permission.getCode() != null) {
+                        authorities.add(new SimpleGrantedAuthority(permission.getCode()));
+                    }
+                }
+            }
+        }
+        // ADMIN / SUPER_ADMIN implicitly hold every permission code, independent of the
+        // role_permissions seed (see PermissionCatalog).
+        if (fullAccess) {
+            for (String code : com.devwonder.backend.security.PermissionCatalog.ALL_CODES) {
+                authorities.add(new SimpleGrantedAuthority(code));
+            }
+        }
+        return authorities;
     }
 
     @Override

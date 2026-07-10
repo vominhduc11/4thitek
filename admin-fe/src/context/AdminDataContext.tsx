@@ -132,7 +132,10 @@ type AdminDataContextValue = {
   updateDealerStatus: (id: string, status: DealerStatus, reason?: string) => Promise<void>
   users: StaffUser[]
   usersState: AdminResourceState
-  addUser: (payload: Pick<StaffUser, 'email' | 'name' | 'role'>) => Promise<StaffUser>
+  addUser: (
+    payload: Pick<StaffUser, 'email' | 'name' | 'role'> &
+      Partial<Pick<StaffUser, 'systemRole'>>,
+  ) => Promise<StaffUser>
   updateUserStatus: (id: string, status: UserStatus) => Promise<void>
   discountRules: DiscountRule[]
   discountRulesState: AdminResourceState
@@ -570,6 +573,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       email: payload.email.trim(),
       name: payload.name.trim(),
       role: payload.role.trim(),
+      systemRole: payload.systemRole ?? 'ADMIN',
       status: 'PENDING',
     })
     const nextUser = mapUser(created)

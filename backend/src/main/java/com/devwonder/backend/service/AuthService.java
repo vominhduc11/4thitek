@@ -21,6 +21,7 @@ import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.RefreshTokenSessionRepository;
 import com.devwonder.backend.repository.RoleRepository;
 import com.devwonder.backend.security.JWTUtils;
+import com.devwonder.backend.security.PermissionCatalog;
 import com.devwonder.backend.service.support.AccountValidationSupport;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -190,11 +191,18 @@ public class AuthService {
     }
 
     private AuthResponse buildAuthResponse(Account account, String accessToken, String refreshToken) {
+        // Granular permission codes resolved from the account's authorities (role names dropped).
+        // ADMIN / SUPER_ADMIN already carry every code via PermissionCatalog synthesis in getAuthorities().
+        Set<String> permissions = account.getAuthorities().stream()
+                .map(org.springframework.security.core.GrantedAuthority::getAuthority)
+                .filter(PermissionCatalog.ALL_CODES::contains)
+                .collect(java.util.stream.Collectors.toSet());
         AuthUserResponse user = new AuthUserResponse(
                 account.getId(),
                 account.getUsername(),
                 account.getClass().getSimpleName().toUpperCase(),
                 account.getRoles().stream().map(Role::getName).collect(java.util.stream.Collectors.toSet()),
+                permissions,
                 account instanceof Admin admin && Boolean.TRUE.equals(admin.getRequirePasswordChange())
         );
         return new AuthResponse(accessToken, refreshToken, "Bearer", jwtUtils.getAccessTokenExpirationMs(), user);
