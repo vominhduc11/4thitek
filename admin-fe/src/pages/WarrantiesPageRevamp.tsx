@@ -13,8 +13,9 @@ import { translateCopy } from "../lib/i18n";
 import { useToast } from "../context/ToastContext";
 import { formatDateOnly } from "../lib/formatters";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
+import { useAdminList } from "../hooks/useAdminList";
+import { AdminTable, type AdminTableColumn } from "../components/AdminTable";
 import {
-  EmptyState,
   ErrorState,
   GhostButton,
   LoadingRows,
@@ -25,10 +26,7 @@ import {
   StatCard,
   StatusBadge,
   inputClass,
-  tableCardClass,
-  tableHeadClass,
   tableMetaClass,
-  tableRowClass,
 } from "../components/ui-kit";
 
 const STATUS_FILTER_OPTIONS: BackendWarrantyStatus[] = [
@@ -100,58 +98,50 @@ function WarrantiesPageRevamp() {
   const { accessToken } = useAuth();
   const { notify } = useToast();
   const { confirm, confirmDialog } = useConfirmDialog();
-  const [items, setItems] = useState<BackendWarrantyResponse[]>([]);
+
+  // Paged source (server pagination). The paged endpoint takes no filter params,
+  // so filtering runs client-side against `allItems` below.
+  const fetchPage = useCallback(
+    ({ page, size }: { page: number; size: number }) =>
+      fetchAdminWarranties(accessToken!, { page, size }),
+    [accessToken],
+  );
+  const {
+    status: pagedStatus,
+    items,
+    setItems,
+    pagination,
+    isFetching,
+    error: pagedError,
+    setPage,
+    refetch,
+  } = useAdminList<BackendWarrantyResponse>({
+    fetchPage,
+    pageSize: 25,
+    enabled: Boolean(accessToken),
+    fallbackError: copy.loadFallback,
+  });
+
+  // Full dataset kept in parallel so stats stay accurate across all pages and
+  // filtering can span the whole list, not just the current page.
   const [allItems, setAllItems] = useState<BackendWarrantyResponse[]>([]);
-  const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalItems, setTotalItems] = useState(0);
+  const [isFilterLoading, setIsFilterLoading] = useState(false);
+  const [allItemsError, setAllItemsError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<
     "ALL" | BackendWarrantyStatus
   >("ALL");
-  const [isLoading, setIsLoading] = useState(true);
-  const [isFilterLoading, setIsFilterLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const hasActiveFilters = query.trim().length > 0 || statusFilter !== "ALL";
-
-  const loadData = useCallback(
-    async (nextPage: number) => {
-      if (!accessToken) return;
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await fetchAdminWarranties(accessToken, {
-          page: nextPage,
-          size: 25,
-        });
-        setItems(response.items);
-        setPage(response.page);
-        setTotalPages(response.totalPages);
-        setTotalItems(response.totalElements);
-      } catch (loadError) {
-        setError(
-          loadError instanceof Error ? loadError.message : copy.loadFallback,
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [accessToken, copy.loadFallback],
-  );
-
-  useEffect(() => {
-    void loadData(page);
-  }, [loadData, page]);
 
   const loadAllItems = useCallback(async () => {
     if (!accessToken) return;
     setIsFilterLoading(true);
-    setError(null);
+    setAllItemsError(null);
     try {
       const response = await fetchAllAdminWarranties(accessToken, 100);
       setAllItems(response);
     } catch (loadError) {
-      setError(
+      setAllItemsError(
         loadError instanceof Error ? loadError.message : copy.loadFallback,
       );
     } finally {
@@ -201,8 +191,8 @@ function WarrantiesPageRevamp() {
   );
 
   const handleReload = useCallback(async () => {
-    await Promise.all([loadData(page), loadAllItems()]);
-  }, [loadAllItems, loadData, page]);
+    await Promise.all([refetch(), loadAllItems()]);
+  }, [loadAllItems, refetch]);
 
   const handleVoidWarranty = async (item: BackendWarrantyResponse) => {
     const code = item.warrantyCode ?? `#${item.id}`;
@@ -233,7 +223,91 @@ function WarrantiesPageRevamp() {
     }
   };
 
-  if (isLoading) {
+  const columns = useMemo<AdminTableColumn<BackendWarrantyResponse>[]>(
+    () => [
+      {
+        key: "code",
+        label: copy.code,
+        headClassName: "w-44",
+        render: (item) => (
+          <>
+            <p className="font-semibold text-[var(--ink)]">
+              {item.warrantyCode ?? `#${item.id}`}
+            </p>
+            <p className={tableMetaClass}>{item.serial ?? copy.notAvailable}</p>
+          </>
+        ),
+      },
+      {
+        key: "product",
+        label: copy.product,
+        headClassName: "min-w-44",
+        render: (item) => (
+          <>
+            <p>{item.productName ?? copy.notAvailable}</p>
+            <p className={tableMetaClass}>{item.productSku ?? ""}</p>
+          </>
+        ),
+      },
+      {
+        key: "customer",
+        label: copy.customer,
+        headClassName: "min-w-44",
+        render: (item) => (
+          <>
+            <p>{item.customerName ?? copy.notAvailable}</p>
+            <p className={tableMetaClass}>
+              {item.customerPhone ?? item.customerEmail ?? ""}
+            </p>
+          </>
+        ),
+      },
+      {
+        key: "dealer",
+        label: copy.dealer,
+        headClassName: "min-w-36",
+        render: (item) => item.dealerName ?? copy.notAvailable,
+      },
+      {
+        key: "status",
+        label: copy.status,
+        headClassName: "w-44",
+        render: (item) => (
+          <>
+            <StatusBadge tone={statusTone[item.status ?? "ACTIVE"]}>
+              {copy.statusLabels[item.status ?? "ACTIVE"]}
+            </StatusBadge>
+            <p className={`mt-1 ${tableMetaClass}`}>
+              {getRemainingLabel(item.status, item.remainingDays, copy)}
+            </p>
+          </>
+        ),
+      },
+      {
+        key: "endDate",
+        label: copy.endDate,
+        headClassName: "w-44",
+        className: "text-sm",
+        render: (item) => (
+          <>
+            <p>
+              {item.warrantyEnd
+                ? formatDateOnly(item.warrantyEnd)
+                : copy.notAvailable}
+            </p>
+            {item.warrantyStart && (
+              <p className={tableMetaClass}>
+                {copy.startDate}: {formatDateOnly(item.warrantyStart)}
+              </p>
+            )}
+          </>
+        ),
+      },
+    ],
+    [copy],
+  );
+
+  if (pagedStatus === "idle" || pagedStatus === "loading") {
     return (
       <PagePanel>
         <LoadingRows rows={6} />
@@ -241,7 +315,8 @@ function WarrantiesPageRevamp() {
     );
   }
 
-  if (error) {
+  const displayError = pagedError ?? allItemsError;
+  if (displayError) {
     return (
       <PagePanel>
         <ErrorState
@@ -325,181 +400,36 @@ function WarrantiesPageRevamp() {
             <Loader2 className="h-4 w-4 animate-spin" />
             <span>{copy.loadingStats}</span>
           </div>
-        ) : filteredItems.length === 0 ? (
-          <EmptyState
-            icon={ShieldCheck}
-            title={copy.emptyTitle}
-            message={copy.emptyMessage}
-          />
         ) : (
           <>
-            {hasActiveFilters && (
+            {hasActiveFilters && filteredItems.length > 0 && (
               <p className="mb-3 text-sm text-slate-500">
                 {filteredItems.length} {copy.results}
               </p>
             )}
-
-            {/* Mobile cards */}
-            <div className="grid gap-3 md:hidden">
-              {filteredItems.map((item) => (
-                <article key={item.id} className={tableCardClass}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-semibold text-[var(--ink)]">
-                        {item.warrantyCode ?? `#${item.id}`}
-                      </p>
-                      <p className={tableMetaClass}>
-                        {item.serial ?? copy.notAvailable}
-                      </p>
-                    </div>
-                    <StatusBadge tone={statusTone[item.status ?? "ACTIVE"]}>
-                      {copy.statusLabels[item.status ?? "ACTIVE"]}
-                    </StatusBadge>
-                  </div>
-                  <div className="mt-4 grid gap-2 text-sm">
-                    <div className="flex justify-between gap-3">
-                      <span className={tableMetaClass}>{copy.product}</span>
-                      <span className="text-right text-[var(--ink)]">
-                        {item.productName ?? copy.notAvailable}
-                      </span>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <span className={tableMetaClass}>{copy.customer}</span>
-                      <span className="text-right text-[var(--ink)]">
-                        {item.customerName ?? copy.notAvailable}
-                        {item.customerPhone ? ` · ${item.customerPhone}` : ""}
-                      </span>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <span className={tableMetaClass}>{copy.dealer}</span>
-                      <span className="text-right text-[var(--ink)]">
-                        {item.dealerName ?? copy.notAvailable}
-                      </span>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <span className={tableMetaClass}>{copy.startDate}</span>
-                      <span className="text-right text-[var(--ink)]">
-                        {item.warrantyStart
-                          ? formatDateOnly(item.warrantyStart)
-                          : copy.notAvailable}
-                      </span>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <span className={tableMetaClass}>{copy.endDate}</span>
-                      <span className="text-right text-[var(--ink)]">
-                        {item.warrantyEnd
-                          ? formatDateOnly(item.warrantyEnd)
-                          : copy.notAvailable}
-                      </span>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <span className={tableMetaClass}>{copy.remaining}</span>
-                      <span className="text-right text-[var(--ink)]">
-                        {getRemainingLabel(
-                          item.status,
-                          item.remainingDays,
-                          copy,
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                  {item.status !== "VOID" && (
-                    <button
-                      type="button"
-                      onClick={() => void handleVoidWarranty(item)}
-                      className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl border border-rose-200 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-400 dark:hover:bg-rose-950"
-                    >
-                      <ShieldOff className="h-3.5 w-3.5" />
-                      {copy.voidWarranty}
-                    </button>
-                  )}
-                </article>
-              ))}
-            </div>
-
-            {/* Desktop table */}
-            <div className="hidden overflow-x-auto md:block">
-              <table className="min-w-[68rem] border-separate border-spacing-y-2">
-                <thead>
-                  <tr className={tableHeadClass}>
-                    <th className="w-44 px-3 py-2 font-semibold">{copy.code}</th>
-                    <th className="min-w-44 px-3 py-2 font-semibold">{copy.product}</th>
-                    <th className="min-w-44 px-3 py-2 font-semibold">{copy.customer}</th>
-                    <th className="min-w-36 px-3 py-2 font-semibold">{copy.dealer}</th>
-                    <th className="w-44 px-3 py-2 font-semibold">{copy.status}</th>
-                    <th className="w-44 px-3 py-2 font-semibold">{copy.endDate}</th>
-                    <th className="px-3 py-2" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredItems.map((item) => (
-                    <tr key={item.id} className={tableRowClass}>
-                      <td className="rounded-l-2xl px-3 py-3">
-                        <p className="font-semibold text-[var(--ink)]">
-                          {item.warrantyCode ?? `#${item.id}`}
-                        </p>
-                        <p className={tableMetaClass}>
-                          {item.serial ?? copy.notAvailable}
-                        </p>
-                      </td>
-                      <td className="px-3 py-3">
-                        <p>{item.productName ?? copy.notAvailable}</p>
-                        <p className={tableMetaClass}>
-                          {item.productSku ?? ""}
-                        </p>
-                      </td>
-                      <td className="px-3 py-3">
-                        <p>{item.customerName ?? copy.notAvailable}</p>
-                        <p className={tableMetaClass}>
-                          {item.customerPhone ?? item.customerEmail ?? ""}
-                        </p>
-                      </td>
-                      <td className="px-3 py-3">
-                        {item.dealerName ?? copy.notAvailable}
-                      </td>
-                      <td className="px-3 py-3">
-                        <StatusBadge tone={statusTone[item.status ?? "ACTIVE"]}>
-                          {copy.statusLabels[item.status ?? "ACTIVE"]}
-                        </StatusBadge>
-                        <p className={`mt-1 ${tableMetaClass}`}>
-                          {getRemainingLabel(
-                            item.status,
-                            item.remainingDays,
-                            copy,
-                          )}
-                        </p>
-                      </td>
-                      <td className="px-3 py-3 text-sm">
-                        <p>
-                          {item.warrantyEnd
-                            ? formatDateOnly(item.warrantyEnd)
-                            : copy.notAvailable}
-                        </p>
-                        {item.warrantyStart && (
-                          <p className={tableMetaClass}>
-                            {copy.startDate}:{" "}
-                            {formatDateOnly(item.warrantyStart)}
-                          </p>
-                        )}
-                      </td>
-                      <td className="rounded-r-2xl px-3 py-3">
-                        {item.status !== "VOID" && (
-                          <button
-                            type="button"
-                            title={copy.voidWarranty}
-                            onClick={() => void handleVoidWarranty(item)}
-                            className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950"
-                          >
-                            <ShieldOff className="h-3.5 w-3.5" />
-                            {copy.voidWarranty}
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <AdminTable
+              columns={columns}
+              rows={filteredItems}
+              isFetching={isFetching}
+              minWidthClass="min-w-[68rem]"
+              caption={copy.title}
+              emptyIcon={ShieldCheck}
+              emptyTitle={copy.emptyTitle}
+              emptyMessage={copy.emptyMessage}
+              rowActions={(item) =>
+                item.status !== "VOID" ? (
+                  <button
+                    type="button"
+                    title={copy.voidWarranty}
+                    onClick={() => void handleVoidWarranty(item)}
+                    className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950"
+                  >
+                    <ShieldOff className="h-3.5 w-3.5" />
+                    {copy.voidWarranty}
+                  </button>
+                ) : null
+              }
+            />
           </>
         )}
       </div>
@@ -507,10 +437,10 @@ function WarrantiesPageRevamp() {
       {/* Pagination (chỉ khi không filter) */}
       {!hasActiveFilters && (
         <PaginationNav
-          page={page}
-          totalPages={totalPages}
-          totalItems={totalItems}
-          pageSize={25}
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.totalItems}
+          pageSize={pagination.pageSize}
           onPageChange={setPage}
           previousLabel={copy.previous}
           nextLabel={copy.next}

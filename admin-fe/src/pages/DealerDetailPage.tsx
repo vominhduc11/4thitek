@@ -24,6 +24,8 @@ import {
   textareaClass,
 } from '../components/ui-kit'
 import { useConfirmDialog } from '../hooks/useConfirmDialog'
+import { useSaveShortcut } from '../hooks/useSaveShortcut'
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges'
 
 const buildDealerForm = (dealer: DealerProfileUpdate): DealerProfileUpdate => ({
   businessName: dealer.businessName,
@@ -89,6 +91,18 @@ function DealerDetailPage() {
       setIsSavingProfile(false)
     }
   }
+
+  const isProfileDirty =
+    isEditingProfile &&
+    profileDraft != null &&
+    profileForm != null &&
+    JSON.stringify(profileDraft) !== JSON.stringify(profileForm)
+
+  // Ctrl/Cmd+S saves the profile edit; warn on tab close while dirty.
+  useSaveShortcut(isProfileDirty && !isSavingProfile, () => {
+    void handleSaveProfile()
+  })
+  useUnsavedChanges(isProfileDirty)
 
   if (dealersState.status === 'loading' || dealersState.status === 'idle') {
     return (

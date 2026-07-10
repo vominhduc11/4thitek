@@ -1,8 +1,7 @@
 ﻿import { AlertTriangle, ChevronDown, LoaderCircle, Package, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
-  EmptyState,
   ErrorState,
   GhostButton,
   LoadingRows,
@@ -12,12 +11,9 @@ import {
   SearchInput,
   StatCard,
   StatusBadge,
-  tableCardClass,
-  tableHeadClass,
   tableMetaClass,
-  tableRowClass,
-  tableValueClass,
 } from "../components/ui-kit";
+import { AdminTable, type AdminTableColumn } from "../components/AdminTable";
 import { useAdminData, type Order, type OrderStatus } from "../context/AdminDataContext";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
@@ -172,7 +168,6 @@ function OrdersPageRevamp() {
     { value: "cancelled", label: t(orderStatusLabel.cancelled) },
   ];
   const { notify } = useToast();
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { accessToken } = useAuth();
   const { deleteOrder, updateOrderStatus } = useAdminData();
@@ -305,11 +300,21 @@ function OrdersPageRevamp() {
     });
   }, []);
 
-  const toggleSelectAll = useCallback(() => {
-    setSelectedIds((prev) =>
-      prev.size === orders.length ? new Set() : new Set(orders.map((o) => o.id)),
-    );
-  }, [orders]);
+  // Toggle the currently-displayed rows by membership, matching AdminTable's
+  // header checkbox `checked` state (all displayed rows selected). This keeps
+  // the box's appearance and its action aligned even when selection spans pages.
+  const toggleSelectAll = useCallback((ids: string[]) => {
+    setSelectedIds((prev) => {
+      const allSelected = ids.length > 0 && ids.every((id) => prev.has(id));
+      const next = new Set(prev);
+      if (allSelected) {
+        ids.forEach((id) => next.delete(id));
+      } else {
+        ids.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  }, []);
 
   const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 
@@ -448,6 +453,99 @@ function OrdersPageRevamp() {
     }
   };
 
+  const columns: AdminTableColumn<Order>[] = [
+    {
+      key: "orderCode",
+      label: copy.orderCode,
+      render: (order) => (
+        <>
+          <div className="flex items-center gap-1">
+            <Link
+              className="rounded-md font-semibold text-[var(--ink)] underline-offset-4 transition hover:text-[var(--accent)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
+              to={`/orders/${encodeURIComponent(order.id)}`}
+            >
+              {order.orderCode}
+            </Link>
+            {order.staleReviewRequired ? (
+              <AlertTriangle
+                className="h-3 w-3 shrink-0 text-rose-500"
+                aria-label={copy.reviewRequired}
+              />
+            ) : null}
+            {order.shippingOverdue ? (
+              <AlertTriangle
+                className="h-3 w-3 shrink-0 text-amber-500"
+                aria-label={copy.shippingOverdue}
+              />
+            ) : null}
+          </div>
+          <div className={tableMetaClass}>#{order.id}</div>
+        </>
+      ),
+    },
+    { key: "dealer", label: copy.dealer, render: (order) => order.dealer },
+    {
+      key: "total",
+      label: copy.total,
+      className: "font-semibold text-[var(--accent)]",
+      render: (order) => formatCurrency(order.total),
+    },
+    {
+      key: "status",
+      label: copy.status,
+      render: (order) => (
+        <StatusBadge tone={orderStatusTone[order.status]}>
+          {t(orderStatusLabel[order.status])}
+        </StatusBadge>
+      ),
+    },
+  ];
+
+  const renderRowActions = (order: Order) => {
+    const isUpdating = updatingOrderId === order.id;
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <Link
+          className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--border)] px-4 text-sm font-semibold text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
+          to={`/orders/${encodeURIComponent(order.id)}`}
+        >
+          {copy.detail}
+        </Link>
+        <div className="flex items-center gap-2">
+          <StatusActionMenu
+            disabled={!!updatingOrderId}
+            label={`${copy.status} ${order.id}`}
+            buttonLabel={copy.changeStatusLabel}
+            onSelect={(nextStatus) =>
+              void handleStatusChange(order.id, order.status, nextStatus)
+            }
+            options={resolveAllowedOrderStatuses(
+              order.status,
+              order.allowedTransitions,
+            )
+              .filter((s) => s !== order.status)
+              .map((s) => ({ value: s, label: t(orderStatusLabel[s]) }))}
+          />
+          {isUpdating ? (
+            <LoaderCircle
+              aria-label={copy.loading}
+              className="h-4 w-4 shrink-0 animate-spin text-[var(--muted)]"
+            />
+          ) : null}
+        </div>
+        <GhostButton
+          disabled={!canDeleteOrder(order.status)}
+          icon={<Trash2 className="h-4 w-4" />}
+          onClick={() => void handleDeleteOrder(order.id)}
+          title={canDeleteOrder(order.status) ? undefined : copy.deleteMessage}
+          type="button"
+        >
+          {copy.deleteLabel}
+        </GhostButton>
+      </div>
+    );
+  };
+
   if (isLoading && totalItems === 0 && orders.length === 0) {
     return (
       <PagePanel>
@@ -537,193 +635,40 @@ function OrdersPageRevamp() {
       <div className="mt-6">
         {isLoading ? (
           <LoadingRows rows={6} />
-        ) : orders.length === 0 ? (
-          <EmptyState icon={Package} title={copy.emptyTitle} message={copy.emptyMessage} />
         ) : (
           <>
-            <div className="grid gap-3 md:hidden">
-              {orders.map((order) => {
-                const isUpdating = updatingOrderId === order.id;
-                const isSelected = selectedIds.has(order.id);
-                return (
-                  <article
-                    key={order.id}
-                    className={`${tableCardClass} ${isSelected ? "border-[var(--brand-border)] bg-[var(--accent-soft)]/40" : ""}`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <input
-                        aria-label={`Chọn ${order.orderCode}`}
-                        checked={isSelected}
-                        className="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent)]"
-                        onChange={() => toggleSelected(order.id)}
-                        type="checkbox"
-                      />
-                      <button
-                        className="min-w-0 flex-1 text-left"
-                        onClick={() => navigate(`/orders/${encodeURIComponent(order.id)}`)}
-                        type="button"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className={tableValueClass}>
-                              {order.orderCode}
-                              {order.staleReviewRequired ? (
-                                <AlertTriangle className="ml-1 inline h-3 w-3 text-rose-500" aria-label={copy.reviewRequired} />
-                              ) : null}
-                              {order.shippingOverdue ? (
-                                <AlertTriangle className="ml-1 inline h-3 w-3 text-amber-500" aria-label={copy.shippingOverdue} />
-                              ) : null}
-                            </p>
-                            <p className={tableMetaClass}>#{order.id} · {order.dealer}</p>
-                          </div>
-                          <StatusBadge tone={orderStatusTone[order.status]}>
-                            {t(orderStatusLabel[order.status])}
-                          </StatusBadge>
-                        </div>
-                        <p className="mt-3 text-sm font-semibold text-[var(--accent)]">
-                          {formatCurrency(order.total)}
-                        </p>
-                      </button>
-                    </div>
-                    <div className="mt-4 grid gap-2">
-                      <div className="flex items-center gap-2">
-                        <StatusActionMenu
-                          disabled={!!updatingOrderId}
-                          label={`${copy.status} ${order.id}`}
-                          buttonLabel={copy.changeStatusLabel}
-                          onSelect={(nextStatus) => void handleStatusChange(order.id, order.status, nextStatus)}
-                          options={resolveAllowedOrderStatuses(order.status, order.allowedTransitions)
-                            .filter((s) => s !== order.status)
-                            .map((s) => ({ value: s, label: t(orderStatusLabel[s]) }))}
-                        />
-                        {isUpdating ? (
-                          <LoaderCircle aria-label={copy.loading} className="h-4 w-4 shrink-0 animate-spin text-[var(--muted)]" />
-                        ) : null}
-                      </div>
-                      <GhostButton
-                        className="w-full"
-                        disabled={!canDeleteOrder(order.status)}
-                        icon={<Trash2 className="h-4 w-4" />}
-                        onClick={() => void handleDeleteOrder(order.id)}
-                        title={canDeleteOrder(order.status) ? undefined : copy.deleteMessage}
-                        type="button"
-                      >
-                        {copy.deleteLabel}
-                      </GhostButton>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-
-            <div className="hidden overflow-x-auto md:block">
-              <table className="min-w-full border-separate border-spacing-y-2" role="table">
-                <thead>
-                  <tr className={tableHeadClass}>
-                    <th className="w-10 px-3 py-2">
-                      <input
-                        aria-label="Chọn tất cả"
-                        checked={orders.length > 0 && selectedIds.size === orders.length}
-                        className="h-4 w-4 cursor-pointer accent-[var(--accent)]"
-                        onChange={toggleSelectAll}
-                        ref={(el) => { if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < orders.length; }}
-                        type="checkbox"
-                      />
-                    </th>
-                    <th className="px-3 py-2 font-semibold">{copy.orderCode}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.dealer}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.total}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.status}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.actions}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orders.map((order) => {
-                    const isUpdating = updatingOrderId === order.id;
-                    const isSelected = selectedIds.has(order.id);
-                    return (
-                      <tr
-                        key={order.id}
-                        className={`${tableRowClass} cursor-default ${isSelected ? "!bg-[var(--accent-soft)]/50" : ""}`}
-                      >
-                        <td className="rounded-l-2xl px-3 py-3">
-                          <input
-                            aria-label={`Chọn ${order.orderCode}`}
-                            checked={isSelected}
-                            className="h-4 w-4 cursor-pointer accent-[var(--accent)]"
-                            onChange={() => toggleSelected(order.id)}
-                            type="checkbox"
-                          />
-                        </td>
-                        <td className="px-3 py-3 font-semibold text-[var(--ink)]">
-                          <div className="flex items-center gap-1">
-                            <Link
-                              className="rounded-md text-[var(--ink)] underline-offset-4 transition hover:text-[var(--accent)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
-                              to={`/orders/${encodeURIComponent(order.id)}`}
-                            >
-                              {order.orderCode}
-                            </Link>
-                            {order.staleReviewRequired ? (
-                              <AlertTriangle className="h-3 w-3 shrink-0 text-rose-500" aria-label={copy.reviewRequired} />
-                            ) : null}
-                            {order.shippingOverdue ? (
-                              <AlertTriangle className="h-3 w-3 shrink-0 text-amber-500" aria-label={copy.shippingOverdue} />
-                            ) : null}
-                          </div>
-                          <div className={tableMetaClass}>#{order.id}</div>
-                        </td>
-                        <td className="px-3 py-3">{order.dealer}</td>
-                        <td className="px-3 py-3 font-semibold text-[var(--accent)]">{formatCurrency(order.total)}</td>
-                        <td className="px-3 py-3">
-                          <StatusBadge tone={orderStatusTone[order.status]}>{t(orderStatusLabel[order.status])}</StatusBadge>
-                        </td>
-                        <td className="rounded-r-2xl px-3 py-3">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Link
-                              className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--border)] px-4 text-sm font-semibold text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
-                              to={`/orders/${encodeURIComponent(order.id)}`}
-                            >
-                              {copy.detail}
-                            </Link>
-                            <div className="flex items-center gap-2">
-                              <StatusActionMenu
-                                disabled={!!updatingOrderId}
-                                label={`${copy.status} ${order.id}`}
-                                buttonLabel={copy.changeStatusLabel}
-                                onSelect={(nextStatus) => void handleStatusChange(order.id, order.status, nextStatus)}
-                                options={resolveAllowedOrderStatuses(order.status, order.allowedTransitions)
-                                  .filter((s) => s !== order.status)
-                                  .map((s) => ({ value: s, label: t(orderStatusLabel[s]) }))}
-                              />
-                              {isUpdating ? <LoaderCircle aria-label={copy.loading} className="h-4 w-4 shrink-0 animate-spin text-[var(--muted)]" /> : null}
-                            </div>
-                            <GhostButton
-                              disabled={!canDeleteOrder(order.status)}
-                              icon={<Trash2 className="h-4 w-4" />}
-                              onClick={() => void handleDeleteOrder(order.id)}
-                              title={canDeleteOrder(order.status) ? undefined : copy.deleteMessage}
-                              type="button"
-                            >
-                              {copy.deleteLabel}
-                            </GhostButton>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            <PaginationNav
-              page={page}
-              totalPages={totalPages}
-              totalItems={totalItems}
-              pageSize={PAGE_SIZE}
-              onPageChange={(nextPage) => void loadPage(nextPage)}
-              previousLabel={copy.previousLabel}
-              nextLabel={copy.nextLabel}
+            <AdminTable
+              columns={columns}
+              rows={orders}
+              selection={{
+                selectedIds,
+                onToggle: toggleSelected,
+                onToggleAll: toggleSelectAll,
+                ariaLabel: "Chọn tất cả",
+              }}
+              rowActions={renderRowActions}
+              rowClassName={(order) =>
+                selectedIds.has(order.id)
+                  ? "cursor-default !bg-[var(--accent-soft)]/50"
+                  : "cursor-default"
+              }
+              minWidthClass="min-w-full"
+              caption={copy.title}
+              emptyIcon={Package}
+              emptyTitle={copy.emptyTitle}
+              emptyMessage={copy.emptyMessage}
             />
+            {orders.length > 0 && (
+              <PaginationNav
+                page={page}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                pageSize={PAGE_SIZE}
+                onPageChange={(nextPage) => void loadPage(nextPage)}
+                previousLabel={copy.previousLabel}
+                nextLabel={copy.nextLabel}
+              />
+            )}
           </>
         )}
       </div>

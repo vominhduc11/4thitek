@@ -11,6 +11,7 @@ import {
   PrimaryButton,
   StatCard,
 } from '../components/ui-kit'
+import { ExportButton } from '../components/ExportButton'
 import { useProducts } from '../context/ProductsContext'
 import { useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
@@ -401,14 +402,12 @@ function ProductsPage() {
         subtitle={t('Quản lý sản phẩm và tồn kho.')}
         actions={
           <>
-            <GhostButton
+            <ExportButton
               className="w-full sm:w-auto"
               icon={<FileDown className="h-4 w-4" />}
-              onClick={handleExportCsv}
-              type="button"
-            >
-              {t('Xuất CSV')}
-            </GhostButton>
+              onExport={handleExportCsv}
+              label={t('Xuất CSV')}
+            />
             <PrimaryButton
               className="w-full sm:w-auto"
               icon={<Plus className="h-4 w-4" />}

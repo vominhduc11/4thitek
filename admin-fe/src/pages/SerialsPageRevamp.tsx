@@ -41,6 +41,8 @@ import { useProducts } from "../context/ProductsContext";
 import { useToast } from "../context/ToastContext";
 import { formatDateTime } from "../lib/formatters";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
+import { useAdminList } from "../hooks/useAdminList";
+import { AdminTable, type AdminTableColumn } from "../components/AdminTable";
 import { buildSkippedSerialRetryValue } from "./serialImportViewState";
 import {
   isValidSerialFormat,
@@ -49,7 +51,6 @@ import {
   type SerialImportFileParseResult,
 } from "../lib/serialImportFile";
 import {
-  EmptyState,
   ErrorState,
   GhostButton,
   LoadingRows,
@@ -64,10 +65,7 @@ import {
   iconButtonClass,
   inputClass,
   labelClass,
-  tableCardClass,
-  tableHeadClass,
   tableMetaClass,
-  tableRowClass,
   textareaClass,
 } from "../components/ui-kit";
 import { useBodyScrollLock } from "../hooks/useBodyScrollLock";
@@ -240,22 +238,39 @@ function SerialsPageRevamp() {
   const [rmaProofUrls, setRmaProofUrls] = useState("");
   const [isRmaSubmitting, setIsRmaSubmitting] = useState(false);
   const [rmaError, setRmaError] = useState<string | null>(null);
-  const [items, setItems] = useState<BackendSerialResponse[]>([]);
+  // Paged source (server pagination). The paged endpoint takes no filter params,
+  // so filtering runs client-side against `allItems` below.
+  const fetchPage = useCallback(
+    ({ page, size }: { page: number; size: number }) =>
+      fetchAdminSerialsPaged(accessToken!, { page, size }),
+    [accessToken],
+  );
+  const {
+    status: pagedStatus,
+    items,
+    setItems,
+    pagination,
+    isFetching,
+    error: pagedError,
+    setPage,
+    refetch,
+  } = useAdminList<BackendSerialResponse>({
+    fetchPage,
+    pageSize: 25,
+    enabled: Boolean(accessToken),
+    fallbackError: copy.loadFallback,
+  });
   const [allItems, setAllItems] = useState<BackendSerialResponse[]>([]);
-  const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalItems, setTotalItems] = useState(0);
+  const [isFilterLoading, setIsFilterLoading] = useState(false);
+  const [allItemsError, setAllItemsError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<
     "ALL" | BackendProductSerialStatus
   >("ALL");
   const [showImport, setShowImport] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isFilterLoading, setIsFilterLoading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [lastImportResult, setLastImportResult] =
     useState<BackendSerialImportSummary<BackendSerialResponse> | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const hasActiveFilters = query.trim().length > 0 || statusFilter !== "ALL";
   const [form, setForm] = useState({
     productId: "",
@@ -285,44 +300,15 @@ function SerialsPageRevamp() {
     restoreFocus: false,
   });
 
-  const loadData = useCallback(
-    async (nextPage: number) => {
-      if (!accessToken) return;
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await fetchAdminSerialsPaged(accessToken, {
-          page: nextPage,
-          size: 25,
-        });
-        setItems(response.items);
-        setPage(response.page);
-        setTotalPages(response.totalPages);
-        setTotalItems(response.totalElements);
-      } catch (loadError) {
-        setError(
-          loadError instanceof Error ? loadError.message : copy.loadFallback,
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [accessToken, copy.loadFallback],
-  );
-
-  useEffect(() => {
-    void loadData(page);
-  }, [loadData, page]);
-
   const loadAllItems = useCallback(async () => {
     if (!accessToken) return;
     setIsFilterLoading(true);
-    setError(null);
+    setAllItemsError(null);
     try {
       const response = await fetchAllAdminSerials(accessToken, 100);
       setAllItems(response);
     } catch (loadError) {
-      setError(
+      setAllItemsError(
         loadError instanceof Error ? loadError.message : copy.loadFallback,
       );
     } finally {
@@ -372,8 +358,8 @@ function SerialsPageRevamp() {
   );
 
   const handleReload = useCallback(async () => {
-    await Promise.all([loadData(page), loadAllItems()]);
-  }, [loadAllItems, loadData, page]);
+    await Promise.all([refetch(), loadAllItems()]);
+  }, [loadAllItems, refetch]);
 
   const resetImportFileState = useCallback(() => {
     setIsParsingFile(false);
@@ -490,7 +476,8 @@ function SerialsPageRevamp() {
         }));
       }
       setPage(0);
-      await Promise.all([loadData(0), loadAllItems()]);
+      void refetch();
+      await loadAllItems();
       notify(
         copy.importSummary
           .replace("{imported}", String(importResult.importedCount))
@@ -646,7 +633,151 @@ function SerialsPageRevamp() {
     document.head.removeChild(style);
   };
 
-  if (isLoading) {
+  const columns: AdminTableColumn<BackendSerialResponse>[] = [
+    {
+      key: "serial",
+      label: copy.serialHeader,
+      headClassName: "w-52",
+      render: (item) => (
+        <>
+          <p className="font-semibold text-[var(--ink)]">{item.serial}</p>
+          <p className={tableMetaClass}>{item.orderCode ?? "-"}</p>
+        </>
+      ),
+    },
+    {
+      key: "product",
+      label: copy.product,
+      headClassName: "min-w-44",
+      render: (item) => (
+        <>
+          <p>{item.productName ?? "-"}</p>
+          <p className={tableMetaClass}>{item.productSku ?? "-"}</p>
+        </>
+      ),
+    },
+    {
+      key: "owner",
+      label: copy.owner,
+      headClassName: "min-w-48",
+      render: (item) => (
+        <>
+          {item.dealerName ? (
+            <p>{item.dealerName}</p>
+          ) : item.pendingDealerName ? (
+            <p className="italic text-[var(--ink-muted)]">
+              {item.pendingDealerName}{" "}
+              <span className="text-xs">({copy.pending})</span>
+            </p>
+          ) : (
+            <p>-</p>
+          )}
+          <p className={tableMetaClass}>{item.customerName ?? "-"}</p>
+        </>
+      ),
+    },
+    {
+      key: "status",
+      label: copy.status,
+      headClassName: "w-40",
+      render: (item) => {
+        const badge = getSerialBadge(item, copy.statusLabels, copy.atDealer);
+        return <StatusBadge tone={badge.tone}>{badge.label}</StatusBadge>;
+      },
+    },
+    {
+      key: "importedAt",
+      label: copy.importedAt,
+      headClassName: "w-40",
+      className: "text-sm",
+      render: (item) =>
+        item.importedAt ? formatDateTime(item.importedAt) : "-",
+    },
+  ];
+
+  const renderRowActions = (item: BackendSerialResponse) => (
+    <div className="flex items-center gap-1">
+      <button
+        aria-label={copy.showQr}
+        className={`${iconButtonClass} min-h-9 min-w-9 rounded-xl border-transparent bg-transparent shadow-none`}
+        onClick={() => setQrItem(item)}
+        title={copy.showQr}
+        type="button"
+      >
+        <QrCode className="h-3.5 w-3.5" />
+      </button>
+      {item.status === "AVAILABLE" &&
+        !item.dealerName &&
+        !item.pendingDealerName && (
+          <button
+            type="button"
+            title={copy.markDefective}
+            onClick={() => void handleSerialAction(item, "DEFECTIVE")}
+            className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950"
+          >
+            <AlertTriangle className="h-3.5 w-3.5" />
+            {copy.markDefective}
+          </button>
+        )}
+      {item.status === "DEFECTIVE" && (
+        <button
+          type="button"
+          title={copy.markAvailable}
+          onClick={() => void handleSerialAction(item, "AVAILABLE")}
+          className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+          {copy.markAvailable}
+        </button>
+      )}
+      {(item.status === "DEFECTIVE" || item.status === "RETURNED") && (
+        <button
+          type="button"
+          title={copy.rmaStartInspectionBtn}
+          onClick={() => openRmaModal(item, "START_INSPECTION")}
+          className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950"
+        >
+          <Microscope className="h-3.5 w-3.5" />
+          {copy.rmaStartInspectionBtn}
+        </button>
+      )}
+      {item.status === "INSPECTING" && (
+        <>
+          <button
+            type="button"
+            title={copy.rmaPassQcBtn}
+            onClick={() => openRmaModal(item, "PASS_QC")}
+            className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950"
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            {copy.rmaPassQcBtn}
+          </button>
+          <button
+            type="button"
+            title={copy.rmaScrapBtn}
+            onClick={() => openRmaModal(item, "SCRAP")}
+            className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+          >
+            <Ban className="h-3.5 w-3.5" />
+            {copy.rmaScrapBtn}
+          </button>
+        </>
+      )}
+      {(item.status === "AVAILABLE" || item.status === "DEFECTIVE") && (
+        <button
+          aria-label={copy.deleteSerial}
+          className={`${iconButtonClass} min-h-9 min-w-9 rounded-xl border-transparent bg-transparent text-slate-400 shadow-none hover:border-[var(--destructive-border)] hover:bg-[var(--destructive-soft)] hover:text-[var(--destructive-text)]`}
+          onClick={() => void handleDeleteSerial(item)}
+          title={copy.deleteSerial}
+          type="button"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
+  );
+
+  if (pagedStatus === "idle" || pagedStatus === "loading") {
     return (
       <PagePanel>
         <LoadingRows rows={6} />
@@ -654,7 +785,8 @@ function SerialsPageRevamp() {
     );
   }
 
-  if (error) {
+  const displayError = pagedError ?? allItemsError;
+  if (displayError) {
     return (
       <PagePanel>
         <ErrorState
@@ -928,341 +1060,25 @@ function SerialsPageRevamp() {
             <Loader2 className="h-4 w-4 animate-spin" />
             <span>{copy.loadingStats}</span>
           </div>
-        ) : filteredItems.length === 0 ? (
-          <EmptyState
-            icon={Barcode}
-            title={copy.emptyTitle}
-            message={copy.emptyMessage}
-          />
         ) : (
           <>
             {/* Results count when filtering */}
-            {hasActiveFilters && (
+            {hasActiveFilters && filteredItems.length > 0 && (
               <p className="mb-3 text-sm text-slate-500">
                 {filteredItems.length} {copy.results}
               </p>
             )}
-
-            {/* Mobile cards */}
-            <div className="grid gap-3 md:hidden">
-              {filteredItems.map((item) => (
-                <article key={item.id} className={tableCardClass}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-semibold text-[var(--ink)]">
-                        {item.serial}
-                      </p>
-                      <p className={tableMetaClass}>{item.orderCode ?? "-"}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        aria-label={copy.showQr}
-                        className={`${iconButtonClass} min-h-9 min-w-9 rounded-xl border-transparent bg-transparent shadow-none`}
-                        onClick={() => setQrItem(item)}
-                        title={copy.showQr}
-                        type="button"
-                      >
-                        <QrCode className="h-4 w-4" />
-                      </button>
-                      <StatusBadge
-                        tone={
-                          getSerialBadge(item, copy.statusLabels, copy.atDealer)
-                            .tone
-                        }
-                      >
-                        {
-                          getSerialBadge(item, copy.statusLabels, copy.atDealer)
-                            .label
-                        }
-                      </StatusBadge>
-                    </div>
-                  </div>
-                  <div className="mt-4 grid gap-2 text-sm">
-                    <div className="flex justify-between gap-3">
-                      <span className={tableMetaClass}>{copy.product}</span>
-                      <span className="text-right text-[var(--ink)]">
-                        {item.productName ?? "-"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <span className={tableMetaClass}>{copy.owner}</span>
-                      <span className="text-right text-[var(--ink)]">
-                        {item.dealerName ??
-                          (item.pendingDealerName ? (
-                            <span className="text-[var(--ink-muted)] italic">
-                              {item.pendingDealerName} ({copy.pending})
-                            </span>
-                          ) : (
-                            (item.customerName ?? "-")
-                          ))}
-                      </span>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <span className={tableMetaClass}>{copy.importedAt}</span>
-                      <span className="text-right text-[var(--ink)]">
-                        {item.importedAt
-                          ? formatDateTime(item.importedAt)
-                          : "-"}
-                      </span>
-                    </div>
-                  </div>
-                  {item.status === "AVAILABLE" &&
-                    !item.dealerName &&
-                    !item.pendingDealerName && (
-                      <div className="mt-4 flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            void handleSerialAction(item, "DEFECTIVE")
-                          }
-                          className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-rose-200 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-400 dark:hover:bg-rose-950"
-                        >
-                          <AlertTriangle className="h-3.5 w-3.5" />
-                          {copy.markDefective}
-                        </button>
-                        <button
-                          type="button"
-                          title={copy.deleteSerial}
-                          onClick={() => void handleDeleteSerial(item)}
-                          className="flex items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-slate-400 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 dark:border-slate-700 dark:hover:border-rose-800 dark:hover:bg-rose-950 dark:hover:text-rose-400"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    )}
-                  {item.status === "DEFECTIVE" && (
-                    <div className="mt-4 flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          void handleSerialAction(item, "AVAILABLE")
-                        }
-                        className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-200 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
-                      >
-                        <RotateCcw className="h-3.5 w-3.5" />
-                        {copy.markAvailable}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => openRmaModal(item, "START_INSPECTION")}
-                        className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-amber-200 py-2 text-sm font-medium text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950"
-                      >
-                        <Microscope className="h-3.5 w-3.5" />
-                        {copy.rmaStartInspectionBtn}
-                      </button>
-                      <button
-                        type="button"
-                        title={copy.deleteSerial}
-                        onClick={() => void handleDeleteSerial(item)}
-                        className="flex items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-slate-400 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 dark:border-slate-700 dark:hover:border-rose-800 dark:hover:bg-rose-950 dark:hover:text-rose-400"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
-                  {item.status === "RETURNED" && (
-                    <div className="mt-4 flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => openRmaModal(item, "START_INSPECTION")}
-                        className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-amber-200 py-2 text-sm font-medium text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950"
-                      >
-                        <Microscope className="h-3.5 w-3.5" />
-                        {copy.rmaStartInspectionBtn}
-                      </button>
-                    </div>
-                  )}
-                  {item.status === "INSPECTING" && (
-                    <div className="mt-4 flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => openRmaModal(item, "PASS_QC")}
-                        className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-emerald-200 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        {copy.rmaPassQcBtn}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => openRmaModal(item, "SCRAP")}
-                        className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-200 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
-                      >
-                        <Ban className="h-3.5 w-3.5" />
-                        {copy.rmaScrapBtn}
-                      </button>
-                    </div>
-                  )}
-                </article>
-              ))}
-            </div>
-
-            {/* Desktop table */}
-            <div className="hidden overflow-x-auto md:block">
-              <table className="min-w-[72rem] border-separate border-spacing-y-2">
-                <thead>
-                  <tr className={tableHeadClass}>
-                    <th className="w-52 px-3 py-2 font-semibold">
-                      {copy.serialHeader}
-                    </th>
-                    <th className="min-w-44 px-3 py-2 font-semibold">{copy.product}</th>
-                    <th className="min-w-48 px-3 py-2 font-semibold">{copy.owner}</th>
-                    <th className="w-40 px-3 py-2 font-semibold">{copy.status}</th>
-                    <th className="w-40 px-3 py-2 font-semibold">
-                      {copy.importedAt}
-                    </th>
-                    <th className="w-72 px-3 py-2" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredItems.map((item) => (
-                    <tr key={item.id} className={tableRowClass}>
-                      <td className="rounded-l-2xl px-3 py-3">
-                        <p className="font-semibold text-[var(--ink)]">
-                          {item.serial}
-                        </p>
-                        <p className={tableMetaClass}>
-                          {item.orderCode ?? "-"}
-                        </p>
-                      </td>
-                      <td className="px-3 py-3">
-                        <p>{item.productName ?? "-"}</p>
-                        <p className={tableMetaClass}>
-                          {item.productSku ?? "-"}
-                        </p>
-                      </td>
-                      <td className="px-3 py-3">
-                        {item.dealerName ? (
-                          <p>{item.dealerName}</p>
-                        ) : item.pendingDealerName ? (
-                          <p className="italic text-[var(--ink-muted)]">
-                            {item.pendingDealerName}{" "}
-                            <span className="text-xs">({copy.pending})</span>
-                          </p>
-                        ) : (
-                          <p>-</p>
-                        )}
-                        <p className={tableMetaClass}>
-                          {item.customerName ?? "-"}
-                        </p>
-                      </td>
-                      <td className="px-3 py-3">
-                        <StatusBadge
-                          tone={
-                            getSerialBadge(
-                              item,
-                              copy.statusLabels,
-                              copy.atDealer,
-                            ).tone
-                          }
-                        >
-                          {
-                            getSerialBadge(
-                              item,
-                              copy.statusLabels,
-                              copy.atDealer,
-                            ).label
-                          }
-                        </StatusBadge>
-                      </td>
-                      <td className="px-3 py-3 text-sm">
-                        {item.importedAt
-                          ? formatDateTime(item.importedAt)
-                          : "-"}
-                      </td>
-                      <td className="rounded-r-2xl px-3 py-3">
-                        <div className="flex items-center gap-1">
-                          <button
-                            aria-label={copy.showQr}
-                            className={`${iconButtonClass} min-h-9 min-w-9 rounded-xl border-transparent bg-transparent shadow-none`}
-                            onClick={() => setQrItem(item)}
-                            title={copy.showQr}
-                            type="button"
-                          >
-                            <QrCode className="h-3.5 w-3.5" />
-                          </button>
-                          {item.status === "AVAILABLE" &&
-                            !item.dealerName &&
-                            !item.pendingDealerName && (
-                              <button
-                                type="button"
-                                title={copy.markDefective}
-                                onClick={() =>
-                                  void handleSerialAction(item, "DEFECTIVE")
-                                }
-                                className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950"
-                              >
-                                <AlertTriangle className="h-3.5 w-3.5" />
-                                {copy.markDefective}
-                              </button>
-                            )}
-                          {item.status === "DEFECTIVE" && (
-                            <button
-                              type="button"
-                              title={copy.markAvailable}
-                              onClick={() =>
-                                void handleSerialAction(item, "AVAILABLE")
-                              }
-                              className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                            >
-                              <RotateCcw className="h-3.5 w-3.5" />
-                              {copy.markAvailable}
-                            </button>
-                          )}
-                          {(item.status === "DEFECTIVE" ||
-                            item.status === "RETURNED") && (
-                            <button
-                              type="button"
-                              title={copy.rmaStartInspectionBtn}
-                              onClick={() =>
-                                openRmaModal(item, "START_INSPECTION")
-                              }
-                              className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950"
-                            >
-                              <Microscope className="h-3.5 w-3.5" />
-                              {copy.rmaStartInspectionBtn}
-                            </button>
-                          )}
-                          {item.status === "INSPECTING" && (
-                            <>
-                              <button
-                                type="button"
-                                title={copy.rmaPassQcBtn}
-                                onClick={() => openRmaModal(item, "PASS_QC")}
-                                className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950"
-                              >
-                                <CheckCircle2 className="h-3.5 w-3.5" />
-                                {copy.rmaPassQcBtn}
-                              </button>
-                              <button
-                                type="button"
-                                title={copy.rmaScrapBtn}
-                                onClick={() => openRmaModal(item, "SCRAP")}
-                                className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                              >
-                                <Ban className="h-3.5 w-3.5" />
-                                {copy.rmaScrapBtn}
-                              </button>
-                            </>
-                          )}
-                          {(item.status === "AVAILABLE" ||
-                            item.status === "DEFECTIVE") && (
-                            <button
-                              aria-label={copy.deleteSerial}
-                              className={`${iconButtonClass} min-h-9 min-w-9 rounded-xl border-transparent bg-transparent text-slate-400 shadow-none hover:border-[var(--destructive-border)] hover:bg-[var(--destructive-soft)] hover:text-[var(--destructive-text)]`}
-                              onClick={() => void handleDeleteSerial(item)}
-                              title={copy.deleteSerial}
-                              type="button"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <AdminTable
+              columns={columns}
+              rows={filteredItems}
+              isFetching={isFetching}
+              minWidthClass="min-w-[72rem]"
+              caption={copy.title}
+              emptyIcon={Barcode}
+              emptyTitle={copy.emptyTitle}
+              emptyMessage={copy.emptyMessage}
+              rowActions={renderRowActions}
+            />
           </>
         )}
       </div>
@@ -1270,10 +1086,10 @@ function SerialsPageRevamp() {
       {/* Pagination (chỉ khi không filter) */}
       {!hasActiveFilters && (
         <PaginationNav
-          page={page}
-          totalPages={totalPages}
-          totalItems={totalItems}
-          pageSize={25}
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.totalItems}
+          pageSize={pagination.pageSize}
           onPageChange={setPage}
           previousLabel={copy.previous}
           nextLabel={copy.next}

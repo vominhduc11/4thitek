@@ -65,6 +65,7 @@ import { useLocalStorageSet } from "../hooks/useLocalStorageSet";
 import { useOverlaySurface } from "../hooks/useOverlaySurface";
 import { useTheme } from "../hooks/useTheme";
 import { useAdminWebSocket } from "../hooks/useAdminWebSocket";
+import { useNavBadges } from "../hooks/useNavBadges";
 
 type NavGroupId = "overview" | "commerce" | "service" | "system";
 
@@ -247,6 +248,31 @@ function AppLayoutRevamp() {
     reloadResource,
   } = useAdminData();
   const { products } = useProducts();
+
+  // "Needs attention" nav badges: only query modules the user can see; failures
+  // simply show no badge. Orders/users are derived from already-loaded context.
+  const canSeeReturns = canAccessPath("/returns", hasPermission, hasRole);
+  const fetchedNavBadges = useNavBadges({ accessToken, canSeeReturns });
+  const navBadges = useMemo<Record<string, number>>(() => {
+    const map: Record<string, number> = { ...fetchedNavBadges };
+    if (canAccessPath("/orders", hasPermission, hasRole)) {
+      const pendingOrders = orders.filter(
+        (order) => order.status === "pending",
+      ).length;
+      if (pendingOrders > 0) {
+        map["/orders"] = pendingOrders;
+      }
+    }
+    if (hasRole("SUPER_ADMIN")) {
+      const pendingUsers = users.filter(
+        (user) => user.status === "pending",
+      ).length;
+      if (pendingUsers > 0) {
+        map["/users"] = pendingUsers;
+      }
+    }
+    return map;
+  }, [fetchedNavBadges, orders, users, hasPermission, hasRole]);
 
   const { theme, toggleTheme } = useTheme();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -1029,6 +1055,14 @@ function AppLayoutRevamp() {
                           <span className="line-clamp-2 block min-w-0 flex-1 pr-1 text-sm leading-5 text-inherit break-words">
                             {item.label}
                           </span>
+                          {navBadges[item.to] ? (
+                            <span
+                              aria-label={`${navBadges[item.to]} mục cần xử lý`}
+                              className="inline-flex min-w-[1.25rem] shrink-0 items-center justify-center rounded-full bg-[var(--destructive)] px-1.5 py-0.5 text-[0.7rem] font-semibold leading-none text-white"
+                            >
+                              {navBadges[item.to] > 99 ? "99+" : navBadges[item.to]}
+                            </span>
+                          ) : null}
                           <ChevronRight
                             className={[
                               "h-4 w-4 shrink-0 self-center transition",

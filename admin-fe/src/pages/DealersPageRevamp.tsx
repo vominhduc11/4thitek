@@ -1,8 +1,7 @@
 ﻿import { Bell, CheckCircle2, Clock3, Users } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
-  EmptyState,
   ErrorState,
   LoadingRows,
   PageHeader,
@@ -13,16 +12,15 @@ import {
   StatusBadge,
   inputClass,
   tableActionSelectClass,
-  tableCardClass,
-  tableHeadClass,
   tableMetaClass,
-  tableRowClass,
 } from "../components/ui-kit";
+import { AdminTable, type AdminTableColumn } from "../components/AdminTable";
 import { useAdminData, type Dealer, type DealerStatus } from "../context/AdminDataContext";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useToast } from "../context/ToastContext";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
+import { useAdminList } from "../hooks/useAdminList";
 import {
   dealerStatusDescription,
   dealerStatusLabel,
@@ -77,24 +75,16 @@ function DealersPageRevamp() {
     { value: "under_review", label: copy.underReview },
     { value: "suspended", label: copy.suspended },
   ];
-  const navigate = useNavigate();
   const { notify } = useToast();
   const { accessToken } = useAuth();
   const { updateDealerStatus } = useAdminData();
   const { confirm, prompt, confirmDialog, promptDialog } = useConfirmDialog();
 
-  const [dealers, setDealers] = useState<Dealer[]>([]);
-  const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalItems, setTotalItems] = useState(0);
   const [stats, setStats] = useState({ total: 0, active: 0, underReview: 0, suspended: 0, totalRevenue: 0 });
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | DealerStatus>("all");
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const toolbarSearchClass = "w-full sm:max-w-sm lg:w-72 xl:w-80";
-  const requestIdRef = useRef(0);
   const summaryRequestIdRef = useRef(0);
 
   useEffect(() => {
@@ -103,6 +93,45 @@ function DealersPageRevamp() {
     }, 300);
     return () => window.clearTimeout(timer);
   }, [query]);
+
+  // Server-side filtering: status/query are sent to the backend, so a filter
+  // change reloads from page 0 (see the effect below).
+  const fetchPage = useCallback(
+    async ({ page, size }: { page: number; size: number }) => {
+      const response = await fetchAdminDealerAccountsPaged(accessToken!, {
+        page,
+        size,
+        status:
+          statusFilter === "all"
+            ? undefined
+            : toBackendDealerAccountStatus(statusFilter),
+        query: debouncedQuery || undefined,
+      });
+      return {
+        items: response.items.map(mapDealer),
+        page: response.page,
+        totalPages: response.totalPages,
+        totalElements: response.totalElements,
+      };
+    },
+    [accessToken, debouncedQuery, statusFilter],
+  );
+  const {
+    status: pagedStatus,
+    items: dealers,
+    pagination,
+    isFetching,
+    error,
+    setPage,
+    refetch,
+  } = useAdminList<Dealer>({
+    fetchPage,
+    pageSize: PAGE_SIZE,
+    enabled: Boolean(accessToken),
+    fallbackError: copy.loadFallback,
+    // A filter change jumps back to page 0 and reloads (handled by the hook).
+    resetKey: `${statusFilter}|${debouncedQuery}`,
+  });
 
   const loadSummary = useCallback(async () => {
     if (!accessToken) {
@@ -130,64 +159,13 @@ function DealersPageRevamp() {
     }
   }, [accessToken]);
 
-  const loadPage = useCallback(
-    async (nextPage: number) => {
-      if (!accessToken) {
-        return;
-      }
-
-      const requestId = ++requestIdRef.current;
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const response = await fetchAdminDealerAccountsPaged(accessToken, {
-          page: nextPage,
-          size: PAGE_SIZE,
-          status: statusFilter === "all" ? undefined : toBackendDealerAccountStatus(statusFilter),
-          query: debouncedQuery || undefined,
-        });
-
-        if (requestIdRef.current !== requestId) {
-          return;
-        }
-
-        setDealers(response.items.map(mapDealer));
-        setPage(response.page);
-        setTotalPages(response.totalPages);
-        setTotalItems(response.totalElements);
-      } catch (loadError) {
-        if (requestIdRef.current !== requestId) {
-          return;
-        }
-
-        const message = loadError instanceof Error ? loadError.message : copy.loadFallback;
-        setError(message);
-        notify(message, { title: copy.title, variant: "error" });
-      } finally {
-        if (requestIdRef.current === requestId) {
-          setIsLoading(false);
-        }
-      }
-    },
-    [accessToken, copy.loadFallback, copy.title, debouncedQuery, notify, statusFilter],
-  );
-
   useEffect(() => {
     void loadSummary();
   }, [loadSummary]);
 
-  useEffect(() => {
-    void loadPage(0);
-  }, [loadPage]);
-
-  const reloadCurrentPage = useCallback(
-    async (nextPage?: number) => {
-      const pageToLoad = nextPage ?? page;
-      await Promise.all([loadPage(pageToLoad), loadSummary()]);
-    },
-    [loadPage, loadSummary, page],
-  );
+  const reloadAll = useCallback(async () => {
+    await Promise.all([refetch(), loadSummary()]);
+  }, [refetch, loadSummary]);
 
   const handleStatusUpdate = async (dealer: Dealer, next: DealerStatus, revert: () => void) => {
     if (next === dealer.status) {
@@ -224,7 +202,7 @@ function DealersPageRevamp() {
 
     try {
       await updateDealerStatus(dealer.id, next, reason);
-      await reloadCurrentPage();
+      await reloadAll();
     } catch (updateError) {
       notify(updateError instanceof Error ? updateError.message : copy.updateFailed, {
         title: copy.title,
@@ -234,7 +212,93 @@ function DealersPageRevamp() {
     }
   };
 
-  if (isLoading && totalItems === 0 && dealers.length === 0) {
+  const columns: AdminTableColumn<Dealer>[] = [
+    {
+      key: "dealer",
+      label: copy.title,
+      render: (dealer) => (
+        <>
+          <p className="font-semibold text-[var(--ink)]">
+            <Link
+              className="rounded-md underline-offset-4 transition hover:text-[var(--accent)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
+              to={`/dealers/${encodeURIComponent(dealer.id)}`}
+            >
+              {dealer.name}
+            </Link>
+          </p>
+          <p className={tableMetaClass}>
+            {dealer.id} · {dealer.email}
+          </p>
+          <p className={tableMetaClass}>{dealer.contactName}</p>
+        </>
+      ),
+    },
+    {
+      key: "status",
+      label: copy.status,
+      render: (dealer) => (
+        <>
+          <StatusBadge tone={dealerStatusTone[dealer.status]}>
+            {t(dealerStatusLabel[dealer.status])}
+          </StatusBadge>
+          <p className={`mt-1 ${tableMetaClass}`}>
+            {t(dealerStatusDescription[dealer.status])}
+          </p>
+        </>
+      ),
+    },
+    {
+      key: "orders",
+      label: copy.orders,
+      render: (dealer) => (
+        <>
+          <div className="text-sm text-[var(--ink)]">{dealer.orders}</div>
+          <div className={tableMetaClass}>{formatDateTime(dealer.lastOrderAt)}</div>
+        </>
+      ),
+    },
+    {
+      key: "revenue",
+      label: copy.revenueShort,
+      className: "font-semibold text-[var(--accent)]",
+      render: (dealer) => formatCurrency(dealer.revenue),
+    },
+  ];
+
+  const renderRowActions = (dealer: Dealer) => (
+    <div className="flex flex-wrap items-center gap-2">
+      <Link
+        className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--border)] px-4 text-sm font-semibold text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
+        to={`/dealers/${encodeURIComponent(dealer.id)}`}
+      >
+        {copy.detail}
+      </Link>
+      <select
+        aria-label={`${copy.status} ${dealer.id}`}
+        className={`w-full sm:w-auto ${tableActionSelectClass}`}
+        onChange={(event) =>
+          void handleStatusUpdate(
+            dealer,
+            event.target.value as DealerStatus,
+            () => {
+              event.currentTarget.value = dealer.status;
+            },
+          )
+        }
+        value={dealer.status}
+      >
+        {resolveAllowedDealerStatuses(dealer.status, dealer.allowedTransitions).map(
+          (status) => (
+            <option key={`${dealer.id}-${status}`} value={status}>
+              {t(dealerStatusLabel[status])}
+            </option>
+          ),
+        )}
+      </select>
+    </div>
+  );
+
+  if (pagedStatus === "idle" || pagedStatus === "loading") {
     return (
       <PagePanel>
         <LoadingRows rows={6} />
@@ -245,7 +309,7 @@ function DealersPageRevamp() {
   if (error) {
     return (
       <PagePanel>
-        <ErrorState title={copy.loadTitle} message={error} onRetry={() => void reloadCurrentPage()} />
+        <ErrorState title={copy.loadTitle} message={error} onRetry={() => void reloadAll()} />
       </PagePanel>
     );
   }
@@ -292,133 +356,28 @@ function DealersPageRevamp() {
       </p>
 
       <div className="mt-6">
-        {isLoading ? (
-          <LoadingRows rows={6} />
-        ) : dealers.length === 0 ? (
-          <EmptyState icon={Users} title={copy.emptyTitle} message={copy.emptyMessage} />
-        ) : (
-          <>
-            <div className="grid gap-3 md:hidden">
-              {dealers.map((dealer) => (
-                <article key={dealer.id} className={tableCardClass}>
-                  <button className="w-full text-left" onClick={() => navigate(`/dealers/${encodeURIComponent(dealer.id)}`)} type="button">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-semibold text-[var(--ink)]">{dealer.name}</p>
-                        <p className={tableMetaClass}>{dealer.id} · {dealer.email}</p>
-                        <p className={tableMetaClass}>{dealer.contactName}</p>
-                      </div>
-                      <StatusBadge tone={dealerStatusTone[dealer.status]}>{t(dealerStatusLabel[dealer.status])}</StatusBadge>
-                    </div>
-                    <div className="mt-4 grid gap-2 text-sm text-[var(--ink)]">
-                      <div className="flex items-center justify-between">
-                        <span className={tableMetaClass}>{copy.orders}</span>
-                        <span>{dealer.orders}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className={tableMetaClass}>{copy.revenueShort}</span>
-                        <span className="font-semibold text-[var(--accent)]">{formatCurrency(dealer.revenue)}</span>
-                      </div>
-                    </div>
-                  </button>
-                  <p className={`${tableMetaClass} mt-3`}>{t(dealerStatusDescription[dealer.status])}</p>
-                  <select
-                    aria-label={`${copy.status} ${dealer.id}`}
-                    className={`mt-4 w-full ${tableActionSelectClass}`}
-                    onChange={(event) =>
-                      void handleStatusUpdate(dealer, event.target.value as DealerStatus, () => {
-                        event.currentTarget.value = dealer.status;
-                      })
-                    }
-                    value={dealer.status}
-                  >
-                    {resolveAllowedDealerStatuses(dealer.status, dealer.allowedTransitions).map((status) => (
-                      <option key={`${dealer.id}-${status}`} value={status}>
-                        {t(dealerStatusLabel[status])}
-                      </option>
-                    ))}
-                  </select>
-                </article>
-              ))}
-            </div>
-
-            <div className="hidden overflow-x-auto md:block">
-              <table className="min-w-full border-separate border-spacing-y-2">
-                <thead>
-                  <tr className={tableHeadClass}>
-                    <th className="px-3 py-2 font-semibold">{copy.title}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.status}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.orders}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.revenueShort}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.actions}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dealers.map((dealer) => (
-                    <tr className={`${tableRowClass} cursor-default`} key={dealer.id}>
-                      <td className="rounded-l-2xl px-3 py-3">
-                        <p className="font-semibold text-[var(--ink)]">
-                          <Link
-                            className="rounded-md underline-offset-4 transition hover:text-[var(--accent)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
-                            to={`/dealers/${encodeURIComponent(dealer.id)}`}
-                          >
-                            {dealer.name}
-                          </Link>
-                        </p>
-                        <p className={tableMetaClass}>{dealer.id} · {dealer.email}</p>
-                        <p className={tableMetaClass}>{dealer.contactName}</p>
-                      </td>
-                      <td className="px-3 py-3">
-                        <StatusBadge tone={dealerStatusTone[dealer.status]}>{t(dealerStatusLabel[dealer.status])}</StatusBadge>
-                        <p className={`mt-1 ${tableMetaClass}`}>{t(dealerStatusDescription[dealer.status])}</p>
-                      </td>
-                      <td className="px-3 py-3">
-                        <div className="text-sm text-[var(--ink)]">{dealer.orders}</div>
-                        <div className={tableMetaClass}>{formatDateTime(dealer.lastOrderAt)}</div>
-                      </td>
-                      <td className="px-3 py-3 font-semibold text-[var(--accent)]">{formatCurrency(dealer.revenue)}</td>
-                      <td className="rounded-r-2xl px-3 py-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Link
-                            className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--border)] px-4 text-sm font-semibold text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
-                            to={`/dealers/${encodeURIComponent(dealer.id)}`}
-                          >
-                            {copy.detail}
-                          </Link>
-                          <select
-                            aria-label={`${copy.status} ${dealer.id}`}
-                            className={`w-full sm:w-auto ${tableActionSelectClass}`}
-                            onChange={(event) =>
-                              void handleStatusUpdate(dealer, event.target.value as DealerStatus, () => {
-                                event.currentTarget.value = dealer.status;
-                              })
-                            }
-                            value={dealer.status}
-                          >
-                            {resolveAllowedDealerStatuses(dealer.status, dealer.allowedTransitions).map((status) => (
-                              <option key={`${dealer.id}-${status}`} value={status}>
-                                {t(dealerStatusLabel[status])}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <PaginationNav
-              page={page}
-              totalPages={totalPages}
-              totalItems={totalItems}
-              pageSize={PAGE_SIZE}
-              onPageChange={(nextPage) => void loadPage(nextPage)}
-              previousLabel={copy.previousLabel}
-              nextLabel={copy.nextLabel}
-            />
-          </>
+        <AdminTable
+          columns={columns}
+          rows={dealers}
+          isFetching={isFetching}
+          rowClassName={() => "cursor-default"}
+          rowActions={renderRowActions}
+          minWidthClass="min-w-full"
+          caption={copy.title}
+          emptyIcon={Users}
+          emptyTitle={copy.emptyTitle}
+          emptyMessage={copy.emptyMessage}
+        />
+        {dealers.length > 0 && (
+          <PaginationNav
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            pageSize={pagination.pageSize}
+            onPageChange={setPage}
+            previousLabel={copy.previousLabel}
+            nextLabel={copy.nextLabel}
+          />
         )}
       </div>
       {confirmDialog}

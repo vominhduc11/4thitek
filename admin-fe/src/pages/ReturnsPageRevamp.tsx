@@ -1,8 +1,7 @@
 import { ClipboardCheck, Filter, RefreshCw } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  EmptyState,
   ErrorState,
   GhostButton,
   LoadingRows,
@@ -12,15 +11,14 @@ import {
   SearchInput,
   StatusBadge,
   inputClass,
-  tableCardClass,
-  tableHeadClass,
   tableMetaClass,
-  tableRowClass,
   toolbarCardClass,
   toolbarGroupClass,
 } from "../components/ui-kit";
+import { AdminTable, type AdminTableColumn } from "../components/AdminTable";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
+import { useAdminList } from "../hooks/useAdminList";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import {
   fetchAdminReturnsPaged,
@@ -226,11 +224,6 @@ function ReturnsPageRevamp() {
   const { accessToken } = useAuth();
   const { notify } = useToast();
 
-  const [items, setItems] = useState<BackendReturnRequestSummaryResponse[]>([]);
-  const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalItems, setTotalItems] = useState(0);
-
   const [status, setStatus] = useState<BackendReturnRequestStatus | "ALL">("ALL");
   const [type, setType] = useState<BackendReturnRequestType | "ALL">("ALL");
   const [dealerInput, setDealerInput] = useState("");
@@ -241,9 +234,6 @@ function ReturnsPageRevamp() {
   const dealerQuery = useDebouncedValue(dealerInput, 320);
   const orderCode = useDebouncedValue(orderCodeInput, 320);
   const serial = useDebouncedValue(serialInput, 320);
-
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const effectiveFilters = useMemo(
     () => ({
@@ -256,45 +246,36 @@ function ReturnsPageRevamp() {
     [dealerQuery, orderCode, serial, status, type],
   );
 
-  const loadData = useCallback(
-    async (targetPage: number) => {
-      if (!accessToken) return;
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await fetchAdminReturnsPaged(accessToken, {
-          page: targetPage,
-          size: 20,
-          sortBy: "createdAt",
-          sortDir: "desc",
-          ...effectiveFilters,
-        });
-        setItems(response.items);
-        setPage(response.page);
-        setTotalPages(response.totalPages);
-        setTotalItems(response.totalElements);
-      } catch (loadError) {
-        setError(
-          loadError instanceof Error
-            ? loadError.message
-            : "Unable to load return requests.",
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    },
+  // Server-side filtering: the filter values are sent to the backend, so a
+  // filter change must reload from page 0 (see the effect below).
+  const fetchPage = useCallback(
+    ({ page, size }: { page: number; size: number }) =>
+      fetchAdminReturnsPaged(accessToken!, {
+        page,
+        size,
+        sortBy: "createdAt",
+        sortDir: "desc",
+        ...effectiveFilters,
+      }),
     [accessToken, effectiveFilters],
   );
+  const {
+    status: pagedStatus,
+    items,
+    pagination,
+    isFetching,
+    error,
+    setPage,
+    refetch,
+  } = useAdminList<BackendReturnRequestSummaryResponse>({
+    fetchPage,
+    pageSize: 20,
+    enabled: Boolean(accessToken),
+    fallbackError: "Unable to load return requests.",
+    // A filter change jumps back to page 0 and reloads (handled by the hook).
+    resetKey: JSON.stringify(effectiveFilters),
+  });
 
-  useEffect(() => {
-    setPage(0);
-  }, [effectiveFilters]);
-
-  useEffect(() => {
-    void loadData(page);
-  }, [loadData, page]);
-
-  const hasResults = items.length > 0;
   const hasActiveFilters =
     status !== "ALL" ||
     type !== "ALL" ||
@@ -303,12 +284,69 @@ function ReturnsPageRevamp() {
     serialInput.trim().length > 0;
 
   const handleReload = async () => {
-    await loadData(page);
+    await refetch();
     notify("Return requests refreshed.", {
       title: "Returns",
       variant: "info",
     });
   };
+
+  const columns: AdminTableColumn<BackendReturnRequestSummaryResponse>[] = [
+    {
+      key: "request",
+      label: "Request",
+      className: "font-semibold text-[var(--ink)]",
+      render: (item) => item.requestCode ?? `#${item.id}`,
+    },
+    {
+      key: "dealer",
+      label: "Dealer",
+      render: (item) => (
+        <>
+          <p>{item.dealerName ?? "-"}</p>
+          <p className={tableMetaClass}>#{item.dealerId ?? "-"}</p>
+        </>
+      ),
+    },
+    {
+      key: "order",
+      label: "Order",
+      render: (item) => (
+        <>
+          <p>{item.orderCode ?? "-"}</p>
+          <p className={tableMetaClass}>#{item.orderId ?? "-"}</p>
+        </>
+      ),
+    },
+    { key: "type", label: "Type", render: (item) => typeLabel(item.type) },
+    {
+      key: "status",
+      label: "Status",
+      render: (item) => (
+        <StatusBadge tone={statusTone[item.status ?? "SUBMITTED"]}>
+          {statusLabel(item.status)}
+        </StatusBadge>
+      ),
+    },
+    {
+      key: "items",
+      label: "Items",
+      render: (item) => (
+        <>
+          {item.totalItems ?? 0}
+          <p className={tableMetaClass}>
+            {resolvedCount(item)} resolved / {item.rejectedItems ?? 0} rejected
+          </p>
+        </>
+      ),
+    },
+    {
+      key: "requested",
+      label: "Requested",
+      render: (item) =>
+        item.requestedAt ? formatDateTime(item.requestedAt) : "-",
+    },
+  ];
 
   const handleResetFilters = () => {
     setStatus("ALL");
@@ -318,7 +356,7 @@ function ReturnsPageRevamp() {
     setSerialInput("");
   };
 
-  if (isLoading) {
+  if (pagedStatus === "idle" || pagedStatus === "loading") {
     return (
       <PagePanel>
         <LoadingRows rows={6} />
@@ -363,140 +401,28 @@ function ReturnsPageRevamp() {
         onReset={handleResetFilters}
       />
 
-      {!hasResults ? (
-        <EmptyState
-          icon={ClipboardCheck}
-          title={
-            hasActiveFilters
-              ? "No return requests match filters"
-              : "No return requests yet"
-          }
-          message="Try adjusting filters or check back once dealers submit requests."
-        />
-      ) : (
-        <>
-          <div className="grid gap-3 2xl:hidden">
-            {items.map((item) => {
-              const itemStatus = item.status ?? "SUBMITTED";
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={`${tableCardClass} text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2`}
-                  onClick={() => navigate(`/returns/${item.id}`)}
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="font-semibold text-[var(--ink)]">
-                        {item.requestCode ?? `#${item.id}`}
-                      </p>
-                      <p className={tableMetaClass}>Dealer: {item.dealerName ?? "-"}</p>
-                      <p className={tableMetaClass}>Order: {item.orderCode ?? "-"}</p>
-                    </div>
-                    <StatusBadge tone={statusTone[itemStatus]}>
-                      {statusLabel(item.status)}
-                    </StatusBadge>
-                  </div>
-
-                  <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-[var(--ink)] sm:grid-cols-4">
-                    <div>
-                      <p className={tableMetaClass}>Type</p>
-                      <p className="font-medium">{typeLabel(item.type)}</p>
-                    </div>
-                    <div>
-                      <p className={tableMetaClass}>Requested</p>
-                      <p className="font-medium">
-                        {item.requestedAt ? formatDateTime(item.requestedAt) : "-"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className={tableMetaClass}>Items</p>
-                      <p className="font-medium">
-                        {item.totalItems ?? 0} total / {item.requestedItems ?? 0} requested
-                      </p>
-                    </div>
-                    <div>
-                      <p className={tableMetaClass}>Resolution</p>
-                      <p className="font-medium">
-                        {resolvedCount(item)} resolved / {item.rejectedItems ?? 0} rejected
-                      </p>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="hidden 2xl:block">
-            <table className="w-full border-separate border-spacing-y-2">
-              <thead>
-                <tr className={tableHeadClass}>
-                  <th className="px-3 py-2">Request</th>
-                  <th className="px-3 py-2">Dealer</th>
-                  <th className="px-3 py-2">Order</th>
-                  <th className="px-3 py-2">Type</th>
-                  <th className="px-3 py-2">Status</th>
-                  <th className="px-3 py-2">Items</th>
-                  <th className="px-3 py-2">Requested</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => {
-                  const itemStatus = item.status ?? "SUBMITTED";
-                  return (
-                    <tr
-                      key={item.id}
-                      className={tableRowClass}
-                      onClick={() => navigate(`/returns/${item.id}`)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          navigate(`/returns/${item.id}`);
-                        }
-                      }}
-                    >
-                      <td className="rounded-l-2xl px-3 py-3 font-semibold text-[var(--ink)]">
-                        {item.requestCode ?? `#${item.id}`}
-                      </td>
-                      <td className="px-3 py-3">
-                        <p>{item.dealerName ?? "-"}</p>
-                        <p className={tableMetaClass}>#{item.dealerId ?? "-"}</p>
-                      </td>
-                      <td className="px-3 py-3">
-                        <p>{item.orderCode ?? "-"}</p>
-                        <p className={tableMetaClass}>#{item.orderId ?? "-"}</p>
-                      </td>
-                      <td className="px-3 py-3">{typeLabel(item.type)}</td>
-                      <td className="px-3 py-3">
-                        <StatusBadge tone={statusTone[itemStatus]}>
-                          {statusLabel(item.status)}
-                        </StatusBadge>
-                      </td>
-                      <td className="px-3 py-3">
-                        {item.totalItems ?? 0}
-                        <p className={tableMetaClass}>
-                          {resolvedCount(item)} resolved / {item.rejectedItems ?? 0} rejected
-                        </p>
-                      </td>
-                      <td className="rounded-r-2xl px-3 py-3">
-                        {item.requestedAt ? formatDateTime(item.requestedAt) : "-"}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
+      <AdminTable
+        columns={columns}
+        rows={items}
+        isFetching={isFetching}
+        onRowClick={(item) => navigate(`/returns/${item.id}`)}
+        cardBreakpoint="2xl"
+        minWidthClass=""
+        caption="Returns"
+        emptyIcon={ClipboardCheck}
+        emptyTitle={
+          hasActiveFilters
+            ? "No return requests match filters"
+            : "No return requests yet"
+        }
+        emptyMessage="Try adjusting filters or check back once dealers submit requests."
+      />
 
       <PaginationNav
-        page={page}
-        totalPages={totalPages}
-        totalItems={totalItems}
-        pageSize={20}
+        page={pagination.page}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.totalItems}
+        pageSize={pagination.pageSize}
         onPageChange={setPage}
         previousLabel="Previous"
         nextLabel="Next"

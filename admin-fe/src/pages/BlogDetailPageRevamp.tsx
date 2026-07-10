@@ -26,6 +26,8 @@ import { useLanguage } from "../context/LanguageContext";
 import { translateCopy } from "../lib/i18n";
 import { useToast } from "../context/ToastContext";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
+import { useSaveShortcut } from "../hooks/useSaveShortcut";
+import { useUnsavedChanges } from "../hooks/useUnsavedChanges";
 import { blogStatusTone } from "../lib/adminLabels";
 import { resolveBackendAssetUrl } from "../lib/backendApi";
 import {
@@ -186,19 +188,22 @@ function BlogDetailPageRevamp() {
     };
   }, [cleanupEditUploadedAssets]);
 
+  // Ctrl/Cmd+S saves; Escape cancels. Warn on tab close while editing.
+  useSaveShortcut(isEditing && !isSaving, () => {
+    void handleSaveRef.current?.();
+  });
+  useUnsavedChanges(isEditing);
+
   useEffect(() => {
     if (!isEditing) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         void handleCancelEditRef.current?.();
-      } else if ((e.ctrlKey || e.metaKey) && e.key === "s") {
-        e.preventDefault();
-        if (!isSaving) void handleSaveRef.current?.();
       }
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [isEditing, isSaving]);
+  }, [isEditing]);
 
   if (postsState.status === "loading" || postsState.status === "idle") {
     return (

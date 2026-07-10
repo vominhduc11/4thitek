@@ -33,6 +33,8 @@ import { useLanguage } from "../context/LanguageContext";
 import { translateCopy } from "../lib/i18n";
 import { useToast } from "../context/ToastContext";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
+import { useSaveShortcut } from "../hooks/useSaveShortcut";
+import { useUnsavedChanges } from "../hooks/useUnsavedChanges";
 import { testAdminEmailSettings } from "../lib/adminApi";
 
 type RateLimitBucketKey =
@@ -521,6 +523,12 @@ function SettingsPage() {
       setIsTestingEmail(false);
     }
   };
+
+  // Ctrl/Cmd+S saves when there are valid unsaved changes; warn on tab close.
+  useSaveShortcut(isDirty && !hasValidationErrors && !isSettingsSaving, () => {
+    void handleSave();
+  });
+  useUnsavedChanges(isDirty);
 
   if (isSettingsLoading) {
     return (

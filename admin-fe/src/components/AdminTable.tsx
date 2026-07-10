@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowUp, ArrowUpDown, type LucideIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import {
   EmptyState,
@@ -63,6 +63,12 @@ export type AdminTableProps<Row extends { id: Id }, Id extends string | number =
   /** Per-row action rendered in a trailing column (desktop) / card footer (mobile). */
   rowActions?: (row: Row) => ReactNode;
   minWidthClass?: string;
+  /**
+   * Breakpoint at which the desktop `<table>` replaces the mobile cards.
+   * `md` (default) matches most pages; wide tables (e.g. Returns' 7 columns)
+   * pass `2xl` to preserve their original responsive behavior.
+   */
+  cardBreakpoint?: "md" | "2xl";
   skeletonRows?: number;
   emptyIcon?: LucideIcon;
   emptyTitle: string;
@@ -77,6 +83,16 @@ const alignClass: Record<AdminTableAlign, string> = {
   left: "text-left",
   center: "text-center",
   right: "text-right",
+};
+
+// Static class strings (not interpolated) so Tailwind keeps them in the build.
+const cardHiddenClass: Record<"md" | "2xl", string> = {
+  md: "md:hidden",
+  "2xl": "2xl:hidden",
+};
+const tableShowClass: Record<"md" | "2xl", string> = {
+  md: "hidden md:block",
+  "2xl": "hidden 2xl:block",
 };
 
 const cellValue = <Row,>(column: AdminTableColumn<Row>, row: Row): ReactNode => {
@@ -101,6 +117,7 @@ export function AdminTable<Row extends { id: Id }, Id extends string | number = 
   selection,
   rowActions,
   minWidthClass = "min-w-[64rem]",
+  cardBreakpoint = "md",
   skeletonRows = 6,
   emptyIcon,
   emptyTitle,
@@ -158,16 +175,38 @@ export function AdminTable<Row extends { id: Id }, Id extends string | number = 
     );
   };
 
+  const handleRowKeyDown = onRowClick
+    ? (event: KeyboardEvent<HTMLElement>, row: Row) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onRowClick(row);
+        }
+      }
+    : undefined;
+
   return (
     <div aria-busy={isFetching || undefined}>
       {/* Mobile cards */}
-      <div className="grid gap-3 md:hidden">
+      <div className={cx("grid gap-3", cardHiddenClass[cardBreakpoint])}>
         {rows.map((row) => (
           <article
             key={String(row.id)}
             className={cx(tableCardClass, onRowClick && "cursor-pointer", rowClassName?.(row))}
             onClick={onRowClick ? () => onRowClick(row) : undefined}
+            role={onRowClick ? "button" : undefined}
+            tabIndex={onRowClick ? 0 : undefined}
+            onKeyDown={handleRowKeyDown ? (event) => handleRowKeyDown(event, row) : undefined}
           >
+            {selection ? (
+              <div className="mb-2 flex" onClick={(event) => event.stopPropagation()}>
+                <input
+                  type="checkbox"
+                  aria-label={t("Chọn dòng")}
+                  checked={selection.selectedIds.has(row.id)}
+                  onChange={() => selection.onToggle(row.id)}
+                />
+              </div>
+            ) : null}
             <div className="grid gap-2 text-sm">
               {columns
                 .filter((column) => !column.hideOnMobile)
@@ -184,7 +223,7 @@ export function AdminTable<Row extends { id: Id }, Id extends string | number = 
       </div>
 
       {/* Desktop table */}
-      <div className={cx(tableScrollerClass, "hidden md:block")}>
+      <div className={cx(tableScrollerClass, tableShowClass[cardBreakpoint])}>
         <table className={cx(minWidthClass, "w-full border-separate border-spacing-y-2")}>
           {caption ? <caption className="sr-only">{caption}</caption> : null}
           <thead>
@@ -243,6 +282,9 @@ export function AdminTable<Row extends { id: Id }, Id extends string | number = 
                   key={String(row.id)}
                   className={cx(tableRowClass, isSelected && "ring-1 ring-[var(--accent)]", rowClassName?.(row))}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
+                  role={onRowClick ? "button" : undefined}
+                  tabIndex={onRowClick ? 0 : undefined}
+                  onKeyDown={handleRowKeyDown ? (event) => handleRowKeyDown(event, row) : undefined}
                 >
                   {selection ? (
                     <td className="rounded-l-2xl px-3 py-3" onClick={(event) => event.stopPropagation()}>

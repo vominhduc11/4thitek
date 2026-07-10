@@ -19,6 +19,8 @@ import { useProducts } from "../context/ProductsContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useToast } from "../context/ToastContext";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
+import { useSaveShortcut } from "../hooks/useSaveShortcut";
+import { useUnsavedChanges } from "../hooks/useUnsavedChanges";
 import type { Product } from "../types/product";
 import { resolveBackendAssetUrl } from "../lib/backendApi";
 import { formatDateOnly } from "../lib/formatters";
@@ -407,6 +409,15 @@ function ProductDetailPage() {
 
     return JSON.stringify(draft) !== JSON.stringify(buildDraft(product));
   }, [draft, product]);
+
+  // Ctrl/Cmd+S submits the edit form; warn on tab close while there are edits.
+  useSaveShortcut(isEditing && isDirty, () => {
+    const form = document.getElementById("product-edit-form");
+    if (form instanceof HTMLFormElement) {
+      form.requestSubmit();
+    }
+  });
+  useUnsavedChanges(isEditing && isDirty);
 
   useEffect(() => {
     if (product && !isEditing) {

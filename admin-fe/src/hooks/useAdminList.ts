@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 
 /**
  * Shared paginated-list hook for admin-fe list pages.
@@ -34,12 +42,27 @@ export type UseAdminListOptions<Row> = {
   enabled?: boolean;
   /** Message used when a thrown error is not an `Error` instance. */
   fallbackError?: string;
+  /**
+   * A primitive key describing the active server-side filters. Whenever it
+   * changes (compared by value, so it is StrictMode-safe), the list jumps back
+   * to page 0 and reloads — the standard "filter changed → refetch from the
+   * top" behavior. Pass a serialized key (e.g. `JSON.stringify(filters)`), not
+   * an object. Leave undefined for filter-less / client-filtered lists.
+   */
+  resetKey?: string | number | null;
 };
 
 export type UseAdminListResult<Row> = {
   /** `loading` only on the first load (no data yet); background reloads use `isFetching`. */
   status: AdminListStatus;
   items: Row[];
+  /**
+   * Direct access to the internal items state, so callers can apply optimistic
+   * in-place mutations (e.g. `setItems(cur => cur.map(...))` after a void/status
+   * change) without a round-trip `refetch`. This keeps like-for-like behavior for
+   * pages that mutated their own list state before adopting the hook.
+   */
+  setItems: Dispatch<SetStateAction<Row[]>>;
   pagination: AdminListPagination;
   isFetching: boolean;
   error: string | null;
@@ -53,6 +76,7 @@ export function useAdminList<Row>({
   pageSize = 25,
   enabled = true,
   fallbackError = "Không tải được dữ liệu.",
+  resetKey,
 }: UseAdminListOptions<Row>): UseAdminListResult<Row> {
   const [items, setItems] = useState<Row[]>([]);
   const [page, setPage] = useState(0);
@@ -102,6 +126,20 @@ export function useAdminList<Row>({
     // `reloadToken` bumps trigger an explicit refetch of the current page.
   }, [load, page, reloadToken]);
 
+  // Server-side filter change: jump to page 0 and reload. Compared by value (a
+  // ref, not a dep-array identity) so React 18 StrictMode's double-mount does
+  // not spuriously trigger a reset. `setPage(0)` + a `reloadToken` bump batch
+  // into a single load(0); when already on page 0 the token bump alone reloads.
+  const resetKeyRef = useRef(resetKey);
+  useEffect(() => {
+    if (resetKeyRef.current === resetKey) {
+      return;
+    }
+    resetKeyRef.current = resetKey;
+    setPage(0);
+    setReloadToken((token) => token + 1);
+  }, [resetKey]);
+
   const refetch = useCallback(async () => {
     setReloadToken((token) => token + 1);
   }, []);
@@ -111,5 +149,5 @@ export function useAdminList<Row>({
     [page, totalPages, totalItems, pageSize],
   );
 
-  return { status, items, pagination, isFetching, error, page, setPage, refetch };
+  return { status, items, setItems, pagination, isFetching, error, page, setPage, refetch };
 }
