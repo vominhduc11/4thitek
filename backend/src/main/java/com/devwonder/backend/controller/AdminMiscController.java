@@ -16,6 +16,7 @@ import com.devwonder.backend.dto.pagination.PagedResponse;
 import com.devwonder.backend.service.AdminManagementService;
 import com.devwonder.backend.service.AdminOperationsService;
 import com.devwonder.backend.service.AdminReportingService;
+import com.devwonder.backend.service.DashboardService;
 import com.devwonder.backend.service.PublicContentService;
 import com.devwonder.backend.util.PaginationUtils;
 import jakarta.validation.Valid;
@@ -50,6 +51,7 @@ public class AdminMiscController {
     private final AdminManagementService adminManagementService;
     private final AdminOperationsService adminOperationsService;
     private final AdminReportingService adminReportingService;
+    private final DashboardService dashboardService;
     private final PublicContentService publicContentService;
 
     @GetMapping("/content")
@@ -136,7 +138,7 @@ public class AdminMiscController {
     @GetMapping("/dashboard")
     @PreAuthorize("hasAuthority('dashboard.read')")
     public ResponseEntity<ApiResponse<AdminDashboardResponse>> dashboard() {
-        return ResponseEntity.ok(ApiResponse.success(adminManagementService.getDashboard()));
+        return ResponseEntity.ok(ApiResponse.success(dashboardService.getDashboard()));
     }
 
     @GetMapping("/notifications/page")

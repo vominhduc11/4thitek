@@ -55,12 +55,9 @@ import com.devwonder.backend.repository.CategoryBlogRepository;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.FinancialSettlementRepository;
 import com.devwonder.backend.repository.OrderRepository;
-import com.devwonder.backend.repository.UnmatchedPaymentRepository;
-import com.devwonder.backend.entity.enums.UnmatchedPaymentStatus;
 import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.RoleRepository;
-import com.devwonder.backend.service.support.AdminDashboardSupport;
 import com.devwonder.backend.service.support.AdminIdentitySupport;
 import com.devwonder.backend.service.support.AdminOrderNotificationSupport;
 import com.devwonder.backend.service.support.AdminResponseMapper;
@@ -79,13 +76,9 @@ import com.devwonder.backend.service.support.OrderStatusTransitionPolicy;
 import com.devwonder.backend.service.support.ProductSerialOrderSupport;
 import com.devwonder.backend.service.support.ProductSerialResponseMapper;
 import com.devwonder.backend.service.support.ProductStockSyncSupport;
-import com.devwonder.backend.service.support.WarrantyDateSupport;
 import java.math.BigDecimal;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import java.security.SecureRandom;
 import java.time.Instant;
-import java.time.YearMonth;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -108,7 +101,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AdminManagementService {
 
-    private static final Logger log = LoggerFactory.getLogger(AdminManagementService.class);
     private static final String TEMP_PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789@#$%";
     private static final int TEMP_PASSWORD_LENGTH = 12;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
@@ -135,7 +127,6 @@ public class AdminManagementService {
     private final ProductSerialOrderSupport productSerialOrderSupport;
     private final ProductStockSyncSupport productStockSyncSupport;
     private final FinancialSettlementRepository financialSettlementRepository;
-    private final UnmatchedPaymentRepository unmatchedPaymentRepository;
     private final DealerOrderNotificationSupport dealerOrderNotificationSupport;
     private final PasswordResetService passwordResetService;
     private final EmailVerificationService emailVerificationService;
@@ -765,66 +756,6 @@ public class AdminManagementService {
         return AdminResponseMapper.toDiscountRuleResponse(bulkDiscountRepository.save(rule));
     }
 
-    @Transactional
-    public AdminDashboardResponse getDashboard() {
-        List<BulkDiscount> activeDiscountRules = activeDiscountRules();
-        boolean inventoryAlertsEnabled = adminSettingsService.getEffectiveSettings().inventoryAlerts();
-        List<Product> inventoryAlertProducts = inventoryAlertsEnabled
-                ? productRepository.findAllActiveBelowStock(11)
-                : List.of();
-        int lowStockCount = Math.toIntExact(inventoryAlertProducts.stream()
-                .filter(AdminDashboardSupport::isLowStockProduct)
-                .count());
-        int urgentRestockCount = Math.toIntExact(inventoryAlertProducts.stream()
-                .filter(AdminDashboardSupport::isUrgentRestockProduct)
-                .count());
-        Instant dashboardStart = YearMonth.now(WarrantyDateSupport.APP_ZONE)
-                .minusMonths(5)
-                .atDay(1)
-                .atStartOfDay(WarrantyDateSupport.APP_ZONE)
-                .toInstant();
-        List<Order> revenueOrders = orderRepository.findRevenueOrdersFrom(dashboardStart);
-        orderFinancialSnapshotService.ensureSnapshots(revenueOrders, activeDiscountRules, currentVatPercent());
-        List<AdminDashboardSupport.TopProductStat> topProducts = orderRepository.findTopProductsForDashboard(
-                        OrderStatus.COMPLETED,
-                        PageRequest.of(0, 5)
-                ).stream()
-                .map(this::toDashboardTopProductStat)
-                .toList();
-        Instant shippingOverdueCutoff = Instant.now()
-                .minusSeconds(orderProperties.getConfirmedShippingAlertHours() * 3600L);
-
-        return AdminDashboardSupport.buildDashboard(new AdminDashboardSupport.DashboardSnapshot(
-                Math.toIntExact(orderRepository.countVisibleOrders()),
-                Math.toIntExact(orderRepository.countVisibleOrdersByStatus(OrderStatus.PENDING)),
-                Math.toIntExact(orderRepository.countVisibleOrdersByStatus(OrderStatus.CONFIRMED)),
-                Math.toIntExact(orderRepository.countVisibleOrdersByStatus(OrderStatus.SHIPPING)),
-                Math.toIntExact(orderRepository.countVisibleOrdersByStatus(OrderStatus.COMPLETED)),
-                Math.toIntExact(orderRepository.countVisibleOrdersByStatus(OrderStatus.CANCELLED)),
-                Math.toIntExact(productRepository.countActiveProducts()),
-                lowStockCount,
-                urgentRestockCount,
-                Math.toIntExact(dealerRepository.count()),
-                Math.toIntExact(dealerRepository.countByCustomerStatus(CustomerStatus.UNDER_REVIEW)),
-                Math.toIntExact(adminRepository.count()),
-                Math.toIntExact(adminRepository.countByUserStatus(StaffUserStatus.PENDING)),
-                Math.toIntExact(productRepository.countActiveProductsByPublishStatus(com.devwonder.backend.entity.enums.PublishStatus.PUBLISHED)),
-                Math.toIntExact(productRepository.countActiveProducts() - productRepository.countActiveProductsByPublishStatus(com.devwonder.backend.entity.enums.PublishStatus.PUBLISHED)),
-                Math.toIntExact(blogRepository.countActiveByStatus(com.devwonder.backend.entity.enums.BlogStatus.PUBLISHED)),
-                Math.toIntExact(blogRepository.countActiveByStatusNot(com.devwonder.backend.entity.enums.BlogStatus.PUBLISHED)),
-                Math.toIntExact(bulkDiscountRepository.count()),
-                Math.toIntExact(bulkDiscountRepository.countByStatus(DiscountRuleStatus.DRAFT)),
-                revenueOrders,
-                topProducts,
-                activeDiscountRules,
-                Math.toIntExact(unmatchedPaymentRepository.countByStatus(UnmatchedPaymentStatus.PENDING)),
-                Math.toIntExact(financialSettlementRepository.countByStatus(FinancialSettlementStatus.PENDING)),
-                Math.toIntExact(orderRepository.countByStaleReviewRequired()),
-                Math.toIntExact(orderRepository.countVisibleConfirmedOrdersOlderThan(shippingOverdueCutoff)),
-                currentVatPercent()
-        ));
-    }
-
     private Role resolveRole(String name, String description) {
         return roleRepository.findByName(name).orElseGet(() -> {
             Role role = new Role();
@@ -893,18 +824,6 @@ public class AdminManagementService {
         BulkDiscountTierSupport.assertNoActiveOverlap(allRules);
     }
 
-    private AdminDashboardSupport.TopProductStat toDashboardTopProductStat(Object[] row) {
-        String name = firstNonBlank(
-                row == null || row.length < 2 ? null : valueAsString(row[1]),
-                row == null || row.length < 3 ? null : valueAsString(row[2]),
-                "Unknown product"
-        );
-        long units = row == null || row.length < 4 || row[3] == null
-                ? 0L
-                : ((Number) row[3]).longValue();
-        return new AdminDashboardSupport.TopProductStat(name, units);
-    }
-
     private String generateTemporaryPassword() {
         StringBuilder builder = new StringBuilder(TEMP_PASSWORD_LENGTH);
         for (int i = 0; i < TEMP_PASSWORD_LENGTH; i++) {
@@ -963,10 +882,6 @@ public class AdminManagementService {
         if (nextStatus != OrderStatus.COMPLETED && previousStatus == OrderStatus.COMPLETED) {
             order.setCompletedAt(null);
         }
-    }
-
-    private String valueAsString(Object value) {
-        return value == null ? null : String.valueOf(value);
     }
 
     private String normalizeContainsQuery(String query) {
