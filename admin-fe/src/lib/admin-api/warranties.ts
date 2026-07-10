@@ -1,6 +1,6 @@
 import {
-  BackendWarrantyStatus,
-  BackendPagedResponse,
+  type BackendWarrantyStatus,
+  type BackendPagedResponse,
   authorizedJsonRequest,
   fetchAllPagedItems,
 } from './client'

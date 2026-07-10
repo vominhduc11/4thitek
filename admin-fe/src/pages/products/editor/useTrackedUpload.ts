@@ -1,9 +1,12 @@
 import { useRef, useEffect, useCallback, useState } from "react";
-import { storeFileReference, deleteStoredFileReference } from "../../lib/upload";
+import { storeFileReference, deleteStoredFileReference } from "../../../lib/upload";
 
 export function useTrackedUpload(
-  accessToken: string,
-  notify: (msg: string, opt?: { title?: string; variant?: string }) => void,
+  accessToken: string | null,
+  notify: (
+    msg: string,
+    opt?: { title?: string; variant?: "success" | "error" | "info" },
+  ) => void,
   t: (val: string) => string,
 ) {
   const uploadedAssetUrlsRef = useRef<Set<string>>(new Set());
@@ -99,6 +102,7 @@ export function useTrackedUpload(
 
   return {
     isUploading,
+    uploadingCount,
     uploadImageAsset,
     trackUploadedAsset,
     clearUploadedAssetTracking,

@@ -1,4 +1,4 @@
-import { BackendPublishStatus, authorizedJsonRequest } from './client'
+import { type BackendPublishStatus, authorizedJsonRequest } from './client'
 
 export type BackendProductResponse = {
   id: number

@@ -1,9 +1,9 @@
 import {
-  BackendMediaCategory,
-  BackendMediaUploadMethod,
-  BackendMediaType,
-  BackendMediaStatus,
-  BackendPagedResponse,
+  type BackendMediaCategory,
+  type BackendMediaUploadMethod,
+  type BackendMediaType,
+  type BackendMediaStatus,
+  type BackendPagedResponse,
   authorizedJsonRequest,
 } from './client'
 

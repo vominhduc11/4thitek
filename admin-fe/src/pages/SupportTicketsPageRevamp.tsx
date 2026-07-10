@@ -1,11 +1,8 @@
 import {
-  FileText,
   LifeBuoy,
   MessageSquareMore,
-  PlayCircle,
   RefreshCw,
   Upload,
-  X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -30,12 +27,7 @@ import { translateCopy } from "../lib/i18n";
 import { useToast } from "../context/ToastContext";
 import { formatDateTime } from "../lib/formatters";
 import { subscribeAdminSupportRefresh } from "../lib/adminRealtime";
-import {
-  inferSupportAttachmentMediaType,
-  isPrivateSupportAttachmentUrl,
-  normalizeSupportAttachment,
-  type NormalizedSupportAttachment,
-} from "../lib/supportAttachment";
+import { normalizeSupportAttachment } from "../lib/supportAttachment";
 import { uploadSupportMediaAsset } from "../lib/supportMediaUpload";
 import {
   EmptyState,
@@ -69,7 +61,6 @@ import {
   copyKeys,
   type TicketDraftState,
   type DraftAttachment,
-  type ThreadItem,
 } from "./support/helpers";
 
 import { SupportAttachmentView } from "./support/SupportAttachmentView";

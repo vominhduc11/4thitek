@@ -1,6 +1,6 @@
 import {
-  BackendNotifyType,
-  BackendPagedResponse,
+  type BackendNotifyType,
+  type BackendPagedResponse,
   authorizedJsonRequest,
   fetchAllPagedItems,
 } from './client'

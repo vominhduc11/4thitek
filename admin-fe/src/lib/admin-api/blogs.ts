@@ -1,4 +1,4 @@
-import { BackendBlogStatus, authorizedJsonRequest } from './client'
+import { type BackendBlogStatus, authorizedJsonRequest } from './client'
 
 export type BackendBlogResponse = {
   id: number

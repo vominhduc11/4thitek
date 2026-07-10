@@ -1,12 +1,12 @@
 import {
-  BackendOrderStatus,
-  BackendPaymentMethod,
-  BackendPaymentStatus,
-  BackendPagedResponse,
+  type BackendOrderStatus,
+  type BackendPaymentMethod,
+  type BackendPaymentStatus,
+  type BackendPagedResponse,
   authorizedJsonRequest,
   fetchAllPagedItems,
 } from './client'
-import { BackendSerialResponse } from './serials'
+import { type BackendSerialResponse } from './serials'
 
 export type BackendOrderItemResponse = {
   productId: number

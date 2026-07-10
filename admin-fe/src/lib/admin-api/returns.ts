@@ -1,13 +1,13 @@
 import {
-  BackendReturnRequestType,
-  BackendReturnRequestStatus,
-  BackendReturnRequestResolution,
-  BackendReturnRequestItemStatus,
-  BackendReturnRequestItemCondition,
-  BackendReturnRequestItemFinalResolution,
-  BackendReturnRequestAttachmentCategory,
-  BackendRmaAction,
-  BackendPagedResponse,
+  type BackendReturnRequestType,
+  type BackendReturnRequestStatus,
+  type BackendReturnRequestResolution,
+  type BackendReturnRequestItemStatus,
+  type BackendReturnRequestItemCondition,
+  type BackendReturnRequestItemFinalResolution,
+  type BackendReturnRequestAttachmentCategory,
+  type BackendRmaAction,
+  type BackendPagedResponse,
   authorizedJsonRequest,
 } from './client'
 

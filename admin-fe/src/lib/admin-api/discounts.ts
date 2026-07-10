@@ -1,4 +1,4 @@
-import { BackendDiscountRuleStatus, authorizedJsonRequest } from './client'
+import { type BackendDiscountRuleStatus, authorizedJsonRequest } from './client'
 
 export type BackendDiscountRuleResponse = {
   id: number

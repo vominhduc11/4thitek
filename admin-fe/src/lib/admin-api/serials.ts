@@ -1,9 +1,9 @@
 import {
-  BackendProductSerialStatus,
-  BackendRmaRequest,
+  type BackendProductSerialStatus,
+  type BackendRmaRequest,
   authorizedJsonRequest,
   fetchAllPagedItems,
-  BackendPagedResponse,
+  type BackendPagedResponse,
 } from './client'
 
 export type BackendSerialResponse = {

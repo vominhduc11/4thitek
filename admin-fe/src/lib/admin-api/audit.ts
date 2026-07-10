@@ -1,4 +1,4 @@
-import { BackendPagedResponse, authorizedJsonRequest } from './client'
+import { type BackendPagedResponse, authorizedJsonRequest } from './client'
 
 export type BackendAuditLogResponse = {
   id: number

@@ -1,6 +1,6 @@
 import {
-  BackendDealerAccountStatus,
-  BackendPagedResponse,
+  type BackendDealerAccountStatus,
+  type BackendPagedResponse,
   authorizedJsonRequest,
   fetchAllPagedItems,
 } from './client'

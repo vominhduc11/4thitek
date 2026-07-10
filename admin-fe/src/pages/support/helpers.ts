@@ -1,8 +1,6 @@
 import {
   type BackendSupportTicketStatus,
-  type BackendSupportPriority,
   type BackendSupportTicketResponse,
-  type BackendSupportMessageAuthorRole,
 } from "../../lib/adminApi";
 import {
   normalizeSupportAttachment,

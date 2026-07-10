@@ -1,6 +1,6 @@
 import {
-  BackendReportExportType,
-  BackendReportFormat,
+  type BackendReportExportType,
+  type BackendReportFormat,
   authorizedBlobRequest,
 } from './client'
 

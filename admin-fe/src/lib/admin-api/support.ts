@@ -1,10 +1,10 @@
 import {
-  BackendSupportCategory,
-  BackendSupportPriority,
-  BackendSupportTicketStatus,
-  BackendSupportMessageAuthorRole,
-  BackendMediaType,
-  BackendPagedResponse,
+  type BackendSupportCategory,
+  type BackendSupportPriority,
+  type BackendSupportTicketStatus,
+  type BackendSupportMessageAuthorRole,
+  type BackendMediaType,
+  type BackendPagedResponse,
   authorizedJsonRequest,
   fetchAllPagedItems,
 } from './client'

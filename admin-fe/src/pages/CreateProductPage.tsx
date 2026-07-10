@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, GripVertical, RotateCcw, X } from "lucide-react";
@@ -25,10 +18,8 @@ import { useLanguage } from "../context/LanguageContext";
 import { useToast } from "../context/ToastContext";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { resolveBackendAssetUrl } from "../lib/backendApi";
-import { deleteStoredFileReference, storeFileReference } from "../lib/upload";
 import {
   MAX_IMAGE_BYTES,
-  VIDEO_FILE_NOTICE,
   suggestedSpecificationLabels,
   createSpecificationTemplate,
   createDescriptionTemplate,
@@ -75,7 +66,7 @@ type NewProductDraft = {
 };
 
 type DescriptionItem = {
-  type: "description" | "image" | "gallery" | "video";
+  type: "title" | "description" | "image" | "gallery" | "video";
   text?: string;
   url?: string;
   caption?: string;
@@ -194,6 +185,7 @@ function CreateProductPage() {
 
   const {
     isUploading,
+    uploadingCount,
     uploadImageAsset,
     trackUploadedAsset,
     clearUploadedAssetTracking,
@@ -1476,42 +1468,7 @@ function CreateProductPage() {
                           placeholder={t("Nhập giá bán lẻ")}
                           className={`w-full rounded-xl border px-3 py-2 pr-12 text-sm ${errors.retailPrice ? "border-rose-300" : "border-slate-200"}`}
                           value={formatNumberInput(newProduct.retailPrice)}
-                          onChange={(e) => {
-                            const rawValue = e.target.value;
-                            const selectionStart =
-                              e.target.selectionStart ?? rawValue.length;
-                            const digitsOnly = toDigitsOnly(rawValue);
-                            const digitsBefore = toDigitsOnly(
-                              rawValue.slice(0, selectionStart),
-                            ).length;
-                            const formattedNext = formatNumberInput(digitsOnly);
-                            let caretPosition = formattedNext.length;
-
-                            if (digitsBefore === 0) {
-                              caretPosition = 0;
-                            } else {
-                              let digitCount = 0;
-                              for (
-                                let i = 0;
-                                i < formattedNext.length;
-                                i += 1
-                              ) {
-                                if (/\d/.test(formattedNext[i])) {
-                                  digitCount += 1;
-                                  if (digitCount === digitsBefore) {
-                                    caretPosition = i + 1;
-                                    break;
-                                  }
-                                }
-                              }
-                            }
-
-                            retailPriceCaretRef.current = caretPosition;
-                            setNewProduct({
-                              ...newProduct,
-                              retailPrice: digitsOnly,
-                            });
-                          }}
+                          onChange={handleRetailPriceChange}
                           onBlur={(e) =>
                             validateCreateFieldOnBlur("retailPrice", {
                               ...newProduct,

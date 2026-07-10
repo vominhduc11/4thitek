@@ -1,8 +1,8 @@
 import {
-  BackendPaymentMethod,
-  BackendPaymentStatus,
-  BackendFinancialSettlementType,
-  BackendPagedResponse,
+  type BackendPaymentMethod,
+  type BackendPaymentStatus,
+  type BackendFinancialSettlementType,
+  type BackendPagedResponse,
   authorizedJsonRequest,
 } from './client'
 

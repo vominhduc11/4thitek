@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   Archive,
@@ -24,7 +24,6 @@ import { useUnsavedChanges } from "../hooks/useUnsavedChanges";
 import type { Product } from "../types/product";
 import { resolveBackendAssetUrl } from "../lib/backendApi";
 import { formatDateOnly } from "../lib/formatters";
-import { deleteStoredFileReference, storeFileReference } from "../lib/upload";
 
 import {
   MAX_IMAGE_BYTES,
@@ -254,17 +253,12 @@ function ProductDetailPage() {
   const [descriptionImageErrors, setDescriptionImageErrors] = useState<
     Record<number, string>
   >({});
-  const [descriptionVideoErrors, setDescriptionVideoErrors] = useState<
-    Record<number, string>
-  >({});
-  const [productVideoErrors, setProductVideoErrors] = useState<
-    Record<number, string>
-  >({});
+  const [, setDescriptionVideoErrors] = useState<Record<number, string>>({});
+  const [, setProductVideoErrors] = useState<Record<number, string>>({});
   const [actionMessage, setActionMessage] = useState("");
   const [mainImagePreviewUrl, setMainImagePreviewUrl] = useState("");
 
   const {
-    isUploading: isEditUploading,
     uploadImageAsset,
     trackUploadedAsset: trackEditUploadedAsset,
     clearUploadedAssetTracking: clearEditUploadedAssetTracking,

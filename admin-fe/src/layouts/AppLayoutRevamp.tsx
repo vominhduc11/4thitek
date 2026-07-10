@@ -24,7 +24,6 @@ import {
   Users,
   Warehouse,
   X,
-  type LucideIcon,
 } from "lucide-react";
 import {
   useCallback,

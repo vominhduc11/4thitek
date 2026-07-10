@@ -1,20 +1,6 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
-
 export type Language = "vi" | "en";
 
 export type TranslationMap = Record<string, string>;
-type LanguageContextValue = {
-  language: Language;
-  setLanguage: (lang: Language) => void;
-  t: (key: string, vars?: Record<string, string | number>) => string;
-};
 
 const viAdminEmailVerificationOverrides: TranslationMap = {
   "Please contact your system owner to add an email address to your admin account.":

@@ -1,4 +1,4 @@
-import { BackendStaffUserStatus, authorizedJsonRequest } from './client'
+import { type BackendStaffUserStatus, authorizedJsonRequest } from './client'
 
 export type BackendStaffSystemRole =
   | 'SUPER_ADMIN'
