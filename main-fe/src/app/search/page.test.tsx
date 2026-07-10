@@ -149,7 +149,7 @@ describe('SearchPage', () => {
 
     it('loads results for the debounced query and lets the user filter to products only', async () => {
         searchParamsState.value = 'q=headset';
-        let resolveSearch: ((value: unknown) => void) | null = null;
+        let resolveSearch: ((value: any) => void) | null = null;
         searchMock.mockImplementation(
             () =>
                 new Promise((resolve) => {

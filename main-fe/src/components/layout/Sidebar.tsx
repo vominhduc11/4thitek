@@ -1,9 +1,8 @@
-import { FaFacebookF, FaYoutube } from 'react-icons/fa';
 import { FiMenu } from 'react-icons/fi';
 import { motion, Variants } from 'framer-motion';
 import { Z_INDEX } from '@/constants/zIndex';
-import { SOCIAL_URLS } from '@/constants/urls';
 import { useLanguage } from '@/context/LanguageContext';
+import { SOCIAL_ITEMS } from '@/utils/sharedHelpers';
 
 interface SidebarProps {
     onMenuClick: () => void;
@@ -18,11 +17,6 @@ const sidebarVariants: Variants = {
         transition: { type: 'spring', duration: 0.7, bounce: 0.18 }
     }
 };
-
-const SOCIAL_ITEMS = [
-    { href: SOCIAL_URLS.FACEBOOK, labelKey: 'social.facebook', Icon: FaFacebookF },
-    { href: SOCIAL_URLS.YOUTUBE, labelKey: 'social.youtube', Icon: FaYoutube }
-] as const;
 
 export default function Sidebar({ onMenuClick, isDrawerOpen }: SidebarProps) {
     const { t } = useLanguage();

@@ -26,6 +26,23 @@ import { useToast } from "../context/ToastContext";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { resolveBackendAssetUrl } from "../lib/backendApi";
 import { deleteStoredFileReference, storeFileReference } from "../lib/upload";
+import {
+  MAX_IMAGE_BYTES,
+  VIDEO_FILE_NOTICE,
+  suggestedSpecificationLabels,
+  createSpecificationTemplate,
+  createDescriptionTemplate,
+  createVideoTemplate,
+  createDescriptionBlock,
+  isValidRemoteUrl,
+  moveListItem,
+  moveIndexedRecord,
+  toDigitsOnly,
+  formatNumberInput,
+  getErrorMessage,
+} from "./products/editor/constants";
+import { useNumericFormatter } from "./products/editor/useNumericFormatter";
+import { useTrackedUpload } from "./products/editor/useTrackedUpload";
 
 type GalleryItem = {
   url: string;
@@ -91,48 +108,6 @@ const createProductErrorTabMap: Record<
   videos: "videos",
 };
 
-const createDescriptionTemplate = (): DescriptionItem[] => [
-  { type: "description", text: "" },
-  { type: "image", url: "", caption: "" },
-  { type: "gallery", gallery: [] },
-  { type: "video", url: "", caption: "" },
-];
-
-const createDescriptionBlock = (
-  type: DescriptionItem["type"],
-): DescriptionItem => {
-  switch (type) {
-    case "description":
-      return { type, text: "" };
-    case "image":
-    case "video":
-      return { type, url: "", caption: "" };
-    case "gallery":
-      return { type, gallery: [], caption: "" };
-  }
-};
-
-const createSpecificationTemplate = () => [
-  { label: "Driver", value: "" },
-  { label: "Đáp tần", value: "" },
-  { label: "Trở kháng", value: "" },
-  { label: "Độ nhạy", value: "" },
-  { label: "Cổng kết nối", value: "" },
-  { label: "Kết nối không dây", value: "" },
-  { label: "Thời lượng pin", value: "" },
-  { label: "Chống ồn", value: "" },
-  { label: "Micro", value: "" },
-  { label: "Trọng lượng", value: "" },
-  { label: "Bảo hành", value: "" },
-];
-
-const createVideoTemplate = (): ProductVideoItem[] => [
-  { title: "", descriptions: "", url: "" },
-];
-
-const getErrorMessage = (error: unknown, fallback: string) =>
-  error instanceof Error && error.message.trim() ? error.message : fallback;
-
 const hasDescriptionContent = (items: DescriptionItem[]) =>
   items.some((item) => {
     if ((item.text ?? "").trim()) return true;
@@ -149,80 +124,6 @@ const hasVideoContent = (items: ProductVideoItem[]) =>
   items.some(
     (item) => item.title.trim() || item.descriptions.trim() || item.url.trim(),
   );
-
-const isValidRemoteUrl = (value: string) => {
-  try {
-    const parsed = new URL(value.trim());
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
-  } catch {
-    return false;
-  }
-};
-
-const moveListItem = <T,>(items: T[], fromIndex: number, toIndex: number) => {
-  if (
-    fromIndex === toIndex ||
-    fromIndex < 0 ||
-    toIndex < 0 ||
-    fromIndex >= items.length ||
-    toIndex >= items.length
-  ) {
-    return items;
-  }
-
-  const next = [...items];
-  const [moved] = next.splice(fromIndex, 1);
-  next.splice(toIndex, 0, moved);
-  return next;
-};
-
-const moveIndexedRecord = <T,>(
-  record: Record<number, T>,
-  fromIndex: number,
-  toIndex: number,
-) => {
-  const next: Record<number, T> = {};
-
-  Object.entries(record).forEach(([key, value]) => {
-    const index = Number(key);
-    if (Number.isNaN(index)) return;
-
-    if (index === fromIndex) {
-      next[toIndex] = value;
-      return;
-    }
-
-    if (fromIndex < toIndex && index > fromIndex && index <= toIndex) {
-      next[index - 1] = value;
-      return;
-    }
-
-    if (fromIndex > toIndex && index >= toIndex && index < fromIndex) {
-      next[index + 1] = value;
-      return;
-    }
-
-    next[index] = value;
-  });
-
-  return next;
-};
-
-const suggestedSpecificationLabels = [
-  "Driver",
-  "Đáp tần",
-  "Trở kháng",
-  "Độ nhạy",
-  "Cổng kết nối",
-  "Kết nối không dây",
-  "Thời lượng pin",
-  "Chống ồn",
-  "Micro",
-  "Trọng lượng",
-  "Bảo hành",
-  "Màu sắc",
-  "Chất liệu",
-];
 
 const sanitizeDescriptionItem = (
   item: DescriptionItem,
@@ -277,15 +178,6 @@ const createInitialNewProduct = (): NewProductDraft => ({
   imageUrl: "",
 });
 
-const toDigitsOnly = (value: string) => value.replace(/\D/g, "");
-
-const formatNumberInput = (value: string) => {
-  if (!value) return "";
-  return value.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-};
-
-const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
-
 function CreateProductPage() {
   const { t } = useLanguage();
   const navigate = useNavigate();
@@ -299,7 +191,31 @@ function CreateProductPage() {
   const warrantyInputRef = useRef<HTMLInputElement | null>(null);
   const skuInputRef = useRef<HTMLInputElement | null>(null);
   const videoUrlInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
-  const uploadedAssetUrlsRef = useRef<Set<string>>(new Set());
+
+  const {
+    isUploading,
+    uploadImageAsset,
+    trackUploadedAsset,
+    clearUploadedAssetTracking,
+    cleanupUploadedAssets,
+    uploadedAssetUrlsRef,
+    getTrackedUploadUrls,
+  } = useTrackedUpload(accessToken, notify, t);
+
+  const getTrackedUploadUrlsFromDescriptionItem = (item?: DescriptionItem) =>
+    getTrackedUploadUrls([
+      item?.url,
+      ...(item?.gallery ?? []).map((g) => g.url),
+    ]);
+
+  const getTrackedUploadUrlsFromDescriptionItems = (items: DescriptionItem[]) =>
+    getTrackedUploadUrls(
+      items.flatMap((item) => [
+        item.url,
+        ...(item.gallery ?? []).map((g) => g.url),
+      ]),
+    );
+
   const tabRefs = useRef<
     Record<
       "basic" | "description" | "specs" | "videos",
@@ -311,8 +227,7 @@ function CreateProductPage() {
     specs: null,
     videos: null,
   });
-  const retailPriceInputRef = useRef<HTMLInputElement | null>(null);
-  const retailPriceCaretRef = useRef<number | null>(null);
+
   const descriptionDragIndexRef = useRef<number | null>(null);
   const specDragIndexRef = useRef<number | null>(null);
 
@@ -336,104 +251,22 @@ function CreateProductPage() {
   const [newProduct, setNewProduct] = useState(createInitialNewProduct);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isCreating, setIsCreating] = useState(false);
-  const [uploadingCount, setUploadingCount] = useState(0);
   const tabOrder = ["basic", "description", "specs", "videos"] as const;
 
-  const isUploading = uploadingCount > 0;
-  const isFormLocked = isCreating || isUploading;
-
-  const uploadImageAsset = useCallback(
-    async (file: File) => {
-      setUploadingCount((current) => current + 1);
-      try {
-        return await storeFileReference({
-          file,
-          category: "products",
-          accessToken,
-        });
-      } finally {
-        setUploadingCount((current) => Math.max(0, current - 1));
-      }
-    },
-    [accessToken],
-  );
-
-  const getTrackedUploadUrls = (urls: Array<string | null | undefined>) =>
-    Array.from(
-      new Set(
-        urls
-          .map((url) => url?.trim() ?? "")
-          .filter((url) => url && uploadedAssetUrlsRef.current.has(url)),
-      ),
-    );
-
-  const getTrackedUploadUrlsFromDescriptionItem = (item?: DescriptionItem) =>
-    getTrackedUploadUrls([
-      item?.url,
-      ...(item?.gallery ?? []).map((g) => g.url),
-    ]);
-
-  const getTrackedUploadUrlsFromDescriptionItems = (items: DescriptionItem[]) =>
-    getTrackedUploadUrls(
-      items.flatMap((item) => [
-        item.url,
-        ...(item.gallery ?? []).map((g) => g.url),
-      ]),
-    );
-
-  const trackUploadedAsset = (url: string) => {
-    const normalized = url.trim();
-    if (normalized) uploadedAssetUrlsRef.current.add(normalized);
-  };
-
-  const clearUploadedAssetTracking = () => {
-    uploadedAssetUrlsRef.current.clear();
-  };
-
-  const cleanupUploadedAssets = useCallback(
-    async (urls: Array<string | null | undefined>) => {
-      const trackedUrls = getTrackedUploadUrls(urls);
-      if (trackedUrls.length === 0) return;
-
-      const results = await Promise.allSettled(
-        trackedUrls.map(async (url) => {
-          await deleteStoredFileReference({ url, accessToken });
-          return url;
-        }),
-      );
-
-      const failedUrls: string[] = [];
-      results.forEach((result, index) => {
-        const url = trackedUrls[index];
-        if (result.status === "fulfilled") {
-          uploadedAssetUrlsRef.current.delete(url);
-          return;
-        }
-        failedUrls.push(url);
+  const { inputRef: retailPriceInputRef, handleInputChange: handleRetailPriceChange } = useNumericFormatter(
+    newProduct.retailPrice,
+    (digits) => {
+      setNewProduct((prev) => ({ ...prev, retailPrice: digits }));
+      setErrors((prev) => {
+        if (!prev.retailPrice) return prev;
+        const next = { ...prev };
+        delete next.retailPrice;
+        return next;
       });
-
-      if (failedUrls.length > 0) {
-        notify(
-          t("Không thể dọn một số ảnh tạm trên máy chủ. Vui lòng thử lại."),
-          {
-            title: t("Sản phẩm"),
-            variant: "error",
-          },
-        );
-      }
-    },
-    [accessToken, notify, t],
+    }
   );
 
-  // Cleanup uploaded assets on unmount
-  useEffect(() => {
-    const trackedUploads = uploadedAssetUrlsRef.current;
-    return () => {
-      if (trackedUploads.size > 0) {
-        void cleanupUploadedAssets(Array.from(trackedUploads));
-      }
-    };
-  }, [cleanupUploadedAssets]);
+  const isFormLocked = isCreating || isUploading;
 
   // Revoke blob URL when imagePreviewUrl changes
   useEffect(() => {
@@ -476,15 +309,7 @@ function CreateProductPage() {
     return () => window.clearTimeout(timer);
   }, [newProduct.videos]);
 
-  // Keep retail price caret position after formatting
-  useLayoutEffect(() => {
-    if (retailPriceCaretRef.current === null) return;
-    const input = retailPriceInputRef.current;
-    if (!input) return;
-    const caret = retailPriceCaretRef.current;
-    retailPriceCaretRef.current = null;
-    input.setSelectionRange(caret, caret);
-  }, [newProduct.retailPrice]);
+
 
   const isCreateFormDirty = useMemo(
     () =>

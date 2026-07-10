@@ -3,12 +3,11 @@
 import { useEffect, useCallback, useState } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { FiX } from 'react-icons/fi';
-import { FaFacebookF, FaYoutube } from 'react-icons/fa';
 import { usePathname, useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import { Z_INDEX } from '@/constants/zIndex';
-import { SOCIAL_URLS } from '@/constants/urls';
 import { modalManager } from '@/utils/modalManager';
+import { SOCIAL_ITEMS } from '@/utils/sharedHelpers';
 
 interface SideDrawerProps {
     isOpen: boolean;
@@ -22,11 +21,6 @@ const NAV_ITEMS = [
     { key: 'nav.reseller', href: '/become_our_reseller#dealer-network', matchPath: '/become_our_reseller' },
     { key: 'nav.blog', href: '/blogs', matchPath: '/blogs' },
     { key: 'nav.contact', href: '/contact', matchPath: '/contact' }
-] as const;
-
-const SOCIAL_ITEMS = [
-    { href: SOCIAL_URLS.FACEBOOK, labelKey: 'social.facebook', Icon: FaFacebookF },
-    { href: SOCIAL_URLS.YOUTUBE, labelKey: 'social.youtube', Icon: FaYoutube }
 ] as const;
 
 const SIDEBAR_LAYOUT_QUERY = '(min-width: 1024px)';

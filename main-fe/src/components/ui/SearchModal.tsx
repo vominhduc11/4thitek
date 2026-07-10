@@ -13,8 +13,8 @@ import { useAnimationCoordinator } from '@/utils/animationCoordinator';
 import { ANIMATION_DURATIONS } from '@/constants/ui';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useLanguage } from '@/context/LanguageContext';
-import { buildBlogPath, buildProductPath } from '@/lib/slug';
-import { parseImageUrl } from '@/utils/media';
+import { SearchResult } from '@/types/api';
+import { mapSearchResults } from '@/utils/sharedHelpers';
 
 interface SearchModalProps {
     isOpen: boolean;
@@ -23,16 +23,6 @@ interface SearchModalProps {
 
 const SEARCH_HISTORY_STORAGE_KEY = '4thitek_recent_searches';
 const LEGACY_SEARCH_HISTORY_STORAGE_KEY = 'tunecore_recent_searches';
-
-interface SearchResult {
-    type: 'product' | 'blog';
-    id: string;
-    title: string;
-    subtitle?: string;
-    image?: string;
-    href: string;
-    metaLabel?: string;
-}
 
 const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalProps) {
     const { t } = useLanguage();
@@ -89,44 +79,9 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
                 return [];
             }
 
-            const nextResults: SearchResult[] = [];
             const data = response.data ?? { products: [], blogs: [] };
 
-            data.products.forEach((product: { id: string | number; name: string; shortDescription: string; image: string }) => {
-                const productId = product.id?.toString().trim();
-                if (!productId) {
-                    return;
-                }
-
-                nextResults.push({
-                    type: 'product',
-                    id: productId,
-                    title: product.name,
-                    subtitle: product.shortDescription,
-                    image: parseImageUrl(product.image),
-                    href: buildProductPath(productId, product.name),
-                    metaLabel: t('search.type.product')
-                });
-            });
-
-            data.blogs.forEach((blog: { id: string | number; title: string; description: string; image: string; category?: string }) => {
-                const blogId = blog.id?.toString().trim();
-                if (!blogId) {
-                    return;
-                }
-
-                nextResults.push({
-                    type: 'blog',
-                    id: blogId,
-                    title: blog.title,
-                    subtitle: blog.description,
-                    image: parseImageUrl(blog.image),
-                    href: buildBlogPath(blogId, blog.title),
-                    metaLabel: blog.category || t('search.type.blog')
-                });
-            });
-
-            return nextResults;
+            return mapSearchResults(data, t);
         } catch (error) {
             handleError(error instanceof Error ? error : new Error('Search failed'), 'SearchModal.performSearch');
             return [];

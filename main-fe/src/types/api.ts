@@ -155,3 +155,13 @@ export interface ProductDetailResponse extends BaseApiResponse {
         descriptions?: string;
     };
 }
+
+export interface SearchResult {
+    type: 'product' | 'blog';
+    id: string;
+    title: string;
+    subtitle?: string;
+    image?: string;
+    href: string;
+    metaLabel?: string;
+}

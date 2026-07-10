@@ -11,19 +11,9 @@ import Hero from '@/components/ui/Hero';
 import { Input } from '@/components/ui/input';
 import { useLanguage } from '@/context/LanguageContext';
 import { useDebounce } from '@/hooks/useDebounce';
-import { buildBlogPath, buildProductPath } from '@/lib/slug';
 import { apiService } from '@/services/apiService';
-import { parseImageUrl } from '@/utils/media';
-
-interface SearchResult {
-    type: 'product' | 'blog';
-    id: string;
-    title: string;
-    subtitle?: string;
-    image?: string;
-    href: string;
-    metaLabel?: string;
-}
+import { SearchResult } from '@/types/api';
+import { mapSearchResults } from '@/utils/sharedHelpers';
 
 const sectionVariants = {
     hidden: { opacity: 0, y: 24 },
@@ -68,53 +58,8 @@ function SearchContent() {
                     return;
                 }
 
-                const searchResults: SearchResult[] = [];
                 const data = response.data ?? { products: [], blogs: [] };
-
-                data.products.forEach(
-                    (product: { id: string | number; name: string; shortDescription: string; image: string }) => {
-                        const productId = product.id?.toString().trim();
-                        if (!productId) {
-                            return;
-                        }
-
-                        searchResults.push({
-                            type: 'product',
-                            id: productId,
-                            title: product.name,
-                            subtitle: product.shortDescription,
-                            image: parseImageUrl(product.image),
-                            href: buildProductPath(productId, product.name),
-                            metaLabel: t('search.type.product')
-                        });
-                    }
-                );
-
-                data.blogs.forEach(
-                    (blog: {
-                        id: string | number;
-                        title: string;
-                        description: string;
-                        image: string;
-                        category?: string;
-                    }) => {
-                        const blogId = blog.id?.toString().trim();
-                        if (!blogId) {
-                            return;
-                        }
-
-                        searchResults.push({
-                            type: 'blog',
-                            id: blogId,
-                            title: blog.title,
-                            subtitle: blog.description,
-                            image: parseImageUrl(blog.image),
-                            href: buildBlogPath(blogId, blog.title),
-                            metaLabel: blog.category || t('search.type.blog')
-                        });
-                    }
-                );
-
+                const searchResults = mapSearchResults(data, t);
                 setResults(searchResults);
             } catch (error) {
                 console.error('Search error:', error);

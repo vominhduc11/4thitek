@@ -219,9 +219,9 @@ export default function BecomeOurReseller() {
         if (fieldName === 'city') {
             // Clear district validation error when city changes.
             setValidationErrors((prevErrors) => {
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                const { district, ...rest } = prevErrors;
-                return rest;
+                const nextErrors = { ...prevErrors };
+                delete nextErrors.district;
+                return nextErrors;
             });
         }
 

@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   Archive,
@@ -26,6 +26,16 @@ import { resolveBackendAssetUrl } from "../lib/backendApi";
 import { formatDateOnly } from "../lib/formatters";
 import { deleteStoredFileReference, storeFileReference } from "../lib/upload";
 
+import {
+  MAX_IMAGE_BYTES,
+  VIDEO_FILE_NOTICE,
+  toDigitsOnly,
+  formatNumberInput,
+  toPlainText,
+} from "./products/editor/constants";
+import { useNumericFormatter } from "./products/editor/useNumericFormatter";
+import { useTrackedUpload } from "./products/editor/useTrackedUpload";
+
 const getImageUrl = (image: string) => {
   const cached = imageUrlCache.get(image);
   if (cached) {
@@ -49,9 +59,6 @@ const isLocalBlobUrl = (value?: string) =>
   );
 
 const imageUrlCache = new Map<string, string>();
-const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
-const VIDEO_FILE_NOTICE =
-  "Tải tệp video chưa được hỗ trợ. Vui lòng dùng URL video.";
 
 type ProductDraft = {
   name: string;
@@ -199,21 +206,7 @@ const parseSpecifications = (value: string): SpecificationItem[] => {
   return [];
 };
 
-const toPlainText = (value: string) =>
-  value
-    .replace(/<\s*br\s*\/?>/gi, "\n")
-    .replace(/<\/p>\s*<p>/gi, "\n\n")
-    .replace(/<[^>]*>/g, "")
-    .replace(/&nbsp;/g, " ")
-    .trim();
-
 const formatCurrency = (value: number) => currencyFormatter.format(value);
-
-const toDigitsOnly = (value: string) => value.replace(/\D/g, "");
-const formatNumberInput = (value: string) => {
-  if (!value) return "";
-  return value.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-};
 
 const isDescriptionTextItem = (item: DescriptionItem) =>
   item.type === "title" || item.type === "description";
@@ -269,26 +262,16 @@ function ProductDetailPage() {
   >({});
   const [actionMessage, setActionMessage] = useState("");
   const [mainImagePreviewUrl, setMainImagePreviewUrl] = useState("");
-  const editUploadedAssetUrlsRef = useRef<Set<string>>(new Set());
-  const cleanupEditDepsRef = useRef({ accessToken, notify, t });
 
-  void descriptionVideoErrors;
-  void productVideoErrors;
-  const uploadImageAsset = async (file: File) =>
-    storeFileReference({
-      file,
-      category: "products",
-      accessToken,
-    });
-
-  const getTrackedEditUploadUrls = (urls: Array<string | null | undefined>) =>
-    Array.from(
-      new Set(
-        urls
-          .map((url) => String(url ?? "").trim())
-          .filter((url) => url && editUploadedAssetUrlsRef.current.has(url)),
-      ),
-    );
+  const {
+    isUploading: isEditUploading,
+    uploadImageAsset,
+    trackUploadedAsset: trackEditUploadedAsset,
+    clearUploadedAssetTracking: clearEditUploadedAssetTracking,
+    cleanupUploadedAssets: cleanupEditUploadedAssets,
+    uploadedAssetUrlsRef: editUploadedAssetUrlsRef,
+    getTrackedUploadUrls: getTrackedEditUploadUrls,
+  } = useTrackedUpload(accessToken, notify, t);
 
   const getDraftTrackedUploadUrls = (value: ProductDraft) =>
     getTrackedEditUploadUrls([
@@ -301,66 +284,15 @@ function ProductDetailPage() {
       ]),
     ]);
 
-  const trackEditUploadedAsset = (url: string) => {
-    const normalized = url.trim();
-    if (normalized) {
-      editUploadedAssetUrlsRef.current.add(normalized);
+  const { inputRef: retailPriceInputRef, handleInputChange: handleRetailPriceChange } = useNumericFormatter(
+    draft?.retailPrice ?? "",
+    (digits) => {
+      setDraft((prev) => {
+        if (!prev) return prev;
+        return { ...prev, retailPrice: digits };
+      });
     }
-  };
-
-  const clearEditUploadedAssetTracking = () => {
-    editUploadedAssetUrlsRef.current.clear();
-  };
-
-  useEffect(() => {
-    cleanupEditDepsRef.current = { accessToken, notify, t };
-  }, [accessToken, notify, t]);
-
-  const cleanupEditUploadedAssets = async (
-    urls: Array<string | null | undefined>,
-  ) => {
-    const {
-      accessToken: currentAccessToken,
-      notify: currentNotify,
-      t: translate,
-    } = cleanupEditDepsRef.current;
-    const trackedUrls = getTrackedEditUploadUrls(urls);
-    if (trackedUrls.length === 0) {
-      return;
-    }
-
-    const results = await Promise.allSettled(
-      trackedUrls.map(async (url) => {
-        await deleteStoredFileReference({
-          url,
-          accessToken: currentAccessToken,
-        });
-        return url;
-      }),
-    );
-
-    const failedUrls: string[] = [];
-    results.forEach((result, index) => {
-      const url = trackedUrls[index];
-      if (result.status === "fulfilled") {
-        editUploadedAssetUrlsRef.current.delete(url);
-        return;
-      }
-      failedUrls.push(url);
-    });
-
-    if (failedUrls.length > 0) {
-      currentNotify(
-        translate(
-          "Không thể dọn một số ảnh tạm trên máy chủ. Vui lòng thử lại.",
-        ),
-        {
-          title: translate("Sản phẩm"),
-          variant: "error",
-        },
-      );
-    }
-  };
+  );
 
   const productStatusLabelMap: Record<Product["status"], string> = {
     Active: "Đang bán",
@@ -443,55 +375,7 @@ function ProductDetailPage() {
     };
   }, [mainImagePreviewUrl]);
 
-  useEffect(() => {
-    const trackedUploads = editUploadedAssetUrlsRef.current;
-    return () => {
-      if (trackedUploads.size > 0) {
-        const {
-          accessToken: currentAccessToken,
-          notify: currentNotify,
-          t: translate,
-        } = cleanupEditDepsRef.current;
-        const trackedUrls = Array.from(trackedUploads)
-          .map((url) => String(url ?? "").trim())
-          .filter((url) => url && trackedUploads.has(url));
-        if (trackedUrls.length === 0) {
-          return;
-        }
-        void Promise.allSettled(
-          trackedUrls.map(async (url) => {
-            await deleteStoredFileReference({
-              url,
-              accessToken: currentAccessToken,
-            });
-            return url;
-          }),
-        ).then((results) => {
-          const failedUrls: string[] = [];
-          results.forEach((result, index) => {
-            const url = trackedUrls[index];
-            if (result.status === "fulfilled") {
-              trackedUploads.delete(url);
-              return;
-            }
-            failedUrls.push(url);
-          });
 
-          if (failedUrls.length > 0) {
-            currentNotify(
-              translate(
-                "Không thể dọn một số ảnh tạm trên máy chủ. Vui lòng thử lại.",
-              ),
-              {
-                title: translate("Sản phẩm"),
-                variant: "error",
-              },
-            );
-          }
-        });
-      }
-    };
-  }, []);
 
   const descriptionEditorModules = useMemo(
     () => ({
@@ -1574,6 +1458,7 @@ function ProductDetailPage() {
                   </label>
                   <div className="relative">
                     <input
+                      ref={retailPriceInputRef}
                       aria-describedby={
                         draftErrors.retailPrice
                           ? "product-detail-price-error"
@@ -1588,12 +1473,7 @@ function ProductDetailPage() {
                       type="text"
                       inputMode="numeric"
                       value={formatNumberInput(toDigitsOnly(draft.retailPrice))}
-                      onChange={(event) => {
-                        const digits = toDigitsOnly(event.target.value);
-                        setDraft((prev) =>
-                          prev ? { ...prev, retailPrice: digits } : prev,
-                        );
-                      }}
+                      onChange={handleRetailPriceChange}
                       placeholder="0"
                     />
                     <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">

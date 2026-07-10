@@ -287,6 +287,23 @@ function DashboardPageRevamp() {
         actions={<StatusBadge tone="info">{dashboard.revenue.delta}</StatusBadge>}
       />
 
+      {dashboard.staleOrdersCount > 0 && (
+        <div className="mt-6">
+          <Link
+            to="/orders?status=pending"
+            className="block rounded-3xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          >
+            <StatCard
+              icon={AlertTriangle}
+              label={t("Đơn hàng cần xem xét")}
+              value={formatNumber(dashboard.staleOrdersCount)}
+              hint={copy.staleOrdersHint}
+              tone="warning"
+            />
+          </Link>
+        </div>
+      )}
+
       <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Link
           to="/orders"

@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { API_ENDPOINTS, buildApiUrl } from '@/constants/api';
 
 type Envelope<T> = {
@@ -10,7 +11,7 @@ type PublicApiRequestOptions = {
     version?: string;
 };
 
-async function fetchEnvelope<T>(
+async function fetchEnvelopeBase<T>(
     path: string,
     revalidate: number,
     options?: PublicApiRequestOptions
@@ -40,6 +41,20 @@ async function fetchEnvelope<T>(
             error: error instanceof Error ? error.message : `Failed to fetch ${path}`
         };
     }
+}
+
+const memoizedFetchEnvelope = cache(
+    async (path: string, revalidate: number, version?: string): Promise<Envelope<any>> => {
+        return fetchEnvelopeBase(path, revalidate, { version });
+    }
+);
+
+async function fetchEnvelope<T>(
+    path: string,
+    revalidate: number,
+    options?: PublicApiRequestOptions
+): Promise<Envelope<T>> {
+    return memoizedFetchEnvelope(path, revalidate, options?.version);
 }
 
 export const publicApiServer = {

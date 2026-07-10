@@ -1,10 +1,8 @@
-﻿import {
+import {
   BadgeAlert,
   Bell,
   BookOpenText,
   Boxes,
-  ChevronDown,
-  ChevronRight,
   CircleDollarSign,
   ClipboardList,
   FileText,
@@ -18,7 +16,6 @@
   Package,
   Percent,
   RotateCcw,
-  Search,
   Settings,
   ShieldCheck,
   ShoppingCart,
@@ -37,16 +34,13 @@ import {
   useRef,
   useState,
 } from "react";
-import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import logoMark from "../assets/images/logo-4t.png";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import {
   ghostButtonClass,
   iconButtonClass,
-  inputClass,
   tableMetaClass,
 } from "../components/ui-kit";
-import { ADMIN_APP_NAME, BRAND_NAME } from "../config/businessProfile";
 import { canAccessPath } from "../config/navPermissions";
 import { useAdminData } from "../context/AdminDataContext";
 import { useAuth } from "../context/AuthContext";
@@ -67,169 +61,24 @@ import { useTheme } from "../hooks/useTheme";
 import { useAdminWebSocket } from "../hooks/useAdminWebSocket";
 import { useNavBadges } from "../hooks/useNavBadges";
 
-type NavGroupId = "overview" | "commerce" | "service" | "system";
+import {
+  copyKeys,
+  interpolate,
+  buildAlertStateId,
+  loadNavGroups,
+  ALERT_READ_STORAGE_KEY,
+  NAV_GROUP_STORAGE_KEY,
+  SEARCH_RESULT_LIMIT,
+  type NavGroupId,
+  type NavItem,
+  type SearchResult,
+  type SearchIndexItem,
+  type AlertItem,
+} from "./layoutHelpers";
 
-type NavItem = {
-  to: string;
-  label: string;
-  icon: LucideIcon;
-  group: NavGroupId;
-};
-
-type SearchResult = {
-  id: string;
-  title: string;
-  meta: string;
-  to: string;
-  icon: LucideIcon;
-};
-
-type SearchIndexItem = SearchResult & {
-  searchText: string;
-};
-
-type AlertItem = {
-  id: string;
-  title: string;
-  description: string;
-  to: string;
-  icon: LucideIcon;
-};
-
-const ALERT_READ_STORAGE_KEY = "admin_alert_read_ids";
-const SEARCH_RESULT_LIMIT = 8;
-
-const copyKeys = {
-  product: "Sản phẩm",
-  order: "Đơn hàng",
-  dealer: "Đại lý",
-  post: "Bài viết",
-  user: "Người dùng",
-  discount: "Chiết khấu",
-  workspace: "Không gian quản trị",
-  welcome: "Bảng điều hành quản trị",
-  welcomeText:
-    "Theo dõi vận hành, kho, dịch vụ sau bán và tài khoản nội bộ từ một nơi.",
-  searchPlaceholder: "Tìm đơn hàng, SKU, đại lý, bài viết...",
-  searchEmpty: "Không tìm thấy kết quả phù hợp",
-  searchHint: "Kết quả tìm kiếm nhanh",
-  searchResultsLabel: "Danh sách kết quả tìm kiếm",
-  searchSelectionHint: "Dùng phím mũi tên để duyệt, Enter để mở.",
-  searchViewAll: "Xem tất cả {count} kết quả",
-  searchCollapse: "Thu gọn kết quả",
-  alerts: "Cảnh báo vận hành",
-  alertsEmpty: "Không có cảnh báo cần theo dõi.",
-  markAllRead: "Đánh dấu đã đọc",
-  account: "Tài khoản",
-  profile: "Hồ sơ tài khoản",
-  logout: "Đăng xuất",
-  language: "Ngôn ngữ",
-  light: "Sáng",
-  dark: "Tối",
-  online: "Hệ thống đang trực tuyến",
-  noRole: "Quản trị viên",
-  openNavigation: "Mở menu điều hướng",
-  closeNavigation: "Đóng menu điều hướng",
-  groups: {
-    overview: "Điều hành",
-    commerce: "Bán hàng",
-    service: "Hậu mãi",
-    system: "Hệ thống",
-  },
-  nav: {
-    dashboard: "Tổng quan",
-    products: "Sản phẩm",
-    orders: "Đơn hàng",
-    blogs: "Bài viết",
-    discounts: "Chiết khấu sỉ",
-    dealers: "Đại lý",
-    warranties: "Bảo hành",
-    serials: "Serial",
-    notifications: "Trung tâm thông báo",
-    support: "Hỗ trợ",
-    media: "Thư viện media",
-    returns: "Đổi trả",
-    recentPayments: "Thanh toán chuyển khoản",
-    unmatchedPayments: "Thanh toán không khớp",
-    financialSettlements: "Quyết toán tài chính",
-    reports: "Báo cáo",
-    users: "Người dùng",
-    auditLogs: "Nhật ký hệ thống",
-    settings: "Cài đặt",
-  },
-  alertTemplates: {
-    pendingOrders: "{count} đơn hàng đang chờ xử lý",
-    lowStock: "{count} sản phẩm sắp chạm ngưỡng tồn kho thấp",
-    scheduledPosts: "{count} bài viết đang ở trạng thái chờ lịch",
-    dealerAttention: "{count} đại lý cần bổ sung hồ sơ",
-    pendingUsers: "{count} tài khoản nội bộ đang chờ duyệt",
-  },
-  alertDescriptions: {
-    pendingOrders: "Kiểm tra và xác nhận các đơn hàng mới trước khi trễ SLA.",
-    lowStock:
-      "Ưu tiên kiểm tra SKU tồn dưới hoặc bằng 10 để tránh gián đoạn đơn hàng.",
-    scheduledPosts: "Rà soát nội dung trước thời điểm đăng tự động.",
-    dealerAttention:
-      "Hoàn tất xác minh để tránh ảnh hưởng kích hoạt ứng dụng đại lý.",
-    pendingUsers: "Duyệt quyền truy cập cho tài khoản nội bộ mới.",
-  },
-  ws: {
-    newOrder: "Đơn hàng mới từ {dealer}",
-    newDealer: "Đại lý mới đăng ký: {username}",
-    newTicket: "Ticket hỗ trợ mới từ {dealer}",
-  },
-} as const;
-
-const interpolate = (template: string, vars: Record<string, string | number>) =>
-  Object.entries(vars).reduce(
-    (result, [key, value]) => result.replaceAll(`{${key}}`, String(value)),
-    template,
-  );
-
-const buildAlertStateId = (
-  prefix: string,
-  ids: Array<string | number | null | undefined>,
-) => {
-  const normalized = ids
-    .filter((id): id is string | number => id !== null && id !== undefined)
-    .map(String)
-    .sort();
-
-  if (normalized.length === 0) {
-    return prefix;
-  }
-
-  const joined = normalized.join("|");
-  let hash = 0;
-  for (let index = 0; index < joined.length; index += 1) {
-    hash = (hash * 31 + joined.charCodeAt(index)) >>> 0;
-  }
-
-  return `${prefix}:${normalized.length}:${hash.toString(36)}`;
-};
-
-
-const NAV_GROUP_STORAGE_KEY = "admin_nav_groups";
-
-const loadNavGroups = (): Record<NavGroupId, boolean> => {
-  try {
-    const raw = window.localStorage.getItem(NAV_GROUP_STORAGE_KEY);
-    if (!raw)
-      return { overview: true, commerce: true, service: false, system: false };
-    const parsed = JSON.parse(raw) as unknown;
-    if (typeof parsed === "object" && parsed !== null) {
-      return {
-        overview: (parsed as Record<string, boolean>).overview ?? true,
-        commerce: (parsed as Record<string, boolean>).commerce ?? true,
-        service: (parsed as Record<string, boolean>).service ?? false,
-        system: (parsed as Record<string, boolean>).system ?? false,
-      };
-    }
-  } catch {
-    /* ignore */
-  }
-  return { overview: true, commerce: true, service: false, system: false };
-};
+import { Sidebar } from "./Sidebar";
+import { SearchOverlay } from "./SearchOverlay";
+import { AlertsPopover } from "./AlertsPopover";
 
 function AppLayoutRevamp() {
   const { language, t } = useLanguage();
@@ -971,138 +820,6 @@ function AppLayoutRevamp() {
     }
   };
 
-  const renderSidebar = (mobile = false) => (
-    <aside
-      id={mobile ? mobileNavigationId : undefined}
-      aria-label={copy.openNavigation}
-      className={
-        mobile
-          ? "brand-admin-shell flex h-full min-h-0 flex-col gap-4 border-r border-[var(--brand-border)] px-4 py-4 text-white"
-          : "brand-admin-shell hidden min-h-0 flex-col gap-4 border-r border-[var(--brand-border)] px-4 py-4 text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-[296px] lg:shrink-0 xl:w-[320px]"
-      }
-    >
-      <div className="flex items-center gap-3">
-        <img
-          src={logoMark}
-          alt={BRAND_NAME}
-          className="h-10 w-auto max-w-[152px] object-contain drop-shadow-[0_10px_24px_rgba(0,113,188,0.22)]"
-        />
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-sm font-semibold tracking-[0.01em] text-white">
-            {ADMIN_APP_NAME}
-          </div>
-          <p className="text-xs text-white/60">{copy.workspace}</p>
-        </div>
-      </div>
-
-      <nav className="app-scroll flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto pr-1">
-        {groupedNav.map((group) => (
-          <section
-            key={group.id}
-            className="rounded-[22px] border border-[var(--brand-border)] bg-[rgba(41,171,226,0.05)] px-2 py-2"
-          >
-            <button
-              aria-expanded={openGroups[group.id]}
-              className="flex w-full items-center justify-between gap-3 px-2.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-[0.22em] text-white/60"
-              onClick={() => toggleGroup(group.id)}
-              type="button"
-            >
-              <span>{group.label}</span>
-              <span className="inline-flex items-center gap-2">
-                <span className="rounded-full bg-[rgba(41,171,226,0.1)] px-2 py-0.5 text-[10px] text-white/75">
-                  {group.items.length}
-                </span>
-                {openGroups[group.id] ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </span>
-            </button>
-            <div
-              className={`overflow-hidden transition-all duration-200 ${openGroups[group.id] ? "max-h-[40rem]" : "max-h-0"}`}
-            >
-              <div className="mt-1.5 space-y-1">
-                {group.items.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <NavLink
-                      key={item.to}
-                      to={item.to}
-                      end={item.to === "/"}
-                      className={({ isActive }) =>
-                        [
-                          "group relative flex min-h-[4.25rem] items-center gap-3 overflow-hidden rounded-[18px] px-3 py-2.5 text-left text-sm font-medium transition",
-                          isActive
-                            ? "bg-[linear-gradient(135deg,rgba(41,171,226,0.22),rgba(0,113,188,0.18))] text-white shadow-[inset_0_0_0_1px_rgba(41,171,226,0.38),0_14px_28px_rgba(3,16,28,0.16)]"
-                            : "text-white/84 hover:bg-[rgba(41,171,226,0.1)] hover:text-white",
-                        ].join(" ")
-                      }
-                      title={item.label}
-                    >
-                      {({ isActive }) => (
-                        <>
-                          <span
-                            className={[
-                              "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition",
-                              isActive
-                                ? "bg-[rgba(255,255,255,0.12)] text-white"
-                                : "bg-[rgba(41,171,226,0.14)] text-blue-200",
-                            ].join(" ")}
-                          >
-                            <Icon className="h-4 w-4" />
-                          </span>
-                          <span className="line-clamp-2 block min-w-0 flex-1 pr-1 text-sm leading-5 text-inherit break-words">
-                            {item.label}
-                          </span>
-                          {navBadges[item.to] ? (
-                            <span
-                              aria-label={`${navBadges[item.to]} mục cần xử lý`}
-                              className="inline-flex min-w-[1.25rem] shrink-0 items-center justify-center rounded-full bg-[var(--destructive)] px-1.5 py-0.5 text-[0.7rem] font-semibold leading-none text-white"
-                            >
-                              {navBadges[item.to] > 99 ? "99+" : navBadges[item.to]}
-                            </span>
-                          ) : null}
-                          <ChevronRight
-                            className={[
-                              "h-4 w-4 shrink-0 self-center transition",
-                              isActive
-                                ? "translate-x-0 text-white/70"
-                                : "text-white/45 group-hover:translate-x-0.5 group-hover:text-white/75",
-                            ].join(" ")}
-                          />
-                        </>
-                      )}
-                    </NavLink>
-                  );
-                })}
-              </div>
-            </div>
-          </section>
-        ))}
-      </nav>
-
-      <div className="text-xs text-white/60">
-        <div className="rounded-[18px] border border-[var(--brand-border)] bg-[rgba(41,171,226,0.05)] px-3 py-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[11px] uppercase tracking-[0.28em] text-slate-500">
-                {copy.account}
-              </p>
-              <p className="mt-1 truncate text-sm font-semibold text-white">
-                {user?.username ?? "Admin"}
-              </p>
-            </div>
-            <span className="inline-flex shrink-0 items-center gap-2 rounded-full bg-[rgba(34,197,94,0.12)] px-2.5 py-1 text-[11px] font-semibold text-emerald-300">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(34,197,94,0.16)]" />
-              {copy.online}
-            </span>
-          </div>
-        </div>
-      </div>
-    </aside>
-  );
-
   return (
     <div className="relative min-h-screen bg-[var(--app-bg)] text-[var(--ink)]">
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
@@ -1111,7 +828,15 @@ function AppLayoutRevamp() {
       </div>
 
       <div className="relative flex min-h-screen">
-        {renderSidebar()}
+        <Sidebar
+          copy={copy}
+          groupedNav={groupedNav}
+          mobileNavigationId={mobileNavigationId}
+          navBadges={navBadges}
+          openGroups={openGroups}
+          toggleGroup={toggleGroup}
+          user={user}
+        />
 
         <div className="flex min-h-screen min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--surface-tint)]/95 backdrop-blur-xl">
@@ -1158,100 +883,20 @@ function AppLayoutRevamp() {
 
                   <LanguageSwitcher />
 
-                  <div className="relative" ref={alertsRef}>
-                    <button
-                      ref={alertsTriggerRef}
-                      aria-controls={alertsPopoverId}
-                      aria-expanded={isAlertsOpen}
-                      aria-haspopup="dialog"
-                      className={ghostButtonClass}
-                      onClick={toggleAlerts}
-                      type="button"
-                    >
-                      <BadgeAlert className="h-4 w-4" />
-                      <span className="hidden sm:inline">{copy.alerts}</span>
-                      {unreadAlerts.length > 0 ? (
-                        <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-[var(--destructive)] px-1.5 py-0.5 text-[11px] font-semibold text-white">
-                          {unreadAlerts.length}
-                        </span>
-                      ) : null}
-                    </button>
-
-                    {isAlertsOpen ? (
-                      <div
-                        id={alertsPopoverId}
-                        aria-label={copy.alerts}
-                        className="absolute right-0 z-40 mt-2 w-[min(92vw,360px)] rounded-[22px] border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[0_18px_38px_rgba(15,23,42,0.14)]"
-                        role="dialog"
-                        tabIndex={-1}
-                      >
-                        <div className="flex items-center justify-between gap-3 px-2">
-                          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
-                            {copy.alerts}
-                          </p>
-                          {unreadAlerts.length > 0 ? (
-                            <button
-                              className="text-xs font-semibold text-[var(--accent)]"
-                              onClick={() => {
-                                markAllAlertIds(
-                                  alerts.map((alert) => alert.id),
-                                );
-                              }}
-                              type="button"
-                            >
-                              {copy.markAllRead}
-                            </button>
-                          ) : null}
-                        </div>
-                        {alerts.length > 0 ? (
-                          <ul className="mt-2 space-y-1">
-                            {alerts.map((alert) => {
-                              const Icon = alert.icon;
-                              const isUnread = !readAlertIds.has(alert.id);
-                              return (
-                                <li key={alert.id}>
-                                  <button
-                                    className={[
-                                      "flex w-full items-start gap-3 rounded-2xl px-3 py-3 text-left transition",
-                                      isUnread
-                                        ? "bg-[var(--surface-muted)] hover:bg-[var(--accent-soft)]/50"
-                                        : "hover:bg-[var(--surface-muted)]",
-                                    ].join(" ")}
-                                    onClick={() => {
-                                      markAlertRead(alert.id);
-                                      navigate(alert.to);
-                                    }}
-                                    type="button"
-                                  >
-                                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
-                                      <Icon className="h-4 w-4" />
-                                    </span>
-                                    <span className="min-w-0">
-                                      <span className="flex items-center gap-2">
-                                        <span className="truncate text-sm font-semibold text-[var(--ink)]">
-                                          {alert.title}
-                                        </span>
-                                        {isUnread ? (
-                                          <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--destructive)]" />
-                                        ) : null}
-                                      </span>
-                                      <span className="mt-1 block text-xs leading-5 text-[var(--muted)]">
-                                        {alert.description}
-                                      </span>
-                                    </span>
-                                  </button>
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        ) : (
-                          <p className="px-2 py-4 text-sm text-[var(--muted)]">
-                            {copy.alertsEmpty}
-                          </p>
-                        )}
-                      </div>
-                    ) : null}
-                  </div>
+                  <AlertsPopover
+                    alertsRef={alertsRef}
+                    alertsTriggerRef={alertsTriggerRef}
+                    alertsPopoverId={alertsPopoverId}
+                    isAlertsOpen={isAlertsOpen}
+                    toggleAlerts={toggleAlerts}
+                    unreadAlerts={unreadAlerts}
+                    alerts={alerts}
+                    readAlertIds={readAlertIds}
+                    markAllAlertIds={markAllAlertIds}
+                    markAlertRead={markAlertRead}
+                    navigate={navigate}
+                    copy={copy}
+                  />
 
                   <div className="relative" ref={accountRef}>
                     <button
@@ -1320,121 +965,26 @@ function AppLayoutRevamp() {
               </div>
 
               <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-                <form
-                  ref={searchRef}
-                  aria-label={copy.searchHint}
-                  className="relative w-full lg:max-w-xl"
-                  onSubmit={handleGlobalSearch}
-                >
-                  <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
-                  <input
-                    ref={searchInputRef}
-                    aria-activedescendant={
-                      activeSearchIndex >= 0
-                        ? `global-search-option-${activeSearchIndex}`
-                        : undefined
-                    }
-                    aria-autocomplete="list"
-                    aria-controls={searchListboxId}
-                    aria-expanded={
-                      isSearchOpen && visibleSearchResults.length > 0
-                    }
-                    aria-label={copy.searchPlaceholder}
-                    className={`${inputClass} w-full pl-10 pr-4`}
-                    onChange={(event) => {
-                      setGlobalQuery(event.target.value);
-                      openSearch();
-                      setShowAllSearchResults(false);
-                      setActiveSearchIndex(-1);
-                    }}
-                    onFocus={openSearch}
-                    onKeyDown={handleSearchKeyDown}
-                    placeholder={copy.searchPlaceholder}
-                    role="combobox"
-                    value={globalQuery}
-                  />
-                  {isSearchOpen && globalQuery.trim() ? (
-                    <div
-                      aria-label={copy.searchHint}
-                      className="absolute left-0 right-0 z-40 mt-2 rounded-[22px] border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[0_18px_38px_rgba(15,23,42,0.14)]"
-                      role="dialog"
-                      tabIndex={-1}
-                    >
-                      <div className="flex items-start justify-between gap-3 px-2">
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
-                          {copy.searchHint}
-                        </p>
-                        {searchResults.length > SEARCH_RESULT_LIMIT ? (
-                          <button
-                            className="text-xs font-semibold text-[var(--accent)]"
-                            onClick={() =>
-                              setShowAllSearchResults((current) => !current)
-                            }
-                            type="button"
-                          >
-                            {showAllSearchResults
-                              ? copy.searchCollapse
-                              : interpolate(copy.searchViewAll, {
-                                  count: searchResults.length,
-                                })}
-                          </button>
-                        ) : null}
-                      </div>
-                      <p className="px-2 pt-1 text-xs text-[var(--muted)]">
-                        {copy.searchSelectionHint}
-                      </p>
-                      {searchResults.length > 0 ? (
-                        <ul
-                          aria-label={copy.searchResultsLabel}
-                          className="mt-2 space-y-1"
-                          id={searchListboxId}
-                          role="listbox"
-                        >
-                          {visibleSearchResults.map((result, index) => {
-                            const Icon = result.icon;
-                            const isActive = index === activeSearchIndex;
-                            return (
-                              <li key={result.id}>
-                                <button
-                                  aria-selected={isActive}
-                                  className={[
-                                    "flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition",
-                                    isActive
-                                      ? "bg-[var(--surface-muted)] ring-2 ring-[var(--accent-soft)]"
-                                      : "hover:bg-[var(--surface-muted)]",
-                                  ].join(" ")}
-                                  id={`global-search-option-${index}`}
-                                  onClick={() => handleNavigate(result.to)}
-                                  onMouseEnter={() =>
-                                    setActiveSearchIndex(index)
-                                  }
-                                  role="option"
-                                  type="button"
-                                >
-                                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
-                                    <Icon className="h-4 w-4" />
-                                  </span>
-                                  <span className="min-w-0">
-                                    <span className="block truncate text-sm font-semibold text-[var(--ink)]">
-                                      {result.title}
-                                    </span>
-                                    <span className="block truncate text-xs text-[var(--muted)]">
-                                      {result.meta}
-                                    </span>
-                                  </span>
-                                </button>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      ) : (
-                        <p className="px-2 py-4 text-sm text-[var(--muted)]">
-                          {copy.searchEmpty}
-                        </p>
-                      )}
-                    </div>
-                  ) : null}
-                </form>
+                <SearchOverlay
+                  searchRef={searchRef}
+                  searchInputRef={searchInputRef}
+                  isSearchOpen={isSearchOpen}
+                  globalQuery={globalQuery}
+                  setGlobalQuery={setGlobalQuery}
+                  openSearch={openSearch}
+                  handleSearchKeyDown={handleSearchKeyDown}
+                  handleGlobalSearch={handleGlobalSearch}
+                  searchResults={searchResults}
+                  visibleSearchResults={visibleSearchResults}
+                  showAllSearchResults={showAllSearchResults}
+                  setShowAllSearchResults={setShowAllSearchResults}
+                  activeSearchIndex={activeSearchIndex}
+                  setActiveSearchIndex={setActiveSearchIndex}
+                  handleNavigate={handleNavigate}
+                  copy={copy}
+                  searchListboxId={searchListboxId}
+                  interpolate={interpolate}
+                />
               </div>
             </div>
           </header>
@@ -1479,7 +1029,16 @@ function AppLayoutRevamp() {
           <h2 className="sr-only" id="admin-mobile-navigation-title">
             {copy.workspace}
           </h2>
-          {renderSidebar(true)}
+          <Sidebar
+            mobile
+            copy={copy}
+            groupedNav={groupedNav}
+            mobileNavigationId={mobileNavigationId}
+            navBadges={navBadges}
+            openGroups={openGroups}
+            toggleGroup={toggleGroup}
+            user={user}
+          />
         </div>
       </div>
     </div>
