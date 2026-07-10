@@ -12,10 +12,7 @@ import com.devwonder.backend.dto.dealer.DealerReturnRequestAttachmentPayload;
 import com.devwonder.backend.dto.dealer.DealerReturnRequestItemPayload;
 import com.devwonder.backend.dto.pagination.PagedResponse;
 import com.devwonder.backend.dto.returns.ReturnEligibilityResponse;
-import com.devwonder.backend.dto.returns.ReturnRequestAttachmentResponse;
 import com.devwonder.backend.dto.returns.ReturnRequestDetailResponse;
-import com.devwonder.backend.dto.returns.ReturnRequestEventResponse;
-import com.devwonder.backend.dto.returns.ReturnRequestItemResponse;
 import com.devwonder.backend.dto.returns.ReturnRequestSummaryResponse;
 import com.devwonder.backend.dto.support.SupportTicketContextPayload;
 import com.devwonder.backend.entity.Dealer;
@@ -54,6 +51,7 @@ import com.devwonder.backend.repository.ReturnRequestItemRepository;
 import com.devwonder.backend.repository.ReturnRequestRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
 import com.devwonder.backend.service.support.DealerPortalLookupSupport;
+import com.devwonder.backend.service.support.ReturnRequestResponseMapper;
 import com.devwonder.backend.service.support.SupportTicketPayloadSupport;
 import com.devwonder.backend.service.returns.ReturnRequestPolicy;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -72,18 +70,16 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class ReturnRequestService {
-
-    private static final Logger log = LoggerFactory.getLogger(ReturnRequestService.class);
 
     private static final Set<ReturnRequestStatus> ACTIVE_REQUEST_STATUSES = EnumSet.of(
             ReturnRequestStatus.SUBMITTED,
@@ -160,7 +156,7 @@ public class ReturnRequestService {
                 toLikeParam(orderCode),
                 toLikeParam(serialQuery),
                 pageable
-        ).map(this::toSummaryResponse);
+        ).map(ReturnRequestResponseMapper::toSummaryResponse);
         return PagedResponse.from(page, pageable.getSort().isSorted()
                 ? pageable.getSort().iterator().next().getProperty()
                 : "createdAt");
@@ -171,7 +167,7 @@ public class ReturnRequestService {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
         ReturnRequest request = returnRequestRepository.findDetailByIdAndDealerId(requestId, dealer.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Return request not found"));
-        return toDetailResponse(request);
+        return ReturnRequestResponseMapper.toDetailResponse(request);
     }
 
     @Transactional
@@ -301,7 +297,7 @@ public class ReturnRequestService {
                 "requestedResolution", request.getRequestedResolution().name()
         ));
 
-        return toDetailResponse(returnRequestRepository.save(saved));
+        return ReturnRequestResponseMapper.toDetailResponse(returnRequestRepository.save(saved));
     }
 
     @Transactional
@@ -327,7 +323,7 @@ public class ReturnRequestService {
                 "requestCode", request.getRequestCode()
         ));
         syncLinkedSupportTicketOnStatusChange(request, previousStatus, username);
-        return toDetailResponse(returnRequestRepository.save(request));
+        return ReturnRequestResponseMapper.toDetailResponse(returnRequestRepository.save(request));
     }
 
     @Transactional(readOnly = true)
@@ -380,7 +376,7 @@ public class ReturnRequestService {
                 toLikeParam(orderCode),
                 toLikeParam(serialQuery),
                 pageable
-        ).map(this::toSummaryResponse);
+        ).map(ReturnRequestResponseMapper::toSummaryResponse);
         return PagedResponse.from(page, pageable.getSort().isSorted()
                 ? pageable.getSort().iterator().next().getProperty()
                 : "createdAt");
@@ -390,7 +386,7 @@ public class ReturnRequestService {
     public ReturnRequestDetailResponse getAdminReturnDetail(Long requestId) {
         ReturnRequest request = returnRequestRepository.findDetailById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Return request not found"));
-        return toDetailResponse(request);
+        return ReturnRequestResponseMapper.toDetailResponse(request);
     }
 
     @Transactional
@@ -426,7 +422,7 @@ public class ReturnRequestService {
                 "status", request.getStatus().name()
         ));
         syncLinkedSupportTicketOnStatusChange(request, previousStatus, actorUsername);
-        return toDetailResponse(returnRequestRepository.save(request));
+        return ReturnRequestResponseMapper.toDetailResponse(returnRequestRepository.save(request));
     }
 
     @Transactional
@@ -477,7 +473,7 @@ public class ReturnRequestService {
         }
         appendEvent(request, "REQUEST_RECEIVED", actorUsername, "ADMIN", eventPayload);
         syncLinkedSupportTicketOnStatusChange(request, previousStatus, actorUsername);
-        return toDetailResponse(returnRequestRepository.save(request));
+        return ReturnRequestResponseMapper.toDetailResponse(returnRequestRepository.save(request));
     }
 
     @Transactional
@@ -616,7 +612,7 @@ public class ReturnRequestService {
         }
         appendEvent(request, "ITEM_INSPECTED", actorUsername, "ADMIN", eventPayload);
         syncLinkedSupportTicketOnStatusChange(request, previousStatus, actorUsername);
-        return toDetailResponse(returnRequestRepository.save(request));
+        return ReturnRequestResponseMapper.toDetailResponse(returnRequestRepository.save(request));
     }
 
     @Transactional
@@ -649,7 +645,7 @@ public class ReturnRequestService {
         }
         appendEvent(request, "REQUEST_COMPLETED", actorUsername, "ADMIN", eventPayload);
         syncLinkedSupportTicketOnStatusChange(request, previousStatus, actorUsername);
-        return toDetailResponse(returnRequestRepository.save(request));
+        return ReturnRequestResponseMapper.toDetailResponse(returnRequestRepository.save(request));
     }
 
     private ReturnRequest requireAdminEditableRequest(Long requestId) {
@@ -1370,125 +1366,6 @@ public class ReturnRequestService {
         } catch (JsonProcessingException ex) {
             return null;
         }
-    }
-
-    private ReturnRequestSummaryResponse toSummaryResponse(ReturnRequest request) {
-        int totalItems = request.getItems().size();
-        int requestedItems = (int) request.getItems().stream()
-                .filter(item -> item.getItemStatus() == ReturnRequestItemStatus.REQUESTED)
-                .count();
-        int approvedItems = (int) request.getItems().stream()
-                .filter(item -> item.getItemStatus() == ReturnRequestItemStatus.APPROVED
-                        || item.getItemStatus() == ReturnRequestItemStatus.RECEIVED
-                        || item.getItemStatus() == ReturnRequestItemStatus.INSPECTING)
-                .count();
-        int rejectedItems = (int) request.getItems().stream()
-                .filter(item -> item.getItemStatus() == ReturnRequestItemStatus.REJECTED)
-                .count();
-        int resolvedItems = (int) request.getItems().stream()
-                .filter(item -> TERMINAL_ITEM_STATUSES.contains(item.getItemStatus()))
-                .count();
-        return new ReturnRequestSummaryResponse(
-                request.getId(),
-                request.getRequestCode(),
-                request.getDealer() == null ? null : request.getDealer().getId(),
-                resolveDealerName(request.getDealer()),
-                request.getOrder() == null ? null : request.getOrder().getId(),
-                request.getOrder() == null ? null : request.getOrder().getOrderCode(),
-                request.getType(),
-                request.getStatus(),
-                request.getRequestedResolution(),
-                request.getReasonCode(),
-                request.getReasonDetail(),
-                request.getSupportTicket() == null ? null : request.getSupportTicket().getId(),
-                request.getRequestedAt(),
-                request.getReviewedAt(),
-                request.getReceivedAt(),
-                request.getCompletedAt(),
-                request.getCreatedAt(),
-                request.getUpdatedAt(),
-                totalItems,
-                requestedItems,
-                approvedItems,
-                rejectedItems,
-                resolvedItems
-        );
-    }
-
-    private ReturnRequestDetailResponse toDetailResponse(ReturnRequest request) {
-        List<ReturnRequestItemResponse> items = request.getItems().stream()
-                .map(item -> new ReturnRequestItemResponse(
-                        item.getId(),
-                        item.getOrderItem() == null ? null : item.getOrderItem().getId(),
-                        item.getProduct() == null ? null : item.getProduct().getId(),
-                        item.getProduct() == null ? null : item.getProduct().getName(),
-                        item.getProduct() == null ? null : item.getProduct().getSku(),
-                        item.getProductSerial() == null ? null : item.getProductSerial().getId(),
-                        item.getSerialSnapshot(),
-                        item.getItemStatus(),
-                        item.getConditionOnRequest(),
-                        item.getAdminDecisionNote(),
-                        item.getInspectionNote(),
-                        item.getFinalResolution(),
-                        item.getReplacementOrderId(),
-                        item.getReplacementSerialId(),
-                        item.getRefundAmount(),
-                        item.getCreditAmount(),
-                        item.getOrderAdjustmentId()
-                ))
-                .toList();
-        List<ReturnRequestAttachmentResponse> attachments = request.getAttachments().stream()
-                .map(attachment -> new ReturnRequestAttachmentResponse(
-                        attachment.getId(),
-                        attachment.getItem() == null ? null : attachment.getItem().getId(),
-                        attachment.getMediaAsset() == null ? null : attachment.getMediaAsset().getId(),
-                        attachment.getUrl(),
-                        attachment.getFileName(),
-                        attachment.getCategory()
-                ))
-                .toList();
-        List<ReturnRequestEventResponse> events = request.getEvents().stream()
-                .map(event -> new ReturnRequestEventResponse(
-                        event.getId(),
-                        event.getEventType(),
-                        event.getActor(),
-                        event.getActorRole(),
-                        event.getPayloadJson(),
-                        event.getCreatedAt()
-                ))
-                .toList();
-        return new ReturnRequestDetailResponse(
-                request.getId(),
-                request.getRequestCode(),
-                request.getDealer() == null ? null : request.getDealer().getId(),
-                resolveDealerName(request.getDealer()),
-                request.getOrder() == null ? null : request.getOrder().getId(),
-                request.getOrder() == null ? null : request.getOrder().getOrderCode(),
-                request.getType(),
-                request.getStatus(),
-                request.getRequestedResolution(),
-                request.getReasonCode(),
-                request.getReasonDetail(),
-                request.getSupportTicket() == null ? null : request.getSupportTicket().getId(),
-                request.getRequestedAt(),
-                request.getReviewedAt(),
-                request.getReceivedAt(),
-                request.getCompletedAt(),
-                request.getCreatedBy(),
-                request.getUpdatedBy(),
-                request.getCreatedAt(),
-                request.getUpdatedAt(),
-                items,
-                attachments,
-                events
-        );
-    }
-
-    private String resolveDealerName(Dealer dealer) {
-        if (dealer == null) {
-            return null;
-        }
-        return firstNonBlank(dealer.getBusinessName(), dealer.getContactName(), dealer.getUsername(), dealer.getEmail());
     }
 
     private String firstNonBlank(String... values) {
