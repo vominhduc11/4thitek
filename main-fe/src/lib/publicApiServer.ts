@@ -44,7 +44,7 @@ async function fetchEnvelopeBase<T>(
 }
 
 const memoizedFetchEnvelope = cache(
-    async (path: string, revalidate: number, version?: string): Promise<Envelope<any>> => {
+    async (path: string, revalidate: number, version?: string): Promise<Envelope<unknown>> => {
         return fetchEnvelopeBase(path, revalidate, { version });
     }
 );
@@ -54,7 +54,7 @@ async function fetchEnvelope<T>(
     revalidate: number,
     options?: PublicApiRequestOptions
 ): Promise<Envelope<T>> {
-    return memoizedFetchEnvelope(path, revalidate, options?.version);
+    return memoizedFetchEnvelope(path, revalidate, options?.version) as Promise<Envelope<T>>;
 }
 
 export const publicApiServer = {
