@@ -1,11 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, GripVertical, RotateCcw, X } from "lucide-react";
-import { ProductVideoPreview } from "../components/ProductVideoPreview";
-import { RichTextEditor } from "../components/RichTextEditor";
+import { ArrowLeft, RotateCcw } from "lucide-react";
 import {
-  FieldErrorMessage,
   GhostButton,
   PageHeader,
   PagePanel,
@@ -17,10 +14,8 @@ import { useProducts } from "../context/ProductsContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useToast } from "../context/ToastContext";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
-import { resolveBackendAssetUrl } from "../lib/backendApi";
 import {
   MAX_IMAGE_BYTES,
-  suggestedSpecificationLabels,
   createSpecificationTemplate,
   createDescriptionTemplate,
   createVideoTemplate,
@@ -28,8 +23,6 @@ import {
   isValidRemoteUrl,
   moveListItem,
   moveIndexedRecord,
-  toDigitsOnly,
-  formatNumberInput,
   getErrorMessage,
 } from "./products/editor/constants";
 import { useNumericFormatter } from "./products/editor/useNumericFormatter";
@@ -41,13 +34,19 @@ import {
   hasDescriptionContent,
   hasSpecificationContent,
   hasVideoContent,
+  productTabs,
   sanitizeDescriptionItems,
+  secondaryButtonClass,
   type CreateProductErrorField,
   type DescriptionItem,
   type GalleryItem,
   type NewProductDraft,
   type ProductVideoItem,
 } from "./products/editor/createProductModel";
+import { SpecsTab } from "./products/editor/create/SpecsTab";
+import { BasicInfoTab } from "./products/editor/create/BasicInfoTab";
+import { DescriptionTab } from "./products/editor/create/DescriptionTab";
+import { VideosTab } from "./products/editor/create/VideosTab";
 
 function CreateProductPage() {
   const { t } = useLanguage();
@@ -484,6 +483,28 @@ function CreateProductPage() {
     );
   };
 
+  const removeVideoItem = (idx: number) => {
+    const copy = newProduct.videos.filter((_, i) => i !== idx);
+    setNewProduct({ ...newProduct, videos: copy });
+    const nextRefs: Record<number, HTMLInputElement | null> = {};
+    Object.entries(videoUrlInputRefs.current).forEach(([key, element]) => {
+      const index = Number(key);
+      if (Number.isNaN(index) || index === idx) return;
+      nextRefs[index > idx ? index - 1 : index] = element;
+    });
+    videoUrlInputRefs.current = nextRefs;
+    setProductVideoErrors((prev) => {
+      const next: Record<number, string> = {};
+      Object.entries(prev).forEach(([key, value]) => {
+        const index = Number(key);
+        if (Number.isNaN(index)) return;
+        if (index < idx) next[index] = value;
+        else if (index > idx) next[index - 1] = value;
+      });
+      return next;
+    });
+  };
+
   const applySuggestedSpecificationLabel = (label: string) => {
     setNewProduct((prev) => {
       const emptyLabelIndex = prev.specifications.findIndex(
@@ -875,35 +896,6 @@ function CreateProductPage() {
     })();
   };
 
-  const subtleActionButtonClass =
-    "inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]";
-  const secondaryButtonClass =
-    "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60";
-  const productTabs = [
-    {
-      id: "basic",
-      label: "Thông tin",
-      errorTitle: "Thiếu tên, SKU hoặc giá bán",
-    },
-    {
-      id: "description",
-      label: "Mô tả chi tiết",
-      errorTitle: "Có lỗi ở ảnh mô tả",
-    },
-    {
-      id: "specs",
-      label: "Thông số",
-      errorTitle: "Có lỗi ở thông số",
-    },
-    {
-      id: "videos",
-      label: "Video",
-      errorTitle: "URL video không hợp lệ",
-    },
-  ] as const;
-  const mediaOverlayActionClass =
-    "absolute right-2 top-2 inline-flex min-h-11 items-center rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 opacity-100 transition lg:opacity-0 lg:group-hover:opacity-100 lg:focus-visible:opacity-100";
-
   return (
     <PagePanel>
       <fieldset
@@ -1096,1292 +1088,82 @@ function CreateProductPage() {
 
           {/* Basic tab */}
           {activeTab === "basic" && (
-            <div
-              id="product-tabpanel-basic"
-              role="tabpanel"
-              aria-labelledby="product-tab-basic"
-              className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]"
-            >
-              <div className="space-y-4">
-                <div className="rounded-2xl border border-slate-200 bg-[var(--surface-muted)] p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
-                    {t("Thông tin cơ bản")}
-                  </p>
-                  <div className="mt-4 grid gap-3 md:grid-cols-2">
-                    <label
-                      className="text-sm text-slate-700"
-                      htmlFor="create-product-name"
-                    >
-                      <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                        {t("Tên sản phẩm")}{" "}
-                        <span className="text-rose-500">*</span>
-                      </span>
-                      <input
-                        id="create-product-name"
-                        ref={nameInputRef}
-                        aria-describedby={
-                          errors.name ? "create-product-name-error" : undefined
-                        }
-                        aria-invalid={Boolean(errors.name)}
-                        className={`mt-2 w-full rounded-xl border px-3 py-2 text-sm ${errors.name ? "border-rose-300" : "border-slate-200"}`}
-                        placeholder={t("Nhập tên sản phẩm")}
-                        value={newProduct.name}
-                        onChange={(e) =>
-                          setNewProduct({ ...newProduct, name: e.target.value })
-                        }
-                        onBlur={(e) =>
-                          validateCreateFieldOnBlur("name", {
-                            ...newProduct,
-                            name: e.target.value,
-                          })
-                        }
-                      />
-                      {errors.name ? (
-                        <FieldErrorMessage
-                          className="mt-1 text-xs"
-                          id="create-product-name-error"
-                        >
-                          {errors.name}
-                        </FieldErrorMessage>
-                      ) : null}
-                    </label>
-                    <label
-                      className="text-sm text-slate-700"
-                      htmlFor="create-product-warranty-period"
-                    >
-                      <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                        {t("Thời hạn bảo hành (tháng)")}
-                      </span>
-                      <input
-                        id="create-product-warranty-period"
-                        ref={warrantyInputRef}
-                        type="text"
-                        aria-describedby={
-                          errors.warrantyPeriod
-                            ? "create-product-warranty-period-error"
-                            : undefined
-                        }
-                        aria-invalid={Boolean(errors.warrantyPeriod)}
-                        inputMode="numeric"
-                        autoComplete="off"
-                        placeholder="12"
-                        className={`mt-2 w-full rounded-xl border px-3 py-2 text-sm ${errors.warrantyPeriod ? "border-rose-300" : "border-slate-200"}`}
-                        value={newProduct.warrantyPeriod}
-                        onChange={(e) =>
-                          setNewProduct({
-                            ...newProduct,
-                            warrantyPeriod: toDigitsOnly(e.target.value),
-                          })
-                        }
-                        onBlur={(e) =>
-                          validateCreateFieldOnBlur("warrantyPeriod", {
-                            ...newProduct,
-                            warrantyPeriod: toDigitsOnly(e.target.value),
-                          })
-                        }
-                      />
-                      <p className="mt-1 text-xs text-slate-500">
-                        {t("Mặc định là 12 tháng nếu bạn không thay đổi.")}
-                      </p>
-                      {errors.warrantyPeriod ? (
-                        <FieldErrorMessage
-                          className="mt-1 text-xs"
-                          id="create-product-warranty-period-error"
-                        >
-                          {errors.warrantyPeriod}
-                        </FieldErrorMessage>
-                      ) : null}
-                    </label>
-                    <label
-                      className="text-sm text-slate-700"
-                      htmlFor="create-product-sku"
-                    >
-                      <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                        SKU *
-                      </span>
-                      <input
-                        id="create-product-sku"
-                        ref={skuInputRef}
-                        aria-describedby={
-                          errors.sku ? "create-product-sku-error" : undefined
-                        }
-                        aria-invalid={Boolean(errors.sku)}
-                        className={`mt-2 w-full rounded-xl border px-3 py-2 text-sm ${errors.sku ? "border-rose-300" : "border-slate-200"}`}
-                        placeholder={t("Nhập SKU")}
-                        value={newProduct.sku}
-                        onChange={(e) =>
-                          setNewProduct({ ...newProduct, sku: e.target.value })
-                        }
-                        onBlur={(e) =>
-                          validateCreateFieldOnBlur("sku", {
-                            ...newProduct,
-                            sku: e.target.value,
-                          })
-                        }
-                      />
-                      <p className="mt-1 text-xs text-slate-500">
-                        {t(
-                          "Gợi ý: dùng chữ in hoa, số và dấu gạch ngang để dễ tìm kiếm.",
-                        )}
-                      </p>
-                      {errors.sku ? (
-                        <FieldErrorMessage
-                          className="mt-1 text-xs"
-                          id="create-product-sku-error"
-                        >
-                          {errors.sku}
-                        </FieldErrorMessage>
-                      ) : null}
-                    </label>
-                    <label className="text-sm text-slate-700 md:col-span-2">
-                      <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                        {t("Mô tả ngắn")}
-                      </span>
-                      <textarea
-                        className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                        placeholder={t("Nhập mô tả ngắn")}
-                        rows={3}
-                        maxLength={500}
-                        value={newProduct.shortDescription}
-                        onChange={(e) =>
-                          setNewProduct({
-                            ...newProduct,
-                            shortDescription: e.target.value,
-                          })
-                        }
-                      />
-                      <p className="mt-0.5 text-right text-xs text-slate-400">
-                        {newProduct.shortDescription.length}/500
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {t(
-                          'Đoạn này dùng cho phần tóm tắt ngắn. Nội dung đầy đủ được xây dựng ở tab "Mô tả chi tiết".',
-                        )}
-                      </p>
-                    </label>
-                  </div>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-[var(--surface-muted)] p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
-                    {t("Hiển thị")}
-                  </p>
-                  <p className="mt-2 text-sm text-slate-500">
-                    {t(
-                      "Thiết lập hiển thị này chỉ điều khiển dữ liệu cho Hero trang chủ và danh sách sản phẩm trang chủ, không tạo thêm section riêng.",
-                    )}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-3">
-                    <label className="inline-flex max-w-full flex-col gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700">
-                      <span className="inline-flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={newProduct.isFeatured}
-                          onChange={(e) =>
-                            setNewProduct({
-                              ...newProduct,
-                              isFeatured: e.target.checked,
-                            })
-                          }
-                        />
-                        <span className="font-semibold">
-                          {t("Hiển thị ở Hero trang chủ")}
-                        </span>
-                      </span>
-                      <span className="pl-6 text-xs leading-5 text-slate-500">
-                        {t(
-                          "Chỉ dùng để chọn sản phẩm cho khu vực Hero đầu trang chủ. Main-fe hiện dùng featuredProducts[0] cho HeroSection.",
-                        )}
-                      </span>
-                    </label>
-                    <label className="inline-flex max-w-full flex-col gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700">
-                      <span className="inline-flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={newProduct.showOnHomepage}
-                          onChange={(e) =>
-                            setNewProduct({
-                              ...newProduct,
-                              showOnHomepage: e.target.checked,
-                            })
-                          }
-                        />
-                        <span className="font-semibold">
-                          {t("Hiển thị trong danh sách sản phẩm trang chủ")}
-                        </span>
-                      </span>
-                      <span className="pl-6 text-xs leading-5 text-slate-500">
-                        {t(
-                          "Dùng để hiển thị sản phẩm trong section danh sách sản phẩm ở trang chủ. Main-fe hiện dùng homepageProducts cho ProductSeries.",
-                        )}
-                      </span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div className="rounded-2xl border border-slate-200 bg-[var(--surface-muted)] p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
-                    {t("Giá & trạng thái")}
-                  </p>
-                  <div className="mt-4 grid gap-3">
-                    <label
-                      className="text-sm text-slate-700"
-                      htmlFor="create-product-retail-price"
-                    >
-                      <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                        {t("Giá bán lẻ")}{" "}
-                        <span className="text-rose-500">*</span>
-                      </span>
-                      <div className="relative mt-2">
-                        <input
-                          id="create-product-retail-price"
-                          ref={retailPriceInputRef}
-                          type="text"
-                          aria-describedby={
-                            errors.retailPrice
-                              ? "create-product-retail-price-error"
-                              : undefined
-                          }
-                          aria-invalid={Boolean(errors.retailPrice)}
-                          inputMode="numeric"
-                          autoComplete="off"
-                          placeholder={t("Nhập giá bán lẻ")}
-                          className={`w-full rounded-xl border px-3 py-2 pr-12 text-sm ${errors.retailPrice ? "border-rose-300" : "border-slate-200"}`}
-                          value={formatNumberInput(newProduct.retailPrice)}
-                          onChange={handleRetailPriceChange}
-                          onBlur={(e) =>
-                            validateCreateFieldOnBlur("retailPrice", {
-                              ...newProduct,
-                              retailPrice: toDigitsOnly(e.target.value),
-                            })
-                          }
-                        />
-                        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500">
-                          VND
-                        </span>
-                      </div>
-                      {hasZeroRetailPrice ? (
-                        <p className="mt-1 text-xs text-amber-600">
-                          {t(
-                            "Giá 0 VND vẫn được phép, nhưng hệ thống sẽ hỏi xác nhận khi tạo.",
-                          )}
-                        </p>
-                      ) : (
-                        <p className="mt-1 text-xs text-slate-500">
-                          {t("Nhập giá bán lẻ thực tế của sản phẩm.")}
-                        </p>
-                      )}
-                      {errors.retailPrice ? (
-                        <FieldErrorMessage
-                          className="mt-1 text-xs"
-                          id="create-product-retail-price-error"
-                        >
-                          {errors.retailPrice}
-                        </FieldErrorMessage>
-                      ) : null}
-                    </label>
-                    <label className="text-sm text-slate-700">
-                      <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                        {t("Trạng thái xuất bản")}
-                      </span>
-                      <select
-                        className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                        value={newProduct.publishStatus}
-                        onChange={(e) =>
-                          setNewProduct({
-                            ...newProduct,
-                            publishStatus: e.target.value as
-                              | "DRAFT"
-                              | "PUBLISHED",
-                          })
-                        }
-                      >
-                        <option value="DRAFT">{t("Bản nháp")}</option>
-                        <option value="PUBLISHED">{t("Đã xuất bản")}</option>
-                      </select>
-                    </label>
-                  </div>
-                </div>
-                <div className="rounded-2xl border border-dashed border-slate-200 bg-[var(--surface-muted)] p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">
-                        {t("Ảnh sản phẩm")}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {t("PNG/JPG, tối đa 10MB")}
-                      </p>
-                    </div>
-                    <label
-                      className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                      htmlFor="create-product-image-upload"
-                    >
-                      <input
-                        id="create-product-image-upload"
-                        type="file"
-                        accept="image/*"
-                        aria-describedby={
-                          imageError
-                            ? "create-product-image-upload-error"
-                            : undefined
-                        }
-                        aria-invalid={Boolean(imageError)}
-                        className="sr-only"
-                        ref={imageInputRef}
-                        onChange={handleImageChange}
-                      />
-                      {t("Chọn ảnh")}
-                    </label>
-                  </div>
-                  {(selectedImageName ||
-                    imagePreviewUrl ||
-                    newProduct.imageUrl) && (
-                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
-                      {selectedImageName && (
-                        <span>
-                          {t("Đã chọn")}
-                          {": "}
-                          <span className="font-semibold text-slate-800">
-                            {selectedImageName}
-                          </span>
-                        </span>
-                      )}
-                      {(imagePreviewUrl || newProduct.imageUrl) && (
-                        <button
-                          type="button"
-                          onClick={handleClearImage}
-                          className="inline-flex items-center gap-1 rounded-lg border border-rose-200 px-2 py-1 text-[11px] font-semibold text-rose-600 transition hover:border-rose-300 hover:text-rose-700"
-                        >
-                          <X className="h-3 w-3" />
-                          {t("Xóa ảnh")}
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  {imageError ? (
-                    <FieldErrorMessage
-                      className="mt-2 text-xs"
-                      id="create-product-image-upload-error"
-                    >
-                      {imageError}
-                    </FieldErrorMessage>
-                  ) : null}
-                  {(imagePreviewUrl || newProduct.imageUrl) && (
-                    <div className="group relative mt-3 overflow-hidden rounded-2xl border bg-white">
-                      <button
-                        type="button"
-                        onClick={handleClearImage}
-                        className={`${mediaOverlayActionClass} gap-1 shadow-sm hover:border-rose-300 hover:text-rose-700`}
-                      >
-                        <X className="h-3 w-3" />
-                        {t("Xóa ảnh")}
-                      </button>
-                      <img
-                        src={
-                          imagePreviewUrl ||
-                          resolveBackendAssetUrl(newProduct.imageUrl)
-                        }
-                        alt={t("Xem trước")}
-                        className="h-40 w-full object-cover"
-                        onError={(ev) =>
-                          ((ev.target as HTMLImageElement).style.display =
-                            "none")
-                        }
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+            <BasicInfoTab
+              t={t}
+              newProduct={newProduct}
+              setNewProduct={setNewProduct}
+              errors={errors}
+              validateCreateFieldOnBlur={validateCreateFieldOnBlur}
+              nameInputRef={nameInputRef}
+              warrantyInputRef={warrantyInputRef}
+              skuInputRef={skuInputRef}
+              retailPriceInputRef={retailPriceInputRef}
+              imageInputRef={imageInputRef}
+              handleRetailPriceChange={handleRetailPriceChange}
+              hasZeroRetailPrice={hasZeroRetailPrice}
+              imageError={imageError}
+              handleImageChange={handleImageChange}
+              selectedImageName={selectedImageName}
+              imagePreviewUrl={imagePreviewUrl}
+              handleClearImage={handleClearImage}
+            />
           )}
 
           {/* Description tab */}
           {activeTab === "description" && (
-            <div
-              id="product-tabpanel-description"
-              role="tabpanel"
-              aria-labelledby="product-tab-description"
-              className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-[var(--surface-muted)] p-4"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-2 text-sm text-slate-700">
-                <div>
-                  <p className="font-semibold text-slate-900">
-                    {t("Mô tả chi tiết")}
-                  </p>
-                  <p className="max-w-2xl text-xs text-slate-500">
-                    {t(
-                      "Xây dựng phần mô tả chi tiết bằng các khối nội dung. Thứ tự các khối cũng là thứ tự hiển thị trên trang sản phẩm.",
-                    )}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className={subtleActionButtonClass}
-                  onClick={() => void applyDescriptionTemplate()}
-                >
-                  {t("Dùng mẫu")}
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {descriptionBlockOptions.map((option) => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    className={subtleActionButtonClass}
-                    onClick={() => appendDescriptionBlock(option.id)}
-                  >
-                    {option.addLabel}
-                  </button>
-                ))}
-              </div>
-              {newProduct.descriptions.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
-                  <p className="font-semibold text-slate-700">
-                    {t("Chưa có khối nội dung nào.")}
-                  </p>
-                  <p className="mt-2">
-                    {t(
-                      "Chọn loại khối ở phía trên để thêm tiêu đề, đoạn mô tả, hình ảnh, bộ ảnh hoặc video vào trang chi tiết sản phẩm.",
-                    )}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-400">
-                    {t(
-                      'Nút "Dùng mẫu" sẽ tạo sẵn một bố cục cơ bản để bạn chỉnh sửa nhanh hơn.',
-                    )}
-                  </p>
-                </div>
-              ) : (
-                newProduct.descriptions.map((d, idx) => (
-                  <div
-                    key={idx}
-                    className="space-y-3 rounded-xl border border-slate-200 bg-white p-3"
-                    draggable
-                    onDragStart={() => {
-                      descriptionDragIndexRef.current = idx;
-                    }}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      const fromIdx = descriptionDragIndexRef.current;
-                      if (fromIdx === null || fromIdx === idx) return;
-                      setNewProduct((prev) => ({
-                        ...prev,
-                        descriptions: moveListItem(
-                          prev.descriptions,
-                          fromIdx,
-                          idx,
-                        ),
-                      }));
-                      setDescriptionImageErrors((prev) =>
-                        moveIndexedRecord(prev, fromIdx, idx),
-                      );
-                      descriptionDragIndexRef.current = null;
-                    }}
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="cursor-grab text-slate-300 active:cursor-grabbing"
-                          aria-hidden="true"
-                          title={t("Kéo để sắp xếp")}
-                        >
-                          <GripVertical className="h-4 w-4" />
-                        </span>
-                        <div className="space-y-1">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
-                            {t("Khối")} {idx + 1}
-                          </p>
-                          <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
-                            {getDescriptionBlockLabel(d.type)}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          disabled={idx === 0}
-                          className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
-                          onClick={() => moveDescriptionItem(idx, -1)}
-                        >
-                          {t("Lên")}
-                        </button>
-                        <button
-                          type="button"
-                          disabled={idx === newProduct.descriptions.length - 1}
-                          className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
-                          onClick={() => moveDescriptionItem(idx, 1)}
-                        >
-                          {t("Xuống")}
-                        </button>
-                        <button
-                          type="button"
-                          className="min-h-11 rounded-lg px-3 py-2 text-xs font-semibold text-red-500"
-                          onClick={() => removeDescriptionItem(idx)}
-                        >
-                          {t("Xóa")}
-                        </button>
-                      </div>
-                    </div>
-                    {d.type === "description" && (
-                      <div className="richtext-editor">
-                        <RichTextEditor
-                          ariaLabel={t("Trình soạn thảo mô tả chi tiết")}
-                          value={d.text ?? ""}
-                          modules={descriptionEditorModules}
-                          formats={descriptionEditorFormats}
-                          placeholder={t("Nhập mô tả")}
-                          readOnly={isFormLocked}
-                          onChange={(value) => {
-                            const copy = [...newProduct.descriptions];
-                            copy[idx] = { ...copy[idx], text: value };
-                            setNewProduct({
-                              ...newProduct,
-                              descriptions: copy,
-                            });
-                          }}
-                        />
-                      </div>
-                    )}
-                    {d.type === "image" && (
-                      <div className="grid gap-2 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-                        <label
-                          className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                          htmlFor={`create-product-description-image-${idx}`}
-                        >
-                          <input
-                            id={`create-product-description-image-${idx}`}
-                            type="file"
-                            accept="image/*"
-                            aria-describedby={
-                              descriptionImageErrors[idx]
-                                ? `create-product-description-image-${idx}-error`
-                                : undefined
-                            }
-                            aria-invalid={Boolean(descriptionImageErrors[idx])}
-                            className="sr-only"
-                            onChange={(e) =>
-                              handleDescriptionImageFile(
-                                idx,
-                                e.target.files?.[0] ?? null,
-                              )
-                            }
-                          />
-                          {t("Chọn ảnh")}
-                        </label>
-                        <label className="block">
-                          <span className="sr-only">
-                            {t("Chú thích hình ảnh")}
-                          </span>
-                          <input
-                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                            placeholder={t("Nhập chú thích")}
-                            value={d.caption ?? ""}
-                            onChange={(e) => {
-                              const copy = [...newProduct.descriptions];
-                              copy[idx] = {
-                                ...copy[idx],
-                                caption: e.target.value,
-                              };
-                              setNewProduct({
-                                ...newProduct,
-                                descriptions: copy,
-                              });
-                            }}
-                          />
-                        </label>
-                        {descriptionImageErrors[idx] ? (
-                          <FieldErrorMessage
-                            className="text-xs"
-                            id={`create-product-description-image-${idx}-error`}
-                          >
-                            {descriptionImageErrors[idx]}
-                          </FieldErrorMessage>
-                        ) : null}
-                        {d.url && (
-                          <div className="group relative overflow-hidden rounded-lg border border-slate-200 sm:col-span-2">
-                            <img
-                              src={resolveBackendAssetUrl(d.url)}
-                              alt={t("Xem trước")}
-                              className="h-40 w-full object-cover"
-                            />
-                            <button
-                              type="button"
-                              className={mediaOverlayActionClass}
-                              onClick={() => clearDescriptionImage(idx)}
-                            >
-                              {t("Xóa ảnh")}
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {d.type === "gallery" && (
-                      <div className="space-y-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <label
-                            className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                            htmlFor={`create-product-description-gallery-${idx}`}
-                          >
-                            <input
-                              id={`create-product-description-gallery-${idx}`}
-                              type="file"
-                              accept="image/*"
-                              multiple
-                              aria-describedby={
-                                descriptionImageErrors[idx]
-                                  ? `create-product-description-gallery-${idx}-error`
-                                  : undefined
-                              }
-                              aria-invalid={Boolean(
-                                descriptionImageErrors[idx],
-                              )}
-                              className="sr-only"
-                              onChange={(e) =>
-                                handleDescriptionGalleryFiles(
-                                  idx,
-                                  e.target.files,
-                                )
-                              }
-                            />
-                            {t("Chọn nhiều ảnh")}
-                          </label>
-                          <button
-                            type="button"
-                            className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                            onClick={() => {
-                              const copy = [...newProduct.descriptions];
-                              const current = { ...copy[idx] };
-                              current.gallery = [
-                                ...(current.gallery ?? []),
-                                { url: "" },
-                              ];
-                              copy[idx] = current;
-                              setNewProduct({
-                                ...newProduct,
-                                descriptions: copy,
-                              });
-                            }}
-                          >
-                            {t("Thêm hình ảnh")}
-                          </button>
-                        </div>
-                        {descriptionImageErrors[idx] ? (
-                          <FieldErrorMessage
-                            className="text-xs"
-                            id={`create-product-description-gallery-${idx}-error`}
-                          >
-                            {descriptionImageErrors[idx]}
-                          </FieldErrorMessage>
-                        ) : null}
-                        <label className="text-sm text-slate-700">
-                          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                            {t("Chú thích bộ ảnh")}
-                          </span>
-                          <input
-                            className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                            placeholder={t("Nhập chú thích bộ ảnh")}
-                            value={d.caption ?? ""}
-                            onChange={(e) => {
-                              const copy = [...newProduct.descriptions];
-                              copy[idx] = {
-                                ...copy[idx],
-                                caption: e.target.value,
-                              };
-                              setNewProduct({
-                                ...newProduct,
-                                descriptions: copy,
-                              });
-                            }}
-                          />
-                        </label>
-                        {(d.gallery ?? []).length === 0 && (
-                          <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
-                            <p className="font-semibold text-slate-700">
-                              {t("Chưa có hình ảnh nào.")}
-                            </p>
-                            <button
-                              type="button"
-                              className="mt-2 text-xs font-semibold text-[var(--accent)]"
-                              onClick={() => {
-                                const copy = [...newProduct.descriptions];
-                                const current = { ...copy[idx] };
-                                current.gallery = [
-                                  ...(current.gallery ?? []),
-                                  { url: "" },
-                                ];
-                                copy[idx] = current;
-                                setNewProduct({
-                                  ...newProduct,
-                                  descriptions: copy,
-                                });
-                              }}
-                            >
-                              {t("Thêm hình ảnh đầu tiên")}
-                            </button>
-                          </div>
-                        )}
-                        {(d.gallery ?? []).map((item, itemIdx) => (
-                          <div
-                            key={itemIdx}
-                            className="rounded-lg border border-slate-200 bg-white p-3"
-                          >
-                            <div className="grid gap-3 xl:grid-cols-[minmax(0,11rem)_minmax(0,1fr)] xl:items-start">
-                              <div className="space-y-2">
-                                <label
-                                  className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                                  htmlFor={`create-product-description-gallery-${idx}-item-${itemIdx}`}
-                                >
-                                  <input
-                                    id={`create-product-description-gallery-${idx}-item-${itemIdx}`}
-                                    type="file"
-                                    accept="image/*"
-                                    aria-describedby={
-                                      descriptionImageErrors[idx]
-                                        ? `create-product-description-gallery-${idx}-error`
-                                        : undefined
-                                    }
-                                    aria-invalid={Boolean(
-                                      descriptionImageErrors[idx],
-                                    )}
-                                    className="sr-only"
-                                    onChange={(e) =>
-                                      handleGalleryItemFile(
-                                        idx,
-                                        itemIdx,
-                                        e.target.files?.[0] ?? null,
-                                      )
-                                    }
-                                  />
-                                  {t("Chọn ảnh")}
-                                </label>
-                                {item.url && (
-                                  <div className="group relative overflow-hidden rounded-lg border border-slate-200">
-                                    <img
-                                      src={resolveBackendAssetUrl(item.url)}
-                                      alt={t("Xem trước")}
-                                      className="h-24 w-full object-cover"
-                                    />
-                                    <button
-                                      type="button"
-                                      className={mediaOverlayActionClass}
-                                      onClick={() =>
-                                        clearGalleryItemImage(idx, itemIdx)
-                                      }
-                                    >
-                                      {t("Xóa ảnh")}
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex items-start justify-end">
-                                <button
-                                  type="button"
-                                  className="text-xs text-red-500"
-                                  onClick={() =>
-                                    clearGalleryItemImage(idx, itemIdx, true)
-                                  }
-                                >
-                                  {t("Xóa ảnh")}
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {d.type === "video" && (
-                      <div className="grid gap-2 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-                        <input
-                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                          placeholder={t(
-                            "Nhập URL video YouTube hoặc file video công khai",
-                          )}
-                          value={d.url ?? ""}
-                          onChange={(e) => {
-                            const copy = [...newProduct.descriptions];
-                            copy[idx] = { ...copy[idx], url: e.target.value };
-                            setNewProduct({
-                              ...newProduct,
-                              descriptions: copy,
-                            });
-                          }}
-                        />
-                        <input
-                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                          placeholder={t("Nhập chú thích")}
-                          value={d.caption ?? ""}
-                          onChange={(e) => {
-                            const copy = [...newProduct.descriptions];
-                            copy[idx] = {
-                              ...copy[idx],
-                              caption: e.target.value,
-                            };
-                            setNewProduct({
-                              ...newProduct,
-                              descriptions: copy,
-                            });
-                          }}
-                        />
-                        <p className="text-xs text-slate-500 md:col-span-2">
-                          {t(
-                            'Video này hiển thị xen kẽ trong mô tả chi tiết. Nếu muốn có khu vực video riêng cho sản phẩm, dùng tab "Video".',
-                          )}
-                        </p>
-                        {debouncedDescriptionVideoUrls[idx] &&
-                        isValidRemoteUrl(debouncedDescriptionVideoUrls[idx]) ? (
-                          <div className="group relative overflow-hidden rounded-lg border border-slate-200 sm:col-span-2">
-                            <ProductVideoPreview
-                              url={debouncedDescriptionVideoUrls[idx]}
-                              title={d.caption}
-                            />
-                            <button
-                              type="button"
-                              className={mediaOverlayActionClass}
-                              onClick={() => {
-                                const copy = [...newProduct.descriptions];
-                                copy[idx] = { ...copy[idx], url: "" };
-                                setNewProduct({
-                                  ...newProduct,
-                                  descriptions: copy,
-                                });
-                              }}
-                            >
-                              {t("Xóa video")}
-                            </button>
-                          </div>
-                        ) : null}
-                      </div>
-                    )}
-                  </div>
-                ))
-              )}
-              {newProduct.descriptions.length > 0 &&
-                newProduct.descriptions.some((item) => {
-                  if (item.type === "description")
-                    return !(item.text ?? "").trim();
-                  if (item.type === "image" || item.type === "video")
-                    return !(item.url ?? "").trim();
-                  if (item.type === "gallery")
-                    return (item.gallery ?? []).every((g) => !g.url.trim());
-                  return false;
-                }) && (
-                  <p className="text-xs italic text-slate-400">
-                    {t("Các khối trống sẽ bị bỏ qua khi lưu.")}
-                  </p>
-                )}
-              {newProduct.descriptions.length > 0 && (
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {descriptionBlockOptions.map((option) => (
-                    <button
-                      key={option.id}
-                      type="button"
-                      className={subtleActionButtonClass}
-                      onClick={() => appendDescriptionBlock(option.id)}
-                    >
-                      {option.addLabel}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            <DescriptionTab
+              t={t}
+              newProduct={newProduct}
+              setNewProduct={setNewProduct}
+              applyDescriptionTemplate={applyDescriptionTemplate}
+              descriptionBlockOptions={descriptionBlockOptions}
+              appendDescriptionBlock={appendDescriptionBlock}
+              descriptionDragIndexRef={descriptionDragIndexRef}
+              descriptionImageErrors={descriptionImageErrors}
+              setDescriptionImageErrors={setDescriptionImageErrors}
+              getDescriptionBlockLabel={getDescriptionBlockLabel}
+              moveDescriptionItem={moveDescriptionItem}
+              removeDescriptionItem={removeDescriptionItem}
+              descriptionEditorModules={descriptionEditorModules}
+              descriptionEditorFormats={descriptionEditorFormats}
+              isFormLocked={isFormLocked}
+              handleDescriptionImageFile={handleDescriptionImageFile}
+              clearDescriptionImage={clearDescriptionImage}
+              handleDescriptionGalleryFiles={handleDescriptionGalleryFiles}
+              handleGalleryItemFile={handleGalleryItemFile}
+              clearGalleryItemImage={clearGalleryItemImage}
+              debouncedDescriptionVideoUrls={debouncedDescriptionVideoUrls}
+            />
           )}
 
           {/* Specs tab */}
           {activeTab === "specs" && (
-            <div
-              id="product-tabpanel-specs"
-              role="tabpanel"
-              aria-labelledby="product-tab-specs"
-              className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-[var(--surface-muted)] p-4"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-2 text-sm text-slate-700">
-                <div>
-                  <p className="font-semibold text-slate-900">
-                    {t("Thông số")}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {t("Thêm các thông số kỹ thuật quan trọng.")}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {suggestedSpecificationLabels.map((label) => (
-                      <button
-                        key={label}
-                        type="button"
-                        className="min-h-11 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                        onClick={() => applySuggestedSpecificationLabel(label)}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className={subtleActionButtonClass}
-                  onClick={() => void applySpecificationTemplate()}
-                >
-                  {t("Dùng mẫu")}
-                </button>
-              </div>
-              {newProduct.specifications.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
-                  <p className="font-semibold text-slate-700">
-                    {t("Chưa có thông số nào.")}
-                  </p>
-                  <button
-                    type="button"
-                    className={`mt-2 ${subtleActionButtonClass}`}
-                    onClick={() =>
-                      setNewProduct({
-                        ...newProduct,
-                        specifications: [{ label: "", value: "" }],
-                      })
-                    }
-                  >
-                    {t("Thêm thông số đầu tiên")}
-                  </button>
-                </div>
-              ) : (
-                newProduct.specifications.map((s, idx) => (
-                  <div
-                    key={idx}
-                    className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-center"
-                    draggable
-                    onDragStart={() => {
-                      specDragIndexRef.current = idx;
-                    }}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      const fromIdx = specDragIndexRef.current;
-                      if (fromIdx === null || fromIdx === idx) return;
-                      setNewProduct((prev) => ({
-                        ...prev,
-                        specifications: moveListItem(
-                          prev.specifications,
-                          fromIdx,
-                          idx,
-                        ),
-                      }));
-                      specDragIndexRef.current = null;
-                    }}
-                  >
-                    <span
-                      className="hidden cursor-grab self-center text-slate-300 active:cursor-grabbing lg:flex"
-                      aria-hidden="true"
-                      title={t("Kéo để sắp xếp")}
-                    >
-                      <GripVertical className="h-4 w-4" />
-                    </span>
-                    <label className="block">
-                      <span className="sr-only">{t("Nhãn thông số")}</span>
-                      <input
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                        placeholder={t("Nhập nhãn")}
-                        value={s.label}
-                        onChange={(e) => {
-                          const copy = [...newProduct.specifications];
-                          copy[idx] = { ...copy[idx], label: e.target.value };
-                          setNewProduct({
-                            ...newProduct,
-                            specifications: copy,
-                          });
-                        }}
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="sr-only">{t("Giá trị thông số")}</span>
-                      <input
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                        placeholder={t("Nhập giá trị")}
-                        value={s.value}
-                        onChange={(e) => {
-                          const copy = [...newProduct.specifications];
-                          copy[idx] = { ...copy[idx], value: e.target.value };
-                          setNewProduct({
-                            ...newProduct,
-                            specifications: copy,
-                          });
-                        }}
-                      />
-                    </label>
-                    <div className="grid grid-cols-3 gap-2 sm:col-span-2 lg:col-span-1 lg:flex lg:items-center lg:justify-end lg:justify-self-end">
-                      <button
-                        type="button"
-                        disabled={idx === 0}
-                        className="min-h-11 w-full rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 lg:w-auto"
-                        onClick={() => moveSpecificationItem(idx, -1)}
-                      >
-                        {t("Lên")}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={idx === newProduct.specifications.length - 1}
-                        className="min-h-11 w-full rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 lg:w-auto"
-                        onClick={() => moveSpecificationItem(idx, 1)}
-                      >
-                        {t("Xuống")}
-                      </button>
-                      <button
-                        type="button"
-                        className="min-h-11 w-full px-3 py-2 text-xs font-semibold text-red-500 lg:w-auto"
-                        onClick={() => {
-                          const copy = newProduct.specifications.filter(
-                            (_, i) => i !== idx,
-                          );
-                          setNewProduct({
-                            ...newProduct,
-                            specifications: copy,
-                          });
-                        }}
-                      >
-                        {t("Xóa")}
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-              {newProduct.specifications.length > 0 && (
-                <button
-                  type="button"
-                  className={subtleActionButtonClass}
-                  onClick={() =>
-                    setNewProduct({
-                      ...newProduct,
-                      specifications: [
-                        ...newProduct.specifications,
-                        { label: "", value: "" },
-                      ],
-                    })
-                  }
-                >
-                  {t("+ Thêm thông số")}
-                </button>
-              )}
-            </div>
+            <SpecsTab
+              t={t}
+              newProduct={newProduct}
+              setNewProduct={setNewProduct}
+              specDragIndexRef={specDragIndexRef}
+              applySuggestedSpecificationLabel={applySuggestedSpecificationLabel}
+              applySpecificationTemplate={applySpecificationTemplate}
+              moveSpecificationItem={moveSpecificationItem}
+            />
           )}
 
           {/* Videos tab */}
           {activeTab === "videos" && (
-            <div
-              id="product-tabpanel-videos"
-              role="tabpanel"
-              aria-labelledby="product-tab-videos"
-              className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-[var(--surface-muted)] p-4"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-2 text-sm text-slate-700">
-                <div>
-                  <p className="font-semibold text-slate-900">{t("Video")}</p>
-                  <p className="max-w-2xl text-xs text-slate-500">
-                    {t(
-                      'Các video ở tab này hiển thị thành khu vực video riêng trên trang sản phẩm. Video chèn giữa nội dung dùng ở tab "Mô tả chi tiết".',
-                    )}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className={subtleActionButtonClass}
-                  onClick={() => void applyVideoTemplate()}
-                >
-                  {t("Dùng mẫu")}
-                </button>
-              </div>
-              {newProduct.videos.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
-                  <p className="font-semibold text-slate-700">
-                    {t("Chưa có video nào.")}
-                  </p>
-                  <button
-                    type="button"
-                    className={`mt-2 ${subtleActionButtonClass}`}
-                    onClick={() =>
-                      setNewProduct({
-                        ...newProduct,
-                        videos: createVideoTemplate(),
-                      })
-                    }
-                  >
-                    {t("Thêm video đầu tiên")}
-                  </button>
-                </div>
-              ) : (
-                newProduct.videos.map((v, idx) => (
-                  <div
-                    key={idx}
-                    className="grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-white p-3"
-                  >
-                    <label className="block">
-                      <span className="sr-only">{t("Tiêu đề video")}</span>
-                      <input
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                        placeholder={t("Nhập tiêu đề")}
-                        value={v.title}
-                        onChange={(e) => {
-                          const copy = [...newProduct.videos];
-                          copy[idx] = { ...copy[idx], title: e.target.value };
-                          setNewProduct({ ...newProduct, videos: copy });
-                        }}
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="sr-only">{t("URL video")}</span>
-                      <input
-                        id={`create-product-video-url-${idx}`}
-                        ref={(element) => {
-                          videoUrlInputRefs.current[idx] = element;
-                        }}
-                        aria-describedby={
-                          productVideoErrors[idx]
-                            ? `create-product-video-url-${idx}-error`
-                            : undefined
-                        }
-                        aria-invalid={Boolean(productVideoErrors[idx])}
-                        className={`w-full rounded-lg border px-3 py-2 text-sm ${productVideoErrors[idx] ? "border-rose-300" : "border-slate-200"}`}
-                        placeholder={t(
-                          "Nhập URL video YouTube hoặc file video công khai",
-                        )}
-                        value={v.url}
-                        onChange={(e) => {
-                          const copy = [...newProduct.videos];
-                          copy[idx] = { ...copy[idx], url: e.target.value };
-                          setNewProduct({ ...newProduct, videos: copy });
-                          setProductVideoErrors((prev) => {
-                            if (!(idx in prev)) return prev;
-                            const next = { ...prev };
-                            delete next[idx];
-                            return next;
-                          });
-                        }}
-                        onBlur={(e) =>
-                          validateProductVideoOnBlur(idx, {
-                            ...v,
-                            url: e.target.value,
-                          })
-                        }
-                      />
-                    </label>
-                    {productVideoErrors[idx] ? (
-                      <FieldErrorMessage
-                        className="text-xs"
-                        id={`create-product-video-url-${idx}-error`}
-                      >
-                        {productVideoErrors[idx]}
-                      </FieldErrorMessage>
-                    ) : null}
-                    <label className="block">
-                      <span className="sr-only">{t("Mô tả video")}</span>
-                      <textarea
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                        placeholder={t("Nhập mô tả")}
-                        rows={2}
-                        value={v.descriptions}
-                        onChange={(e) => {
-                          const copy = [...newProduct.videos];
-                          copy[idx] = {
-                            ...copy[idx],
-                            descriptions: e.target.value,
-                          };
-                          setNewProduct({ ...newProduct, videos: copy });
-                        }}
-                      />
-                    </label>
-                    {debouncedProductVideoUrls[idx] &&
-                    isValidRemoteUrl(debouncedProductVideoUrls[idx]) ? (
-                      <div className="group relative overflow-hidden rounded-lg border border-slate-200">
-                        <ProductVideoPreview
-                          url={debouncedProductVideoUrls[idx]}
-                          title={v.title}
-                        />
-                        <button
-                          type="button"
-                          className={mediaOverlayActionClass}
-                          onClick={() => {
-                            const copy = [...newProduct.videos];
-                            copy[idx] = { ...copy[idx], url: "" };
-                            setNewProduct({ ...newProduct, videos: copy });
-                            setProductVideoErrors((prev) => {
-                              if (!(idx in prev)) return prev;
-                              const next = { ...prev };
-                              delete next[idx];
-                              return next;
-                            });
-                          }}
-                        >
-                          {t("Xóa video")}
-                        </button>
-                      </div>
-                    ) : null}
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        type="button"
-                        disabled={idx === 0}
-                        className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
-                        onClick={() => moveVideoItem(idx, -1)}
-                      >
-                        {t("Lên")}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={idx === newProduct.videos.length - 1}
-                        className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
-                        onClick={() => moveVideoItem(idx, 1)}
-                      >
-                        {t("Xuống")}
-                      </button>
-                      <button
-                        type="button"
-                        className="min-h-11 px-3 py-2 text-xs font-semibold text-red-500"
-                        onClick={() => {
-                          const copy = newProduct.videos.filter(
-                            (_, i) => i !== idx,
-                          );
-                          setNewProduct({ ...newProduct, videos: copy });
-                          const nextRefs: Record<
-                            number,
-                            HTMLInputElement | null
-                          > = {};
-                          Object.entries(videoUrlInputRefs.current).forEach(
-                            ([key, element]) => {
-                              const index = Number(key);
-                              if (Number.isNaN(index) || index === idx) return;
-                              nextRefs[index > idx ? index - 1 : index] =
-                                element;
-                            },
-                          );
-                          videoUrlInputRefs.current = nextRefs;
-                          setProductVideoErrors((prev) => {
-                            const next: Record<number, string> = {};
-                            Object.entries(prev).forEach(([key, value]) => {
-                              const index = Number(key);
-                              if (Number.isNaN(index)) return;
-                              if (index < idx) next[index] = value;
-                              else if (index > idx) next[index - 1] = value;
-                            });
-                            return next;
-                          });
-                        }}
-                      >
-                        {t("Xóa video")}
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-              {newProduct.videos.length > 0 && (
-                <button
-                  type="button"
-                  className={subtleActionButtonClass}
-                  onClick={() =>
-                    setNewProduct({
-                      ...newProduct,
-                      videos: [...newProduct.videos, ...createVideoTemplate()],
-                    })
-                  }
-                >
-                  {t("+ Thêm video")}
-                </button>
-              )}
-            </div>
+            <VideosTab
+              t={t}
+              newProduct={newProduct}
+              setNewProduct={setNewProduct}
+              applyVideoTemplate={applyVideoTemplate}
+              videoUrlInputRefs={videoUrlInputRefs}
+              productVideoErrors={productVideoErrors}
+              setProductVideoErrors={setProductVideoErrors}
+              validateProductVideoOnBlur={validateProductVideoOnBlur}
+              debouncedProductVideoUrls={debouncedProductVideoUrls}
+              moveVideoItem={moveVideoItem}
+              removeVideoItem={removeVideoItem}
+            />
           )}
 
           {/* Actions */}

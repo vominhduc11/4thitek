@@ -131,3 +131,25 @@ export const createInitialNewProduct = (): NewProductDraft => ({
   showOnHomepage: false,
   imageUrl: "",
 });
+
+export const subtleActionButtonClass =
+  "inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]";
+
+export const secondaryButtonClass =
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60";
+
+export const mediaOverlayActionClass =
+  "absolute right-2 top-2 inline-flex min-h-11 items-center rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 opacity-100 transition lg:opacity-0 lg:group-hover:opacity-100 lg:focus-visible:opacity-100";
+
+export type CreateProductTabId = "basic" | "description" | "specs" | "videos";
+
+export const productTabs: ReadonlyArray<{
+  id: CreateProductTabId;
+  label: string;
+  errorTitle: string;
+}> = [
+  { id: "basic", label: "Thông tin", errorTitle: "Thiếu tên, SKU hoặc giá bán" },
+  { id: "description", label: "Mô tả chi tiết", errorTitle: "Có lỗi ở ảnh mô tả" },
+  { id: "specs", label: "Thông số", errorTitle: "Có lỗi ở thông số" },
+  { id: "videos", label: "Video", errorTitle: "URL video không hợp lệ" },
+];
