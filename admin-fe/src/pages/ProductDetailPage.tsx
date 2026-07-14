@@ -4,6 +4,7 @@ import {
   Archive,
   ArrowLeft,
   CheckCircle,
+  MonitorSmartphone,
   Pencil,
   RotateCcw,
   Save,
@@ -11,9 +12,13 @@ import {
   X,
 } from "lucide-react";
 import productPlaceholder from "../assets/product-placeholder.svg";
+import { LivePreview } from "../components/LivePreview";
 import { ProductVideoPreview } from "../components/ProductVideoPreview";
 import { RichTextEditor } from "../components/RichTextEditor";
 import { FieldErrorMessage, sectionCardClass } from "../components/ui-kit";
+import { previewAdminProduct } from "../lib/admin-api/products";
+import { useLivePreview } from "../hooks/useLivePreview";
+import { WEB_ORIGIN } from "../lib/webOrigin";
 import { useAuth } from "../context/AuthContext";
 import { useProducts } from "../context/ProductsContext";
 import { useLanguage } from "../context/LanguageContext";
@@ -67,6 +72,8 @@ function ProductDetailPage() {
   const product = products.find((item) => item.sku === sku);
   const toastTitle = t("Sản phẩm");
   const [isEditing, setIsEditing] = useState(false);
+  const [showLivePreview, setShowLivePreview] = useState(false);
+  const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
   const [draft, setDraft] = useState<ProductDraft | null>(
     product ? buildDraft(product) : null,
   );
@@ -155,6 +162,51 @@ function ProductDetailPage() {
 
     return JSON.stringify(draft) !== JSON.stringify(buildDraft(product));
   }, [draft, product]);
+
+  // Payload dry-run cho Live Preview: dựng cùng shape lúc lưu (object, image bọc trong
+  // { imageUrl }), sanitize nhẹ để xem trước khớp trang public thật.
+  const livePreviewPayload = useMemo(() => {
+    if (!draft) return {};
+    const priceNum = Number(draft.retailPrice);
+    const warrantyNum = Number(draft.warrantyPeriod);
+    const specifications = draft.specifications
+      .map((spec) => ({
+        label: String(spec.label || "").trim(),
+        value: String(spec.value || "").trim(),
+      }))
+      .filter((spec) => spec.label || spec.value);
+    const videos = draft.videos
+      .map((video) => ({
+        title: String(video.title || "").trim(),
+        description: String(video.description || "").trim(),
+        url: isLocalBlobUrl(String(video.url || "").trim())
+          ? ""
+          : String(video.url || "").trim(),
+      }))
+      .filter((video) => video.title || video.description || video.url);
+    const image = draft.image.trim();
+    return {
+      name: draft.name.trim() || product?.name || undefined,
+      sku: product?.sku || undefined,
+      shortDescription: draft.shortDescription.trim() || undefined,
+      retailPrice: Number.isFinite(priceNum) ? priceNum : undefined,
+      warrantyPeriod: Number.isFinite(warrantyNum) ? warrantyNum : undefined,
+      image: image ? { imageUrl: image } : undefined,
+      descriptions: draft.descriptions as unknown as Array<Record<string, unknown>>,
+      specifications,
+      videos,
+    };
+  }, [draft, product]);
+
+  const {
+    data: livePreviewData,
+    error: livePreviewError,
+    loading: livePreviewLoading,
+  } = useLivePreview({
+    open: showLivePreview && Boolean(accessToken),
+    payload: livePreviewPayload,
+    previewFn: (body) => previewAdminProduct(accessToken as string, body),
+  });
 
   // Ctrl/Cmd+S submits the edit form; warn on tab close while there are edits.
   useSaveShortcut(isEditing && isDirty, () => {
@@ -914,6 +966,26 @@ function ProductDetailPage() {
                 </>
               )}
             </div>
+            <button
+              className="mt-2.5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-slate-900"
+              type="button"
+              onClick={() => setShowLivePreview((v) => !v)}
+            >
+              <MonitorSmartphone className="h-4 w-4" />
+              {showLivePreview ? t("Đóng xem trước") : t("Xem trước trực tiếp")}
+            </button>
+            <LivePreview
+              open={showLivePreview}
+              onClose={() => setShowLivePreview(false)}
+              data={livePreviewData}
+              error={livePreviewError}
+              loading={livePreviewLoading}
+              device={previewDevice}
+              onDeviceChange={setPreviewDevice}
+              webOrigin={WEB_ORIGIN}
+              previewPath="/preview/product"
+              t={t}
+            />
             <div className="mt-2.5 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
               <button
                 className={

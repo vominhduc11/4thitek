@@ -319,6 +319,10 @@ class Order {
     this.paidAmount = 0,
     this.completedAt,
     this.note,
+    this.carrier,
+    this.trackingCode,
+    this.shippedAt,
+    this.deliveredAt,
     this.subtotalOverride,
     this.discountPercentOverride,
     this.discountAmountOverride,
@@ -339,6 +343,10 @@ class Order {
   final int paidAmount;
   final DateTime? completedAt;
   final String? note;
+  final String? carrier;
+  final String? trackingCode;
+  final DateTime? shippedAt;
+  final DateTime? deliveredAt;
   final int? subtotalOverride;
   final int? discountPercentOverride;
   final int? discountAmountOverride;
@@ -391,6 +399,10 @@ class Order {
     int? paidAmount,
     DateTime? completedAt,
     String? note,
+    String? carrier,
+    String? trackingCode,
+    DateTime? shippedAt,
+    DateTime? deliveredAt,
     int? subtotalOverride,
     int? discountPercentOverride,
     int? discountAmountOverride,
@@ -411,6 +423,10 @@ class Order {
       paidAmount: paidAmount ?? this.paidAmount,
       completedAt: completedAt ?? this.completedAt,
       note: note ?? this.note,
+      carrier: carrier ?? this.carrier,
+      trackingCode: trackingCode ?? this.trackingCode,
+      shippedAt: shippedAt ?? this.shippedAt,
+      deliveredAt: deliveredAt ?? this.deliveredAt,
       subtotalOverride: subtotalOverride ?? this.subtotalOverride,
       discountPercentOverride:
           discountPercentOverride ?? this.discountPercentOverride,

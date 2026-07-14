@@ -46,19 +46,50 @@ Luu y:
 
 ## 4) Docker Compose Deploy
 
+Dự án dùng **một** file `docker-compose.yaml` cho cả hai môi trường, phân biệt bằng file env:
+
+| Môi trường | File env | Cách nạp |
+|---|---|---|
+| Localhost | `.env` | Docker Compose **tự động** nạp file tên `.env` trong thư mục hiện tại. |
+| VPS | `.env.vps` | Compose **không** tự nạp file này — phải truyền `--env-file .env.vps` ở **mọi** lệnh. |
+
+> ⚠️ Compose chỉ tự nạp đúng file tên `.env`. Nếu chạy `docker compose up -d` trơn trên VPS,
+> nó sẽ dùng `.env` (cấu hình localhost) chứ **không** đụng tới `.env.vps`. Đây là lỗi hay gặp nhất.
+
+### Localhost
+
 ```bash
 cp .env.example .env
-# dien day du secret + domain production
-docker compose pull
-docker compose up -d
+# điền secret + cấu hình local
+docker compose up -d --build
 docker compose ps
 ```
 
-Khi deploy ban build moi:
+### VPS
 
 ```bash
-docker compose build --no-cache backend main-fe admin-fe
-docker compose up -d
+cp .env.vps.example .env.vps
+# điền đầy đủ secret + domain production
+docker compose --env-file .env.vps up -d --build
+docker compose --env-file .env.vps ps
+```
+
+**Bắt buộc tuân thủ trên VPS:**
+
+- **Luôn kèm `--env-file .env.vps`** ở mọi lệnh compose (`up`, `build`, `restart`, `down`,
+  `logs`, `exec`, `ps`…). Quên cờ này thì Compose quay lại nạp `.env`.
+- **Không để tồn tại file `.env` trên VPS.** Khi đó nếu lỡ quên `--env-file`, Compose sẽ báo
+  lỗi thiếu biến bắt buộc (`POSTGRES_PASSWORD`, `JWT_SECRET`… đều khai báo `:?`) và dừng ngay —
+  thay vì âm thầm chạy nhầm cấu hình localhost.
+- **Luôn build ngay trên VPS** (kèm `--build`) mỗi lần deploy. `main-fe`/`admin-fe` nướng các
+  biến build-time (`NEXT_PUBLIC_API_BASE_URL`, `VITE_API_BASE_URL`, `VITE_WEB_ORIGIN`,
+  `NEXT_PUBLIC_ADMIN_ORIGIN`…) vào ảnh **lúc build**. Build ở local rồi bê ảnh lên VPS sẽ dính
+  URL localhost. Vì `up -d` chỉ build khi ảnh chưa tồn tại, redeploy phải có `--build`:
+
+```bash
+# Redeploy khi có code mới hoặc đổi biến build-time
+docker compose --env-file .env.vps build --no-cache backend main-fe admin-fe
+docker compose --env-file .env.vps up -d
 ```
 
 ## 5) Nginx + SSL Checklist
@@ -111,6 +142,24 @@ docker compose exec postgres psql -U app -d app_db \
   -c "SELECT ip_address, action, created_at FROM audit_logs ORDER BY created_at DESC LIMIT 5;"
 ```
 
+### Frontend env cho Live Preview (build-time)
+
+Tính năng Live Preview (admin xem trước sản phẩm/blog bằng template public thật) cần 2 biến
+build-time. Nếu bỏ trống, preview vẫn chạy được ở local nhưng **không** bật ở production.
+
+| Biến | Surface | Giá trị production | Vai trò |
+|---|---|---|---|
+| `VITE_WEB_ORIGIN` | admin-fe | `https://4thitek.vn` | Origin site public để admin nhúng iframe `/preview/*`. |
+| `NEXT_PUBLIC_ADMIN_ORIGIN` | main-fe | `https://admin.4thitek.vn` | Origin admin được phép nhúng `/preview/*` (CSP `frame-ancestors`) và gửi `postMessage`. |
+
+```env
+# admin-fe (.env build)
+VITE_WEB_ORIGIN=https://4thitek.vn
+
+# main-fe (.env build)
+NEXT_PUBLIC_ADMIN_ORIGIN=https://admin.4thitek.vn
+```
+
 ## 7) Healthcheck
 
 Backend:
@@ -136,6 +185,12 @@ docker compose logs --tail=200 backend
 6. Goi docs endpoints tu public domain phai bi `403`.
 
 ## 9) Xu ly su co trien khai thuong gap (Troubleshooting)
+
+> **Trên VPS:** các lệnh dưới đây viết `.env` và `docker compose ...` cho gọn. Khi chạy trên
+> VPS, hãy đọc `.env.vps` (ví dụ `grep APP_CORS_ALLOWED_ORIGIN_PATTERNS .env.vps`) và kèm
+> `--env-file .env.vps` vào mọi lệnh compose. Ngoài ra, đổi biến trong env rồi thì phải
+> `docker compose --env-file .env.vps up -d` (tạo lại container) để giá trị mới có hiệu lực —
+> `restart` không nạp lại env đã đổi.
 
 ### Loi 1: Backend khong khoi dong duoc — "JWT secret is too weak"
 

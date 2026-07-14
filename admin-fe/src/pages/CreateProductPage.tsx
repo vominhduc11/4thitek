@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, RotateCcw } from "lucide-react";
+import { ArrowLeft, MonitorSmartphone, RotateCcw } from "lucide-react";
 import {
   GhostButton,
   PageHeader,
@@ -9,6 +9,10 @@ import {
   StatusBadge,
   sectionCardClass,
 } from "../components/ui-kit";
+import { LivePreview } from "../components/LivePreview";
+import { previewAdminProduct } from "../lib/admin-api/products";
+import { useLivePreview } from "../hooks/useLivePreview";
+import { WEB_ORIGIN } from "../lib/webOrigin";
 import { useAuth } from "../context/AuthContext";
 import { useProducts } from "../context/ProductsContext";
 import { useLanguage } from "../context/LanguageContext";
@@ -122,7 +126,47 @@ function CreateProductPage() {
   const [newProduct, setNewProduct] = useState(createInitialNewProduct);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isCreating, setIsCreating] = useState(false);
+  const [showLivePreview, setShowLivePreview] = useState(false);
+  const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
   const tabOrder = ["basic", "description", "specs", "videos"] as const;
+
+  // Payload dry-run cho Live Preview: dựng cùng shape lúc lưu (object, không JSON-string),
+  // sanitize giống validateCreateProduct để xem trước khớp trang public thật.
+  const livePreviewPayload = useMemo(() => {
+    const priceNum = Number(newProduct.retailPrice);
+    const warrantyPeriodNum = Number(newProduct.warrantyPeriod);
+    const specifications = newProduct.specifications
+      .map((item) => ({ label: item.label.trim(), value: item.value.trim() }))
+      .filter((item) => item.label || item.value);
+    const videos = newProduct.videos
+      .map((video) => ({
+        title: video.title.trim(),
+        descriptions: video.descriptions.trim(),
+        url: video.url.trim(),
+      }))
+      .filter((video) => video.title || video.descriptions || video.url);
+    return {
+      name: newProduct.name.trim() || undefined,
+      sku: newProduct.sku.trim() || undefined,
+      shortDescription: newProduct.shortDescription.trim() || undefined,
+      retailPrice: Number.isFinite(priceNum) ? priceNum : undefined,
+      warrantyPeriod: Number.isFinite(warrantyPeriodNum) ? warrantyPeriodNum : undefined,
+      image: newProduct.imageUrl ? { imageUrl: newProduct.imageUrl } : undefined,
+      descriptions: sanitizeDescriptionItems(newProduct.descriptions),
+      specifications,
+      videos,
+    };
+  }, [newProduct]);
+
+  const {
+    data: livePreviewData,
+    error: livePreviewError,
+    loading: livePreviewLoading,
+  } = useLivePreview({
+    open: showLivePreview && Boolean(accessToken),
+    payload: livePreviewPayload,
+    previewFn: (body) => previewAdminProduct(accessToken as string, body),
+  });
 
   const { inputRef: retailPriceInputRef, handleInputChange: handleRetailPriceChange } = useNumericFormatter(
     newProduct.retailPrice,
@@ -898,6 +942,18 @@ function CreateProductPage() {
 
   return (
     <PagePanel>
+      <LivePreview
+        open={showLivePreview}
+        onClose={() => setShowLivePreview(false)}
+        data={livePreviewData}
+        error={livePreviewError}
+        loading={livePreviewLoading}
+        device={previewDevice}
+        onDeviceChange={setPreviewDevice}
+        webOrigin={WEB_ORIGIN}
+        previewPath="/preview/product"
+        t={t}
+      />
       <fieldset
         aria-busy={isFormLocked}
         className="m-0 min-w-0 border-0 p-0"
@@ -925,14 +981,23 @@ function CreateProductPage() {
               title={t("Tạo sản phẩm")}
               subtitle={t("Thiết lập thông tin cơ bản, mô tả, thông số và video trước khi xuất bản sản phẩm mới.")}
               actions={
-                <GhostButton
-                  disabled={isFormLocked}
-                  icon={<ArrowLeft className="h-4 w-4" />}
-                  onClick={() => void requestNavigateAway()}
-                  type="button"
-                >
-                  {t("Về sản phẩm")}
-                </GhostButton>
+                <div className="flex items-center gap-2">
+                  <GhostButton
+                    icon={<MonitorSmartphone className="h-4 w-4" />}
+                    onClick={() => setShowLivePreview((v) => !v)}
+                    type="button"
+                  >
+                    {showLivePreview ? t("Đóng xem trước") : t("Xem trước trực tiếp")}
+                  </GhostButton>
+                  <GhostButton
+                    disabled={isFormLocked}
+                    icon={<ArrowLeft className="h-4 w-4" />}
+                    onClick={() => void requestNavigateAway()}
+                    type="button"
+                  >
+                    {t("Về sản phẩm")}
+                  </GhostButton>
+                </div>
               }
             />
             <div className="grid gap-3 sm:grid-cols-3">

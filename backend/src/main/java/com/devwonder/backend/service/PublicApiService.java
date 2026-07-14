@@ -1,5 +1,6 @@
 package com.devwonder.backend.service;
 
+import com.devwonder.backend.dto.admin.AdminProductUpsertRequest;
 import com.devwonder.backend.dto.pagination.PagedResponse;
 import com.devwonder.backend.dto.blog.PublicBlogSummaryResponse;
 import com.devwonder.backend.dto.publicapi.PublicDealerResponse;
@@ -103,6 +104,33 @@ public class PublicApiService {
         Product product = productRepository.findByIdAndIsDeletedFalseAndPublishStatus(id, PublishStatus.PUBLISHED)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
         return toDetail(product, safeStock(product));
+    }
+
+    /**
+     * Dry-run xem trước: map một sản phẩm bản nháp (chưa lưu) sang đúng public shape
+     * mà storefront dùng. KHÔNG ghi DB, KHÔNG cache, khoan dung với field thiếu — chỉ
+     * dựng entity tạm rồi tái dùng {@link #toDetail}. Stock lấy từ request (mặc định 0),
+     * không truy vấn serial. Xem API_CONTRACT §5.1 "Live Preview".
+     */
+    public PublicProductDetailResponse previewProduct(AdminProductUpsertRequest request) {
+        Product product = new Product();
+        product.setName(request.name());
+        product.setSku(request.sku());
+        product.setShortDescription(request.shortDescription());
+        product.setImage(request.image());
+        if (request.descriptions() != null) {
+            product.setDescriptions(List.copyOf(request.descriptions()));
+        }
+        if (request.videos() != null) {
+            product.setVideos(List.copyOf(request.videos()));
+        }
+        if (request.specifications() != null) {
+            product.setSpecifications(List.copyOf(request.specifications()));
+        }
+        product.setRetailPrice(request.retailPrice());
+        product.setWarrantyPeriod(request.warrantyPeriod());
+        int stock = request.stock() == null ? 0 : request.stock();
+        return toDetail(product, stock);
     }
 
     @Transactional(readOnly = true)

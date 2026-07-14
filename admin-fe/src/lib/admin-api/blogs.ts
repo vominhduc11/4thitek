@@ -68,3 +68,25 @@ export const fetchAdminCategories = (token: string) =>
     path: '/admin/categories',
     token,
   })
+
+// Dry-run xem trước: map bản nháp sang public shape (giống GET /blog/{id}) mà không lưu
+// DB. Xem API_CONTRACT §5.1 "Live Preview".
+export type PublicBlogPreviewResponse = {
+  id: number | null
+  title: string | null
+  description: string | null
+  image: string | null
+  category: string | null
+  createdAt: string | null
+  updatedAt: string | null
+  introduction: string | null
+  showOnHomepage: boolean
+}
+
+export const previewAdminBlog = (token: string, body: BackendBlogUpsertRequest) =>
+  authorizedJsonRequest<PublicBlogPreviewResponse>({
+    path: '/admin/blogs/preview',
+    token,
+    method: 'POST',
+    body,
+  })

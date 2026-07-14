@@ -88,6 +88,18 @@ public class Order {
     @Column(name = "shipping_fee")
     private Integer shippingFee;
 
+    @Column(name = "carrier")
+    private String carrier;
+
+    @Column(name = "tracking_code")
+    private String trackingCode;
+
+    @Column(name = "shipped_at")
+    private Instant shippedAt;
+
+    @Column(name = "delivered_at")
+    private Instant deliveredAt;
+
     @Column(name = "note", columnDefinition = "text")
     private String note;
 

@@ -15,6 +15,7 @@ import com.devwonder.backend.dto.admin.AdminNotificationDispatchResponse;
 import com.devwonder.backend.dto.admin.AdminNotificationResponse;
 import com.devwonder.backend.dto.admin.AdminOrderResponse;
 import com.devwonder.backend.dto.admin.AdminOrderSummaryResponse;
+import com.devwonder.backend.dto.admin.AdminUpdateOrderStatusRequest;
 import com.devwonder.backend.dto.admin.AdminProductResponse;
 import com.devwonder.backend.dto.admin.AdminProductUpsertRequest;
 import com.devwonder.backend.dto.admin.AdminReportExportResponse;
@@ -55,7 +56,6 @@ import com.devwonder.backend.dto.admin.UpdateAdminWarrantyStatusRequest;
 import com.devwonder.backend.dto.customer.ChangePasswordRequest;
 import com.devwonder.backend.dto.dealer.RecordPaymentRequest;
 import com.devwonder.backend.dto.dealer.DealerProductSerialResponse;
-import com.devwonder.backend.dto.dealer.UpdateDealerOrderStatusRequest;
 import com.devwonder.backend.dto.dealer.UpdateDealerProfileRequest;
 import com.devwonder.backend.dto.returns.ReturnRequestDetailResponse;
 import com.devwonder.backend.dto.returns.ReturnRequestSummaryResponse;
@@ -64,6 +64,8 @@ import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.ReturnRequestStatus;
 import com.devwonder.backend.entity.enums.ReturnRequestType;
 import com.devwonder.backend.dto.pagination.PagedResponse;
+import com.devwonder.backend.dto.publicapi.PublicProductDetailResponse;
+import com.devwonder.backend.dto.blog.PublicBlogDetailResponse;
 import com.devwonder.backend.dto.serial.SerialImportSummaryResponse;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.security.AdminActorRoleSupport;
@@ -75,6 +77,8 @@ import com.devwonder.backend.service.AdminRmaService;
 import com.devwonder.backend.service.AuditLogService;
 import com.devwonder.backend.service.AdminSettingsService;
 import com.devwonder.backend.service.MailService;
+import com.devwonder.backend.service.PublicApiService;
+import com.devwonder.backend.service.PublicBlogService;
 import com.devwonder.backend.service.PublicContentService;
 import com.devwonder.backend.service.ReturnRequestService;
 import com.devwonder.backend.util.PaginationUtils;
@@ -119,6 +123,8 @@ public class AdminController {
     private final AuditLogService auditLogService;
     private final MailService mailService;
     private final PublicContentService publicContentService;
+    private final PublicApiService publicApiService;
+    private final PublicBlogService publicBlogService;
     private final ReturnRequestService returnRequestService;
 
     @GetMapping("/products")
@@ -153,6 +159,14 @@ public class AdminController {
             @Valid @RequestBody AdminProductUpsertRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.updateProduct(id, request)));
+    }
+
+    @PostMapping("/products/preview")
+    @PreAuthorize("hasAuthority('products.write')")
+    public ResponseEntity<ApiResponse<PublicProductDetailResponse>> previewProduct(
+            @Valid @RequestBody AdminProductUpsertRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(publicApiService.previewProduct(request)));
     }
 
     @DeleteMapping("/products/{id}")
@@ -199,7 +213,7 @@ public class AdminController {
     @PreAuthorize("hasAnyAuthority('orders.approve','orders.process','orders.cancel.review')")
     public ResponseEntity<ApiResponse<AdminOrderResponse>> updateOrderStatus(
             @PathVariable("id") Long id,
-            @Valid @RequestBody UpdateDealerOrderStatusRequest request,
+            @Valid @RequestBody AdminUpdateOrderStatusRequest request,
             Authentication authentication
     ) {
         return ResponseEntity.ok(ApiResponse.success(
@@ -455,6 +469,14 @@ public class AdminController {
             @Valid @RequestBody AdminBlogUpsertRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.updateBlog(id, request)));
+    }
+
+    @PostMapping("/blogs/preview")
+    @PreAuthorize("hasAuthority('blogs.write')")
+    public ResponseEntity<ApiResponse<PublicBlogDetailResponse>> previewBlog(
+            @Valid @RequestBody AdminBlogUpsertRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(publicBlogService.previewBlog(request)));
     }
 
     @DeleteMapping("/blogs/{id}")

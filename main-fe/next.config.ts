@@ -37,6 +37,10 @@ const internalApiOrigin =
     normalizeConfiguredApiOrigin(process.env.NEXT_PUBLIC_API_BASE_URL) ||
     'https://api.4thitek.vn';
 
+// Origin admin được phép nhúng route /preview/* trong iframe. Local dev mặc định là
+// admin-fe (Vite) ở cổng 5173; production set qua NEXT_PUBLIC_ADMIN_ORIGIN.
+const adminOrigin = trimTrailingSlash((process.env.NEXT_PUBLIC_ADMIN_ORIGIN || 'http://localhost:5173').trim());
+
 const nextConfig: NextConfig = {
     /* config options here */
     output: 'standalone',
@@ -72,6 +76,19 @@ const nextConfig: NextConfig = {
         deviceSizes: [375, 480, 640, 750, 828, 1080, 1200, 1920, 2048],
         imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
         minimumCacheTTL: 86400
+    },
+    async headers() {
+        return [
+            {
+                // Khung xem trước của admin: không cho search engine index, và chỉ cho
+                // phép admin origin nhúng trong iframe (chống clickjacking / frame lạ).
+                source: '/preview/:path*',
+                headers: [
+                    { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
+                    { key: 'Content-Security-Policy', value: `frame-ancestors 'self' ${adminOrigin}` }
+                ]
+            }
+        ];
     },
     async redirects() {
         return [

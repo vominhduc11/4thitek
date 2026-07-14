@@ -68,3 +68,28 @@ export const deleteAdminProduct = (token: string, id: number) =>
     token,
     method: 'DELETE',
   })
+
+// Dry-run xem trước: map bản nháp sang public shape (giống GET /product/{id}) mà không
+// lưu DB. Xem API_CONTRACT §5.1 "Live Preview".
+export type PublicProductPreviewResponse = {
+  id: number | null
+  name: string | null
+  sku: string | null
+  shortDescription: string | null
+  description: string | null
+  image: string | null
+  price: number
+  specifications: unknown
+  videos: unknown
+  descriptions: unknown
+  stock: number
+  warrantyMonths: number
+}
+
+export const previewAdminProduct = (token: string, body: BackendProductUpsertRequest) =>
+  authorizedJsonRequest<PublicProductPreviewResponse>({
+    path: '/admin/products/preview',
+    token,
+    method: 'POST',
+    body,
+  })

@@ -11,6 +11,7 @@ import com.devwonder.backend.dto.admin.AdminDiscountRuleResponse;
 import com.devwonder.backend.dto.admin.AdminDiscountRuleUpsertRequest;
 import com.devwonder.backend.dto.admin.AdminOrderResponse;
 import com.devwonder.backend.dto.admin.AdminOrderSummaryResponse;
+import com.devwonder.backend.dto.admin.AdminUpdateOrderStatusRequest;
 import com.devwonder.backend.dto.admin.AdminProductResponse;
 import com.devwonder.backend.dto.admin.AdminProductUpsertRequest;
 import com.devwonder.backend.dto.admin.AdminStaffUserResponse;
@@ -280,7 +281,21 @@ public class AdminManagementService {
 
     @Transactional
     @CacheEvict(cacheNames = CacheNames.ADMIN_DASHBOARD, allEntries = true)
-    public AdminOrderResponse updateOrderStatus(Long id, UpdateDealerOrderStatusRequest request, String actorUsername) {
+    public AdminOrderResponse updateOrderStatus(
+            Long id,
+            UpdateDealerOrderStatusRequest request,
+            String actorUsername
+    ) {
+        return updateOrderStatus(
+                id,
+                new AdminUpdateOrderStatusRequest(request.status(), request.reason(), null, null),
+                actorUsername
+        );
+    }
+
+    @Transactional
+    @CacheEvict(cacheNames = CacheNames.ADMIN_DASHBOARD, allEntries = true)
+    public AdminOrderResponse updateOrderStatus(Long id, AdminUpdateOrderStatusRequest request, String actorUsername) {
         Order order = orderRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
         OrderStatus previousStatus = order.getStatus();
@@ -291,6 +306,7 @@ public class AdminManagementService {
                 && order.getPaymentStatus() != PaymentStatus.PAID) {
             throw new BadRequestException("Cannot confirm an unpaid order");
         }
+        applyFulfillmentDetails(order, request, previousStatus);
         order.setStatus(request.status());
         applyLifecycleTimestamps(order, request.status(), previousStatus);
         // Clear the cancel-request trace once the request is resolved: either the order is
@@ -958,11 +974,33 @@ public class AdminManagementService {
         }
         if (nextStatus == OrderStatus.COMPLETED && previousStatus != OrderStatus.COMPLETED) {
             order.setCompletedAt(Instant.now());
+            order.setDeliveredAt(Instant.now());
             return;
         }
         if (nextStatus != OrderStatus.COMPLETED && previousStatus == OrderStatus.COMPLETED) {
             order.setCompletedAt(null);
+            order.setDeliveredAt(null);
         }
+    }
+
+    private void applyFulfillmentDetails(
+            Order order,
+            AdminUpdateOrderStatusRequest request,
+            OrderStatus previousStatus
+    ) {
+        if (request.status() != OrderStatus.SHIPPING || previousStatus == OrderStatus.SHIPPING) {
+            return;
+        }
+        order.setCarrier(requireFulfillmentValue(request.carrier(), "carrier"));
+        order.setTrackingCode(requireFulfillmentValue(request.trackingCode(), "trackingCode"));
+        order.setShippedAt(Instant.now());
+    }
+
+    private String requireFulfillmentValue(String value, String fieldName) {
+        if (value == null || value.trim().isEmpty()) {
+            throw new BadRequestException(fieldName + " is required when shipping an order");
+        }
+        return value.trim();
     }
 
     private String valueAsString(Object value) {

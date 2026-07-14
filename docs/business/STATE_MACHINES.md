@@ -27,9 +27,9 @@ constraint. Authority: `service/support/OrderStatusTransitionPolicy.java`. Statu
 | `PENDING` | `CANCELLED` | release serials, restore stock, settlement if `paidAmount > 0` |
 | `CONFIRMED` | `PROCESSING` | — |
 | `CONFIRMED` | `CANCELLED` | release serials, restore stock, settlement if paid |
-| `PROCESSING` | `SHIPPING` | — |
+| `PROCESSING` | `SHIPPING` | requires non-blank carrier + tracking code; sets `shippedAt` |
 | `PROCESSING` | `CANCELLED` | release serials, restore stock, settlement if paid |
-| `SHIPPING` | `COMPLETED` | assign reserved serials to the dealer; sets `completedAt` |
+| `SHIPPING` | `COMPLETED` | assign reserved serials to the dealer; sets `completedAt` and `deliveredAt` |
 | `CANCEL_REQUESTED` | `CANCELLED` | approve dealer cancel → release serials, restore stock, settlement if paid |
 | `CANCEL_REQUESTED` | `CANCEL_REJECTED` | reject dealer cancel — no inventory/financial effect |
 | `CANCEL_REJECTED` | `PENDING` / `CONFIRMED` / `PROCESSING` | resume the order; clears `cancelRequestedFrom`/`cancelRequestReason` |

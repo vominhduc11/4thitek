@@ -1,5 +1,6 @@
 package com.devwonder.backend.service;
 
+import com.devwonder.backend.dto.admin.AdminBlogUpsertRequest;
 import com.devwonder.backend.dto.blog.PublicBlogCategoryResponse;
 import com.devwonder.backend.dto.blog.PublicBlogDetailResponse;
 import com.devwonder.backend.dto.blog.PublicBlogSummaryResponse;
@@ -11,6 +12,7 @@ import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.repository.BlogRepository;
 import com.devwonder.backend.repository.CategoryBlogRepository;
+import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
@@ -57,6 +59,34 @@ public class PublicBlogService {
         Blog blog = blogRepository.findByIdAndIsDeletedFalseAndStatus(id, BlogStatus.PUBLISHED)
                 .orElseThrow(() -> new ResourceNotFoundException("Blog not found"));
         return toDetail(blog);
+    }
+
+    /**
+     * Dry-run xem trước: map một bài viết bản nháp (chưa lưu) sang public detail shape.
+     * KHÔNG ghi DB, KHÔNG cache, không tạo category mới (chỉ tra tên category theo id ở
+     * chế độ read-only). {@code id} = null, {@code createdAt/updatedAt} = hiện tại. Khoan
+     * dung với field thiếu. Xem API_CONTRACT §5.1 "Live Preview".
+     */
+    @Transactional(readOnly = true)
+    public PublicBlogDetailResponse previewBlog(AdminBlogUpsertRequest request) {
+        String category = normalize(request.categoryName());
+        if (category == null && request.categoryId() != null) {
+            category = categoryBlogRepository.findById(request.categoryId())
+                    .map(CategoryBlog::getName)
+                    .orElse(null);
+        }
+        Instant now = Instant.now();
+        return new PublicBlogDetailResponse(
+                null,
+                normalize(request.title()),
+                normalize(request.description()),
+                normalize(request.image()),
+                category,
+                now,
+                now,
+                normalize(request.introduction()),
+                Boolean.TRUE.equals(request.showOnHomepage())
+        );
     }
 
     @Transactional(readOnly = true)
@@ -123,6 +153,14 @@ public class PublicBlogService {
 
     private String resolveCategory(CategoryBlog categoryBlog) {
         return categoryBlog == null ? null : categoryBlog.getName();
+    }
+
+    private String normalize(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private int validateLimit(int limit) {

@@ -53,6 +53,9 @@ function OrderDetailPage() {
   const [transactionCode, setTransactionCode] = useState('')
   const [paymentNote, setPaymentNote] = useState('')
   const [paymentError, setPaymentError] = useState('')
+  const [carrier, setCarrier] = useState('')
+  const [trackingCode, setTrackingCode] = useState('')
+  const [fulfillmentError, setFulfillmentError] = useState('')
 
   // Payment history state
   const [payments, setPayments] = useState<BackendOrderPaymentResponse[]>([])
@@ -123,6 +126,15 @@ function OrderDetailPage() {
     }, 0)
     return () => window.clearTimeout(timer)
   }, [order, resetPaymentForm])
+
+  useEffect(() => {
+    if (!order) {
+      return
+    }
+    setCarrier(order.carrier)
+    setTrackingCode(order.trackingCode)
+    setFulfillmentError('')
+  }, [order?.carrier, order?.id, order?.trackingCode])
 
   useEffect(() => {
     if (!accessToken || !orderId) return
@@ -394,6 +406,13 @@ function OrderDetailPage() {
                   return
                 }
 
+                if (next === 'shipping' && (!carrier.trim() || !trackingCode.trim())) {
+                  const message = t('Nhập đầy đủ đơn vị vận chuyển và mã vận đơn trước khi chuyển sang đang giao.')
+                  setFulfillmentError(message)
+                  event.currentTarget.value = order.status
+                  return
+                }
+
                 const approved = await confirm({
                   title: t('Xác nhận đổi trạng thái'),
                   message: t('Chuyển đơn này sang "{status}"?', {
@@ -409,7 +428,15 @@ function OrderDetailPage() {
                 }
 
                 try {
-                  await updateOrderStatus(order.id, next)
+                  await updateOrderStatus(
+                    order.id,
+                    next,
+                    undefined,
+                    next === 'shipping'
+                      ? { carrier: carrier.trim(), trackingCode: trackingCode.trim() }
+                      : undefined,
+                  )
+                  setFulfillmentError('')
                   notify(t('Đơn {id} -> {status}', { id: order.id, status: t(orderStatusLabel[next]) }), {
                       title: t("Đơn hàng"),
                     variant: 'info',
@@ -430,6 +457,77 @@ function OrderDetailPage() {
               ))}
             </select>
           </div>
+
+          {(order.status === 'processing' || order.carrier || order.trackingCode || order.shippedAt || order.deliveredAt) ? (
+            <div className="mt-5 rounded-2xl border border-sky-200 bg-sky-50/70 p-4 dark:border-sky-900/70 dark:bg-sky-950/20">
+              <p className="text-sm font-semibold text-[var(--ink)]">{t('Thông tin vận chuyển')}</p>
+              {order.status === 'processing' ? (
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <label className="space-y-2">
+                    <span className={labelClass}>{t('Đơn vị vận chuyển')}</span>
+                    <input
+                      aria-invalid={Boolean(fulfillmentError)}
+                      className={`${inputClass}${fulfillmentError ? ' border-rose-300' : ''}`}
+                      maxLength={120}
+                      onChange={(event) => {
+                        setCarrier(event.target.value)
+                        setFulfillmentError('')
+                      }}
+                      placeholder={t('Ví dụ: Giao Hàng Nhanh')}
+                      value={carrier}
+                    />
+                  </label>
+                  <label className="space-y-2">
+                    <span className={labelClass}>{t('Mã vận đơn')}</span>
+                    <input
+                      aria-describedby={fulfillmentError ? 'order-fulfillment-error' : undefined}
+                      aria-invalid={Boolean(fulfillmentError)}
+                      className={`${inputClass}${fulfillmentError ? ' border-rose-300' : ''}`}
+                      maxLength={200}
+                      onChange={(event) => {
+                        setTrackingCode(event.target.value)
+                        setFulfillmentError('')
+                      }}
+                      placeholder={t('Nhập mã vận đơn')}
+                      value={trackingCode}
+                    />
+                  </label>
+                  {fulfillmentError ? (
+                    <p className="sm:col-span-2 text-sm text-rose-600" id="order-fulfillment-error" role="alert">
+                      {fulfillmentError}
+                    </p>
+                  ) : (
+                    <p className="sm:col-span-2 text-xs text-[var(--muted)]">
+                      {t('Thông tin này được lưu khi chuyển đơn sang trạng thái đang giao.')}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+                  <div>
+                    <dt className="text-[var(--muted)]">{t('Đơn vị vận chuyển')}</dt>
+                    <dd className="mt-1 font-medium text-[var(--ink)]">{order.carrier || '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--muted)]">{t('Mã vận đơn')}</dt>
+                    <dd className="mt-1 font-medium text-[var(--ink)]">{order.trackingCode || '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--muted)]">{t('Đã giao cho đơn vị vận chuyển')}</dt>
+                    <dd className="mt-1 font-medium text-[var(--ink)]">
+                      {order.shippedAt ? formatDateTime(order.shippedAt) : '—'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--muted)]">{t('Đã giao thành công')}</dt>
+                    <dd className="mt-1 font-medium text-[var(--ink)]">
+                      {order.deliveredAt ? formatDateTime(order.deliveredAt) : '—'}
+                    </dd>
+                  </div>
+                </dl>
+              )}
+            </div>
+          ) : null}
 
           {order.outstandingAmount > 0 && isPaymentDirty ? (
             <div

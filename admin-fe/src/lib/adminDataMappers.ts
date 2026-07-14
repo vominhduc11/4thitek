@@ -232,6 +232,10 @@ export const mapOrder = (order: BackendOrderResponse): Order => {
     items: Number(order.itemCount ?? 0),
     address: order.address || '',
     note: order.note || '',
+    carrier: order.carrier?.trim() || '',
+    trackingCode: order.trackingCode?.trim() || '',
+    shippedAt: order.shippedAt || '',
+    deliveredAt: order.deliveredAt || '',
     createdAt: order.createdAt || '',
     orderItems: (order.orderItems ?? []).map((item) => ({
       productId: item.productId,

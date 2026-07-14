@@ -37,6 +37,10 @@ export type Order = {
   items: number
   address: string
   note: string
+  carrier: string
+  trackingCode: string
+  shippedAt: string
+  deliveredAt: string
   createdAt: string
   orderItems: OrderItem[]
   staleReviewRequired?: boolean

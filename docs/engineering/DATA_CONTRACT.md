@@ -67,6 +67,13 @@ Until the inner schema is pinned down here, any change to product media is high-
 lock, `V19`), `cancelRequestedFrom` + `cancelRequestReason` (`V43`), lifecycle timestamps
 `createdAt/confirmedAt/completedAt/updatedAt`, `financialSettlementRequired`, `staleReviewRequired`.
 
+`V44` adds nullable fulfillment fields: `carrier` (`varchar(120)`), `trackingCode`
+(`varchar(200)`), `shippedAt` (`timestamptz`), and `deliveredAt` (`timestamptz`). They are
+written by the admin order-status workflow: carrier and tracking code are required when an
+order enters `SHIPPING`; `shippedAt` is stamped then and `deliveredAt` is stamped when it enters
+`COMPLETED`. They are returned by both admin and dealer order response DTOs. Existing and
+non-fulfilled orders legitimately have `null` values.
+
 `OrderItem` snapshots `productNameSnapshot`, `productSkuSnapshot`, `unitPrice`, `quantity`.
 `V34` added order financial + item snapshots. Status: `CONFIRMED_FROM_CODE`.
 

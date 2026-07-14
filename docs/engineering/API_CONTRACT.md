@@ -109,7 +109,7 @@ full endpoint list in `AdminController.java`.
 
 | Domain | Endpoints (representative) | Permission code |
 |---|---|---|
-| Products | `GET/POST/PUT/DELETE /products*` | read: open to staff; write: `products.write` |
+| Products | `GET/POST/PUT/DELETE /products*` ; `POST /products/preview` | read: open to staff; write & preview: `products.write` |
 | Orders | `GET /orders*` ; `PATCH /orders/{id}/status` ; `POST /orders/{id}/assign-serials` ; `POST /orders/{id}/payments` | `orders.read`, `orders.approve` / `orders.process` / `orders.cancel.review` (per transition), `serials.assign`, `orders.payment.confirm` |
 | Serials | `GET/POST/PATCH/DELETE /serials*`, `PATCH /serials/{id}/rma` | read `serials.read`, write `serials.write` |
 | Warranties | `GET /warranties`, `PATCH /warranties/{id}/status` | `warranties.read` / `warranties.write` |
@@ -117,11 +117,41 @@ full endpoint list in `AdminController.java`.
 | Dealers | `GET /dealers*`, `PATCH/PUT /dealers/accounts/{id}*` | `dealers.read` / `dealers.write` |
 | Support | `GET /support-tickets*`, `PATCH /support-tickets/{id}`, `POST .../messages` | `support.read` / `support.write` |
 | Financial | `GET/PATCH /financial-settlements*`, `GET /payments/recent`, `GET/PATCH /unmatched-payments*`, `GET/POST /orders/{id}/adjustments` | `orders.payment.confirm` |
-| Content | `GET/PUT /content/{section}`, `GET/POST/PUT/DELETE /blogs*` | `content.write`, `blogs.write` |
+| Content | `GET/PUT /content/{section}`, `GET/POST/PUT/DELETE /blogs*` ; `POST /blogs/preview` | `content.write`, `blogs.write` (preview: `blogs.write`) |
 | Media | `AdminMediaController` mutations | `media.write` |
 | Discounts | `GET/POST/PUT/PATCH /discount-rules*` | `discounts.write` |
 | Reports/Dashboard | `GET /reports/export`, `GET /dashboard`, `GET /notifications/page` | `reports.read`, `dashboard.read`, `notifications.read` |
 | Users / Settings / Audit | `/users**`, `/settings`, `GET /audit-logs` | `SUPER_ADMIN` only (URL-level) |
+
+### 5.1a Order fulfillment fields
+
+`PATCH /api/v1/admin/orders/{id}/status` accepts optional `carrier` and `trackingCode`
+alongside `status`. Both are required, non-blank strings when the requested transition enters
+`SHIPPING`; they are ignored by the dealer status endpoint, which remains limited to cancellation
+requests. The admin response and every dealer order read response additionally expose nullable
+`carrier`, `trackingCode`, `shippedAt`, and `deliveredAt`. The endpoint remains guarded by the
+existing per-transition permission rules; entering `SHIPPING` requires `orders.process`.
+
+### 5.1 Live Preview (dry-run)
+
+Content editors preview a **draft** product/blog rendered by the **real public template**
+before saving. The flow is a stateless dry-run — **no DB write, no cache**:
+
+| Method | Path | Auth | Body | Returns |
+|---|---|---|---|---|
+| POST | `/api/v1/admin/products/preview` | `products.write` | `AdminProductUpsertRequest` (draft; fields tolerant/optional) | `PublicProductDetailResponse` (same shape as `GET /product/{id}`) |
+| POST | `/api/v1/admin/blogs/preview` | `blogs.write` | `AdminBlogUpsertRequest` (draft) | `PublicBlogDetailResponse` (same shape as `GET /blog/{id}`) |
+
+The endpoints build a **transient** entity from the request (never persisted, no category
+side-effects, no SKU-uniqueness enforcement) and map it through the same public mappers used
+by the storefront. `id` is `null`, `createdAt/updatedAt` = now, `stock` = request `stock` or `0`.
+
+**Render path.** admin-fe `LivePreview` debounces the editor form → calls the endpoint → posts
+the returned public payload via `postMessage` into an `<iframe>` pointing at main-fe
+`/preview/product` or `/preview/blog`. Those routes render the exact `ProductPageClient` /
+`BlogDetailPageClient` used by the public pages. The preview routes are `noindex, nofollow`
+(`X-Robots-Tag`) and only embeddable by the admin origin (CSP `frame-ancestors`, env
+`NEXT_PUBLIC_ADMIN_ORIGIN`). admin-fe reads the public web origin from `VITE_WEB_ORIGIN`.
 
 ## 6. Media & Upload
 

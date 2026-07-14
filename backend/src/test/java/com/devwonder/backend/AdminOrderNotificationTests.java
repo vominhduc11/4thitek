@@ -1,12 +1,16 @@
 package com.devwonder.backend;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.devwonder.backend.dto.dealer.UpdateDealerOrderStatusRequest;
+import com.devwonder.backend.dto.admin.AdminUpdateOrderStatusRequest;
+import com.devwonder.backend.dto.admin.AdminOrderResponse;
+import com.devwonder.backend.dto.dealer.DealerOrderResponse;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Notify;
 import com.devwonder.backend.entity.Order;
@@ -15,6 +19,7 @@ import com.devwonder.backend.entity.enums.NotifyType;
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.PaymentMethod;
 import com.devwonder.backend.entity.enums.PaymentStatus;
+import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.DealerSupportTicketRepository;
 import com.devwonder.backend.repository.NotifyRepository;
@@ -115,6 +120,43 @@ class AdminOrderNotificationTests {
         );
 
         assertThat(notifyRepository.findByAccountIdOrderByCreatedAtDesc(dealer.getId())).isEmpty();
+    }
+
+    @Test
+    void shippingRequiresTrackingAndExposesFulfillmentToAdminAndDealer() {
+        Dealer dealer = dealerRepository.save(createDealer("dealer-fulfillment@example.com"));
+        Order order = orderRepository.save(createOrder(dealer, OrderStatus.PROCESSING, "SCS-1-FULFILLMENT"));
+
+        assertThatThrownBy(() -> adminManagementService.updateOrderStatus(
+                order.getId(),
+                new AdminUpdateOrderStatusRequest(OrderStatus.SHIPPING, null, "GHN", "  "),
+                "test-admin@example.com"
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("trackingCode");
+
+        AdminOrderResponse shipped = adminManagementService.updateOrderStatus(
+                order.getId(),
+                new AdminUpdateOrderStatusRequest(OrderStatus.SHIPPING, null, " Giao Hàng Nhanh ", " GHN-123 "),
+                "test-admin@example.com"
+        );
+
+        assertThat(shipped.carrier()).isEqualTo("Giao Hàng Nhanh");
+        assertThat(shipped.trackingCode()).isEqualTo("GHN-123");
+        assertThat(shipped.shippedAt()).isNotNull();
+        assertThat(shipped.deliveredAt()).isNull();
+
+        DealerOrderResponse dealerResponse = dealerPortalService.getOrder(dealer.getUsername(), order.getId());
+        assertThat(dealerResponse.carrier()).isEqualTo("Giao Hàng Nhanh");
+        assertThat(dealerResponse.trackingCode()).isEqualTo("GHN-123");
+        assertThat(dealerResponse.shippedAt()).isNotNull();
+
+        AdminOrderResponse completed = adminManagementService.updateOrderStatus(
+                order.getId(),
+                new AdminUpdateOrderStatusRequest(OrderStatus.COMPLETED),
+                "test-admin@example.com"
+        );
+        assertThat(completed.deliveredAt()).isNotNull();
     }
 
     @Test

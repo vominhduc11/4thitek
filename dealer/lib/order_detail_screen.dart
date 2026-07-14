@@ -887,6 +887,45 @@ class OrderDetailScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
               ],
+              if (order.carrier != null ||
+                  order.trackingCode != null ||
+                  order.shippedAt != null ||
+                  order.deliveredAt != null) ...[
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 45),
+                  child: SectionCard(
+                    title: texts.fulfillmentInfoTitle,
+                    child: Column(
+                      children: [
+                        _InfoRow(
+                          label: texts.carrierLabel,
+                          value: order.carrier ?? texts.notAvailableValue,
+                        ),
+                        const SizedBox(height: 8),
+                        _InfoRow(
+                          label: texts.trackingCodeLabel,
+                          value: order.trackingCode ?? texts.notAvailableValue,
+                        ),
+                        const SizedBox(height: 8),
+                        _InfoRow(
+                          label: texts.shippedAtLabel,
+                          value: order.shippedAt == null
+                              ? texts.notAvailableValue
+                              : formatDateTime(order.shippedAt!),
+                        ),
+                        if (order.deliveredAt != null) ...[
+                          const SizedBox(height: 8),
+                          _InfoRow(
+                            label: texts.deliveredAtLabel,
+                            value: formatDateTime(order.deliveredAt!),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
               if (order.status == OrderStatus.completed) ...[
                 FadeSlideIn(
                   delay: const Duration(milliseconds: 50),
@@ -1640,6 +1679,17 @@ class _OrderDetailTexts {
   String get serialProcessingLockedMessage => isEnglish
       ? 'This order is already shipping, but serial processing only opens after the order reaches completed status.'
       : 'Đơn hàng đang giao, nhưng chỉ có thể xử lý serial sau khi đơn chuyển sang trạng thái hoàn thành.';
+  String get fulfillmentInfoTitle =>
+      isEnglish ? 'Delivery tracking' : 'Theo dõi vận chuyển';
+  String get carrierLabel =>
+      isEnglish ? 'Carrier' : 'Đơn vị vận chuyển';
+  String get trackingCodeLabel =>
+      isEnglish ? 'Tracking code' : 'Mã vận đơn';
+  String get shippedAtLabel =>
+      isEnglish ? 'Handed to carrier' : 'Đã giao cho đơn vị vận chuyển';
+  String get deliveredAtLabel =>
+      isEnglish ? 'Delivered successfully' : 'Đã giao thành công';
+  String get notAvailableValue => isEnglish ? 'Not available' : 'Chưa có thông tin';
   String get orderInfoTitle =>
       isEnglish ? 'Order information' : 'Thông tin đơn';
   String get orderIdLabel => isEnglish ? 'Order ID' : 'Mã đơn';

@@ -1,8 +1,12 @@
-import { ArrowLeft, ChevronDown, Eye, EyeOff, FileText, Pencil, Save, Trash2, X } from "lucide-react";
+import { ArrowLeft, ChevronDown, FileText, MonitorSmartphone, Pencil, Save, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { BlogBlockEditor } from "../components/blog-editor/BlogBlockEditor";
 import { BlogBlockPreview } from "../components/blog-editor/BlogBlockPreview";
+import { LivePreview } from "../components/LivePreview";
+import { previewAdminBlog } from "../lib/admin-api/blogs";
+import { useLivePreview } from "../hooks/useLivePreview";
+import { WEB_ORIGIN } from "../lib/webOrigin";
 import {
   DestructiveButton,
   EmptyState,
@@ -108,7 +112,8 @@ function BlogDetailPageRevamp() {
   );
 
   const [isEditing, setIsEditing] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
+  const [showLivePreview, setShowLivePreview] = useState(false);
+  const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
   const [editTitle, setEditTitle] = useState("");
   const [editCategory, setEditCategory] = useState("");
   const [editExcerpt, setEditExcerpt] = useState("");
@@ -245,7 +250,6 @@ function BlogDetailPageRevamp() {
     setEditImageUrl(post.imageUrl ?? "");
     setEditShowOnHomepage(Boolean(post.showOnHomepage));
     setEditScheduledAt(post.scheduledAt ? post.scheduledAt.slice(0, 16) : "");
-    setShowPreview(false);
     setIsEditing(true);
   };
 
@@ -285,6 +289,49 @@ function BlogDetailPageRevamp() {
   };
   handleSaveRef.current = handleSave;
 
+  // Payload cho dry-run: khi đang sửa dùng state form (xem trước bản nháp), ngược lại
+  // dùng dữ liệu bài đã lưu. Backend previewBlog chỉ đọc các field dưới đây.
+  const livePreviewPayload = useMemo(
+    () =>
+      isEditing
+        ? {
+            title: editTitle || undefined,
+            description: editExcerpt || undefined,
+            image: editImageUrl || undefined,
+            introduction: serializeBlogIntroduction(editBlocks),
+            categoryName: editCategory || undefined,
+            showOnHomepage: editShowOnHomepage,
+          }
+        : {
+            title: post.title || undefined,
+            description: post.excerpt || undefined,
+            image: post.imageUrl || undefined,
+            introduction: post.content || undefined,
+            categoryName: post.category || undefined,
+            showOnHomepage: Boolean(post.showOnHomepage),
+          },
+    [
+      isEditing,
+      editTitle,
+      editExcerpt,
+      editImageUrl,
+      editBlocks,
+      editCategory,
+      editShowOnHomepage,
+      post,
+    ],
+  );
+
+  const {
+    data: livePreviewData,
+    error: livePreviewError,
+    loading: livePreviewLoading,
+  } = useLivePreview({
+    open: showLivePreview && Boolean(accessToken),
+    payload: livePreviewPayload,
+    previewFn: (body) => previewAdminBlog(accessToken as string, body),
+  });
+
   return (
     <PagePanel>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -292,10 +339,32 @@ function BlogDetailPageRevamp() {
           <ArrowLeft className="h-4 w-4" />
           {copy.back}
         </Link>
-        <StatusBadge tone={blogStatusTone[post.status]}>
-          {statusLabels[post.status]}
-        </StatusBadge>
+        <div className="flex items-center gap-2">
+          <GhostButton
+            icon={<MonitorSmartphone className="h-4 w-4" />}
+            onClick={() => setShowLivePreview((v) => !v)}
+            type="button"
+          >
+            {showLivePreview ? t("Đóng xem trước") : t("Xem trước trực tiếp")}
+          </GhostButton>
+          <StatusBadge tone={blogStatusTone[post.status]}>
+            {statusLabels[post.status]}
+          </StatusBadge>
+        </div>
       </div>
+
+      <LivePreview
+        open={showLivePreview}
+        onClose={() => setShowLivePreview(false)}
+        data={livePreviewData}
+        error={livePreviewError}
+        loading={livePreviewLoading}
+        device={previewDevice}
+        onDeviceChange={setPreviewDevice}
+        webOrigin={WEB_ORIGIN}
+        previewPath="/preview/blog"
+        t={t}
+      />
 
       <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.95fr)] xl:grid-cols-[minmax(0,1.45fr)_minmax(18rem,0.9fr)]">
         <article className="min-w-0 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
@@ -303,13 +372,6 @@ function BlogDetailPageRevamp() {
             <p className={labelClass}>{post.id}</p>
             {!isEditing ? (
               <div className="flex gap-2">
-                <GhostButton
-                  icon={showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  onClick={() => setShowPreview((v) => !v)}
-                  type="button"
-                >
-                  {showPreview ? t("Tắt xem trước") : t("Xem trước")}
-                </GhostButton>
                 <GhostButton
                   icon={<Pencil className="h-4 w-4" />}
                   onClick={handleStartEdit}
@@ -413,47 +475,6 @@ function BlogDetailPageRevamp() {
                   Ctrl+S để lưu · Esc để huỷ
                 </span>
               </div>
-            </div>
-          ) : showPreview ? (
-            <div className="mt-4">
-              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2 text-xs text-[var(--muted)]">
-                {t("Xem trước bài viết — hiển thị như trang public.")}
-              </div>
-              {post.imageUrl ? (
-                <div className="mt-5 overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface-muted)]">
-                  <img
-                    src={resolveBackendAssetUrl(post.imageUrl)}
-                    alt={post.title}
-                    width="1200"
-                    height="630"
-                    loading="lazy"
-                    className="aspect-[16/9] w-full object-cover"
-                  />
-                </div>
-              ) : null}
-              <div className="mt-6">
-                <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                  {post.category || copy.uncategorized}
-                </p>
-                <h1 className="mt-2 text-2xl font-bold leading-snug text-[var(--ink)]">
-                  {post.title}
-                </h1>
-                {post.scheduledAt && (
-                  <p className="mt-1 text-xs text-[var(--muted)]">
-                    {formatDateTime(post.scheduledAt)}
-                  </p>
-                )}
-              </div>
-              {post.excerpt ? (
-                <p className="mt-5 text-base leading-7 text-[var(--muted)] italic border-l-4 border-[var(--accent)] pl-4">
-                  {post.excerpt}
-                </p>
-              ) : null}
-              <BlogBlockPreview
-                blocks={contentBlocks}
-                className="mt-6"
-                emptyMessage={copy.contentFallback}
-              />
             </div>
           ) : (
             <>

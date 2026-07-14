@@ -18,6 +18,9 @@ These rules are the current production contract. If code, UI, tests, or docs dri
 - Admin must not confirm or process unpaid orders.
 - Payment reconciliation is a bank-transfer flow only.
 - Order status workflow: `PENDING -> CONFIRMED -> PROCESSING -> SHIPPING -> COMPLETED`.
+- When an admin moves an order into `SHIPPING`, the carrier and tracking code are required and
+  the backend stamps `shippedAt`; when it moves into `COMPLETED`, the backend stamps
+  `deliveredAt`. Dealer order reads expose this fulfillment information as read-only data.
 - A dealer cannot cancel an order directly. From `PENDING` or `CONFIRMED` a dealer raises a
   cancel request, moving the order to `CANCEL_REQUESTED`. An admin then approves it
   (`-> CANCELLED`) or rejects it (`-> CANCEL_REJECTED`). A rejected request is resumable:

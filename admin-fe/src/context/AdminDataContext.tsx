@@ -102,7 +102,12 @@ export type AdminResourceState = {
 type AdminDataContextValue = {
   orders: Order[]
   ordersState: AdminResourceState
-  updateOrderStatus: (id: string, status: OrderStatus, cancelReason?: string) => Promise<void>
+  updateOrderStatus: (
+    id: string,
+    status: OrderStatus,
+    cancelReason?: string,
+    fulfillment?: { carrier: string; trackingCode: string },
+  ) => Promise<void>
   recordOrderPayment: (
     id: string,
     payload: {
@@ -435,9 +440,20 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     [loadResource],
   )
 
-  const updateOrderStatus: AdminDataContextValue['updateOrderStatus'] = async (id, status, cancelReason) => {
+  const updateOrderStatus: AdminDataContextValue['updateOrderStatus'] = async (
+    id,
+    status,
+    cancelReason,
+    fulfillment,
+  ) => {
     const token = requireToken()
-    const updated = await updateAdminOrderStatus(token, Number(id), toBackendOrderStatus(status), cancelReason)
+    const updated = await updateAdminOrderStatus(
+      token,
+      Number(id),
+      toBackendOrderStatus(status),
+      cancelReason,
+      fulfillment,
+    )
     setOrders((previous) => previous.map((item) => (item.id === id ? mapOrder(updated) : item)))
     await queryClient.invalidateQueries({ queryKey: resourceQueryKeys.orders })
   }

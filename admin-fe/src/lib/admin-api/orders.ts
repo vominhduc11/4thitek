@@ -30,6 +30,10 @@ export type BackendOrderResponse = {
   itemCount?: number | null
   address?: string | null
   note?: string | null
+  carrier?: string | null
+  trackingCode?: string | null
+  shippedAt?: string | null
+  deliveredAt?: string | null
   createdAt?: string | null
   updatedAt?: string | null
   orderItems?: BackendOrderItemResponse[] | null
@@ -96,12 +100,18 @@ export const updateAdminOrderStatus = (
   id: number,
   status: BackendOrderStatus,
   cancelReason?: string,
+  fulfillment?: { carrier: string; trackingCode: string },
 ) =>
   authorizedJsonRequest<BackendOrderResponse>({
     path: `/admin/orders/${id}/status`,
     token,
     method: 'PATCH',
-    body: { status, ...(cancelReason ? { cancelReason } : {}) },
+    body: {
+      status,
+      ...(cancelReason ? { cancelReason } : {}),
+      ...(fulfillment?.carrier ? { carrier: fulfillment.carrier } : {}),
+      ...(fulfillment?.trackingCode ? { trackingCode: fulfillment.trackingCode } : {}),
+    },
   })
 
 export const recordAdminOrderPayment = (
