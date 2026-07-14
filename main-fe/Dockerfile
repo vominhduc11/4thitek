@@ -47,6 +47,13 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# SSR/ISR trong container gọi backend qua hostname nội bộ, không dùng host công khai của
+# trình duyệt. Các ENV builder-stage không chuyển sang runner, nên khai báo lại mặc định ở
+# đây; docker-compose có thể override qua block environment.
+ENV INTERNAL_API_ORIGIN=http://backend:8080
+ENV INTERNAL_API_VERSION=v1
+ENV INTERNAL_API_BASE_URL=http://backend:8080/api/v1
+
 RUN groupadd --system --gid 1001 nodejs && \
     useradd --system --uid 1001 -g nodejs nextjs && \
     apt-get update && \

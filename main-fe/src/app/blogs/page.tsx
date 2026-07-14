@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import BlogsPageClient from './BlogsPageClient';
 import { mapBlogSummaryToPost } from '@/lib/contentMappers';
 import { publicApiServer } from '@/lib/publicApiServer';
@@ -13,15 +14,13 @@ export const metadata: Metadata = createBaseMetadata({
     keywords: ['tin tức tai nghe SCS', '4T HITEK blog', 'đánh giá tai nghe', 'hướng dẫn tai nghe SCS']
 });
 
-interface BlogsPageProps {
-    searchParams?: Promise<Record<string, string | string[] | undefined>>;
-}
-
-export default async function BlogsPage({ searchParams }: BlogsPageProps) {
-    const [blogsResponse, categoriesResponse, resolvedSearchParams] = await Promise.all([
+// KHÔNG đọc `searchParams` ở server (Dynamic API ép route thành SSR). Trang render tĩnh
+// (SSG/ISR); bộ lọc category ?category= được đọc ở client trong BlogsPageClient qua
+// useSearchParams — bọc trong <Suspense> để build không bail-out CSR toàn trang.
+export default async function BlogsPage() {
+    const [blogsResponse, categoriesResponse] = await Promise.all([
         publicApiServer.fetchBlogs(),
-        publicApiServer.fetchBlogCategories(),
-        searchParams ?? Promise.resolve({} as Record<string, string | string[] | undefined>)
+        publicApiServer.fetchBlogCategories()
     ]);
 
     const initialPosts = (blogsResponse.data ?? [])
@@ -33,15 +32,9 @@ export default async function BlogsPage({ searchParams }: BlogsPageProps) {
         name: category.name
     }));
 
-    const rawCategory = resolvedSearchParams.category;
-    const initialSelectedCategory =
-        typeof rawCategory === 'string' && rawCategory.trim().length > 0 ? rawCategory : 'ALL';
-
     return (
-        <BlogsPageClient
-            initialPosts={initialPosts}
-            initialCategories={initialCategories}
-            initialSelectedCategory={initialSelectedCategory}
-        />
+        <Suspense fallback={null}>
+            <BlogsPageClient initialPosts={initialPosts} initialCategories={initialCategories} />
+        </Suspense>
     );
 }

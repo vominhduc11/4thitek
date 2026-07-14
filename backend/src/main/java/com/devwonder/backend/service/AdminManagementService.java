@@ -143,6 +143,14 @@ public class AdminManagementService {
     private final OrderProperties orderProperties;
     private final OrderFinancialSnapshotService orderFinancialSnapshotService;
     private final DealerProfileWriteSupport dealerProfileWriteSupport;
+    private final org.springframework.context.ApplicationEventPublisher eventPublisher;
+
+    // Kich hoat ISR on-demand tren main-fe sau khi transaction commit (RevalidationClient
+    // lang nghe AFTER_COMMIT). Fire-and-forget: khong anh huong ket qua nghiep vu.
+    private void publishRevalidate(String... tags) {
+        eventPublisher.publishEvent(
+                new com.devwonder.backend.event.RevalidateContentEvent(new java.util.LinkedHashSet<>(java.util.Arrays.asList(tags))));
+    }
 
     @Transactional(readOnly = true)
     public List<AdminProductResponse> getProducts() {
@@ -170,6 +178,7 @@ public class AdminManagementService {
         adminWriteSupport.applyProduct(product, request, true);
         Product saved = productRepository.save(product);
         productStockSyncSupport.syncProductStock(saved);
+        publishRevalidate("products", "product:" + saved.getId());
         return AdminResponseMapper.toProductResponse(saved, safeStock(saved));
     }
 
@@ -187,6 +196,7 @@ public class AdminManagementService {
         adminWriteSupport.applyProduct(product, request, false);
         Product saved = productRepository.save(product);
         productStockSyncSupport.syncProductStock(saved);
+        publishRevalidate("products", "product:" + id);
         return AdminResponseMapper.toProductResponse(saved, safeStock(saved));
     }
 
@@ -203,6 +213,7 @@ public class AdminManagementService {
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
         product.setIsDeleted(true);
         productRepository.save(product);
+        publishRevalidate("products", "product:" + id);
     }
 
     @Transactional
@@ -519,7 +530,9 @@ public class AdminManagementService {
         adminWriteSupport.validateBlogRequest(request, true);
         Blog blog = new Blog();
         adminWriteSupport.applyBlog(blog, request, true);
-        return AdminResponseMapper.toBlogResponse(blogRepository.save(blog));
+        Blog saved = blogRepository.save(blog);
+        publishRevalidate("blogs", "blog:" + saved.getId());
+        return AdminResponseMapper.toBlogResponse(saved);
     }
 
     @Transactional
@@ -537,7 +550,9 @@ public class AdminManagementService {
         Blog blog = blogRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Blog not found"));
         adminWriteSupport.applyBlog(blog, request, false);
-        return AdminResponseMapper.toBlogResponse(blogRepository.save(blog));
+        Blog saved = blogRepository.save(blog);
+        publishRevalidate("blogs", "blog:" + id);
+        return AdminResponseMapper.toBlogResponse(saved);
     }
 
     @Transactional
@@ -555,6 +570,7 @@ public class AdminManagementService {
                 .orElseThrow(() -> new ResourceNotFoundException("Blog not found"));
         blog.setIsDeleted(true);
         blogRepository.save(blog);
+        publishRevalidate("blogs", "blog:" + id);
     }
 
     @Transactional(readOnly = true)

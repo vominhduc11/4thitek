@@ -2,7 +2,7 @@
 
 Monorepo gom 4 phan chinh:
 
-- `backend`: Spring Boot API, Flyway migration, Redis-backed cache/rate limit, OpenAPI va audit logging.
+- `backend`: Spring Boot API, Flyway migration, in-memory cache/rate limit, OpenAPI va audit logging.
 - `dealer`: Flutter dealer hub voi GoRouter, generated l10n va widget/unit tests.
 - `main-fe`: Next.js public website voi ISR, sitemap/robots, canonical metadata va analytics env-driven.
 - `admin-fe`: Vite admin dashboard voi runtime API config, route-scoped loading va page-level error boundary.
@@ -68,7 +68,7 @@ Chi co mot file: `docker-compose.yaml` dung cho local, staging va production.
 
 ```bash
 cp .env.example .env
-# Bat buoc doi: POSTGRES_PASSWORD, REDIS_PASSWORD,
+# Bat buoc doi: POSTGRES_PASSWORD,
 #               MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, JWT_SECRET
 # Xem comment trong .env.example de biet cach generate JWT_SECRET.
 docker compose up -d
@@ -76,7 +76,7 @@ docker compose up -d
 
 ### Canh bao: Reset toan bo du lieu local
 
-Lenh `npm run docker:reset` thuc hien `docker compose down -v` — **xoa toan bo Docker volume**, bao gom toan bo du lieu trong Postgres, Redis va MinIO. **Tuyet doi khong chay lenh nay tren moi truong staging/production.**
+Lenh `npm run docker:reset` thuc hien `docker compose down -v` — **xoa toan bo Docker volume**, bao gom toan bo du lieu trong Postgres va MinIO. **Tuyet doi khong chay lenh nay tren moi truong staging/production.**
 
 Chi su dung khi:
 
@@ -98,7 +98,7 @@ docker compose up -d
 
 Cac secret bat buoc phai co (thieu bat ky bien nao se khien stack tu choi start):
 
-- `POSTGRES_PASSWORD`, `REDIS_PASSWORD`, `JWT_SECRET`
+- `POSTGRES_PASSWORD`, `JWT_SECRET`
 - `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`
 
 Stack khong kem reverse proxy/TLS. Deploy internet-facing phai dat them Nginx, Caddy hoac load balancer ben ngoai.

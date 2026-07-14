@@ -170,6 +170,25 @@ the returned public payload via `postMessage` into an `<iframe>` pointing at mai
 |---|---|---|
 | POST | `/api/v1/webhooks/sepay` | Static webhook token via `?token=`, `X-Webhook-Token`, or `Authorization: Apikey <token>`; validated against admin settings. Idempotent on `transactionCode` (`SepayService`). Not an HMAC signature — SePay issues only an API key. |
 
+### 7.1 ISR revalidation (backend → main-fe, internal)
+
+Outbound, not a public backend endpoint. After an admin writes public catalog/blog/content,
+the backend fires an on-demand ISR revalidation so the static `main-fe` site refreshes without
+waiting for time-based ISR.
+
+| Method | Path (on main-fe) | Auth |
+|---|---|---|
+| POST | `{MAIN_FE_INTERNAL_URL}/api/revalidate` | Shared secret via header `x-revalidate-secret: <REVALIDATE_SECRET>`. `401` if missing/mismatch. |
+
+- Body: `{ "tags": string[] }`. Tag vocabulary (mirrors `CacheNames`): `products`, `product:{id}`,
+  `blogs`, `blog:{id}`, `content`, `content:{section}`.
+- Backend triggers: `createProduct`/`updateProduct`/`deleteProduct`, `createBlog`/`updateBlog`/
+  `deleteBlog`, `BlogPublishJob.publishDueBlogs` (scheduled auto-publish), and
+  `PublicContentService.upsertSection` — sent `@Async` fire-and-forget (failures are logged,
+  never block the business transaction).
+- Env: `REVALIDATE_SECRET` (shared with main-fe), `MAIN_FE_INTERNAL_URL` (default
+  `http://main-fe:3000`). See `DEPLOYMENT_GUIDE.md` §2.1.
+
 ## 8. Active-surface guarantees
 
 `BUSINESS_LOGIC.md` §6 defines the minimum API surface that must not regress. Any change to

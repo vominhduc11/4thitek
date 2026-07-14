@@ -11,7 +11,7 @@ It is not a B2C store — end-customers are not accounts; they appear only in pu
 
 | Path | Surface | Stack |
 |---|---|---|
-| `backend/` | Business authority: REST API, scheduling, webhook, persistence | Spring Boot 3.4.3 / Java 17, PostgreSQL 16, Flyway, Redis |
+| `backend/` | Business authority: REST API, scheduling, webhook, persistence | Spring Boot 3.4.3 / Java 17, PostgreSQL 16, Flyway |
 | `admin-fe/` | Internal operations dashboard | Vite + React 18 + TypeScript + Tailwind |
 | `main-fe/` | Public SEO website | Next.js 15 (App Router, ISR) |
 | `dealer/` | Dealer-facing mobile app | Flutter (GoRouter, l10n vi/en) |

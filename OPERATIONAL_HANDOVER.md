@@ -40,7 +40,6 @@ Copy `.env.example` → `.env` and fill in **every item** below before first dep
 | Variable | Description | Required |
 |---|---|---|
 | `POSTGRES_PASSWORD` | PostgreSQL password | YES |
-| `REDIS_PASSWORD` | Redis auth password | YES |
 | `MINIO_ROOT_USER` | MinIO access key | YES |
 | `MINIO_ROOT_PASSWORD` | MinIO secret key | YES |
 | `JWT_SECRET` | HS512 key — generate: `openssl rand -hex 32` | YES |
@@ -60,7 +59,7 @@ Copy `.env.example` → `.env` and fill in **every item** below before first dep
 
 ## 4. First-Deploy Bootstrap Flow
 
-1. Set the five required secrets in `.env`.
+1. Set the four required secrets in `.env`.
 2. Set SePay / email / FCM env vars if needed.
 3. Enable super-admin bootstrap **temporarily**:
    ```

@@ -153,7 +153,6 @@ Ket qua mong doi: `postgres.sql.gz: OK` va `minio.tar.gz: OK`. Neu bao `FAILED`,
 ### Luu y quan trong
 
 - **Backup luu cung host** — neu disk may chu hong toan bo, backup cung mat. Nen copy offsite dinh ky (rclone → S3, rsync → may khac) sau khi script chay xong.
-- **Redis khong duoc backup** theo script nay — Redis chi luu cache va rate-limit state, mat di duoc chap nhan (toan bo user bi dang xuat, cache reset). Neu can consistent Redis state, them `redis-cli BGSAVE` vao script tuy chinh.
 - Script yeu cau container `postgres` dang chay. Neu chay cron khi stack down, script se thoat voi loi ro rang thay vi tao file rong.
 
 ## 8) RPO / RTO De xuat

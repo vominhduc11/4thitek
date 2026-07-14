@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import type { BlogCategory } from '@/types/api';
 import type { BlogPost } from '@/types/blog';
@@ -9,14 +10,13 @@ import { BlogBreadcrumb, BlogGrid, BlogHero, BlogPagination } from './components
 interface BlogsPageClientProps {
     initialPosts: BlogPost[];
     initialCategories: BlogCategory[];
-    initialSelectedCategory: string;
 }
 
-export default function BlogsPageClient({
-    initialPosts,
-    initialCategories,
-    initialSelectedCategory
-}: BlogsPageClientProps) {
+export default function BlogsPageClient({ initialPosts, initialCategories }: BlogsPageClientProps) {
+    // Bộ lọc category đọc từ query ?category= phía client (trang render tĩnh, không SSR).
+    const searchParams = useSearchParams();
+    const rawCategory = searchParams.get('category')?.trim();
+    const initialSelectedCategory = rawCategory && rawCategory.length > 0 ? rawCategory : 'ALL';
     const [selectedCategory, setSelectedCategory] = useState<string>(initialSelectedCategory);
     const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState('');

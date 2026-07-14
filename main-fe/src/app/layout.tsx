@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { cookies } from 'next/headers';
 import { Montserrat, Source_Sans_3 } from 'next/font/google';
 import Analytics from '@/components/analytics/Analytics';
 import ClientLayout from '@/components/layout/ClientLayout';
@@ -10,8 +9,6 @@ import {
     CONTACT_EMAIL,
     CONTACT_PHONE,
     DEFAULT_LOCALE,
-    LANGUAGE_COOKIE,
-    resolveSupportedLocale,
     SITE_NAME,
     SITE_URL,
     type SupportedLocale
@@ -94,13 +91,11 @@ const SHARED_METADATA: Omit<Metadata, 'title' | 'description'> = {
     }
 };
 
-const getRootLocale = async (): Promise<SupportedLocale> => {
-    const cookieStore = await cookies();
-    return resolveSupportedLocale(cookieStore.get(LANGUAGE_COOKIE)?.value ?? DEFAULT_LOCALE);
-};
-
-export async function generateMetadata(): Promise<Metadata> {
-    const locale = await getRootLocale();
+// Server LUÔN render locale canonical `vi` — KHÔNG đọc cookie ở tầng server. Đọc cookie
+// (next/headers) sẽ ép mọi route thành dynamic (SSR); để đạt SSG/ISR, locale phải tĩnh ở
+// server. Tiếng Anh được áp ở CLIENT qua LanguageContext (đọc cookie/localStorage sau mount).
+export function generateMetadata(): Metadata {
+    const locale: SupportedLocale = DEFAULT_LOCALE;
     const copy = ROOT_COPY[locale];
 
     return {
@@ -115,12 +110,12 @@ export async function generateMetadata(): Promise<Metadata> {
     };
 }
 
-export default async function RootLayout({
+export default function RootLayout({
     children
 }: Readonly<{
     children: React.ReactNode;
 }>) {
-    const locale = await getRootLocale();
+    const locale: SupportedLocale = DEFAULT_LOCALE;
     const copy = ROOT_COPY[locale];
 
     return (

@@ -75,25 +75,41 @@ const joinApiBaseUrl = (origin: string, version: string) => {
 
 const ensureLeadingSlash = (value: string) => (value.startsWith('/') ? value : `/${value}`);
 
-export const API_ORIGIN =
-    normalizeConfiguredApiOrigin(process.env.NEXT_PUBLIC_API_ORIGIN) ||
-    normalizeConfiguredApiOrigin(process.env.INTERNAL_API_ORIGIN) ||
-    normalizeConfiguredApiOrigin(process.env.NEXT_PUBLIC_API_BASE_URL) ||
-    normalizeConfiguredApiOrigin(process.env.INTERNAL_API_BASE_URL) ||
-    CANONICAL_API_ORIGIN;
+// Trong Docker, trình duyệt và tiến trình server chạy ở hai mạng khác nhau: trình duyệt gọi
+// API qua host công khai (NEXT_PUBLIC_*, ví dụ http://localhost:8080), còn code chạy trên
+// server (SSR/ISR) phải gọi qua hostname nội bộ của container (INTERNAL_*, ví dụ
+// http://backend:8080) vì "localhost" trong container là chính nó, không phải backend.
+// Vì vậy trên server ta ưu tiên INTERNAL_* trước; trên client chỉ dùng NEXT_PUBLIC_*.
+const IS_SERVER = typeof window === 'undefined';
 
-export const API_VERSION =
-    normalizeConfiguredApiVersion(process.env.NEXT_PUBLIC_API_VERSION) ||
-    normalizeConfiguredApiVersion(process.env.INTERNAL_API_VERSION) ||
-    deriveApiVersionFromBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL) ||
-    deriveApiVersionFromBaseUrl(process.env.INTERNAL_API_BASE_URL) ||
-    CANONICAL_API_VERSION;
+export const API_ORIGIN = IS_SERVER
+    ? normalizeConfiguredApiOrigin(process.env.INTERNAL_API_ORIGIN) ||
+      normalizeConfiguredApiOrigin(process.env.INTERNAL_API_BASE_URL) ||
+      normalizeConfiguredApiOrigin(process.env.NEXT_PUBLIC_API_ORIGIN) ||
+      normalizeConfiguredApiOrigin(process.env.NEXT_PUBLIC_API_BASE_URL) ||
+      CANONICAL_API_ORIGIN
+    : normalizeConfiguredApiOrigin(process.env.NEXT_PUBLIC_API_ORIGIN) ||
+      normalizeConfiguredApiOrigin(process.env.NEXT_PUBLIC_API_BASE_URL) ||
+      CANONICAL_API_ORIGIN;
 
-export const API_BASE_URL =
-    normalizeConfiguredApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL) ||
-    normalizeConfiguredApiBaseUrl(process.env.INTERNAL_API_BASE_URL) ||
-    joinApiBaseUrl(API_ORIGIN, API_VERSION) ||
-    CANONICAL_API_BASE_URL;
+export const API_VERSION = IS_SERVER
+    ? normalizeConfiguredApiVersion(process.env.INTERNAL_API_VERSION) ||
+      normalizeConfiguredApiVersion(process.env.NEXT_PUBLIC_API_VERSION) ||
+      deriveApiVersionFromBaseUrl(process.env.INTERNAL_API_BASE_URL) ||
+      deriveApiVersionFromBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL) ||
+      CANONICAL_API_VERSION
+    : normalizeConfiguredApiVersion(process.env.NEXT_PUBLIC_API_VERSION) ||
+      deriveApiVersionFromBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL) ||
+      CANONICAL_API_VERSION;
+
+export const API_BASE_URL = IS_SERVER
+    ? normalizeConfiguredApiBaseUrl(process.env.INTERNAL_API_BASE_URL) ||
+      normalizeConfiguredApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL) ||
+      joinApiBaseUrl(API_ORIGIN, API_VERSION) ||
+      CANONICAL_API_BASE_URL
+    : normalizeConfiguredApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL) ||
+      joinApiBaseUrl(API_ORIGIN, API_VERSION) ||
+      CANONICAL_API_BASE_URL;
 
 export const buildApiBaseUrl = (version?: string) => {
     const normalizedVersion = normalizeConfiguredApiVersion(version);

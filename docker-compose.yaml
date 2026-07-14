@@ -4,7 +4,7 @@
 #   cp .env.example .env  # for local / staging / production (fill in real secrets)
 #   docker compose up -d
 #
-# SECRETS: No fallback defaults for the five required credentials below.
+# SECRETS: No fallback defaults for the four required credentials below.
 #          Missing variables cause an immediate error before any container starts.
 #
 # NOTE: This file does not include TLS termination or a reverse proxy.
@@ -23,33 +23,6 @@ services:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-app} -d ${POSTGRES_DB:-app_db}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "5"
-
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    # $${REDIS_PASSWORD} — double-$ escapes Compose interpolation; the shell
-    # inside the container sees ${REDIS_PASSWORD} which is always set because
-    # the environment block below forces it to be present at parse time.
-    command: >
-      sh -c "redis-server --appendonly yes --requirepass \"$${REDIS_PASSWORD}\""
-    environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:?set REDIS_PASSWORD in .env (cp .env.example .env)}
-    volumes:
-      - redis-data:/data
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "redis-cli -a \"$${REDIS_PASSWORD}\" ping | grep PONG",
-        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -105,8 +78,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
       minio:
         condition: service_healthy
       minio-init:
@@ -125,10 +96,6 @@ services:
       SPRING_H2_CONSOLE_ENABLED: "false"
       SPRING_FLYWAY_ENABLED: ${SPRING_FLYWAY_ENABLED:-true}
       SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO:-validate}
-      SPRING_DATA_REDIS_HOST: redis
-      SPRING_DATA_REDIS_PORT: 6379
-      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
-      SPRING_DATA_REDIS_DATABASE: ${SPRING_DATA_REDIS_DATABASE:-0}
       JWT_SECRET: "${JWT_SECRET:?set JWT_SECRET in .env - generate with openssl rand -hex 32}"
       APP_SEED_DEMO_DATA: ${APP_SEED_DEMO_DATA:-false}
       # Bootstrap defaults to disabled — set APP_BOOTSTRAP_SUPER_ADMIN_ENABLED=true
@@ -204,6 +171,10 @@ services:
       APP_FCM_CREDENTIALS_JSON_BASE64: ${APP_FCM_CREDENTIALS_JSON_BASE64:-}
       APP_SEED_DEMO_PASSWORD: ${APP_SEED_DEMO_PASSWORD:-}
       APP_ALLOW_PRODUCTION_BOOTSTRAP: ${APP_ALLOW_PRODUCTION_BOOTSTRAP:-false}
+      # ISR on-demand: backend goi POST {MAIN_FE_INTERNAL_URL}/api/revalidate voi
+      # x-revalidate-secret khi admin doi product/blog/content. Secret rong → bo qua.
+      MAIN_FE_INTERNAL_URL: ${MAIN_FE_INTERNAL_URL:-http://main-fe:3000}
+      REVALIDATE_SECRET: ${REVALIDATE_SECRET:-}
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
     volumes:
@@ -235,6 +206,15 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    # SSR/ISR chạy trong container phải gọi backend qua hostname nội bộ (backend:8080),
+    # không dùng được host công khai của trình duyệt. Cấp INTERNAL_* ở runtime để server đọc.
+    environment:
+      INTERNAL_API_ORIGIN: ${INTERNAL_API_ORIGIN:-http://backend:8080}
+      INTERNAL_API_VERSION: ${INTERNAL_API_VERSION:-v1}
+      INTERNAL_API_BASE_URL: ${INTERNAL_API_BASE_URL:-http://backend:8080/api/v1}
+      # Bi mat chia se voi backend cho ISR on-demand (route /api/revalidate). Doc luc
+      # request (runtime), khong phai build arg. Phai giong REVALIDATE_SECRET o backend.
+      REVALIDATE_SECRET: ${REVALIDATE_SECRET:-}
     ports:
       - "127.0.0.1:${MAIN_FE_PORT:-3000}:3000"
     logging:
@@ -286,7 +266,6 @@ services:
 
 volumes:
   pgdata:
-  redis-data:
   minio-data:
   upload-data:
 

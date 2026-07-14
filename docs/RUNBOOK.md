@@ -24,7 +24,7 @@ docker compose restart backend
 
 Kiem tra:
 
-- DB/Redis co healthy khong
+- DB co healthy khong
 - Bien env bat buoc co bi mat khong
 - Flyway migration co fail khong
 
@@ -45,24 +45,7 @@ docker compose restart postgres
 
 Neu volume/corruption nghiem trong: dung procedure restore staging truoc, sau do restore production theo change window.
 
-## 3) Redis Down
-
-Trieu chung:
-
-- Rate-limit/cache bat thuong
-- Backend fallback hoac latency tang
-
-Xu ly:
-
-```bash
-docker compose ps redis
-docker compose logs --tail=300 redis
-docker compose restart redis
-```
-
-Kiem tra lai login, refresh token, rate-limit paths.
-
-## 4) MinIO Down
+## 3) MinIO Down
 
 Trieu chung:
 
@@ -79,7 +62,7 @@ docker compose restart minio
 
 Kiem tra bucket policy va credentials MinIO trong env.
 
-## 5) SePay mismatch / unmatched payment tang dot bien
+## 4) SePay mismatch / unmatched payment tang dot bien
 
 Trieu chung:
 
@@ -94,7 +77,7 @@ Xu ly:
 4. Trich xuat 20 ban ghi unmatched moi nhat de phan loai ly do.
 5. Manual reconcile tren admin cho giao dich hop le.
 
-## 6) Disk Full
+## 5) Disk Full
 
 Trieu chung:
 
@@ -115,7 +98,7 @@ Hanh dong:
 - Don image/container khong dung trong maintenance window
 - Mo rong disk neu can
 
-## 7) SSL/Nginx Loi
+## 6) SSL/Nginx Loi
 
 Trieu chung:
 
@@ -136,7 +119,7 @@ Kiem tra:
 - Upstream localhost ports dung
 - Docs endpoints van bi deny tren public vhost
 
-## 8) Rollback Co Ban
+## 7) Rollback Co Ban
 
 1. Xac dinh release version can rollback (image tag/commit hash).
 2. Rollback application containers truoc (backend/main-fe/admin-fe).
@@ -144,13 +127,13 @@ Kiem tra:
 4. Khong rollback DB schema bang tay khi chua co approved rollback script.
 5. Sau rollback, chay smoke test toi thieu + theo doi logs 30 phut.
 
-## 9) Giam sat co ban (Basic Monitoring)
+## 8) Giam sat co ban (Basic Monitoring)
 
 He thong chua tich hop Prometheus/Grafana. Trong thoi gian cho, thiet lap ba lop giam sat sau de phat hien su co som nhat co the.
 
 ---
 
-### 9.1) Uptime Monitor — canh bao khi service down
+### 8.1) Uptime Monitor — canh bao khi service down
 
 **Cong cu mien phi:** UptimeRobot (https://uptimerobot.com) — goi mien phi kiem tra moi 5 phut, gui canh bao qua email/Telegram.
 
@@ -183,7 +166,7 @@ curl -fsS https://api.4thitek.vn/actuator/health \
 
 ---
 
-### 9.2) Canh bao dung luong o dia
+### 8.2) Canh bao dung luong o dia
 
 Log Docker (`max-size=50m x 5 file` moi service) va thu muc `backups/` co the lam day o dia neu khong kiem soat.
 
@@ -257,7 +240,7 @@ find /opt/4thitek/backups -maxdepth 1 -type d -mtime +30 -exec rm -rf {} \;
 
 ---
 
-### 9.3) Kiem tra backup con moi (phat hien backup bi hong hoac bi bo sot)
+### 8.3) Kiem tra backup con moi (phat hien backup bi hong hoac bi bo sot)
 
 Neu backup.sh khong chay (cron bi loi, service docker down...), file backup moi nhat se qua 24 gio. Script sau canh bao khi phat hien tinh trang do.
 
@@ -336,7 +319,7 @@ crontab -e
 
 ---
 
-### 9.4) Kiem tra thu cong dinh ky (khi chua co alerting tu dong)
+### 8.4) Kiem tra thu cong dinh ky (khi chua co alerting tu dong)
 
 Neu chua thiet lap duoc email alert, chay tay cac lenh sau it nhat **moi tuan mot lan**:
 

@@ -20,7 +20,7 @@ describe('publicApiServer', () => {
         vi.restoreAllMocks();
     });
 
-    it('uses ISR-friendly fetch options for product listings', async () => {
+    it('uses ISR-friendly fetch options with on-demand tags for product listings', async () => {
         const fetchMock = vi.fn().mockResolvedValue({
             ok: true,
             json: async () => ({
@@ -37,7 +37,26 @@ describe('publicApiServer', () => {
             'https://api.4thitek.vn/api/v1/product/products',
             expect.objectContaining({
                 cache: 'force-cache',
-                next: { revalidate: 60 }
+                // ISR time-based giữ làm fallback + tag 'products' cho revalidate on-demand.
+                next: { revalidate: 60, tags: ['products'] }
+            })
+        );
+    });
+
+    it('tags product detail requests with both products and product:{id}', async () => {
+        const fetchMock = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({ success: true, data: { id: 7, name: 'SCS G7' } })
+        });
+        vi.stubGlobal('fetch', fetchMock);
+
+        const { publicApiServer } = await importPublicApiServer();
+        await publicApiServer.fetchProductById('7');
+
+        expect(fetchMock).toHaveBeenCalledWith(
+            'https://api.4thitek.vn/api/v1/product/7',
+            expect.objectContaining({
+                next: { revalidate: 60, tags: ['products', 'product:7'] }
             })
         );
     });

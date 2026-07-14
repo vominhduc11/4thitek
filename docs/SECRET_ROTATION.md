@@ -160,51 +160,7 @@ docker compose exec postgres \
 
 ---
 
-## 4. REDIS_PASSWORD
-
-### Pham vi anh huong
-
-Redis luu cache, rate-limit state va thong tin refresh token cua session. Khi rotate Redis password, **toan bo session hien tai co the bi anh huong** (tuong tu JWT_SECRET). Ngoai ra, neu backend mat ket noi Redis trong qua trinh chuyen doi, rate-limit va cache se bi vo hieu tam thoi.
-
-### Quy trinh
-
-**Buoc 1 — Doi password truc tiep trong Redis (khong downtime):**
-
-```bash
-OLD_PASS=$(grep REDIS_PASSWORD .env | cut -d= -f2)
-docker compose exec redis \
-  redis-cli -a "$OLD_PASS" CONFIG SET requirepass "new-strong-redis-password"
-```
-
-**Buoc 2 — Cap nhat `.env` ngay sau do:**
-
-```env
-REDIS_PASSWORD=new-strong-redis-password
-```
-
-**Buoc 3 — Khoi dong lai backend:**
-
-```bash
-docker compose restart backend
-```
-
-**Buoc 4 — Khoi dong lai Redis** de container doc bien moi truong moi (can cho luc maintenance):
-
-```bash
-docker compose restart redis
-docker compose restart backend
-```
-
-*Luu y: Neu dung `appendonly yes` (mac dinh trong docker-compose), du lieu Redis van con sau khi restart container.*
-
-### Tan suat khuyen nghi
-
-- **Dinh ky:** 6 thang mot lan.
-- **Khi co su co:** Ngay lap tuc.
-
----
-
-## 5. MINIO_ROOT_USER / MINIO_ROOT_PASSWORD
+## 4. MINIO_ROOT_USER / MINIO_ROOT_PASSWORD
 
 ### Pham vi anh huong
 
@@ -245,19 +201,18 @@ curl -fsS http://127.0.0.1:8080/actuator/health
 
 ---
 
-## 6. Bang tan suat khuyen nghi
+## 5. Bang tan suat khuyen nghi
 
 | Secret | Tan suat dinh ky | Thuc hien khi nao bat buoc |
 |---|---|---|
 | `JWT_SECRET` | 6 thang | Nghi ngo lo, incident bao mat |
 | `POSTGRES_PASSWORD` | Khong bat buoc | Nghi ngo lo, yeu cau compliance |
 | `SEPAY_WEBHOOK_TOKEN` | 3 thang | Nghi ngo lo, thay nhan su tiep can |
-| `REDIS_PASSWORD` | 6 thang | Nghi ngo lo, incident bao mat |
 | `MINIO_ROOT_USER/PASSWORD` | Khong bat buoc | Nghi ngo lo, yeu cau compliance |
 
 ---
 
-## 7. Kiem tra sau moi lan rotate
+## 6. Kiem tra sau moi lan rotate
 
 Bat ke secret nao vua duoc rotate, chay day du checklist sau:
 

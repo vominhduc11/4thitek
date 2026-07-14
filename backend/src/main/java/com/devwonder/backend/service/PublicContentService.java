@@ -33,6 +33,7 @@ public class PublicContentService {
 
     private final ObjectMapper objectMapper;
     private final PublicContentEntryRepository publicContentEntryRepository;
+    private final org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     private Map<String, Object> bundledSiteContent = Map.of();
 
@@ -89,7 +90,12 @@ public class PublicContentService {
         entry.setLocale(normalizedLanguage);
         entry.setPayload(normalizedPayload);
         entry.setPublished(Boolean.TRUE.equals(request.published()));
-        return toAdminResponse(publicContentEntryRepository.save(entry));
+        AdminPublicContentSectionResponse response = toAdminResponse(publicContentEntryRepository.save(entry));
+        // ISR on-demand: main-fe re-fetch section nay sau khi commit (RevalidationClient
+        // lang nghe AFTER_COMMIT). content:home anh huong trang chu (SSG/ISR).
+        eventPublisher.publishEvent(new com.devwonder.backend.event.RevalidateContentEvent(
+                new java.util.LinkedHashSet<>(java.util.List.of("content", "content:" + normalizedSection))));
+        return response;
     }
 
     private void seedMissingEntriesFromBundle() {

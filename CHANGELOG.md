@@ -5,6 +5,31 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [Unreleased]
+
+### Changed — Backend
+- Gỡ bỏ hẳn Redis: xóa dependency `spring-boot-starter-data-redis`, xóa `RedisConfig`, xóa
+  nhánh `RedisCacheManager` trong `CacheConfig`, xóa `tryAcquireWithRedis()` trong
+  `RateLimitFilter`
+- Cache chuyển sang dùng `ConcurrentMapCacheManager` (in-memory) làm cơ chế duy nhất; rate-limit
+  chuyển sang dùng sliding-window in-memory (`ConcurrentHashMap`) làm cơ chế duy nhất — cả hai cơ
+  chế này trước đây đã tồn tại sẵn làm fallback, nay là đường dẫn chính duy nhất
+- Lý do: backend chỉ chạy 1 instance duy nhất nên Redis (distributed cache/rate-limit) là dư thừa
+
+### Changed — Infrastructure & DevOps
+- Xóa service `redis` khỏi `docker-compose.yaml` (image, healthcheck, volume `redis-data`)
+- Xóa biến `REDIS_PASSWORD`, `SPRING_DATA_REDIS_HOST/PORT/PASSWORD/DATABASE` khỏi
+  `docker-compose.yaml` và `.env`/`.env.example`/`.env.vps`/`.env.vps.example`
+- Cập nhật `docs/RUNBOOK.md`, `docs/SECRET_ROTATION.md`, `docs/BACKUP_RESTORE.md`,
+  `docs/DEPLOYMENT_GUIDE.md`, `OPERATIONAL_HANDOVER.md`, `README.md`, `CLAUDE.md` cho khớp với
+  việc gỡ Redis
+
+### ⚠️ Thay đổi hành vi runtime
+- Cache và rate-limit state hiện là in-memory, **reset khi backend restart** — chấp nhận được vì
+  backend chỉ chạy 1 instance
+
+---
+
 ## [1.0.0] - 2026-04-29
 
 ### Added — Backend

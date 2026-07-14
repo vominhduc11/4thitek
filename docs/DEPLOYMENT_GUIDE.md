@@ -11,7 +11,6 @@
 Toi thieu phai co trong `.env`:
 
 - `POSTGRES_PASSWORD`
-- `REDIS_PASSWORD`
 - `MINIO_ROOT_USER`
 - `MINIO_ROOT_PASSWORD`
 - `JWT_SECRET`
@@ -23,6 +22,36 @@ Neu bat SePay:
 - `SEPAY_BANK_NAME`
 - `SEPAY_ACCOUNT_NUMBER`
 - `SEPAY_ACCOUNT_HOLDER`
+
+ISR on-demand cho `main-fe` (revalidate khi admin đổi product/blog/content):
+
+- `REVALIDATE_SECRET` — chuỗi bí mật chia sẻ giữa `backend` và `main-fe`. Sinh bằng
+  `openssl rand -hex 32`. Giá trị **phải giống nhau** ở cả hai service (backend gửi header
+  `x-revalidate-secret`, main-fe so khớp). Nếu để trống, main-fe từ chối mọi request
+  revalidate (401) và site chỉ làm tươi theo ISR time-based (fallback).
+- `MAIN_FE_INTERNAL_URL` — URL nội bộ backend dùng để gọi main-fe trong mạng Docker, mặc
+  định `http://main-fe:3000`.
+
+Xem cơ chế ở mục "ISR on-demand (revalidation webhook)" bên dưới.
+
+### 2.1) ISR on-demand (revalidation webhook)
+
+`main-fe` là site SEO render tĩnh (SSG/ISR), **không SSR**. Nội dung admin cập nhật được đẩy
+lên site gần tức thì qua cơ chế revalidate theo tag thay vì chờ ISR time-based hết hạn.
+
+- Endpoint nội bộ (main-fe): `POST /api/revalidate`, header `x-revalidate-secret: <REVALIDATE_SECRET>`,
+  body `{ "tags": string[] }`. Trả `200 { revalidated: true }` khi hợp lệ, `401` khi sai/thiếu
+  secret. Đây là route nội bộ — **không** public qua reverse proxy.
+- Tag hợp đồng (khớp `CacheNames` ở backend):
+  - `products`, `product:{id}` — danh sách/chi tiết sản phẩm
+  - `blogs`, `blog:{id}` — danh sách/chi tiết bài viết
+  - `content`, `content:{section}` — nội dung CMS (vd `content:home`)
+- Backend gọi endpoint này sau khi admin create/update/delete product, blog (kể cả
+  `BlogPublishJob` tự đăng theo lịch), và upsert content section. Gọi bằng `@Async`
+  fire-and-forget: lỗi mạng chỉ ghi log, không chặn nghiệp vụ.
+- Nếu `main-fe` chạy nhiều replica: `revalidateTag` chỉ tác động instance nhận request. Khi
+  scale >1, cần một cơ chế cache dùng chung giữa các instance để nhất quán — hệ thống hiện tại
+  không có sẵn cơ chế này. Mặc định hiện tại là 1 container nên chưa cần.
 
 ## 3) Bootstrap SUPER_ADMIN Safe Flow
 
