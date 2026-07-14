@@ -105,7 +105,7 @@ class OrderDetailScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
-                        value: selectedReason,
+                        initialValue: selectedReason,
                         decoration: InputDecoration(
                           labelText: texts.cancelReasonLabel,
                           errorText: reasonError,

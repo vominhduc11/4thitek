@@ -3174,12 +3174,10 @@ class _SectionTitle extends StatelessWidget {
   const _SectionTitle({
     required this.title,
     this.subtitle,
-    this.compact = false,
   });
 
   final String title;
   final String? subtitle;
-  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -3195,13 +3193,13 @@ class _SectionTitle extends StatelessWidget {
           ),
         ),
         if (subtitle != null && subtitle.trim().isNotEmpty) ...[
-          SizedBox(height: compact ? 2 : 4),
+          const SizedBox(height: 4),
           Text(
             subtitle,
             style: theme.textTheme.bodySmall?.copyWith(
               color: _dashboardMutedText(context),
               height: 1.45,
-              fontWeight: compact ? FontWeight.w500 : FontWeight.w600,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
