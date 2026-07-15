@@ -76,7 +76,7 @@ export default function ProductDetails({ description, content, descriptions }: P
                                     height={400}
                                     className="h-full w-full object-cover"
                                     loading="lazy"
-                                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 1200px"
+                                    sizes="(min-width: 2560px) 2160px, (min-width: 1920px) 1680px, (max-width: 640px) 100vw, (max-width: 1024px) 90vw, 1200px"
                                 />
                             ) : (
                                 <div className="flex h-full w-full items-center justify-center text-sm text-[var(--text-muted)]">
@@ -191,7 +191,7 @@ export default function ProductDetails({ description, content, descriptions }: P
                                     height={400}
                                     className="h-full w-full object-cover"
                                     loading="lazy"
-                                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 1200px"
+                                    sizes="(min-width: 2560px) 2160px, (min-width: 1920px) 1680px, (max-width: 640px) 100vw, (max-width: 1024px) 90vw, 1200px"
                                 />
                             ) : (
                                 <div className="flex h-full w-full items-center justify-center text-sm text-[var(--text-muted)]">

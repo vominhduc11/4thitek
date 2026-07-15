@@ -21,7 +21,7 @@ export default function Breadcrumb({ items }: BreadcrumbProps) {
                         ) : item.href ? (
                             <Link
                                 href={item.href}
-                                className="text-[var(--text-secondary)] transition-colors hover:text-white"
+                                className="inline-block py-1 text-[var(--text-secondary)] transition-colors hover:text-white"
                             >
                                 {item.label}
                             </Link>

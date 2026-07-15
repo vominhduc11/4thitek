@@ -214,7 +214,7 @@ function ResetPasswordContent() {
                 <div className="absolute bottom-12 right-[-6rem] h-80 w-80 rounded-full bg-[rgba(0,113,188,0.16)] blur-3xl" />
             </div>
 
-            <div className="ml-0 flex min-h-screen items-center py-16 sm:ml-16 md:ml-20">
+            <div className="ml-0 flex min-h-screen items-center py-16 lg:ml-20">
                 <div className="brand-shell">
                     <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
                         <section className="brand-card rounded-[2rem] p-8 lg:p-10">

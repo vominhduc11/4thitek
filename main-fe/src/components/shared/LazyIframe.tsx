@@ -79,13 +79,17 @@ const LazyIframe = memo(function LazyIframe({
         </div>
     );
 
+    // When the caller's className supplies an aspect ratio (e.g. `aspect-video`),
+    // an inline height would override it and collapse the box — let the class win.
+    const hasAspectClass = /(?:^|\s)aspect-/.test(className);
+
     return (
         <div
             ref={containerRef}
             className={`relative ${className}`}
             style={{
                 width: typeof width === 'number' ? `${width}px` : width,
-                height: typeof height === 'number' ? `${height}px` : height
+                ...(hasAspectClass ? {} : { height: typeof height === 'number' ? `${height}px` : height })
             }}
         >
             {/* Placeholder shown before iframe loads */}

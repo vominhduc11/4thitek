@@ -3,10 +3,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import 'api_client_helpers.dart';
 import 'api_config.dart';
 import 'auth_storage.dart';
 import 'dealer_auth_client.dart';
 import 'models.dart';
+import 'utils.dart';
 
 enum ProductCatalogMessageCode {
   apiNotConfigured,
@@ -148,6 +150,7 @@ class ProductCatalogController extends ChangeNotifier {
       _errorMessage = error.message;
       _hasLoaded = true;
     } catch (_) {
+      // Unexpected failure (network, parsing): surface a generic sync error.
       _isUsingFallback = false;
       _errorMessage = productCatalogMessageToken(
         ProductCatalogMessageCode.syncFailed,
@@ -175,7 +178,7 @@ class ProductCatalogController extends ChangeNotifier {
       uri,
       headers: const <String, String>{'Accept': 'application/json'},
     );
-    final payload = _decodePayload(response.body);
+    final payload = decodeJsonBody(response.body);
     if (response.statusCode >= 400) {
       throw ProductCatalogException(_extractErrorMessage(payload));
     }
@@ -225,7 +228,7 @@ class ProductCatalogController extends ChangeNotifier {
         DealerApiConfig.resolveApiUri('/product/$productId'),
         headers: const <String, String>{'Accept': 'application/json'},
       );
-      final payload = _decodePayload(response.body);
+      final payload = decodeJsonBody(response.body);
       if (response.statusCode >= 400) {
         throw ProductCatalogException(_extractErrorMessage(payload));
       }
@@ -245,6 +248,8 @@ class ProductCatalogController extends ChangeNotifier {
       _upsertProduct(resolvedProduct);
       return resolvedProduct;
     } catch (_) {
+      // Detail fetch failed: reuse the summary product when it already carries
+      // usable detail; otherwise let the caller handle the failure.
       if (fallbackProduct.descriptions.isNotEmpty ||
           fallbackProduct.videos.isNotEmpty ||
           fallbackProduct.specifications.isNotEmpty) {
@@ -296,17 +301,6 @@ class ProductCatalogController extends ChangeNotifier {
       );
   }
 
-  Map<String, dynamic> _decodePayload(String body) {
-    if (body.trim().isEmpty) {
-      return const <String, dynamic>{};
-    }
-    final decoded = jsonDecode(body);
-    if (decoded is Map<String, dynamic>) {
-      return decoded;
-    }
-    return const <String, dynamic>{};
-  }
-
   String _extractErrorMessage(Map<String, dynamic> payload) {
     final error = payload['error']?.toString();
     if (error != null && error.trim().isNotEmpty) {
@@ -321,10 +315,10 @@ class ProductCatalogController extends ChangeNotifier {
       name: json['name']?.toString().trim() ?? '',
       sku: json['sku']?.toString().trim() ?? '',
       shortDescription: json['shortDescription']?.toString().trim() ?? '',
-      price: _parsePrice(json['price']),
-      stock: _parseInt(json['stock']),
-      warrantyMonths: _parseInt(json['warrantyMonths'], fallback: 12),
-      imageUrl: _normalizeString(json['image']),
+      price: parsePrice(json['price']),
+      stock: parseInt(json['stock']),
+      warrantyMonths: parseInt(json['warrantyMonths'], fallback: 12),
+      imageUrl: normalizeString(json['image']),
     );
   }
 
@@ -334,10 +328,10 @@ class ProductCatalogController extends ChangeNotifier {
       name: json['name']?.toString().trim() ?? '',
       sku: json['sku']?.toString().trim() ?? '',
       shortDescription: json['shortDescription']?.toString().trim() ?? '',
-      price: _parsePrice(json['price']),
-      stock: _parseInt(json['stock']),
-      warrantyMonths: _parseInt(json['warrantyMonths'], fallback: 12),
-      imageUrl: _normalizeString(json['image']),
+      price: parsePrice(json['price']),
+      stock: parseInt(json['stock']),
+      warrantyMonths: parseInt(json['warrantyMonths'], fallback: 12),
+      imageUrl: normalizeString(json['image']),
       descriptions: _parseDescriptions(json['descriptions']),
       videos: _parseVideos(json['videos']),
       specifications: _parseSpecifications(json['specifications']),
@@ -426,8 +420,8 @@ class ProductCatalogController extends ChangeNotifier {
           if (gallerySource is List) {
             for (final entry in gallerySource) {
               final nextValue = entry is Map<String, dynamic>
-                  ? _normalizeString(entry['url'])
-                  : _normalizeString(entry);
+                  ? normalizeString(entry['url'])
+                  : normalizeString(entry);
               if (nextValue != null && nextValue.trim().isNotEmpty) {
                 gallery.add(nextValue);
               }
@@ -436,12 +430,12 @@ class ProductCatalogController extends ChangeNotifier {
 
           return ProductDescriptionItem(
             type: type,
-            text: _normalizeString(item['text']),
+            text: normalizeString(item['text']),
             url:
-                _normalizeString(item['url']) ??
-                _normalizeString(item['imageUrl']) ??
-                _normalizeString(item['videoUrl']),
-            caption: _normalizeString(item['caption']),
+                normalizeString(item['url']) ??
+                normalizeString(item['imageUrl']) ??
+                normalizeString(item['videoUrl']),
+            caption: normalizeString(item['caption']),
             gallery: gallery,
           );
         })
@@ -501,31 +495,6 @@ class ProductCatalogController extends ChangeNotifier {
       // ignore invalid json
     }
     return const <String, dynamic>{};
-  }
-
-  String? _normalizeString(Object? value) {
-    final text = value?.toString().trim() ?? '';
-    return text.isEmpty ? null : text;
-  }
-
-  int _parseInt(Object? value, {int fallback = 0}) {
-    if (value is int) {
-      return value;
-    }
-    if (value is double) {
-      return value.round();
-    }
-    return int.tryParse(value?.toString() ?? '') ?? fallback;
-  }
-
-  int _parsePrice(Object? value) {
-    if (value is int) {
-      return value;
-    }
-    if (value is double) {
-      return value.round();
-    }
-    return double.tryParse(value?.toString() ?? '')?.round() ?? 0;
   }
 
   @override

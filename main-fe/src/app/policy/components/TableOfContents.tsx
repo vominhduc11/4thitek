@@ -31,7 +31,7 @@ export default function TableOfContents({ entries }: TableOfContentsProps) {
                     <li key={index}>
                         <button
                             onClick={() => handleScrollToSection(entry.anchorId)}
-                            className="cursor-pointer text-left transition-colors hover:text-[var(--text-primary)]"
+                            className="inline-block cursor-pointer py-2 text-left transition-colors hover:text-[var(--text-primary)]"
                         >
                             {entry.label}
                         </button>

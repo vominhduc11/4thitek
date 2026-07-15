@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import 'api_client_helpers.dart';
 import 'api_config.dart';
 
 enum AuthMessageCode {
@@ -174,7 +175,7 @@ class RemoteAuthService implements AuthService {
           )
           .timeout(timeout);
 
-      final payload = _decodeBody(response.body);
+      final payload = decodeJsonBody(response.body);
       if (response.statusCode >= 400) {
         return LoginResult.failure(
           type: _mapFailureType(response.statusCode),
@@ -239,7 +240,7 @@ class RemoteAuthService implements AuthService {
           )
           .timeout(timeout);
 
-      final payload = _decodeBody(response.body);
+      final payload = decodeJsonBody(response.body);
       if (response.statusCode >= 400) {
         return PasswordResetRequestResult.failure(
           type: _mapFailureType(response.statusCode),
@@ -264,17 +265,6 @@ class RemoteAuthService implements AuthService {
         message: authServiceMessageToken(AuthMessageCode.serverUnavailable),
       );
     }
-  }
-
-  Map<String, dynamic> _decodeBody(String body) {
-    if (body.trim().isEmpty) {
-      return const <String, dynamic>{};
-    }
-    final decoded = jsonDecode(body);
-    if (decoded is Map<String, dynamic>) {
-      return decoded;
-    }
-    return const <String, dynamic>{};
   }
 
   Map<String, dynamic> _extractDataMap(Map<String, dynamic> payload) {

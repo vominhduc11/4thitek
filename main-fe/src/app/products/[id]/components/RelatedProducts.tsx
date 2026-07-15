@@ -32,7 +32,7 @@ export default function RelatedProducts({ products }: RelatedProductsProps) {
                         </p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 4xl:grid-cols-5">
                         {products.map((product, index) => (
                             <motion.article
                                 key={product.id}
@@ -57,7 +57,7 @@ export default function RelatedProducts({ products }: RelatedProductsProps) {
                                                     width={220}
                                                     height={220}
                                                     sizes="(max-width: 640px) 180px, 220px"
-                                                    className="h-[190px] w-[190px] object-contain"
+                                                    className="h-[190px] w-full max-w-[190px] object-contain"
                                                 />
                                             ) : (
                                                 <FiHeadphones className="h-16 w-16 text-[var(--text-muted)]" />

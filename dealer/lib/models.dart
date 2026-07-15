@@ -112,8 +112,6 @@ class Product {
     _productEffectiveDescriptionsCache[this] = resolved;
     return resolved;
   }
-
-  List<ProductVideoItem> get effectiveVideos => videos;
 }
 
 class CartItem {

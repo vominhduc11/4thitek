@@ -17,6 +17,8 @@ class DealerFirebaseOptionsProvider {
       await Firebase.initializeApp();
       return true;
     } catch (_) {
+      // Default init failed (e.g. missing native config): retry with explicit
+      // options below when we have them, otherwise report unavailable.
       if (options == null) {
         return false;
       }
@@ -26,6 +28,7 @@ class DealerFirebaseOptionsProvider {
       await Firebase.initializeApp(options: options);
       return true;
     } catch (_) {
+      // Explicit init also failed: Firebase features stay disabled.
       return false;
     }
   }

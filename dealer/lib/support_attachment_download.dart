@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:http/http.dart' as http;
 
+import 'api_client_helpers.dart';
 import 'api_config.dart';
 import 'auth_storage.dart';
 import 'dealer_auth_client.dart';
@@ -60,7 +61,10 @@ Future<SupportAttachmentAsset> loadSupportAttachmentAsset(
       headers: <String, String>{'accept': '*/*'},
     );
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Attachment download failed (${response.statusCode})');
+      throw ApiException(
+        'Attachment download failed',
+        statusCode: response.statusCode,
+      );
     }
 
     final bytes = Uint8List.fromList(response.bodyBytes);

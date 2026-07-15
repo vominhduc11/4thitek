@@ -426,7 +426,7 @@ export default function BecomeOurReseller() {
             {/* Hero Section */}
             <Hero
                 breadcrumbItems={breadcrumbItems}
-                breadcrumbWrapperClassName="ml-0 sm:ml-16 md:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20"
+                breadcrumbWrapperClassName="ml-0 lg:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20"
             />
 
             {/* Application Form Section */}
@@ -474,7 +474,7 @@ export default function BecomeOurReseller() {
                             viewport={{ once: true }}
                         >
                             <Card className="brand-card rounded-[30px] shadow-2xl transition-all duration-300">
-                                <CardContent className="p-8">
+                                <CardContent className="p-5 sm:p-8">
                                     {submitStatus === 'success' && (
                                         <div className="mb-8 rounded-[24px] border border-[rgba(43,224,134,0.24)] bg-[rgba(43,224,134,0.1)] p-6 text-[#c9f8e0]">
                                             <div className="flex items-center gap-3">
@@ -525,7 +525,7 @@ export default function BecomeOurReseller() {
                                                 className={`grid grid-cols-1 sm:grid-cols-2 ${ultraWideSpacing['grid-gap-md']}`}
                                             >
                                                 {/* Company Name */}
-                                                <div className="md:col-span-2">
+                                                <div className="sm:col-span-2">
                                                     <label
                                                         htmlFor="name"
                                                         className="block text-sm font-medium text-[var(--text-primary)] mb-2"
@@ -637,7 +637,7 @@ export default function BecomeOurReseller() {
                                                 </div>
 
                                                 {/* Email */}
-                                                <div className="md:col-span-2">
+                                                <div className="sm:col-span-2">
                                                     <label
                                                         htmlFor="email"
                                                         className="block text-sm font-medium text-[var(--text-primary)] mb-2"
@@ -723,7 +723,7 @@ export default function BecomeOurReseller() {
                                                 </div>
 
                                                 {/* Address */}
-                                                <div className="md:col-span-2">
+                                                <div className="sm:col-span-2">
                                                     <label
                                                         htmlFor="address"
                                                         className="block text-sm font-medium text-[var(--text-primary)] mb-2"

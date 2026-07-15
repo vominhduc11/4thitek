@@ -108,6 +108,28 @@ const BlogBreadcrumb = ({
                             )}
                         </div>
 
+                        <div className="mt-6 flex gap-2 overflow-x-auto scrollbar-none xl:hidden">
+                            {categoryList.map((category) => {
+                                const categoryKey = category.id === 'ALL' ? 'ALL' : String(category.id);
+                                const isSelected =
+                                    selectedCategory === categoryKey || selectedCategory === category.name;
+
+                                return (
+                                    <button
+                                        key={`mobile-${categoryKey}`}
+                                        className={`flex min-h-[40px] shrink-0 items-center whitespace-nowrap rounded-full px-3 text-sm font-semibold uppercase tracking-[0.12em] transition-all duration-200 ${
+                                            isSelected
+                                                ? 'bg-[rgba(41,171,226,0.12)] text-[var(--brand-blue)]'
+                                                : 'text-[var(--text-secondary)] hover:text-white'
+                                        }`}
+                                        onClick={() => onCategoryClick(categoryKey)}
+                                    >
+                                        {category.id === 'ALL' ? t('blog.list.allCategories') : category.name}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
                         <div className="mt-6 hidden items-center justify-between gap-6 xl:flex">
                             <div className="flex flex-wrap items-center gap-2">
                                 {visibleCategories.map((category) => {

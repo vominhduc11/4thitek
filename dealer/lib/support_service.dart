@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+import 'api_client_helpers.dart';
 import 'api_config.dart';
 import 'auth_storage.dart';
 import 'dealer_auth_client.dart';
@@ -249,7 +250,7 @@ class SupportService {
       DealerApiConfig.resolveApiUri('/dealer/support-tickets/latest'),
       headers: await _authorizedHeaders(),
     );
-    final payload = _decodeBody(response.bodyBytes);
+    final payload = decodeJsonBytes(response.bodyBytes);
     if (response.statusCode == HttpStatus.notFound) {
       debugPrint(
         'SupportService: fetchLatestTicket returned 404 (no tickets found)',
@@ -276,7 +277,7 @@ class SupportService {
       DealerApiConfig.resolveApiUri('/dealer/support-tickets/$ticketId'),
       headers: await _authorizedHeaders(),
     );
-    final payload = _decodeBody(response.bodyBytes);
+    final payload = decodeJsonBytes(response.bodyBytes);
     if (response.statusCode >= 400) {
       throw SupportException(_extractErrorMessage(payload));
     }
@@ -331,7 +332,7 @@ class SupportService {
       headers: await _authorizedJsonHeaders(),
       body: jsonEncode(body),
     );
-    final payload = _decodeBody(response.bodyBytes);
+    final payload = decodeJsonBytes(response.bodyBytes);
     if (response.statusCode >= 400) {
       throw SupportException(_extractErrorMessage(payload));
     }
@@ -354,7 +355,7 @@ class SupportService {
       ),
       headers: await _authorizedHeaders(),
     );
-    final payload = _decodeBody(response.bodyBytes);
+    final payload = decodeJsonBytes(response.bodyBytes);
     if (response.statusCode >= 400) {
       throw SupportException(_extractErrorMessage(payload));
     }
@@ -370,10 +371,10 @@ class SupportService {
         .toList();
     return DealerSupportTicketPage(
       items: items,
-      page: _parseInt(data['page']),
-      size: _parseInt(data['size']),
-      totalPages: _parseInt(data['totalPages']),
-      totalElements: _parseInt(data['totalElements']),
+      page: parseInt(data['page']),
+      size: parseInt(data['size']),
+      totalPages: parseInt(data['totalPages']),
+      totalElements: parseInt(data['totalElements']),
     );
   }
 
@@ -409,7 +410,7 @@ class SupportService {
       headers: await _authorizedJsonHeaders(),
       body: jsonEncode(body),
     );
-    final payload = _decodeBody(response.bodyBytes);
+    final payload = decodeJsonBytes(response.bodyBytes);
     if (response.statusCode >= 400) {
       throw SupportException(_extractErrorMessage(payload));
     }
@@ -444,26 +445,17 @@ class SupportService {
         supportServiceMessageToken(SupportMessageCode.unauthenticated),
       );
     }
-    return <String, String>{
-      'Accept': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
+    return buildAuthorizedHeaders(token);
   }
 
   Future<Map<String, String>> _authorizedJsonHeaders() async {
-    final headers = await _authorizedHeaders();
-    return <String, String>{...headers, 'Content-Type': 'application/json'};
-  }
-
-  Map<String, dynamic> _decodeBody(List<int> bodyBytes) {
-    if (bodyBytes.isEmpty) {
-      return const <String, dynamic>{};
+    final token = await _readAccessToken();
+    if (token == null) {
+      throw SupportException(
+        supportServiceMessageToken(SupportMessageCode.unauthenticated),
+      );
     }
-    final decoded = jsonDecode(utf8.decode(bodyBytes));
-    if (decoded is Map<String, dynamic>) {
-      return decoded;
-    }
-    return const <String, dynamic>{};
+    return buildAuthorizedJsonHeaders(token);
   }
 
   String _extractErrorMessage(Map<String, dynamic> payload) {
@@ -476,7 +468,7 @@ class SupportService {
 
   DealerSupportTicketRecord _mapTicket(Map<String, dynamic> json) {
     return DealerSupportTicketRecord(
-      id: _parseInt(json['id']),
+      id: parseInt(json['id']),
       ticketCode: json['ticketCode']?.toString() ?? '',
       category: _normalizePossibleMojibake(
         json['category']?.toString() ?? 'OTHER',
@@ -488,13 +480,13 @@ class SupportService {
       subject: _normalizePossibleMojibake(json['subject']?.toString() ?? ''),
       message: _normalizePossibleMojibake(json['message']?.toString() ?? ''),
       contextData: _mapContextData(json['contextData']),
-      assigneeId: _parseOptionalInt(json['assigneeId']),
+      assigneeId: parseOptionalInt(json['assigneeId']),
       assigneeName: _parseOptionalString(json['assigneeName']),
       messages: (json['messages'] as List<dynamic>? ?? const <dynamic>[])
           .whereType<Map<String, dynamic>>()
           .map(
             (message) => SupportTicketMessageRecord(
-              id: _parseInt(message['id']),
+              id: parseInt(message['id']),
               authorRole: _normalizePossibleMojibake(
                 message['authorRole']?.toString() ?? 'system',
               ),
@@ -523,24 +515,6 @@ class SupportService {
     }
     return _normalizePossibleMojibake(normalized);
   }
-
-  int _parseInt(Object? value) {
-    if (value is int) {
-      return value;
-    }
-    if (value is double) {
-      return value.round();
-    }
-    return int.tryParse(value?.toString() ?? '') ?? 0;
-  }
-
-  int? _parseOptionalInt(Object? value) {
-    if (value == null) {
-      return null;
-    }
-    final parsed = _parseInt(value);
-    return parsed == 0 && value.toString().trim() != '0' ? null : parsed;
-  }
 }
 
 SupportTicketContextRecord? _mapContextData(Object? raw) {
@@ -548,10 +522,10 @@ SupportTicketContextRecord? _mapContextData(Object? raw) {
     return null;
   }
   final context = SupportTicketContextRecord(
-    returnRequestId: _parseOptionalIntStatic(raw['returnRequestId']),
+    returnRequestId: parseOptionalInt(raw['returnRequestId']),
     returnRequestCode: _parseOptionalStringStatic(raw['returnRequestCode']),
     returnStatus: _parseOptionalStringStatic(raw['returnStatus']),
-    orderId: _parseOptionalIntStatic(raw['orderId']),
+    orderId: parseOptionalInt(raw['orderId']),
     orderCode: _parseOptionalStringStatic(raw['orderCode']),
     transactionCode: _parseOptionalStringStatic(raw['transactionCode']),
     paidAmount: raw['paidAmount'] as num?,
@@ -581,10 +555,10 @@ List<SupportTicketAttachmentRecord> _mapAttachments(Object? raw) {
             attachment['fileName'],
             fallbackUrl: resolvedUrl.isEmpty ? rawUrl : resolvedUrl,
           ),
-          id: _parseOptionalIntStatic(attachment['id']),
+          id: parseOptionalInt(attachment['id']),
           mediaType: _parseOptionalStringStatic(attachment['mediaType']),
           contentType: _parseOptionalStringStatic(attachment['contentType']),
-          sizeBytes: _parseOptionalIntStatic(attachment['sizeBytes']),
+          sizeBytes: parseOptionalInt(attachment['sizeBytes']),
           createdAt: parseApiDateTime(attachment['createdAt']),
         );
       })
@@ -632,6 +606,7 @@ String? _decodePathSegment(String value) {
   try {
     return Uri.decodeComponent(normalized);
   } catch (_) {
+    // Not valid percent-encoding: use the raw value as-is.
     return normalized;
   }
 }
@@ -644,24 +619,6 @@ String? _parseOptionalStringStatic(Object? value) {
   return _normalizePossibleMojibake(normalized);
 }
 
-int _parseIntStatic(Object? value) {
-  if (value is int) {
-    return value;
-  }
-  if (value is double) {
-    return value.round();
-  }
-  return int.tryParse(value?.toString() ?? '') ?? 0;
-}
-
-int? _parseOptionalIntStatic(Object? value) {
-  if (value == null) {
-    return null;
-  }
-  final parsed = _parseIntStatic(value);
-  return parsed == 0 && value.toString().trim() != '0' ? null : parsed;
-}
-
 bool _isBlank(String? value) => value == null || value.trim().isEmpty;
 
 String _normalizePossibleMojibake(String value) {
@@ -672,6 +629,7 @@ String _normalizePossibleMojibake(String value) {
     final repaired = utf8.decode(latin1.encode(value));
     return _looksLikeMojibake(repaired) ? value : repaired;
   } catch (_) {
+    // Re-decoding failed: keep the original text unchanged.
     return value;
   }
 }

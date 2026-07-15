@@ -63,3 +63,42 @@ String formatRelativeTime(DateTime value, {DateTime? now}) {
 String _twoDigits(int value) {
   return value.toString().padLeft(2, '0');
 }
+
+int parseInt(Object? value, {int fallback = 0}) {
+  if (value is int) {
+    return value;
+  }
+  if (value is double) {
+    return value.round();
+  }
+  return int.tryParse(value?.toString() ?? '') ?? fallback;
+}
+
+int parsePrice(Object? value, {int fallback = 0}) {
+  if (value is int) {
+    return value;
+  }
+  if (value is double) {
+    return value.round();
+  }
+  return double.tryParse(value?.toString() ?? '')?.round() ?? fallback;
+}
+
+int? parseOptionalInt(Object? value) {
+  if (value == null) {
+    return null;
+  }
+  if (value is num) {
+    return value.round();
+  }
+  final normalized = value.toString().trim();
+  if (normalized.isEmpty) {
+    return null;
+  }
+  return num.tryParse(normalized)?.round();
+}
+
+String? normalizeString(Object? value) {
+  final text = value?.toString().trim() ?? '';
+  return text.isEmpty ? null : text;
+}

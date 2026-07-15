@@ -57,7 +57,7 @@ export default async function ProductLayout({
 
     return (
         <div className="min-h-screen bg-[#0a0f1a] text-white">
-            <div className="max-w-[1920px] mx-auto">
+            <div className="max-w-[2560px] mx-auto">
                 {product ? (
                     <JsonLd
                         data={productJsonLd({

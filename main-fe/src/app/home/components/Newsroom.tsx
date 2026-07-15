@@ -153,7 +153,7 @@ export default function Newsroom({ initialBlogs = [], content = null }: Newsroom
                             </motion.article>
 
                             {secondaryPosts.length > 0 ? (
-                                <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                                <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4">
                                     {secondaryPosts.map((post, index) => (
                                         <motion.article
                                             key={post.id}

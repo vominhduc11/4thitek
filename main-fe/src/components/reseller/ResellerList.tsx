@@ -15,7 +15,7 @@ export default function ResellerList({ resellers, onResellerSelect, selectedRese
 
     return (
         <div className="space-y-4">
-            <div className="mb-6 flex items-center justify-between gap-4">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
                 <h2 className="font-serif text-2xl font-semibold text-[var(--brand-blue)]">
                     {t('reseller.searchResults')}
                 </h2>

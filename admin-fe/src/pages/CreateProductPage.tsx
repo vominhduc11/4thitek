@@ -1,23 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, MonitorSmartphone, RotateCcw } from "lucide-react";
-import {
-  GhostButton,
-  PageHeader,
-  PagePanel,
-  StatusBadge,
-  sectionCardClass,
-} from "../components/ui-kit";
+import { RotateCcw } from "lucide-react";
+import { PagePanel } from "../components/ui-kit";
 import { LivePreview } from "../components/LivePreview";
-import { previewAdminProduct } from "../lib/admin-api/products";
-import { useLivePreview } from "../hooks/useLivePreview";
-import { WEB_ORIGIN } from "../lib/webOrigin";
 import { useAuth } from "../context/AuthContext";
 import { useProducts } from "../context/ProductsContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useToast } from "../context/ToastContext";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
+import { previewAdminProduct } from "../lib/admin-api/products";
+import { useLivePreview } from "../hooks/useLivePreview";
+import { WEB_ORIGIN } from "../lib/webOrigin";
 import {
   MAX_IMAGE_BYTES,
   createSpecificationTemplate,
@@ -38,7 +32,6 @@ import {
   hasDescriptionContent,
   hasSpecificationContent,
   hasVideoContent,
-  productTabs,
   sanitizeDescriptionItems,
   secondaryButtonClass,
   type CreateProductErrorField,
@@ -50,6 +43,7 @@ import {
 import { SpecsTab } from "./products/editor/create/SpecsTab";
 import { BasicInfoTab } from "./products/editor/create/BasicInfoTab";
 import { DescriptionTab } from "./products/editor/create/DescriptionTab";
+import { HeaderAndTabsNav } from "./products/editor/create/HeaderAndTabsNav";
 import { VideosTab } from "./products/editor/create/VideosTab";
 
 function CreateProductPage() {
@@ -130,8 +124,6 @@ function CreateProductPage() {
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
   const tabOrder = ["basic", "description", "specs", "videos"] as const;
 
-  // Payload dry-run cho Live Preview: dựng cùng shape lúc lưu (object, không JSON-string),
-  // sanitize giống validateCreateProduct để xem trước khớp trang public thật.
   const livePreviewPayload = useMemo(() => {
     const priceNum = Number(newProduct.retailPrice);
     const warrantyPeriodNum = Number(newProduct.warrantyPeriod);
@@ -145,6 +137,7 @@ function CreateProductPage() {
         url: video.url.trim(),
       }))
       .filter((video) => video.title || video.descriptions || video.url);
+
     return {
       name: newProduct.name.trim() || undefined,
       sku: newProduct.sku.trim() || undefined,
@@ -960,196 +953,21 @@ function CreateProductPage() {
         disabled={isFormLocked}
       >
         <div aria-busy={isFormLocked}>
-          {/* Header */}
-          <div className="sr-only">
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={isFormLocked}
-              onClick={() => void requestNavigateAway()}
-            >
-              <ArrowLeft className="h-4 w-4" />
-              {t("Về sản phẩm")}
-            </button>
-            <h3 className="text-lg font-semibold text-slate-900 sm:text-right">
-              {t("Tạo sản phẩm")}
-            </h3>
-          </div>
-
-          <div className={sectionCardClass}>
-            <PageHeader
-              title={t("Tạo sản phẩm")}
-              subtitle={t("Thiết lập thông tin cơ bản, mô tả, thông số và video trước khi xuất bản sản phẩm mới.")}
-              actions={
-                <div className="flex items-center gap-2">
-                  <GhostButton
-                    icon={<MonitorSmartphone className="h-4 w-4" />}
-                    onClick={() => setShowLivePreview((v) => !v)}
-                    type="button"
-                  >
-                    {showLivePreview ? t("Đóng xem trước") : t("Xem trước trực tiếp")}
-                  </GhostButton>
-                  <GhostButton
-                    disabled={isFormLocked}
-                    icon={<ArrowLeft className="h-4 w-4" />}
-                    onClick={() => void requestNavigateAway()}
-                    type="button"
-                  >
-                    {t("Về sản phẩm")}
-                  </GhostButton>
-                </div>
-              }
-            />
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
-                  {t("Tab hiện tại")}
-                </p>
-                <p className="mt-1 text-sm font-semibold text-[var(--ink)]">
-                  {t(productTabs.find((tab) => tab.id === activeTab)?.label ?? "Thông tin")}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
-                  {t("Trạng thái biểu mẫu")}
-                </p>
-                <div className="mt-1">
-                  <StatusBadge tone={isCreateFormDirty ? "warning" : "neutral"}>
-                    {isCreateFormDirty ? t("Chưa lưu") : t("Đã sẵn sàng")}
-                  </StatusBadge>
-                </div>
-              </div>
-              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
-                  {t("Tải tài nguyên")}
-                </p>
-                <p className="mt-1 text-sm font-semibold text-[var(--ink)]">
-                  {isUploading ? t("Đang tải {count} tệp", { count: uploadingCount }) : t("Không có tệp đang tải")}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Tabs */}
-          <div className="mt-5 sm:hidden">
-            <label className="block text-sm text-slate-700" htmlFor="create-product-tab-select">
-              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                {t("Các tab sản phẩm")}
-              </span>
-              <select
-                id="create-product-tab-select"
-                className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-900"
-                onChange={(event) => setActiveTab(event.target.value as typeof activeTab)}
-                value={activeTab}
-              >
-                {productTabs.map((tab) => (
-                  <option key={tab.id} value={tab.id}>
-                    {t(tab.label)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <div
-            className="mt-4 hidden gap-2 overflow-x-auto px-1 pb-1 sm:flex sm:flex-wrap"
-            role="tablist"
-            aria-label={t("Các tab sản phẩm")}
-          >
-            {[
-              {
-                id: "basic",
-                label: "Thông tin",
-                errorTitle: "Thiếu tên, SKU hoặc giá bán",
-              },
-              {
-                id: "description",
-                label: "Mô tả chi tiết",
-                errorTitle: "Có lỗi ở ảnh mô tả",
-              },
-              {
-                id: "specs",
-                label: "Thông số",
-                errorTitle: "Có lỗi ở thông số",
-              },
-              {
-                id: "videos",
-                label: "Video",
-                errorTitle: "URL video không hợp lệ",
-              },
-            ].map((tab) => {
-              const tabId = tab.id as typeof activeTab;
-              const isTabActive = activeTab === tabId;
-              const tabHasError = createTabHasError[tabId];
-
-              return (
-                <button
-                  key={tab.id}
-                  ref={(node) => {
-                    tabRefs.current[tabId] = node;
-                  }}
-                  id={`product-tab-${tab.id}`}
-                  className={
-                    isTabActive
-                      ? `inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow ${tabHasError ? "ring-2 ring-rose-200 ring-offset-2 ring-offset-white" : ""}`
-                      : `inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold ${tabHasError ? "border-rose-300 bg-rose-50 text-rose-700" : "border-slate-200 text-slate-700"}`
-                  }
-                  role="tab"
-                  aria-selected={isTabActive}
-                  aria-controls={`product-tabpanel-${tab.id}`}
-                  tabIndex={isTabActive ? 0 : -1}
-                  title={tabHasError ? t(tab.errorTitle) : undefined}
-                  onKeyDown={(event) => {
-                    const currentIndex = tabOrder.indexOf(activeTab);
-                    let nextIndex = currentIndex;
-
-                    switch (event.key) {
-                      case "ArrowRight":
-                      case "ArrowDown":
-                        nextIndex = (currentIndex + 1) % tabOrder.length;
-                        break;
-                      case "ArrowLeft":
-                      case "ArrowUp":
-                        nextIndex =
-                          (currentIndex - 1 + tabOrder.length) %
-                          tabOrder.length;
-                        break;
-                      case "Home":
-                        nextIndex = 0;
-                        break;
-                      case "End":
-                        nextIndex = tabOrder.length - 1;
-                        break;
-                      default:
-                        return;
-                    }
-
-                    event.preventDefault();
-                    const nextTab = tabOrder[nextIndex];
-                    setActiveTab(nextTab);
-                    tabRefs.current[nextTab]?.focus();
-                  }}
-                  onClick={() => setActiveTab(tabId)}
-                >
-                  <span>{t(tab.label)}</span>
-                  {tabHasError ? (
-                    <span
-                      aria-hidden="true"
-                      className="h-1.5 w-1.5 rounded-full bg-current"
-                    />
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
-
-          {isCreateFormDirty ? (
-            <div
-              className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800"
-              role="status"
-            >
-              {t("Bạn có thay đổi chưa lưu trong biểu mẫu tạo sản phẩm.")}
-            </div>
-          ) : null}
+          <HeaderAndTabsNav
+            t={t}
+            isFormLocked={isFormLocked}
+            requestNavigateAway={requestNavigateAway}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            isCreateFormDirty={isCreateFormDirty}
+            isUploading={isUploading}
+            uploadingCount={uploadingCount}
+            createTabHasError={createTabHasError}
+            tabRefs={tabRefs}
+            tabOrder={tabOrder}
+            showLivePreview={showLivePreview}
+            onToggleLivePreview={() => setShowLivePreview((value) => !value)}
+          />
 
           {/* Basic tab */}
           {activeTab === "basic" && (

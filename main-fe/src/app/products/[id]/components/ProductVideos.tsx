@@ -40,16 +40,16 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
                     </div>
                 )}
                 {video.duration && (
-                    <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs sm:text-sm md:text-base lg:text-lg xl:text-lg 3xl:text-2xl px-2 py-1 rounded pointer-events-none">
+                    <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs sm:text-sm md:text-base lg:text-lg xl:text-lg px-2 py-1 rounded pointer-events-none">
                         {video.duration}
                     </div>
                 )}
             </div>
             <div className={`${compact ? 'p-4' : 'p-4 flex-1'}`}>
-                <h4 className="mb-2 line-clamp-2 text-sm font-medium text-white transition-colors group-hover:text-[var(--brand-blue)] sm:text-base md:text-lg lg:text-xl xl:text-xl 3xl:text-3xl">
+                <h4 className="mb-2 line-clamp-2 text-sm font-medium text-white transition-colors group-hover:text-[var(--brand-blue)] sm:text-base md:text-lg lg:text-xl xl:text-xl">
                     {video.title}
                 </h4>
-                <p className="line-clamp-2 text-xs text-[var(--text-secondary)] sm:text-sm md:text-base lg:text-lg xl:text-lg 3xl:text-2xl">
+                <p className="line-clamp-2 text-xs text-[var(--text-secondary)] sm:text-sm md:text-base lg:text-lg xl:text-lg">
                     {video.description || t('products.videos.videoAbout').replace('{title}', video.title)}
                 </p>
             </div>
@@ -59,8 +59,8 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
     if (videos.length === 0) {
         return (
             <section id="product-details" className="relative min-h-screen">
-                <div className="container mx-auto max-w-[1800px] px-4 relative py-4 pb-2 pt-8 sm:-mt-8 md:-mt-8 z-10">
-                    <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 3xl:text-6xl font-bold mb-6 md:mb-8 text-white">
+                <div className="brand-shell relative py-4 pb-2 pt-8 sm:-mt-8 md:-mt-8 z-10">
+                    <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 3xl:text-5xl font-bold mb-6 md:mb-8 text-white">
                         {t('products.videos.title')}
                     </h2>
                     <div className="brand-card-muted rounded-[28px] border border-[var(--brand-border)] p-6 text-center">
@@ -82,8 +82,8 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
 
     return (
         <section id="product-details" className="relative min-h-screen">
-            <div className="container mx-auto max-w-[1800px] px-4 relative py-4 pb-2 pt-8 sm:-mt-8 md:-mt-8 z-10">
-                <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 3xl:text-6xl font-bold mb-6 md:mb-8 text-white">
+            <div className="brand-shell relative py-4 pb-2 pt-8 sm:-mt-8 md:-mt-8 z-10">
+                <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 3xl:text-5xl font-bold mb-6 md:mb-8 text-white">
                     {t('products.videos.title')}
                 </h2>
 
@@ -107,11 +107,11 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
                                 )}
                             </div>
                             <div className="p-4 md:p-6">
-                                <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-2xl 3xl:text-4xl font-bold text-white mb-2">
+                                <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-2xl font-bold text-white mb-2">
                                     {featuredVideo.title ||
                                         t('products.videos.featuredTitle').replace('{name}', productName || '')}
                                 </h3>
-                                <p className="text-sm text-[var(--text-secondary)] sm:text-base md:text-lg lg:text-xl xl:text-xl 3xl:text-3xl">
+                                <p className="text-sm text-[var(--text-secondary)] sm:text-base md:text-lg lg:text-xl xl:text-xl">
                                     {featuredVideo.description || t('products.videos.featuredDescription')}
                                 </p>
                             </div>

@@ -4,10 +4,10 @@ import { createBaseMetadata } from '@/lib/seo';
 export const metadata: Metadata = createBaseMetadata({
     locale: 'vi',
     path: '/privacy-policy',
-    title: '4T HITEK | Chinh sach bao mat',
+    title: '4T HITEK | Chính sách bảo mật',
     description:
-        'Tim hieu cach 4T HITEK thu thap, su dung va bao ve thong tin ca nhan cua ban theo quy dinh bao mat du lieu.',
-    keywords: ['chinh sach bao mat 4T HITEK', 'bao ve du lieu ca nhan', 'quyen rieng tu', 'GDPR 4T HITEK']
+        'Tìm hiểu cách 4T HITEK thu thập, sử dụng và bảo vệ thông tin cá nhân của bạn theo quy định bảo mật dữ liệu.',
+    keywords: ['chính sách bảo mật 4T HITEK', 'bảo vệ dữ liệu cá nhân', 'quyền riêng tư', 'GDPR 4T HITEK']
 });
 
 export default function PrivacyPolicyLayout({ children }: { children: React.ReactNode }) {

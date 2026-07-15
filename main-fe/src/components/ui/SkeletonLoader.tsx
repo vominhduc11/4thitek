@@ -169,12 +169,23 @@ interface GridSkeletonProps extends SkeletonLoaderProps {
   columns?: number;
 }
 
+// Static column class map — template-literal Tailwind classes get purged, so use
+// full literal strings that Tailwind can detect at build time.
+const GRID_COLS: Record<number, string> = {
+  1: 'grid-cols-1',
+  2: 'grid-cols-1 sm:grid-cols-2',
+  3: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3',
+  4: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4',
+  5: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 3xl:grid-cols-5',
+  6: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6',
+};
+
 export const GridSkeleton = ({
   count = 8,
   columns = 4,
   ...props
 }: GridSkeletonProps) => {
-  const gridClass = `grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-${Math.min(columns, 3)} lg:grid-cols-${columns}`;
+  const gridClass = `grid gap-4 sm:gap-6 ${GRID_COLS[columns] ?? GRID_COLS[4]}`;
 
   return (
     <div className={gridClass}>

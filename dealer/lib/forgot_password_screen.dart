@@ -7,8 +7,11 @@ import 'app_settings_controller.dart';
 import 'auth_service.dart';
 import 'breakpoints.dart';
 import 'validation_utils.dart';
+import 'widgets/animated_submit_button.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
+import 'widgets/glow_orb.dart';
+import 'widgets/texture_layer.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key, this.initialEmail, this.authService});
@@ -167,18 +170,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
           const Positioned.fill(
             child: IgnorePointer(
-              child: Opacity(opacity: 0.07, child: _TextureLayer()),
+              child: Opacity(opacity: 0.07, child: TextureLayer()),
             ),
           ),
           Positioned(
             right: topOrbRight,
             top: topOrbTop,
-            child: _GlowOrb(size: topOrbSize, color: const Color(0x2429ABE2)),
+            child: GlowOrb(size: topOrbSize, color: const Color(0x2429ABE2)),
           ),
           Positioned(
             left: bottomOrbLeft,
             bottom: bottomOrbBottom,
-            child: _GlowOrb(
+            child: GlowOrb(
               size: bottomOrbSize,
               color: const Color(0x1A0071BC),
             ),
@@ -354,7 +357,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   return Semantics(
                     button: true,
                     label: texts.submitSemantic,
-                    child: _AnimatedSubmitButton(
+                    child: AnimatedSubmitButton(
                       canSubmit: canSubmit,
                       isLoading: _isSubmitting,
                       label: texts.submitAction,
@@ -948,143 +951,6 @@ class _ForgotHeader extends StatelessWidget {
           textAlign: TextAlign.center,
         ),
       ],
-    );
-  }
-}
-
-class _AnimatedSubmitButton extends StatefulWidget {
-  const _AnimatedSubmitButton({
-    required this.canSubmit,
-    required this.isLoading,
-    required this.label,
-    required this.loadingLabel,
-    required this.onPressed,
-    required this.style,
-  });
-
-  final bool canSubmit;
-  final bool isLoading;
-  final String label;
-  final String loadingLabel;
-  final Future<void> Function() onPressed;
-  final ButtonStyle style;
-
-  @override
-  State<_AnimatedSubmitButton> createState() => _AnimatedSubmitButtonState();
-}
-
-class _AnimatedSubmitButtonState extends State<_AnimatedSubmitButton> {
-  bool _isPressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Listener(
-      onPointerDown: widget.canSubmit
-          ? (_) {
-              if (!_isPressed) {
-                setState(() => _isPressed = true);
-              }
-            }
-          : null,
-      onPointerUp: (_) {
-        if (_isPressed) {
-          setState(() => _isPressed = false);
-        }
-      },
-      onPointerCancel: (_) {
-        if (_isPressed) {
-          setState(() => _isPressed = false);
-        }
-      },
-      child: AnimatedScale(
-        scale: _isPressed ? 0.98 : 1,
-        duration: const Duration(milliseconds: 90),
-        curve: Curves.easeOut,
-        child: ElevatedButton(
-          onPressed: widget.canSubmit
-              ? () async {
-                  await widget.onPressed();
-                }
-              : null,
-          style: widget.style,
-          child: widget.isLoading
-              ? Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.2,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(widget.loadingLabel),
-                  ],
-                )
-              : Text(widget.label),
-        ),
-      ),
-    );
-  }
-}
-
-class _TextureLayer extends StatelessWidget {
-  const _TextureLayer();
-
-  @override
-  Widget build(BuildContext context) {
-    return const RepaintBoundary(
-      child: CustomPaint(painter: _TexturePainter(), child: SizedBox.expand()),
-    );
-  }
-}
-
-class _TexturePainter extends CustomPainter {
-  const _TexturePainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = const Color(0x4029ABE2);
-    const spacing = 22.0;
-    const radius = 0.9;
-    var row = 0;
-
-    for (double y = 0; y <= size.height + spacing; y += spacing, row++) {
-      final offsetX = row.isEven ? 0.0 : spacing * 0.5;
-      for (double x = -spacing; x <= size.width + spacing; x += spacing) {
-        canvas.drawCircle(Offset(x + offsetX, y), radius, paint);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _GlowOrb extends StatelessWidget {
-  const _GlowOrb({required this.size, required this.color});
-
-  final double size;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color,
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.6),
-            blurRadius: 60,
-            spreadRadius: 12,
-          ),
-        ],
-      ),
     );
   }
 }

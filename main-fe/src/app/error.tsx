@@ -54,7 +54,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
                             </details>
                         )}
 
-                        <div className="flex gap-3">
+                        <div className="flex flex-col gap-3 sm:flex-row">
                             <motion.button
                                 onClick={reset}
                                 className="brand-button-primary flex-1 rounded-full px-4 py-3 font-semibold text-[var(--text-primary)]"

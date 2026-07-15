@@ -166,6 +166,7 @@ class LocalCheckoutValidationDataSource
     try {
       return await catalog.fetchDetail(productId);
     } catch (_) {
+      // Network/detail failure: fall back to the cached catalog entry.
       return catalog.findById(productId);
     }
   }

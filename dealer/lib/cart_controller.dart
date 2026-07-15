@@ -4,11 +4,63 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import 'api_client_helpers.dart';
 import 'api_config.dart';
 import 'auth_storage.dart';
 import 'dealer_auth_client.dart';
 import 'dealer_profile_storage.dart';
+import 'message_resolver.dart';
 import 'models.dart';
+import 'utils.dart';
+
+enum CartMessageCode {
+  invalidCartPayload,
+  invalidPricingSummaryPayload,
+  invalidDiscountRulesPayload,
+}
+
+const String _cartMessageTokenPrefix = 'cart.message.';
+
+String cartControllerMessageToken(CartMessageCode code) =>
+    '$_cartMessageTokenPrefix${code.name}';
+
+String resolveCartControllerMessage(
+  String? message, {
+  required bool isEnglish,
+}) {
+  return resolveMessageCode(
+    message: message,
+    isEnglish: isEnglish,
+    fallback: (
+      'Unable to sync cart data.',
+      'Không thể đồng bộ dữ liệu giỏ hàng.',
+    ),
+    messages: {
+      cartControllerMessageToken(CartMessageCode.invalidCartPayload): (
+        'Cart data is invalid.',
+        'Dữ liệu giỏ hàng không hợp lệ.',
+      ),
+      cartControllerMessageToken(
+        CartMessageCode.invalidPricingSummaryPayload,
+      ): (
+        'Cart pricing summary data is invalid.',
+        'Dữ liệu tổng hợp giá giỏ hàng không hợp lệ.',
+      ),
+      cartControllerMessageToken(CartMessageCode.invalidDiscountRulesPayload): (
+        'Discount rules data is invalid.',
+        'Dữ liệu quy tắc giảm giá không hợp lệ.',
+      ),
+    },
+  );
+}
+
+String cartControllerErrorMessage(Object? error, {required bool isEnglish}) {
+  final message = switch (error) {
+    String() => error,
+    _ => error?.toString(),
+  };
+  return resolveCartControllerMessage(message, isEnglish: isEnglish);
+}
 
 class CartController extends ChangeNotifier {
   CartController({
@@ -171,10 +223,6 @@ class CartController extends ChangeNotifier {
     return setQuantity(product, quantityFor(product.id) + requested);
   }
 
-  Future<bool> addWithApiSimulation(Product product, {int? quantity}) async {
-    return add(product, quantity: quantity);
-  }
-
   Future<bool> increase(String productId) async {
     final current = _items[productId];
     if (current == null) {
@@ -243,6 +291,8 @@ class CartController extends ChangeNotifier {
         await _clearRemoteCart();
         return true;
       } catch (_) {
+        // Remote clear failed: keep the local clear only when the caller does
+        // not want it rolled back.
         return !rollbackOnFailure;
       }
     }
@@ -273,16 +323,21 @@ class CartController extends ChangeNotifier {
       final response = await _client
           .get(
             DealerApiConfig.resolveApiUri('/dealer/cart'),
-            headers: _authorizedHeaders(token),
+            headers: buildAuthorizedHeaders(token),
           )
           .timeout(_remoteRequestTimeout);
-      final payload = _decodeBody(response.body);
+      final payload = decodeJsonBody(response.body);
       if (response.statusCode >= 400) {
-        throw Exception(_extractErrorMessage(payload));
+        throw ApiException(
+          _extractErrorMessage(payload),
+          statusCode: response.statusCode,
+        );
       }
       final data = payload['data'];
       if (data is! List) {
-        throw Exception('Invalid cart payload');
+        throw ApiException(
+          cartControllerMessageToken(CartMessageCode.invalidCartPayload),
+        );
       }
 
       final nextItems = <CartItem>[];
@@ -306,7 +361,8 @@ class CartController extends ChangeNotifier {
         notifyListeners();
       }
       return true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[CartController] _loadRemoteCart failed: $e');
       return false;
     }
   }
@@ -325,16 +381,23 @@ class CartController extends ChangeNotifier {
       final response = await _client
           .get(
             DealerApiConfig.resolveApiUri('/dealer/cart/summary'),
-            headers: _authorizedHeaders(token),
+            headers: buildAuthorizedHeaders(token),
           )
           .timeout(_remoteRequestTimeout);
-      final payload = _decodeBody(response.body);
+      final payload = decodeJsonBody(response.body);
       if (response.statusCode >= 400) {
-        throw Exception(_extractErrorMessage(payload));
+        throw ApiException(
+          _extractErrorMessage(payload),
+          statusCode: response.statusCode,
+        );
       }
       final data = payload['data'];
       if (data is! Map<String, dynamic>) {
-        throw Exception('Invalid cart pricing summary payload');
+        throw ApiException(
+          cartControllerMessageToken(
+            CartMessageCode.invalidPricingSummaryPayload,
+          ),
+        );
       }
       final nextSummary = _mapPricingSummary(data);
       if (expectedMutationVersion != null &&
@@ -346,7 +409,8 @@ class CartController extends ChangeNotifier {
         notifyListeners();
       }
       return true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[CartController] _loadRemotePricingSummary failed: $e');
       if (expectedMutationVersion == null ||
           expectedMutationVersion == _localMutationVersion) {
         _clearPricingSummary(clearLastSynced: true);
@@ -369,16 +433,23 @@ class CartController extends ChangeNotifier {
       final response = await _client
           .get(
             DealerApiConfig.resolveApiUri('/dealer/discount-rules'),
-            headers: _authorizedHeaders(token),
+            headers: buildAuthorizedHeaders(token),
           )
           .timeout(_remoteRequestTimeout);
-      final payload = _decodeBody(response.body);
+      final payload = decodeJsonBody(response.body);
       if (response.statusCode >= 400) {
-        throw Exception(_extractErrorMessage(payload));
+        throw ApiException(
+          _extractErrorMessage(payload),
+          statusCode: response.statusCode,
+        );
       }
       final data = payload['data'];
       if (data is! List) {
-        throw Exception('Invalid discount rules payload');
+        throw ApiException(
+          cartControllerMessageToken(
+            CartMessageCode.invalidDiscountRulesPayload,
+          ),
+        );
       }
       _discountRules = data
           .whereType<Map<String, dynamic>>()
@@ -388,7 +459,8 @@ class CartController extends ChangeNotifier {
         notifyListeners();
       }
       return true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[CartController] _loadRemoteDiscountRules failed: $e');
       _discountRules = const <BulkDiscountRule>[];
       if (notify) {
         notifyListeners();
@@ -412,23 +484,27 @@ class CartController extends ChangeNotifier {
       final response = await _client
           .get(
             DealerApiConfig.resolveApiUri('/dealer/profile'),
-            headers: _authorizedHeaders(token),
+            headers: buildAuthorizedHeaders(token),
           )
           .timeout(_remoteRequestTimeout);
-      final payload = _decodeBody(response.body);
+      final payload = decodeJsonBody(response.body);
       if (response.statusCode >= 400) {
-        throw Exception(_extractErrorMessage(payload));
+        throw ApiException(
+          _extractErrorMessage(payload),
+          statusCode: response.statusCode,
+        );
       }
       final data = payload['data'];
       if (data is Map<String, dynamic>) {
         _setVatPercent(
           _normalizeVatPercent(
-            _parseInt(data['vatPercent'], fallback: kVatPercent),
+            parseInt(data['vatPercent'], fallback: kVatPercent),
           ),
           notify: notify,
         );
       }
     } catch (_) {
+      // Offline or failed profile fetch: fall back to the cached VAT percent.
       final cachedProfile = await loadCachedDealerProfile();
       if (cachedProfile != null) {
         _setVatPercent(
@@ -493,6 +569,8 @@ class CartController extends ChangeNotifier {
             );
             result.complete(true);
           } catch (_) {
+            // Remote sync failed: roll back to the last synced snapshot when
+            // this mutation is still the latest, then report failure.
             if (rollbackOnFailure && mutationVersion == _localMutationVersion) {
               _restoreLastSyncedItems();
             }
@@ -517,7 +595,7 @@ class CartController extends ChangeNotifier {
     final response = await _client
         .put(
           DealerApiConfig.resolveApiUri('/dealer/cart/items'),
-          headers: _authorizedJsonHeaders(token),
+          headers: buildAuthorizedJsonHeaders(token),
           body: jsonEncode(<String, dynamic>{
             'productId': productId,
             'quantity': quantity,
@@ -525,9 +603,12 @@ class CartController extends ChangeNotifier {
         )
         .timeout(_remoteRequestTimeout);
 
-    final payload = _decodeBody(response.body);
+    final payload = decodeJsonBody(response.body);
     if (response.statusCode >= 400) {
-      throw Exception(_extractErrorMessage(payload));
+      throw ApiException(
+        _extractErrorMessage(payload),
+        statusCode: response.statusCode,
+      );
     }
 
     final data = payload['data'];
@@ -547,12 +628,15 @@ class CartController extends ChangeNotifier {
     final response = await _client
         .delete(
           DealerApiConfig.resolveApiUri('/dealer/cart/items/$numericProductId'),
-          headers: _authorizedHeaders(token),
+          headers: buildAuthorizedHeaders(token),
         )
         .timeout(_remoteRequestTimeout);
-    final payload = _decodeBody(response.body);
+    final payload = decodeJsonBody(response.body);
     if (response.statusCode >= 400) {
-      throw Exception(_extractErrorMessage(payload));
+      throw ApiException(
+        _extractErrorMessage(payload),
+        statusCode: response.statusCode,
+      );
     }
   }
 
@@ -561,12 +645,15 @@ class CartController extends ChangeNotifier {
     final response = await _client
         .delete(
           DealerApiConfig.resolveApiUri('/dealer/cart'),
-          headers: _authorizedHeaders(token),
+          headers: buildAuthorizedHeaders(token),
         )
         .timeout(_remoteRequestTimeout);
-    final payload = _decodeBody(response.body);
+    final payload = decodeJsonBody(response.body);
     if (response.statusCode >= 400) {
-      throw Exception(_extractErrorMessage(payload));
+      throw ApiException(
+        _extractErrorMessage(payload),
+        statusCode: response.statusCode,
+      );
     }
   }
 
@@ -593,17 +680,6 @@ class CartController extends ChangeNotifier {
     return token;
   }
 
-  Map<String, dynamic> _decodeBody(String body) {
-    if (body.trim().isEmpty) {
-      return const <String, dynamic>{};
-    }
-    final decoded = jsonDecode(body);
-    if (decoded is Map<String, dynamic>) {
-      return decoded;
-    }
-    return const <String, dynamic>{};
-  }
-
   String _extractErrorMessage(Map<String, dynamic> payload) {
     final error = payload['error']?.toString();
     if (error != null && error.trim().isNotEmpty) {
@@ -612,38 +688,23 @@ class CartController extends ChangeNotifier {
     return 'Không thể đồng bộ giỏ hàng.';
   }
 
-  Map<String, String> _authorizedHeaders(String token) {
-    return <String, String>{
-      'Accept': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
-  }
-
-  Map<String, String> _authorizedJsonHeaders(String token) {
-    return <String, String>{
-      ...DealerApiConfig.jsonHeaders,
-      'Authorization': 'Bearer $token',
-    };
-  }
-
   CartItem? _mapRemoteCartItem(Map<String, dynamic> json) {
     final productId = json['productId']?.toString();
-    final quantity = _parseInt(json['quantity'], fallback: 0);
+    final quantity = parseInt(json['quantity'], fallback: 0);
     if (productId == null || productId.isEmpty || quantity <= 0) {
       return null;
     }
 
     final fallback = _findProductById(productId);
-    final imageUrl = _normalizeString(json['image']) ?? fallback?.imageUrl;
-    final price = _parsePrice(
+    final imageUrl = normalizeString(json['image']) ?? fallback?.imageUrl;
+    final price = parsePrice(
       json['retailPrice'] ?? json['priceSnapshot'],
       fallback: fallback?.price ?? 0,
     );
     final product = Product(
       id: productId,
-      name:
-          _normalizeString(json['productName']) ?? fallback?.name ?? 'Product',
-      sku: _normalizeString(json['productSku']) ?? fallback?.sku ?? productId,
+      name: normalizeString(json['productName']) ?? fallback?.name ?? 'Product',
+      sku: normalizeString(json['productSku']) ?? fallback?.sku ?? productId,
       shortDescription: fallback?.shortDescription ?? '',
       price: price,
       stock: fallback?.stock ?? quantity,
@@ -667,35 +728,25 @@ class CartController extends ChangeNotifier {
       toQuantity:
           _parseNullableInt(json['toQuantity']) ??
           _parseNullableInt(json['maxQuantity']),
-      percent: _parseInt(json['percent']),
-      rangeLabel: _normalizeString(json['rangeLabel']),
+      percent: parseInt(json['percent']),
+      rangeLabel: normalizeString(json['rangeLabel']),
     );
   }
 
   _CartPricingSummary _mapPricingSummary(Map<String, dynamic> json) {
     return _CartPricingSummary(
-      subtotal: _parsePrice(json['subtotal']),
-      discountPercent: _parseInt(json['discountPercent']),
-      discountAmount: _parsePrice(json['discountAmount']),
-      totalAfterDiscount: _parsePrice(json['totalAfterDiscount']),
-      vatPercent: _parseInt(json['vatPercent'], fallback: kVatPercent),
-      vatAmount: _parsePrice(json['vatAmount']),
-      totalAmount: _parsePrice(json['totalAmount']),
+      subtotal: parsePrice(json['subtotal']),
+      discountPercent: parseInt(json['discountPercent']),
+      discountAmount: parsePrice(json['discountAmount']),
+      totalAfterDiscount: parsePrice(json['totalAfterDiscount']),
+      vatPercent: parseInt(json['vatPercent'], fallback: kVatPercent),
+      vatAmount: parsePrice(json['vatAmount']),
+      totalAmount: parsePrice(json['totalAmount']),
     );
   }
 
   Product? _findProductById(String productId) {
     return _productLookup?.call(productId);
-  }
-
-  int _parseInt(Object? value, {int fallback = 0}) {
-    if (value is int) {
-      return value;
-    }
-    if (value is double) {
-      return value.round();
-    }
-    return int.tryParse(value?.toString() ?? '') ?? fallback;
   }
 
   int? _parseNullableInt(Object? value) {
@@ -709,21 +760,6 @@ class CartController extends ChangeNotifier {
       return value.round();
     }
     return int.tryParse(value.toString());
-  }
-
-  int _parsePrice(Object? value, {int fallback = 0}) {
-    if (value is int) {
-      return value;
-    }
-    if (value is double) {
-      return value.round();
-    }
-    return double.tryParse(value?.toString() ?? '')?.round() ?? fallback;
-  }
-
-  String? _normalizeString(Object? value) {
-    final normalized = value?.toString().trim() ?? '';
-    return normalized.isEmpty ? null : normalized;
   }
 
   int _normalizeVatPercent(int? value) {

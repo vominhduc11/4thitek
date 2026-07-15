@@ -22,7 +22,7 @@ export default function BlogDetailPageClient({ post, relatedPosts }: BlogDetailP
     const blocks = post.introductionBlocks || [];
 
     return (
-        <div className="brand-section min-h-screen text-white">
+        <div className="brand-section min-h-screen overflow-x-hidden text-white">
             <BlogDetailHero />
 
             <section className="w-full -mt-16 pb-8 pt-16">
@@ -44,7 +44,13 @@ export default function BlogDetailPageClient({ post, relatedPosts }: BlogDetailP
                     <div className="brand-shell">
                         <div className="relative h-[330px] w-full overflow-hidden rounded-[32px] border border-[var(--brand-border)] bg-[rgba(7,17,27,0.72)] sm:h-[430px] lg:h-[530px]">
                             {post.featuredImage ? (
-                                <Image src={post.featuredImage} alt={post.title} fill className="object-cover" />
+                                <Image
+                                    src={post.featuredImage}
+                                    alt={post.title}
+                                    fill
+                                    className="object-cover"
+                                    sizes="(max-width: 1024px) 100vw, 66vw"
+                                />
                             ) : null}
                             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,17,27,0.08),rgba(6,17,27,0.58))]" />
                         </div>
@@ -56,7 +62,7 @@ export default function BlogDetailPageClient({ post, relatedPosts }: BlogDetailP
                 <AvoidSidebar>
                     <div className="brand-shell">
                         <div className="grid grid-cols-1 gap-8 lg:grid-cols-10">
-                            <article className="brand-card lg:col-span-7 rounded-[32px] p-6 prose prose-invert max-w-none sm:p-8">
+                            <article className="brand-card lg:col-span-7 rounded-[32px] p-6 sm:p-8">
                                 <p className="text-lg text-[var(--text-secondary)]">{post.excerpt}</p>
                                 {blocks.length === 0 ? (
                                     <p className="text-[var(--text-muted)]">
@@ -68,7 +74,7 @@ export default function BlogDetailPageClient({ post, relatedPosts }: BlogDetailP
                                         return (
                                             <div
                                                 key={`paragraph-${index}`}
-                                                className="text-[var(--text-primary)] [&_a]:text-[var(--brand-blue)] [&_a]:underline [&_a]:underline-offset-2 [&_blockquote]:border-l-4 [&_blockquote]:border-[var(--brand-blue)] [&_blockquote]:pl-4 [&_h1]:font-serif [&_h1]:text-3xl [&_h1]:font-semibold [&_h2]:font-serif [&_h2]:text-2xl [&_h2]:font-semibold [&_h3]:font-serif [&_h3]:text-xl [&_h3]:font-semibold [&_ol]:ml-5 [&_ol]:list-decimal [&_p]:leading-8 [&_p]:text-[var(--text-primary)] [&_ul]:ml-5 [&_ul]:list-disc"
+                                                className="description-content max-w-[62rem] text-[var(--text-primary)] [&_a]:text-[var(--brand-blue)] [&_a]:underline [&_a]:underline-offset-2 [&_blockquote]:border-l-4 [&_blockquote]:border-[var(--brand-blue)] [&_blockquote]:pl-4 [&_h1]:font-serif [&_h1]:text-3xl [&_h1]:font-semibold [&_h2]:font-serif [&_h2]:text-2xl [&_h2]:font-semibold [&_h3]:font-serif [&_h3]:text-xl [&_h3]:font-semibold [&_ol]:ml-5 [&_ol]:list-decimal [&_p]:leading-8 [&_p]:text-[var(--text-primary)] [&_ul]:ml-5 [&_ul]:list-disc"
                                                 dangerouslySetInnerHTML={{ __html: block.text }}
                                             />
                                         );
@@ -86,6 +92,7 @@ export default function BlogDetailPageClient({ post, relatedPosts }: BlogDetailP
                                                         alt={block.caption || post.title}
                                                         fill
                                                         className="object-contain"
+                                                        sizes="(max-width: 1024px) 100vw, 66vw"
                                                     />
                                                 </div>
                                                 {block.caption ? (

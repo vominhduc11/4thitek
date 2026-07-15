@@ -42,7 +42,7 @@ export default function ContactInfo() {
 
     return (
         <div>
-            <div className="mb-16 grid grid-cols-1 gap-6 md:grid-cols-3 lg:grid-cols-3">
+            <div className="mb-16 grid grid-cols-1 gap-6 md:grid-cols-3">
                 {(data?.infoCards ?? []).map((item, index) => {
                     const Icon = infoIcons[item.key as keyof typeof infoIcons] || EnvelopeIcon;
                     return (
@@ -84,10 +84,10 @@ export default function ContactInfo() {
                 className="text-center"
             >
                 <p className="brand-eyebrow mb-3">{language === 'vi' ? 'Kết nối đa kênh' : 'Stay connected'}</p>
-                <h3 className="mb-8 font-serif text-3xl font-semibold text-[var(--brand-blue)]">
+                <h3 className="mb-8 font-serif text-2xl font-semibold text-[var(--brand-blue)] sm:text-3xl">
                     {data?.social.title || ''}
                 </h3>
-                <div className="flex justify-center space-x-6">
+                <div className="flex flex-wrap justify-center gap-6">
                     {(data?.social.items ?? []).map((item) => (
                         <motion.a
                             key={item.key}
