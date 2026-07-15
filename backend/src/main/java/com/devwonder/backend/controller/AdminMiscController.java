@@ -12,11 +12,13 @@ import com.devwonder.backend.dto.admin.AdminReportExportType;
 import com.devwonder.backend.dto.admin.AdminReportFormat;
 import com.devwonder.backend.dto.admin.CreateAdminNotificationRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminPublicContentSectionRequest;
+import com.devwonder.backend.dto.blog.PublicBlogDetailResponse;
 import com.devwonder.backend.dto.pagination.PagedResponse;
 import com.devwonder.backend.service.AdminManagementService;
 import com.devwonder.backend.service.AdminOperationsService;
 import com.devwonder.backend.service.AdminReportingService;
 import com.devwonder.backend.service.DashboardService;
+import com.devwonder.backend.service.PublicBlogService;
 import com.devwonder.backend.service.PublicContentService;
 import com.devwonder.backend.util.PaginationUtils;
 import jakarta.validation.Valid;
@@ -53,6 +55,7 @@ public class AdminMiscController {
     private final AdminReportingService adminReportingService;
     private final DashboardService dashboardService;
     private final PublicContentService publicContentService;
+    private final PublicBlogService publicBlogService;
 
     @GetMapping("/content")
     public ResponseEntity<ApiResponse<List<AdminPublicContentSectionResponse>>> getPublicContentSections() {
@@ -117,6 +120,14 @@ public class AdminMiscController {
             @Valid @RequestBody AdminBlogUpsertRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.createBlog(request)));
+    }
+
+    @PostMapping("/blogs/preview")
+    @PreAuthorize("hasAuthority('blogs.write')")
+    public ResponseEntity<ApiResponse<PublicBlogDetailResponse>> previewBlog(
+            @Valid @RequestBody AdminBlogUpsertRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(publicBlogService.previewBlog(request)));
     }
 
     @PutMapping("/blogs/{id}")
