@@ -1,13 +1,9 @@
 import type { ChangeEvent, Dispatch, MutableRefObject, SetStateAction } from "react";
-import { X } from "lucide-react";
 import { FieldErrorMessage } from "../../../../components/ui-kit";
-import { resolveBackendAssetUrl } from "../../../../lib/backendApi";
 import { formatNumberInput, toDigitsOnly } from "../constants";
-import {
-  mediaOverlayActionClass,
-  type CreateProductErrorField,
-  type NewProductDraft,
-} from "../createProductModel";
+import type { CreateProductErrorField, NewProductDraft } from "../createProductModel";
+
+import { ImageUrlInput } from "../../../../components/media/ImageUrlInput";
 
 type BasicInfoTabProps = {
   t: (val: string) => string;
@@ -42,14 +38,9 @@ export function BasicInfoTab({
   warrantyInputRef,
   skuInputRef,
   retailPriceInputRef,
-  imageInputRef,
   handleRetailPriceChange,
   hasZeroRetailPrice,
   imageError,
-  handleImageChange,
-  selectedImageName,
-  imagePreviewUrl,
-  handleClearImage,
 }: BasicInfoTabProps) {
   return (
     <div
@@ -359,93 +350,17 @@ export function BasicInfoTab({
           </div>
         </div>
         <div className="rounded-2xl border border-dashed border-slate-200 bg-[var(--surface-muted)] p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-slate-900">
-                {t("Ảnh sản phẩm")}
-              </p>
-              <p className="text-xs text-slate-500">
-                {t("PNG/JPG, tối đa 10MB")}
-              </p>
-            </div>
-            <label
-              className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-              htmlFor="create-product-image-upload"
-            >
-              <input
-                id="create-product-image-upload"
-                type="file"
-                accept="image/*"
-                aria-describedby={
-                  imageError
-                    ? "create-product-image-upload-error"
-                    : undefined
-                }
-                aria-invalid={Boolean(imageError)}
-                className="sr-only"
-                ref={imageInputRef}
-                onChange={handleImageChange}
-              />
-              {t("Chọn ảnh")}
-            </label>
-          </div>
-          {(selectedImageName ||
-            imagePreviewUrl ||
-            newProduct.imageUrl) && (
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
-              {selectedImageName && (
-                <span>
-                  {t("Đã chọn")}
-                  {": "}
-                  <span className="font-semibold text-slate-800">
-                    {selectedImageName}
-                  </span>
-                </span>
-              )}
-              {(imagePreviewUrl || newProduct.imageUrl) && (
-                <button
-                  type="button"
-                  onClick={handleClearImage}
-                  className="inline-flex items-center gap-1 rounded-lg border border-rose-200 px-2 py-1 text-[11px] font-semibold text-rose-600 transition hover:border-rose-300 hover:text-rose-700"
-                >
-                  <X className="h-3 w-3" />
-                  {t("Xóa ảnh")}
-                </button>
-              )}
-            </div>
-          )}
-          {imageError ? (
-            <FieldErrorMessage
-              className="mt-2 text-xs"
-              id="create-product-image-upload-error"
-            >
-              {imageError}
-            </FieldErrorMessage>
-          ) : null}
-          {(imagePreviewUrl || newProduct.imageUrl) && (
-            <div className="group relative mt-3 overflow-hidden rounded-2xl border bg-white">
-              <button
-                type="button"
-                onClick={handleClearImage}
-                className={`${mediaOverlayActionClass} gap-1 shadow-sm hover:border-rose-300 hover:text-rose-700`}
-              >
-                <X className="h-3 w-3" />
-                {t("Xóa ảnh")}
-              </button>
-              <img
-                src={
-                  imagePreviewUrl ||
-                  resolveBackendAssetUrl(newProduct.imageUrl)
-                }
-                alt={t("Xem trước")}
-                className="h-40 w-full object-cover"
-                onError={(ev) =>
-                  ((ev.target as HTMLImageElement).style.display =
-                    "none")
-                }
-              />
-            </div>
-          )}
+          <p className="text-sm font-semibold text-slate-900 mb-3">
+            {t("Ảnh sản phẩm")}
+          </p>
+          <ImageUrlInput
+            value={newProduct.imageUrl}
+            onChange={(url) => {
+              setNewProduct((prev) => ({ ...prev, imageUrl: url }));
+            }}
+            error={imageError}
+            category="product"
+          />
         </div>
       </div>
     </div>

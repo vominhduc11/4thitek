@@ -10,6 +10,8 @@ import type { Product } from "../../../../types/product";
 import { formatNumberInput, toDigitsOnly } from "../constants";
 import type { ProductDraft } from "../detailProductModel";
 
+import { ImageUrlInput } from "../../../../components/media/ImageUrlInput";
+
 type BasicInfoSectionProps = {
   t: (val: string) => string;
   isEditing: boolean;
@@ -33,7 +35,6 @@ export function BasicInfoSection({
   retailPriceInputRef,
   handleRetailPriceChange,
   handleSave,
-  handleMainImageFile,
   setMainImagePreviewUrl,
   shortDescription,
 }: BasicInfoSectionProps) {
@@ -160,30 +161,16 @@ export function BasicInfoSection({
               <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
                 {t("Ảnh sản phẩm")}
               </label>
-              <div className="mt-2 flex flex-wrap items-center gap-3">
-                <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="sr-only"
-                    onChange={(event) =>
-                      handleMainImageFile(event.target.files?.[0] ?? null)
-                    }
-                  />
-                  {t("Tải ảnh")}
-                </label>
+              <div className="mt-2">
+                <ImageUrlInput
+                  value={draft.image || ""}
+                  onChange={(url) => {
+                    setMainImagePreviewUrl("");
+                    setDraft((prev) => prev ? { ...prev, image: url } : null);
+                  }}
+                  category="product"
+                />
               </div>
-              <p className="mt-2 text-xs text-slate-500">
-                {t("Hoặc nhập URL thủ công")}
-              </p>
-              <input
-                className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1"
-                value={draft.image}
-                onChange={(event) => {
-                  setMainImagePreviewUrl("");
-                  setDraft({ ...draft, image: event.target.value });
-                }}
-              />
             </div>
           </div>
 

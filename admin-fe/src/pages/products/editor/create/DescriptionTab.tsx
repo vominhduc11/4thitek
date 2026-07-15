@@ -1,9 +1,10 @@
-import type { Dispatch, MutableRefObject, SetStateAction } from "react";
+import { useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import { GripVertical } from "lucide-react";
 import { ProductVideoPreview } from "../../../../components/ProductVideoPreview";
 import { RichTextEditor } from "../../../../components/RichTextEditor";
 import { FieldErrorMessage } from "../../../../components/ui-kit";
 import { resolveBackendAssetUrl } from "../../../../lib/backendApi";
+import { MediaPickerModal } from "../../../../components/media/MediaPickerModal";
 import {
   isValidRemoteUrl,
   moveIndexedRecord,
@@ -73,13 +74,54 @@ export function DescriptionTab({
   descriptionEditorModules,
   descriptionEditorFormats,
   isFormLocked,
-  handleDescriptionImageFile,
   clearDescriptionImage,
-  handleDescriptionGalleryFiles,
-  handleGalleryItemFile,
   clearGalleryItemImage,
   debouncedDescriptionVideoUrls,
 }: DescriptionTabProps) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerConfig, setPickerConfig] = useState<{
+    type: "image" | "gallery" | "gallery-item";
+    index: number;
+    itemIndex?: number;
+  } | null>(null);
+
+  const handleSelectMedia = (url: string) => {
+    if (!pickerConfig) return;
+    const { type, index, itemIndex } = pickerConfig;
+    const copy = [...newProduct.descriptions];
+
+    if (type === "image") {
+      copy[index] = { ...copy[index], url };
+    } else if (type === "gallery-item" && itemIndex !== undefined) {
+      const current = { ...copy[index] };
+      const gallery = [...(current.gallery ?? [])];
+      gallery[itemIndex] = { ...gallery[itemIndex], url };
+      current.gallery = gallery;
+      copy[index] = current;
+    }
+
+    setNewProduct({ ...newProduct, descriptions: copy });
+    setPickerOpen(false);
+    setPickerConfig(null);
+  };
+
+  const handleSelectMultipleMedia = (urls: string[]) => {
+    if (!pickerConfig) return;
+    const { type, index } = pickerConfig;
+    const copy = [...newProduct.descriptions];
+
+    if (type === "gallery") {
+      const current = { ...copy[index] };
+      const newItems = urls.map((url) => ({ url }));
+      current.gallery = [...(current.gallery ?? []), ...newItems];
+      copy[index] = current;
+    }
+
+    setNewProduct({ ...newProduct, descriptions: copy });
+    setPickerOpen(false);
+    setPickerConfig(null);
+  };
+
   return (
     <div
       id="product-tabpanel-description"
@@ -228,30 +270,16 @@ export function DescriptionTab({
             )}
             {d.type === "image" && (
               <div className="grid gap-2 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-                <label
-                  className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                  htmlFor={`create-product-description-image-${idx}`}
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                  onClick={() => {
+                    setPickerConfig({ type: "image", index: idx });
+                    setPickerOpen(true);
+                  }}
                 >
-                  <input
-                    id={`create-product-description-image-${idx}`}
-                    type="file"
-                    accept="image/*"
-                    aria-describedby={
-                      descriptionImageErrors[idx]
-                        ? `create-product-description-image-${idx}-error`
-                        : undefined
-                    }
-                    aria-invalid={Boolean(descriptionImageErrors[idx])}
-                    className="sr-only"
-                    onChange={(e) =>
-                      handleDescriptionImageFile(
-                        idx,
-                        e.target.files?.[0] ?? null,
-                      )
-                    }
-                  />
                   {t("Chọn ảnh")}
-                </label>
+                </button>
                 <label className="block">
                   <span className="sr-only">
                     {t("Chú thích hình ảnh")}
@@ -302,33 +330,16 @@ export function DescriptionTab({
             {d.type === "gallery" && (
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <label
-                    className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                    htmlFor={`create-product-description-gallery-${idx}`}
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                    onClick={() => {
+                      setPickerConfig({ type: "gallery", index: idx });
+                      setPickerOpen(true);
+                    }}
                   >
-                    <input
-                      id={`create-product-description-gallery-${idx}`}
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      aria-describedby={
-                        descriptionImageErrors[idx]
-                          ? `create-product-description-gallery-${idx}-error`
-                          : undefined
-                      }
-                      aria-invalid={Boolean(
-                        descriptionImageErrors[idx],
-                      )}
-                      className="sr-only"
-                      onChange={(e) =>
-                        handleDescriptionGalleryFiles(
-                          idx,
-                          e.target.files,
-                        )
-                      }
-                    />
                     {t("Chọn nhiều ảnh")}
-                  </label>
+                  </button>
                   <button
                     type="button"
                     className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
@@ -411,33 +422,20 @@ export function DescriptionTab({
                   >
                     <div className="grid gap-3 xl:grid-cols-[minmax(0,11rem)_minmax(0,1fr)] xl:items-start">
                       <div className="space-y-2">
-                        <label
-                          className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                          htmlFor={`create-product-description-gallery-${idx}-item-${itemIdx}`}
+                        <button
+                          type="button"
+                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                          onClick={() => {
+                            setPickerConfig({
+                              type: "gallery-item",
+                              index: idx,
+                              itemIndex: itemIdx,
+                            });
+                            setPickerOpen(true);
+                          }}
                         >
-                          <input
-                            id={`create-product-description-gallery-${idx}-item-${itemIdx}`}
-                            type="file"
-                            accept="image/*"
-                            aria-describedby={
-                              descriptionImageErrors[idx]
-                                ? `create-product-description-gallery-${idx}-error`
-                                : undefined
-                            }
-                            aria-invalid={Boolean(
-                              descriptionImageErrors[idx],
-                            )}
-                            className="sr-only"
-                            onChange={(e) =>
-                              handleGalleryItemFile(
-                                idx,
-                                itemIdx,
-                                e.target.files?.[0] ?? null,
-                              )
-                            }
-                          />
                           {t("Chọn ảnh")}
-                        </label>
+                        </button>
                         {item.url && (
                           <div className="group relative overflow-hidden rounded-lg border border-slate-200">
                             <img
@@ -566,6 +564,19 @@ export function DescriptionTab({
             </button>
           ))}
         </div>
+      )}
+      {pickerOpen && (
+        <MediaPickerModal
+          isOpen={pickerOpen}
+          category="product"
+          multiSelect={pickerConfig?.type === "gallery"}
+          onSelect={handleSelectMedia}
+          onSelectMultiple={handleSelectMultipleMedia}
+          onClose={() => {
+            setPickerOpen(false);
+            setPickerConfig(null);
+          }}
+        />
       )}
     </div>
   );

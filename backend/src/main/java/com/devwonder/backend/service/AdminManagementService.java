@@ -135,6 +135,7 @@ public class AdminManagementService {
     private final OrderFinancialSnapshotService orderFinancialSnapshotService;
     private final DealerProfileWriteSupport dealerProfileWriteSupport;
     private final org.springframework.context.ApplicationEventPublisher eventPublisher;
+    private final com.devwonder.backend.service.MediaAssetService mediaAssetService;
 
     // Kich hoat ISR on-demand tren main-fe sau khi transaction commit (RevalidationClient
     // lang nghe AFTER_COMMIT). Fire-and-forget: khong anh huong ket qua nghiep vu.
@@ -168,6 +169,7 @@ public class AdminManagementService {
         Product product = new Product();
         adminWriteSupport.applyProduct(product, request, true);
         Product saved = productRepository.save(product);
+        mediaAssetService.syncProductMediaRelations(saved.getId(), saved);
         productStockSyncSupport.syncProductStock(saved);
         publishRevalidate("products", "product:" + saved.getId());
         return AdminResponseMapper.toProductResponse(saved, safeStock(saved));
@@ -186,6 +188,7 @@ public class AdminManagementService {
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
         adminWriteSupport.applyProduct(product, request, false);
         Product saved = productRepository.save(product);
+        mediaAssetService.syncProductMediaRelations(saved.getId(), saved);
         productStockSyncSupport.syncProductStock(saved);
         publishRevalidate("products", "product:" + id);
         return AdminResponseMapper.toProductResponse(saved, safeStock(saved));
@@ -522,6 +525,7 @@ public class AdminManagementService {
         Blog blog = new Blog();
         adminWriteSupport.applyBlog(blog, request, true);
         Blog saved = blogRepository.save(blog);
+        mediaAssetService.syncBlogMediaRelations(saved.getId(), saved);
         publishRevalidate("blogs", "blog:" + saved.getId());
         return AdminResponseMapper.toBlogResponse(saved);
     }
@@ -542,6 +546,7 @@ public class AdminManagementService {
                 .orElseThrow(() -> new ResourceNotFoundException("Blog not found"));
         adminWriteSupport.applyBlog(blog, request, false);
         Blog saved = blogRepository.save(blog);
+        mediaAssetService.syncBlogMediaRelations(saved.getId(), saved);
         publishRevalidate("blogs", "blog:" + id);
         return AdminResponseMapper.toBlogResponse(saved);
     }

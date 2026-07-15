@@ -96,8 +96,8 @@ public class MediaAssetService {
     ) {
         Account safeActor = requireActor(actor);
         MediaCategory category = resolveCategory(request.category());
-        if (category != MediaCategory.SUPPORT_TICKET) {
-            throw new BadRequestException("Only SUPPORT_TICKET media category is supported");
+        if (category != MediaCategory.SUPPORT_TICKET && category != MediaCategory.PRODUCT && category != MediaCategory.BLOG && category != MediaCategory.AVATAR) {
+            throw new BadRequestException("Unsupported media category: " + category);
         }
 
         MediaFileValidationService.ValidatedMediaFile metadata = mediaFileValidationService.validateMetadata(
@@ -106,7 +106,7 @@ public class MediaAssetService {
                 request.sizeBytes()
         );
 
-        String objectPrefix = buildSupportObjectPrefix(safeActor);
+        String objectPrefix = buildObjectPrefix(safeActor, category);
         String objectKey = fileStorageService.createRandomObjectKey(objectPrefix, metadata.extension());
 
         MediaAsset mediaAsset = new MediaAsset();
@@ -292,7 +292,9 @@ public class MediaAssetService {
             String appBaseUrl
     ) {
         Specification<MediaAsset> specification = Specification.where(null);
-        specification = specification.and((root, cq, cb) -> cb.equal(root.get("category"), MediaCategory.SUPPORT_TICKET));
+        if (category != null) {
+            specification = specification.and((root, cq, cb) -> cb.equal(root.get("category"), category));
+        }
 
         if (mediaType != null) {
             specification = specification.and((root, cq, cb) -> cb.equal(root.get("mediaType"), mediaType));
@@ -735,6 +737,9 @@ public class MediaAssetService {
         if (actor == null || actor.getId() == null) {
             return false;
         }
+        if (mediaAsset.getCategory() == MediaCategory.PRODUCT || mediaAsset.getCategory() == MediaCategory.BLOG) {
+            return true;
+        }
         if (isAdmin(actor)) {
             return true;
         }
@@ -781,15 +786,18 @@ public class MediaAssetService {
         };
     }
 
-    private String buildSupportObjectPrefix(Account actor) {
+    private String buildObjectPrefix(Account actor, MediaCategory category) {
         Long actorId = actor.getId();
         if (actorId == null) {
             throw new AccessDeniedException("Access denied");
         }
-        if (isDealer(actor)) {
-            return "support/evidence/dealers/" + actorId;
-        }
-        return "support/evidence/admin/" + actorId;
+        return switch (category) {
+            case PRODUCT -> "products";
+            case BLOG -> "blogs";
+            case AVATAR -> isDealer(actor) ? "avatars/dealers/" + actorId : "avatars/" + actorId;
+            case SUPPORT_TICKET -> isDealer(actor) ? "support/evidence/dealers/" + actorId : "support/evidence/admin/" + actorId;
+            default -> "other/" + actorId;
+        };
     }
 
     private String buildDownloadUrl(Long mediaAssetId, String appBaseUrl) {
@@ -857,5 +865,93 @@ public class MediaAssetService {
             }
         }
         return null;
+    }
+
+    @Transactional
+    public void syncProductMediaRelations(Long productId, com.devwonder.backend.entity.Product product) {
+        if (productId == null || product == null) {
+            return;
+        }
+        java.util.Set<Long> mediaAssetIds = new java.util.HashSet<>();
+        extractMediaIdsFromObject(product.getImage(), mediaAssetIds);
+        extractMediaIdsFromList(product.getDescriptions(), mediaAssetIds);
+
+        updateLinkedMediaAssets(mediaAssetIds, MediaLinkedEntityType.PRODUCT, productId);
+    }
+
+    @Transactional
+    public void syncBlogMediaRelations(Long blogId, com.devwonder.backend.entity.Blog blog) {
+        if (blogId == null || blog == null) {
+            return;
+        }
+        java.util.Set<Long> mediaAssetIds = new java.util.HashSet<>();
+        extractMediaIdsFromString(blog.getImage(), mediaAssetIds);
+
+        updateLinkedMediaAssets(mediaAssetIds, MediaLinkedEntityType.BLOG, blogId);
+    }
+
+    private void extractMediaIdsFromObject(Object obj, java.util.Set<Long> mediaAssetIds) {
+        if (obj == null) return;
+        if (obj instanceof String str) {
+            extractMediaIdsFromString(str, mediaAssetIds);
+        } else if (obj instanceof Map<?, ?> map) {
+            for (Object val : map.values()) {
+                extractMediaIdsFromObject(val, mediaAssetIds);
+            }
+        } else if (obj instanceof List<?> list) {
+            for (Object item : list) {
+                extractMediaIdsFromObject(item, mediaAssetIds);
+            }
+        }
+    }
+
+    private void extractMediaIdsFromList(List<?> list, java.util.Set<Long> mediaAssetIds) {
+        if (list == null) return;
+        for (Object item : list) {
+            extractMediaIdsFromObject(item, mediaAssetIds);
+        }
+    }
+
+    private static final java.util.regex.Pattern MEDIA_ID_PATTERN = 
+            java.util.regex.Pattern.compile("/api/v1/media/(\\d+)");
+
+    private void extractMediaIdsFromString(String value, java.util.Set<Long> mediaAssetIds) {
+        if (!org.springframework.util.StringUtils.hasText(value)) {
+            return;
+        }
+        java.util.regex.Matcher matcher = MEDIA_ID_PATTERN.matcher(value);
+        while (matcher.find()) {
+            try {
+                mediaAssetIds.add(Long.parseLong(matcher.group(1)));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+    }
+
+    private void updateLinkedMediaAssets(java.util.Set<Long> currentIds, MediaLinkedEntityType entityType, Long entityId) {
+        List<MediaAsset> previouslyLinked = mediaAssetRepository.findByLinkedEntityTypeAndLinkedEntityId(entityType, entityId);
+        
+        for (MediaAsset asset : previouslyLinked) {
+            if (!currentIds.contains(asset.getId())) {
+                asset.setStatus(MediaStatus.ORPHANED);
+                asset.setLinkedEntityId(null);
+                asset.setLinkedEntityType(null);
+                asset.setDeletedAt(Instant.now());
+                mediaAssetRepository.save(asset);
+            }
+        }
+
+        if (!currentIds.isEmpty()) {
+            List<MediaAsset> assetsToLink = mediaAssetRepository.findAllById(currentIds);
+            for (MediaAsset asset : assetsToLink) {
+                if (asset.getStatus() == MediaStatus.PENDING || asset.getStatus() == MediaStatus.ORPHANED || asset.getStatus() == MediaStatus.ACTIVE) {
+                    asset.setStatus(MediaStatus.ACTIVE);
+                    asset.setLinkedEntityType(entityType);
+                    asset.setLinkedEntityId(entityId);
+                    asset.setDeletedAt(null);
+                    mediaAssetRepository.save(asset);
+                }
+            }
+        }
     }
 }

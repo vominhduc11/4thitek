@@ -5,7 +5,6 @@ import {
   GripVertical,
   ImagePlus,
   Images,
-  LoaderCircle,
   Plus,
   Trash2,
   Type,
@@ -18,6 +17,7 @@ import {
   isValidRemoteUrl,
 } from "../../lib/blogContent";
 import { resolveBackendAssetUrl } from "../../lib/backendApi";
+import { MediaPickerModal } from "../media/MediaPickerModal";
 import type {
   BlogContentBlock,
   BlogGalleryItem,
@@ -81,13 +81,52 @@ const moveBlock = (
 export const BlogBlockEditor = ({
   blocks,
   onChange,
-  onUploadImage,
   onDeleteImage,
   readOnly = false,
   emptyMessage = "Chưa có block nội dung nào.",
 }: BlogBlockEditorProps) => {
-  const [isUploading, setIsUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerConfig, setPickerConfig] = useState<{
+    type: "image" | "gallery";
+    index: number;
+  } | null>(null);
+
+  const handleSelectMedia = (url: string) => {
+    if (!pickerConfig) return;
+    const { type, index } = pickerConfig;
+    const currentBlock = blocks[index];
+
+    if (type === "image" && currentBlock.type === "image") {
+      replaceBlock(index, {
+        ...currentBlock,
+        url,
+        caption: currentBlock.caption ?? "",
+      });
+    }
+
+    setPickerOpen(false);
+    setPickerConfig(null);
+  };
+
+  const handleSelectMultipleMedia = (urls: string[]) => {
+    if (!pickerConfig) return;
+    const { type, index } = pickerConfig;
+    const currentBlock = blocks[index];
+
+    if (type === "gallery" && currentBlock.type === "gallery") {
+      replaceBlock(index, {
+        ...currentBlock,
+        items: [
+          ...currentBlock.items,
+          ...urls.map((url) => ({ url })),
+        ],
+      });
+    }
+
+    setPickerOpen(false);
+    setPickerConfig(null);
+  };
 
   const addBlock = (type: BlogContentBlock["type"]) => {
     onChange([...blocks, createBlogBlock(type)]);
@@ -111,62 +150,6 @@ export const BlogBlockEditor = ({
     }
 
     onChange(removeBlockAt(blocks, index));
-  };
-
-  const handleReplaceImage = async (index: number, file: File | null) => {
-    if (!file) return;
-    const currentBlock = blocks[index];
-    if (!currentBlock || currentBlock.type !== "image") return;
-
-    setErrorMessage("");
-    setIsUploading(true);
-    try {
-      const stored = await onUploadImage(file);
-      if (currentBlock.url.trim()) {
-        await onDeleteImage(currentBlock.url);
-      }
-      replaceBlock(index, {
-        ...currentBlock,
-        url: stored.url,
-        caption: currentBlock.caption ?? "",
-      });
-    } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Không thể tải ảnh nội dung.",
-      );
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleAddGalleryItems = async (
-    index: number,
-    files: FileList | null,
-  ) => {
-    if (!files || files.length === 0) return;
-    const currentBlock = blocks[index];
-    if (!currentBlock || currentBlock.type !== "gallery") return;
-
-    setErrorMessage("");
-    setIsUploading(true);
-    try {
-      const uploaded = await Promise.all(
-        Array.from(files).map((file) => onUploadImage(file)),
-      );
-      replaceBlock(index, {
-        ...currentBlock,
-        items: [
-          ...currentBlock.items,
-          ...uploaded.map((item) => ({ url: item.url })),
-        ],
-      });
-    } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Không thể tải ảnh thư viện.",
-      );
-    } finally {
-      setIsUploading(false);
-    }
   };
 
   const handleRemoveGalleryItem = async (
@@ -315,24 +298,18 @@ export const BlogBlockEditor = ({
               {block.type === "image" ? (
                 <div className="space-y-3">
                   <div className="flex flex-wrap items-center gap-3">
-                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-[18px] border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-2 text-sm font-semibold text-[var(--ink)] transition hover:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-60">
-                      {isUploading ? (
-                        <LoaderCircle className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <ImagePlus className="h-4 w-4" />
-                      )}
-                      Tải hình ảnh
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        disabled={readOnly || isUploading}
-                        onChange={(event) => {
-                          void handleReplaceImage(index, event.target.files?.[0] ?? null);
-                          event.currentTarget.value = "";
-                        }}
-                      />
-                    </label>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-2 rounded-[18px] border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-2 text-sm font-semibold text-[var(--ink)] transition hover:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={readOnly}
+                      onClick={() => {
+                        setPickerConfig({ type: "image", index });
+                        setPickerOpen(true);
+                      }}
+                    >
+                      <ImagePlus className="h-4 w-4" />
+                      Chọn hình ảnh
+                    </button>
                     <input
                       className="min-h-11 flex-1 rounded-[18px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-sm text-[var(--ink)]"
                       placeholder="Hoặc dán URL hình ảnh"
@@ -367,25 +344,18 @@ export const BlogBlockEditor = ({
               {block.type === "gallery" ? (
                 <div className="space-y-3">
                   <div className="flex flex-wrap items-center gap-3">
-                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-[18px] border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-2 text-sm font-semibold text-[var(--ink)] transition hover:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-60">
-                      {isUploading ? (
-                        <LoaderCircle className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Images className="h-4 w-4" />
-                      )}
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-2 rounded-[18px] border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-2 text-sm font-semibold text-[var(--ink)] transition hover:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={readOnly}
+                      onClick={() => {
+                        setPickerConfig({ type: "gallery", index });
+                        setPickerOpen(true);
+                      }}
+                    >
+                      <Images className="h-4 w-4" />
                       Thêm ảnh vào thư viện
-                      <input
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        className="hidden"
-                        disabled={readOnly || isUploading}
-                        onChange={(event) => {
-                          void handleAddGalleryItems(index, event.target.files);
-                          event.currentTarget.value = "";
-                        }}
-                      />
-                    </label>
+                    </button>
                     <span className="text-xs text-[var(--muted)]">
                       {block.items.length} ảnh
                     </span>
@@ -478,6 +448,19 @@ export const BlogBlockEditor = ({
             </section>
           );
         })
+      )}
+      {pickerOpen && (
+        <MediaPickerModal
+          isOpen={pickerOpen}
+          category="blog"
+          multiSelect={pickerConfig?.type === "gallery"}
+          onSelect={handleSelectMedia}
+          onSelectMultiple={handleSelectMultipleMedia}
+          onClose={() => {
+            setPickerOpen(false);
+            setPickerConfig(null);
+          }}
+        />
       )}
     </div>
   );

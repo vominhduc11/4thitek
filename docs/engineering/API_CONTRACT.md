@@ -164,6 +164,10 @@ the returned public payload via `postMessage` into an `<iframe>` pointing at mai
 | POST | `/api/v1/upload/{category}` | `products/blogs/avatars` → admin; `dealer-avatars/payment-proofs/support-tickets` → dealer+admin |
 | GET | `/api/v1/upload/{*path}`, `/uploads/{*path}` | public |
 
+⚠️ **Coexistence of Upload Mechanisms:**
+- Hệ thống upload cũ (`UploadController.java` qua `POST /api/v1/upload/{category}`) không lưu trữ DB, chỉ lưu file vật lý và trả về URL. Vẫn được giữ lại cho tính tương thích ngược.
+- Hệ thống upload mới sử dụng `MediaAsset` thông qua `POST /api/v1/media/upload-session`. Body yêu cầu nhận thêm các category mới: `PRODUCT`, `BLOG`, và `AVATAR`. Folder lưu trữ trên cloud tương ứng là `products/`, `blogs/`, và `avatars/`. Khi lưu Product/Blog, backend sẽ tự động phân tích và tạo liên kết song song (`linkedEntityType` / `linkedEntityId`) với bảng `media_assets` dựa trên URL download dạng `/api/v1/media/{id}/download`.
+
 ## 7. Webhook
 
 | Method | Path | Auth |

@@ -17,6 +17,11 @@ public interface MediaAssetRepository extends JpaRepository<MediaAsset, Long>, J
 
     Optional<MediaAsset> findByObjectKey(String objectKey);
 
+    List<MediaAsset> findByLinkedEntityTypeAndLinkedEntityId(
+            com.devwonder.backend.entity.enums.MediaLinkedEntityType linkedEntityType,
+            Long linkedEntityId
+    );
+
     List<MediaAsset> findByStatusAndCreatedAtBefore(MediaStatus status, Instant createdAt);
 
     List<MediaAsset> findByStatusAndDeletedAtBefore(MediaStatus status, Instant deletedAt);

@@ -1,8 +1,9 @@
-import type { Dispatch, SetStateAction } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import { ProductVideoPreview } from "../../../../components/ProductVideoPreview";
 import { RichTextEditor } from "../../../../components/RichTextEditor";
 import { resolveBackendAssetUrl } from "../../../../lib/backendApi";
 import { DescriptionReadView } from "./DescriptionReadView";
+import { MediaPickerModal } from "../../../../components/media/MediaPickerModal";
 import {
   isLocalBlobUrl,
   type DescriptionItem,
@@ -55,11 +56,57 @@ export function DescriptionSection({
   descriptionEditorFormats,
   descriptionImageErrors,
   setDescriptionImageErrors,
-  handleDescriptionImageFile,
-  handleDescriptionGalleryFiles,
-  handleGalleryItemFile,
   descriptionReadBlocks,
 }: DescriptionSectionProps) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerConfig, setPickerConfig] = useState<{
+    type: "image" | "gallery" | "gallery-item";
+    index: number;
+    itemIndex?: number;
+  } | null>(null);
+
+  const handleSelectMedia = (url: string) => {
+    if (!pickerConfig) return;
+    const { type, index, itemIndex } = pickerConfig;
+    const copy = [...draft.descriptions];
+
+    if (type === "image") {
+      copy[index] = { ...copy[index], url };
+    } else if (type === "gallery-item" && itemIndex !== undefined) {
+      const current = { ...copy[index] };
+      const gallery = [...(current.gallery ?? [])];
+      const existingEntry = gallery[itemIndex];
+      const normalizedEntry =
+        typeof existingEntry === "string" || !existingEntry
+          ? {}
+          : existingEntry;
+      gallery[itemIndex] = { ...normalizedEntry, url };
+      current.gallery = gallery;
+      copy[index] = current;
+    }
+
+    setDraft({ ...draft, descriptions: copy });
+    setPickerOpen(false);
+    setPickerConfig(null);
+  };
+
+  const handleSelectMultipleMedia = (urls: string[]) => {
+    if (!pickerConfig) return;
+    const { type, index } = pickerConfig;
+    const copy = [...draft.descriptions];
+
+    if (type === "gallery") {
+      const current = { ...copy[index] };
+      const newItems = urls.map((url) => ({ url }));
+      current.gallery = [...(current.gallery ?? []), ...newItems];
+      copy[index] = current;
+    }
+
+    setDraft({ ...draft, descriptions: copy });
+    setPickerOpen(false);
+    setPickerConfig(null);
+  };
+
   return (
     <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_18px_45px_rgba(15,23,42,0.08)] sm:p-5 lg:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -192,20 +239,16 @@ export function DescriptionSection({
                 )}
                 {item.type === "image" && (
                   <div className="grid gap-2 md:grid-cols-[1.4fr_1fr]">
-                    <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="sr-only"
-                        onChange={(event) =>
-                          handleDescriptionImageFile(
-                            index,
-                            event.target.files?.[0] ?? null,
-                          )
-                        }
-                      />
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                      onClick={() => {
+                        setPickerConfig({ type: "image", index: index });
+                        setPickerOpen(true);
+                      }}
+                    >
                       {t("Chọn ảnh")}
-                    </label>
+                    </button>
                     <label className="block">
                       <span className="sr-only">
                         {t("Chú thích hình ảnh")}
@@ -304,21 +347,16 @@ export function DescriptionSection({
                 {item.type === "gallery" && (
                   <div className="space-y-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          className="sr-only"
-                          onChange={(event) =>
-                            handleDescriptionGalleryFiles(
-                              index,
-                              event.target.files,
-                            )
-                          }
-                        />
+                      <button
+                        type="button"
+                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                        onClick={() => {
+                          setPickerConfig({ type: "gallery", index: index });
+                          setPickerOpen(true);
+                        }}
+                      >
                         {t("Chọn nhiều ảnh")}
-                      </label>
+                      </button>
                       <button
                         type="button"
                         className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
@@ -400,21 +438,20 @@ export function DescriptionSection({
                         >
                           <div className="grid gap-3 xl:grid-cols-[minmax(0,11rem)_minmax(0,1fr)] xl:items-start">
                             <div className="space-y-2">
-                              <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  className="sr-only"
-                                  onChange={(event) =>
-                                    handleGalleryItemFile(
-                                      index,
-                                      entryIndex,
-                                      event.target.files?.[0] ?? null,
-                                    )
-                                  }
-                                />
+                              <button
+                                type="button"
+                                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                                onClick={() => {
+                                  setPickerConfig({
+                                    type: "gallery-item",
+                                    index: index,
+                                    itemIndex: entryIndex,
+                                  });
+                                  setPickerOpen(true);
+                                }}
+                              >
                                 {t("Chọn ảnh")}
-                              </label>
+                              </button>
                               {entry &&
                                 typeof entry !== "string" &&
                                 entry.url &&
@@ -631,6 +668,19 @@ export function DescriptionSection({
         <DescriptionReadView
           descriptionReadBlocks={descriptionReadBlocks}
           t={t}
+        />
+      )}
+      {pickerOpen && (
+        <MediaPickerModal
+          isOpen={pickerOpen}
+          category="product"
+          multiSelect={pickerConfig?.type === "gallery"}
+          onSelect={handleSelectMedia}
+          onSelectMultiple={handleSelectMultipleMedia}
+          onClose={() => {
+            setPickerOpen(false);
+            setPickerConfig(null);
+          }}
         />
       )}
     </div>

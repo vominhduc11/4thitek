@@ -45,19 +45,18 @@ not fractional meaning. Status: `CONFIRMED_FROM_CODE` (`entity/Product.java`,
 | `videos` | `List<Map<String,Object>>` | `List<Map<String,Object>>` | `Object` |
 | `specifications` | `List<Map<String,Object>>` | `List<Map<String,Object>>` | `Object` |
 
-⚠️ **Known drift, `NEEDS_VERIFICATION`:**
-1. The **inner keys** of these maps are not enforced anywhere (free-form `jsonb`). The schema
-   is whatever the admin-fe product editor writes. The canonical key set must be verified
-   against `admin-fe/src/lib/blogContent.ts` / the product editor components and the main-fe
-   consumer (`main-fe/src/types/api.ts`).
-2. **admin-fe internal mismatch:** `admin-fe/src/types/product.ts` (lines 13–16) types
-   `image/descriptions/videos/specifications` as **`string`**, while `admin-fe/src/lib/adminApi.ts`
-   (lines 111–133) types them as `Record<string,unknown>` / `Array<Record<string,unknown>>`.
-   One of the two is wrong — reconcile before relying on either.
-3. `image` is an **object** at write/storage time but a **flat `String` URL** in the public
-   detail response — confirm the flattening logic in `PublicApiService`.
+⚠️ **Media Asset Linking & Synchronization:**
+- Cả `Product` (ảnh đại diện `imageUrl`, ảnh trong mô tả `descriptions`) và `Blog` (ảnh trong blocks `descriptions`) hỗ trợ liên kết với hệ thống `MediaAsset` thông qua URL dạng `/api/v1/media/{id}/download`.
+- Khi Product hoặc Blog được tạo/cập nhật, backend (`MediaAssetService`) sẽ sử dụng Regular Expression `MEDIA_ID_PATTERN = /api/v1/media/(\d+)` để quét qua các trường URL và JSONB mô tả nhằm tìm ra các ID của `MediaAsset`.
+- Các `MediaAsset` khớp sẽ được cập nhật cột `linkedEntityType` (`PRODUCT` hoặc `BLOG`) và `linkedEntityId` tương ứng, trạng thái chuyển thành `ACTIVE`.
+- Các `MediaAsset` cũ từng liên kết nhưng không còn nằm trong danh sách sẽ được cập nhật thành `ORPHANED` để tiến trình dọn dẹp (cleanup job) xử lý sau này.
+- Các URL ảnh dạng cũ `/api/v1/upload/...` được giữ nguyên và bỏ qua an toàn khi phân tích liên kết.
 
-Until the inner schema is pinned down here, any change to product media is high-risk.
+⚠️ **Known drift, `CONFIRMED_FROM_CODE`:**
+1. The **inner keys** of these maps are not enforced anywhere (free-form `jsonb`). The schema
+   is whatever the admin-fe product editor writes.
+2. `image` is an **object** at write/storage time but a **flat `String` URL** in the public
+   detail response — confirmed by `PublicApiService`.
 
 ## 4. Order
 
