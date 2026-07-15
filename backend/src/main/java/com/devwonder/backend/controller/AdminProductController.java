@@ -4,7 +4,9 @@ import com.devwonder.backend.dto.ApiResponse;
 import com.devwonder.backend.dto.admin.AdminProductResponse;
 import com.devwonder.backend.dto.admin.AdminProductUpsertRequest;
 import com.devwonder.backend.dto.pagination.PagedResponse;
+import com.devwonder.backend.dto.publicapi.PublicProductDetailResponse;
 import com.devwonder.backend.service.AdminManagementService;
+import com.devwonder.backend.service.PublicApiService;
 import com.devwonder.backend.util.PaginationUtils;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -30,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminProductController {
 
     private final AdminManagementService adminManagementService;
+    private final PublicApiService publicApiService;
 
     @GetMapping("/products")
     public ResponseEntity<ApiResponse<List<AdminProductResponse>>> products() {
@@ -54,6 +57,14 @@ public class AdminProductController {
             @Valid @RequestBody AdminProductUpsertRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.createProduct(request)));
+    }
+
+    @PostMapping("/products/preview")
+    @PreAuthorize("hasAuthority('products.write')")
+    public ResponseEntity<ApiResponse<PublicProductDetailResponse>> previewProduct(
+            @Valid @RequestBody AdminProductUpsertRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(publicApiService.previewProduct(request)));
     }
 
     @PutMapping("/products/{id}")

@@ -37,10 +37,10 @@ BACKUP_DIR="${1%/}"  # strip any trailing slash
 # ─── Load .env ───────────────────────────────────────────────────
 # Picks up POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, MINIO_VOLUME
 # without hardcoding them in this script.
-if [ -f .env ]; then
+if [ -f .env.vps ]; then
   set -a
   # shellcheck disable=SC1091
-  source .env
+  source .env.vps
   set +a
 fi
 
@@ -72,9 +72,9 @@ echo "===================================="
 # ─────────────────────────────────────────────────────────────────
 stop_if_running() {
   local service="$1"
-  if docker compose ps "$service" 2>/dev/null | grep -qiE 'up|running'; then
+  if docker compose --env-file .env.vps ps "$service" 2>/dev/null | grep -qiE 'up|running'; then
     echo "  Stopping $service..."
-    docker compose stop "$service"
+    docker compose --env-file .env.vps stop "$service"
   else
     echo "  $service is not running — nothing to stop."
   fi
@@ -87,11 +87,11 @@ stop_if_running() {
 # ─────────────────────────────────────────────────────────────────
 ensure_running() {
   local service="$1"
-  if docker compose ps "$service" 2>/dev/null | grep -qiE 'up|running'; then
+  if docker compose --env-file .env.vps ps "$service" 2>/dev/null | grep -qiE 'up|running'; then
     echo "  $service is already running."
   else
     echo "  $service is not running — starting it..."
-    docker compose up -d "$service"
+    docker compose --env-file .env.vps up -d "$service"
   fi
 }
 
@@ -104,7 +104,7 @@ get_service_network() {
   local service="$1"
   local container_id
 
-  container_id=$(docker compose ps -q "$service")
+  container_id=$(docker compose --env-file .env.vps ps -q "$service")
   if [ -z "$container_id" ]; then
     echo "ERROR: Could not resolve container id for service: $service" >&2
     return 1
@@ -153,7 +153,7 @@ wait_for_postgres() {
 
   echo "  Waiting for PostgreSQL to be ready (up to ${max_wait}s)..."
   while [ "$waited" -lt "$max_wait" ]; do
-    if docker compose exec -T "$POSTGRES_CONTAINER" \
+    if docker compose --env-file .env.vps exec -T "$POSTGRES_CONTAINER" \
         pg_isready -U "$POSTGRES_USER" -d postgres -q 2>/dev/null; then
       echo "  PostgreSQL is ready."
       return 0
@@ -165,7 +165,7 @@ wait_for_postgres() {
 
   echo "" >&2
   echo "ERROR: PostgreSQL did not become ready within ${max_wait}s." >&2
-  echo "       Check logs: docker compose logs $POSTGRES_CONTAINER" >&2
+  echo "       Check logs: docker compose --env-file .env.vps logs $POSTGRES_CONTAINER" >&2
   return 1
 }
 
@@ -226,7 +226,7 @@ stop_if_running "backend"
 stop_if_running "minio"
 
 # Hard check: neither service must be running before we touch any data.
-if docker compose ps backend minio 2>/dev/null | grep -qiE 'up|running'; then
+if docker compose --env-file .env.vps ps backend minio 2>/dev/null | grep -qiE 'up|running'; then
   echo "ERROR: backend or minio did not stop cleanly." >&2
   echo "       Aborting to protect live data." >&2
   exit 1
@@ -239,7 +239,7 @@ echo "  Dependent services are down."
 #
 # postgres is kept running (or started if it was stopped) because
 # we need it to execute dropdb / createdb / psql restore.
-# If it was never started, 'docker compose up -d postgres' creates
+# If it was never started, 'docker compose --env-file .env.vps up -d postgres' creates
 # and starts it from scratch.
 # ═════════════════════════════════════════════════════════════════
 echo ""
@@ -257,21 +257,21 @@ echo "--- Phase 4: restoring PostgreSQL ---"
 # Terminate any lingering connections (e.g., pgAdmin, monitoring tools)
 # so that dropdb can acquire an exclusive lock. Suppress output — the
 # row count is not meaningful here; errors still surface via stderr.
-docker compose exec -T "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" postgres \
+docker compose --env-file .env.vps exec -T "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" postgres \
   -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$POSTGRES_DB' AND pid <> pg_backend_pid();" \
   > /dev/null
 
 # --if-exists handles a fresh postgres volume where the DB does not
 # exist yet (e.g., restoring onto a newly provisioned server).
-docker compose exec -T "$POSTGRES_CONTAINER" \
+docker compose --env-file .env.vps exec -T "$POSTGRES_CONTAINER" \
   dropdb --if-exists -U "$POSTGRES_USER" "$POSTGRES_DB"
 
-docker compose exec -T "$POSTGRES_CONTAINER" \
+docker compose --env-file .env.vps exec -T "$POSTGRES_CONTAINER" \
   createdb -U "$POSTGRES_USER" "$POSTGRES_DB"
 
 echo "  Streaming backup into PostgreSQL (this may take a while)..."
 gunzip -c "$PG_ARCHIVE" \
-  | docker compose exec -T "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" "$POSTGRES_DB"
+  | docker compose --env-file .env.vps exec -T "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" "$POSTGRES_DB"
 
 echo "  PostgreSQL restore completed."
 
@@ -313,18 +313,18 @@ echo "  MinIO data restore completed."
 echo ""
 echo "--- Phase 7: starting services ---"
 
-docker compose start minio backend
+docker compose --env-file .env.vps start minio backend
 
 echo ""
 echo "Post-restore service status:"
-docker compose ps "$POSTGRES_CONTAINER" minio backend
+docker compose --env-file .env.vps ps "$POSTGRES_CONTAINER" minio backend
 
 echo ""
 echo "===================================="
 echo "Restore finished."
 echo ""
 echo "Next steps:"
-echo "  Verify health:  docker compose ps"
-echo "  Backend logs:   docker compose logs --tail=50 backend"
-echo "  Minio logs:     docker compose logs --tail=20 minio"
+echo "  Verify health:  docker compose --env-file .env.vps ps"
+echo "  Backend logs:   docker compose --env-file .env.vps logs --tail=50 backend"
+echo "  Minio logs:     docker compose --env-file .env.vps logs --tail=20 minio"
 echo "===================================="
