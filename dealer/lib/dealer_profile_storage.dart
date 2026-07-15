@@ -4,10 +4,12 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'api_client_helpers.dart';
 import 'api_config.dart';
 import 'auth_storage.dart';
 import 'dealer_auth_client.dart';
 import 'models.dart' show kVatPercent;
+import 'utils.dart';
 
 enum DealerProfileStorageMessageCode {
   loadFailed,
@@ -189,14 +191,14 @@ Future<DealerProfile> loadDealerProfile() async {
     final response = await _authClient
         .get(
           DealerApiConfig.resolveApiUri('/dealer/profile'),
-          headers: _authorizedHeaders(token),
+          headers: buildAuthorizedHeaders(token),
         )
         .timeout(
           _profileRequestTimeout,
           onTimeout: () =>
               throw TimeoutException('loadDealerProfile timed out'),
         );
-    final payload = _decodeBody(response.body);
+    final payload = decodeJsonBody(response.body);
     if (response.statusCode >= 400) {
       throw DealerProfileStorageException(
         _extractErrorMessage(
@@ -273,7 +275,7 @@ Future<void> saveDealerProfile(DealerProfile profile) async {
   final response = await _authClient
       .put(
         DealerApiConfig.resolveApiUri('/dealer/profile'),
-        headers: _authorizedJsonHeaders(token),
+        headers: buildAuthorizedJsonHeaders(token),
         body: jsonEncode(<String, dynamic>{
           'businessName': normalizedProfile.businessName,
           'contactName': normalizedProfile.contactName,
@@ -292,7 +294,7 @@ Future<void> saveDealerProfile(DealerProfile profile) async {
         _profileRequestTimeout,
         onTimeout: () => throw TimeoutException('saveDealerProfile timed out'),
       );
-  final payload = _decodeBody(response.body);
+  final payload = decodeJsonBody(response.body);
   if (response.statusCode >= 400) {
     throw DealerProfileStorageException(
       _extractErrorMessage(
@@ -383,27 +385,27 @@ DealerProfile _mapRemoteProfile(
   required DealerProfile fallback,
 }) {
   final hasAvatarField = json.containsKey('avatarUrl');
-  final avatarUrl = _resolveAvatarUrl(_normalizeString(json['avatarUrl']));
+  final avatarUrl = _resolveAvatarUrl(normalizeString(json['avatarUrl']));
 
   return DealerProfile(
     businessName:
-        _normalizeString(json['businessName']) ?? fallback.businessName,
-    contactName: _normalizeString(json['contactName']) ?? fallback.contactName,
-    email: _normalizeString(json['email']) ?? fallback.email,
-    phone: _normalizeString(json['phone']) ?? fallback.phone,
-    addressLine: _normalizeString(json['addressLine']) ?? fallback.addressLine,
-    ward: _normalizeString(json['ward']) ?? fallback.ward,
-    district: _normalizeString(json['district']) ?? fallback.district,
-    city: _normalizeString(json['city']) ?? fallback.city,
-    country: _normalizeString(json['country']) ?? fallback.country,
-    salesPolicy: _normalizeString(json['salesPolicy']) ?? fallback.salesPolicy,
+        normalizeString(json['businessName']) ?? fallback.businessName,
+    contactName: normalizeString(json['contactName']) ?? fallback.contactName,
+    email: normalizeString(json['email']) ?? fallback.email,
+    phone: normalizeString(json['phone']) ?? fallback.phone,
+    addressLine: normalizeString(json['addressLine']) ?? fallback.addressLine,
+    ward: normalizeString(json['ward']) ?? fallback.ward,
+    district: normalizeString(json['district']) ?? fallback.district,
+    city: normalizeString(json['city']) ?? fallback.city,
+    country: normalizeString(json['country']) ?? fallback.country,
+    salesPolicy: normalizeString(json['salesPolicy']) ?? fallback.salesPolicy,
     vatPercent: _normalizeVatPercent(json['vatPercent'], fallback.vatPercent),
     avatarUrl: hasAvatarField ? avatarUrl : fallback.avatarUrl,
   );
 }
 
 String? _resolveAvatarUrl(String? value) {
-  final normalized = _normalizeString(value);
+  final normalized = normalizeString(value);
   if (normalized == null) {
     return null;
   }
@@ -416,7 +418,7 @@ String? _resolveAvatarUrl(String? value) {
 }
 
 int _normalizeVatPercent(Object? value, int fallback) {
-  final parsed = _normalizeInt(value);
+  final parsed = parseOptionalInt(value);
   if (parsed == null) {
     return fallback;
   }
@@ -447,31 +449,6 @@ Future<String?> _readAccessToken() async {
   return token.trim();
 }
 
-Map<String, String> _authorizedHeaders(String token) {
-  return <String, String>{
-    'Accept': 'application/json',
-    'Authorization': 'Bearer $token',
-  };
-}
-
-Map<String, String> _authorizedJsonHeaders(String token) {
-  return <String, String>{
-    ..._authorizedHeaders(token),
-    'Content-Type': 'application/json',
-  };
-}
-
-Map<String, dynamic> _decodeBody(String body) {
-  if (body.trim().isEmpty) {
-    return const <String, dynamic>{};
-  }
-  final decoded = jsonDecode(body);
-  if (decoded is Map<String, dynamic>) {
-    return decoded;
-  }
-  return const <String, dynamic>{};
-}
-
 String _extractErrorMessage(
   Map<String, dynamic> payload, {
   required String fallback,
@@ -481,23 +458,4 @@ String _extractErrorMessage(
     return error;
   }
   return fallback;
-}
-
-String? _normalizeString(Object? value) {
-  final text = value?.toString().trim() ?? '';
-  return text.isEmpty ? null : text;
-}
-
-int? _normalizeInt(Object? value) {
-  if (value == null) {
-    return null;
-  }
-  if (value is num) {
-    return value.round();
-  }
-  final normalized = value.toString().trim();
-  if (normalized.isEmpty) {
-    return null;
-  }
-  return num.tryParse(normalized)?.round();
 }

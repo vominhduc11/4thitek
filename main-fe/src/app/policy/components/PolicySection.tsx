@@ -19,7 +19,7 @@ export default function PolicySection({ id, title, content, level = 'h2' }: Poli
             <HeadingTag id={id} className={headingClass}>
                 {title}
             </HeadingTag>
-            <div className="space-y-4 leading-relaxed text-[var(--text-secondary)]">{content}</div>
+            <div className="max-w-3xl space-y-4 leading-relaxed text-[var(--text-secondary)]">{content}</div>
         </section>
     );
 }

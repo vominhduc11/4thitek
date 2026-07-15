@@ -30,6 +30,44 @@
     --color-foreground: var(--foreground);
 }
 
+/* ── Design tokens exposed to Tailwind v4 ────────────────────────────────────
+   These were previously declared in tailwind.config.js, which Tailwind v4 never
+   loaded (no @config / no CSS @theme), so the xs / 3xl / 4xl variants and the
+   custom type scale were DEAD — ~50 `xs:` and ~60 `3xl:`/`4xl:` utilities across
+   the app emitted no CSS. Declaring them here activates them. Breakpoint scheme
+   mirrors bigbike-web: Tailwind defaults sm/md/lg/xl/2xl (640/768/1024/1280/1536)
+   plus the ultra-wide tiers below. */
+@theme {
+    --breakpoint-xs: 30rem; /* 480px — large phone */
+    --breakpoint-3xl: 120rem; /* 1920px — Full HD ultrawide (single 27"+ / 21:9) */
+    --breakpoint-4xl: 160rem; /* 2560px — QHD / 4K-class workstation, showroom TV */
+
+    /* Type scale — referenced from bigbike-web (styles/brand-tokens.css): fixed px
+       anchored at 16px root, tight heading line-heights, NO fluid/vw so text does
+       not balloon on ultra-wide. Exposed as text-overline … text-display-xl.
+       Body/heading sizes match bigbike; display keeps 4THITEK's bolder character. */
+    --text-overline: 0.75rem; /* 12px */
+    --text-overline--line-height: 1.2;
+    --text-caption: 0.875rem; /* 14px */
+    --text-caption--line-height: 1.4;
+    --text-body: 1rem; /* 16px */
+    --text-body--line-height: 1.6;
+    --text-body-lg: 1.125rem; /* 18px */
+    --text-body-lg--line-height: 1.6;
+    --text-h4: 1.125rem; /* 18px */
+    --text-h4--line-height: 1.2;
+    --text-h3: 1.25rem; /* 20px */
+    --text-h3--line-height: 1.2;
+    --text-h2: 1.5rem; /* 24px */
+    --text-h2--line-height: 1.2;
+    --text-h1: 2rem; /* 32px */
+    --text-h1--line-height: 1.15;
+    --text-display: 2.5rem; /* 40px */
+    --text-display--line-height: 1.1;
+    --text-display-xl: 5rem; /* 80px */
+    --text-display-xl--line-height: 1.05;
+}
+
 @media (prefers-color-scheme: dark) {
     :root {
         --background: #06111b;
@@ -197,6 +235,21 @@ body.product-detail-body::before {
     padding-inline: clamp(1rem, 2vw, 2rem);
 }
 
+/* Ultra-wide: grow the content rail instead of leaving a fixed 1440px column
+   stranded in the middle of 1920/2560px screens (bigbike-web grows its rail the
+   same way). Type does NOT scale here — only the rail widens. */
+@media (min-width: 1920px) {
+    :root {
+        --shell-max: 1680px;
+    }
+}
+
+@media (min-width: 2560px) {
+    :root {
+        --shell-max: 2160px;
+    }
+}
+
 .brand-panel {
     border: 1px solid var(--brand-border);
     background: var(--brand-panel);
@@ -350,4 +403,39 @@ body.product-detail-body::before {
 
 .description-content li {
     margin: 0.25rem 0;
+}
+
+/* Rich-text / CMS-injected HTML (product descriptions, blog article body via
+   dangerouslySetInnerHTML) — overflow guards mirrored from bigbike-web's
+   .bb-richtext so wide images, embeds, tables, or <pre> can never break the
+   layout horizontally. */
+.description-content {
+    min-width: 0;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+.description-content :is(img, video, iframe, table, pre) {
+    max-width: 100%;
+}
+
+.description-content img,
+.description-content video {
+    height: auto;
+}
+
+.description-content iframe {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+}
+
+.description-content table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.description-content pre {
+    overflow-x: auto;
 }

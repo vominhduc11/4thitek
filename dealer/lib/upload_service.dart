@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'api_config.dart';
 import 'auth_storage.dart';
 import 'dealer_auth_client.dart';
+import 'utils.dart';
 
 enum UploadMessageCode {
   apiNotConfigured,
@@ -208,8 +209,36 @@ class UploadService {
 
     final fileName = file.name.trim().isEmpty ? 'attachment' : file.name.trim();
     final contentType = _resolveMediaContentType(fileName, file.mimeType);
-    final sizeBytes = await file.length();
 
+    final session = await _createUploadSession(
+      accessToken: accessToken,
+      fileName: fileName,
+      contentType: contentType,
+      sizeBytes: await file.length(),
+    );
+
+    await _dispatchUpload(
+      session: session,
+      accessToken: accessToken,
+      file: file,
+      contentType: contentType,
+      onProgress: onProgress,
+    );
+
+    return _finalizeUpload(
+      accessToken: accessToken,
+      mediaAssetId: session.mediaAssetId,
+      fallbackFileName: fileName,
+      onProgress: onProgress,
+    );
+  }
+
+  Future<_UploadSession> _createUploadSession({
+    required String accessToken,
+    required String fileName,
+    required String contentType,
+    required int sizeBytes,
+  }) async {
     final sessionResponse = await _client.post(
       DealerApiConfig.resolveApiUri('/media/upload-session'),
       headers: <String, String>{
@@ -239,7 +268,7 @@ class UploadService {
         uploadServiceMessageToken(UploadMessageCode.invalidJson),
       );
     }
-    final mediaAssetId = _parseInt(sessionData['mediaAssetId']);
+    final mediaAssetId = parseInt(sessionData['mediaAssetId']);
     final uploadMethod =
         sessionData['uploadMethod']?.toString().trim().toUpperCase() ?? '';
     final uploadUrl = sessionData['uploadUrl']?.toString().trim() ?? '';
@@ -261,24 +290,46 @@ class UploadService {
       });
     }
 
-    if (uploadMethod == 'PRESIGNED_PUT') {
+    return _UploadSession(
+      mediaAssetId: mediaAssetId,
+      uploadMethod: uploadMethod,
+      uploadUrl: uploadUrl,
+      uploadHeaders: uploadHeaders,
+    );
+  }
+
+  Future<void> _dispatchUpload({
+    required _UploadSession session,
+    required String accessToken,
+    required XFile file,
+    required String contentType,
+    void Function(double progress)? onProgress,
+  }) async {
+    if (session.uploadMethod == 'PRESIGNED_PUT') {
       await _uploadPresignedPut(
-        url: uploadUrl,
+        url: session.uploadUrl,
         file: file,
         contentType: contentType,
-        headers: uploadHeaders,
+        headers: session.uploadHeaders,
         onProgress: onProgress,
       );
     } else {
       await _uploadMultipartSession(
         accessToken: accessToken,
-        uploadUrl: uploadUrl,
+        uploadUrl: session.uploadUrl,
         file: file,
         contentType: contentType,
         onProgress: onProgress,
       );
     }
+  }
 
+  Future<UploadedSupportMediaRef> _finalizeUpload({
+    required String accessToken,
+    required int mediaAssetId,
+    required String fallbackFileName,
+    void Function(double progress)? onProgress,
+  }) async {
     final finalizeResponse = await _client.post(
       DealerApiConfig.resolveApiUri('/media/finalize'),
       headers: <String, String>{
@@ -317,7 +368,7 @@ class UploadService {
     }
     final resolvedFileName = _resolveUploadedFileName(
       finalizeData['originalFileName'],
-      fallbackName: fileName,
+      fallbackName: fallbackFileName,
       rawUrl: resolvedUrl,
     );
 
@@ -333,7 +384,7 @@ class UploadService {
       accessUrl: resolvedAccessUrl,
       mediaType: finalizeData['mediaType']?.toString(),
       contentType: finalizeData['contentType']?.toString(),
-      sizeBytes: _parseOptionalInt(finalizeData['sizeBytes']),
+      sizeBytes: parseOptionalInt(finalizeData['sizeBytes']),
     );
   }
 
@@ -547,6 +598,7 @@ class UploadService {
         return decoded;
       }
     } catch (_) {
+      // Malformed JSON body: treat as an empty payload.
       return const <String, dynamic>{};
     }
     return const <String, dynamic>{};
@@ -558,24 +610,6 @@ class UploadService {
       return null;
     }
     return message;
-  }
-
-  int _parseInt(Object? value) {
-    if (value is int) {
-      return value;
-    }
-    if (value is double) {
-      return value.round();
-    }
-    return int.tryParse(value?.toString() ?? '') ?? 0;
-  }
-
-  int? _parseOptionalInt(Object? value) {
-    if (value == null) {
-      return null;
-    }
-    final parsed = _parseInt(value);
-    return parsed == 0 && value.toString().trim() != '0' ? null : parsed;
   }
 
   static Future<String> xFileToDataUri(XFile file) async {
@@ -656,6 +690,7 @@ String? _extractLastPathSegment(String? value) {
   try {
     return Uri.decodeComponent(segment);
   } catch (_) {
+    // Not valid percent-encoding: use the raw segment.
     return segment;
   }
 }
@@ -667,4 +702,18 @@ class UploadException implements Exception {
 
   @override
   String toString() => message;
+}
+
+class _UploadSession {
+  const _UploadSession({
+    required this.mediaAssetId,
+    required this.uploadMethod,
+    required this.uploadUrl,
+    required this.uploadHeaders,
+  });
+
+  final int mediaAssetId;
+  final String uploadMethod;
+  final String uploadUrl;
+  final Map<String, String> uploadHeaders;
 }

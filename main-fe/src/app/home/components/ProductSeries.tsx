@@ -97,7 +97,7 @@ export default function ProductSeries({ initialProducts = [], content = null }: 
                             </p>
                         </div>
                     ) : (
-                        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4">
                             {initialProducts.map((product, index) => {
                                 const productPath = buildProductPath(product.id, product.name);
                                 const description =

@@ -77,13 +77,13 @@ export default function NotFound() {
                 >
                     <Link
                         href="/"
-                        className="brand-button-primary w-full rounded-full py-2 text-center text-sm font-semibold text-[var(--text-primary)] transition xs:flex-1 xs:py-2.5 xs:text-base"
+                        className="brand-button-primary w-full rounded-full py-2 text-center text-sm font-semibold text-[var(--text-primary)] transition min-h-[40px] xs:flex-1 xs:py-2.5 xs:text-base"
                     >
                         {t('notFound.backHome')}
                     </Link>
                     <Link
                         href="/products"
-                        className="brand-button-secondary w-full rounded-full py-2 text-center text-sm font-semibold text-[var(--brand-blue)] transition hover:bg-[rgba(41,171,226,0.12)] xs:flex-1 xs:py-2.5 xs:text-base"
+                        className="brand-button-secondary w-full rounded-full py-2 text-center text-sm font-semibold text-[var(--brand-blue)] transition min-h-[40px] hover:bg-[rgba(41,171,226,0.12)] xs:flex-1 xs:py-2.5 xs:text-base"
                     >
                         {t('notFound.viewProducts')}
                     </Link>

@@ -122,7 +122,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
     return (
         <div className="w-full overflow-visible">
             <motion.div
-                className="relative mb-12 grid grid-cols-1 gap-5 overflow-visible sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                className="relative mb-12 grid grid-cols-1 gap-5 overflow-visible sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 4xl:grid-cols-5"
                 layout
                 transition={{ duration: 0.45, ease: 'easeInOut' }}
             >

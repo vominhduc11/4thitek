@@ -26,12 +26,17 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             icon: 'h-11 w-11'
         };
 
+        // When the caller opts into full width (className includes 'w-full'), the
+        // wrapper must also span its container; otherwise inline-block shrink-to-fit
+        // would silently collapse the button back to its content width.
+        const isFullWidth = /(?:^|:|\s)w-full(?:\s|$)/.test(className ?? '');
+
         return (
             <motion.div
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                style={{ display: 'inline-block' }}
+                style={isFullWidth ? { display: 'flex', width: '100%' } : { display: 'inline-block' }}
             >
                 <button
                     className={cn(baseStyles, variants[variant], sizes[size], className)}

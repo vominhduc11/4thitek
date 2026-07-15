@@ -35,8 +35,8 @@ export default function ProductWarranty() {
 
     return (
         <section id="product-details" className="relative min-h-screen">
-            <div className="container relative z-10 mx-auto max-w-[1800px] px-4 py-4 pb-2 pt-8 sm:-mt-8 md:-mt-8">
-                <h2 className="mb-6 text-lg font-bold text-white sm:text-xl md:mb-8 md:text-2xl lg:text-3xl xl:text-4xl 3xl:text-6xl">
+            <div className="brand-shell relative z-10 py-4 pb-2 pt-8 sm:-mt-8 md:-mt-8">
+                <h2 className="mb-6 text-lg font-bold text-white sm:text-xl md:mb-8 md:text-2xl lg:text-3xl xl:text-4xl 3xl:text-5xl">
                     {t('products.warranty.title')}
                 </h2>
 
@@ -45,10 +45,10 @@ export default function ProductWarranty() {
                         <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full border border-[var(--brand-border-strong)] bg-[rgba(41,171,226,0.14)]">
                             <FiShield className="h-10 w-10 text-[var(--brand-blue)]" />
                         </div>
-                        <h3 className="mb-2 text-base font-bold text-white sm:text-lg md:text-xl lg:text-2xl xl:text-3xl 3xl:text-5xl">
+                        <h3 className="mb-2 text-base font-bold text-white sm:text-lg md:text-xl lg:text-2xl xl:text-3xl">
                             {t('products.warranty.overview.title')}
                         </h3>
-                        <p className="text-sm text-[var(--text-secondary)] sm:text-base md:text-lg lg:text-lg xl:text-xl 3xl:text-3xl">
+                        <p className="text-sm text-[var(--text-secondary)] sm:text-base md:text-lg lg:text-lg xl:text-xl">
                             {t('products.warranty.overview.description')}
                         </p>
                     </div>
@@ -64,7 +64,7 @@ export default function ProductWarranty() {
                             {coveredItems.map((item) => (
                                 <li key={item} className="flex items-start gap-3">
                                     <span className="mt-1 text-[var(--success)]">•</span>
-                                    <span className="text-xs sm:text-sm md:text-base lg:text-base xl:text-lg 3xl:text-2xl">
+                                    <span className="text-xs sm:text-sm md:text-base lg:text-base xl:text-lg">
                                         {item}
                                     </span>
                                 </li>
@@ -81,7 +81,7 @@ export default function ProductWarranty() {
                             {notCoveredItems.map((item) => (
                                 <li key={item} className="flex items-start gap-3">
                                     <span className="mt-1 text-[var(--destructive)]">•</span>
-                                    <span className="text-xs sm:text-sm md:text-base lg:text-base xl:text-lg 3xl:text-2xl">
+                                    <span className="text-xs sm:text-sm md:text-base lg:text-base xl:text-lg">
                                         {item}
                                     </span>
                                 </li>
@@ -139,18 +139,18 @@ export default function ProductWarranty() {
                             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-[rgba(43,224,134,0.22)] bg-[rgba(43,224,134,0.14)]">
                                 <FiExternalLink className="h-7 w-7 text-[var(--success)]" />
                             </div>
-                            <h4 className="mb-2 font-bold text-white">
+                            <h4 className="mb-2 font-bold text-white text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl">
                                 {t('products.warranty.contact.facebook.title')}
                             </h4>
                             <a
                                 href="https://www.facebook.com/bigbikegear"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="font-semibold text-[var(--success)] transition-colors hover:text-white"
+                                className="text-sm font-semibold text-[var(--success)] transition-colors hover:text-white sm:text-base md:text-lg lg:text-xl xl:text-2xl"
                             >
                                 {t('products.warranty.contact.facebook.value')}
                             </a>
-                            <p className="text-sm text-[var(--text-secondary)]">
+                            <p className="text-xs text-[var(--text-secondary)] sm:text-sm md:text-base lg:text-lg xl:text-xl">
                                 {t('products.warranty.contact.facebook.note')}
                             </p>
                         </div>
@@ -158,13 +158,13 @@ export default function ProductWarranty() {
                             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-[rgba(5,167,175,0.22)] bg-[rgba(5,167,175,0.14)]">
                                 <FiMapPin className="h-7 w-7 text-[var(--support-teal)]" />
                             </div>
-                            <h4 className="mb-2 font-bold text-white">
+                            <h4 className="mb-2 font-bold text-white text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl">
                                 {t('products.warranty.contact.address.title')}
                             </h4>
-                            <p className="font-semibold text-[var(--support-teal)]">
+                            <p className="text-sm font-semibold text-[var(--support-teal)] sm:text-base md:text-lg lg:text-xl xl:text-2xl">
                                 {t('products.warranty.contact.address.value')}
                             </p>
-                            <p className="text-sm text-[var(--text-secondary)]">
+                            <p className="text-xs text-[var(--text-secondary)] sm:text-sm md:text-base lg:text-lg xl:text-xl">
                                 {t('products.warranty.contact.address.note')}
                             </p>
                         </div>

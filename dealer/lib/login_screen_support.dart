@@ -162,28 +162,10 @@ extension _LoginScreenSupport on _LoginScreenState {
       if (!mounted) {
         return;
       }
-      await CartScope.of(context).load();
+      await bootstrapSessionScopes(context);
       if (!mounted) {
         return;
       }
-      await OrderScope.of(context).load(forceRefresh: true);
-      if (!mounted) {
-        return;
-      }
-      await WarrantyScope.of(context).load(forceRefresh: true);
-      if (!mounted) {
-        return;
-      }
-      await NotificationScope.of(context).load(forceRefresh: true);
-      if (!mounted) {
-        return;
-      }
-      final pushMessagingController = PushMessagingScope.maybeOf(context);
-      await pushMessagingController?.initialize();
-      if (!mounted) {
-        return;
-      }
-      await pushMessagingController?.refreshRegistration();
       _clearCredentialFieldErrors();
       if (!mounted) {
         return;

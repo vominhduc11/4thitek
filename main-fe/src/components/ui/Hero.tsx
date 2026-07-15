@@ -16,7 +16,7 @@ interface HeroProps {
     videoSrc?: string;
 }
 
-const defaultBreadcrumbWrapperClassName = 'ml-0 sm:ml-16 md:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20';
+const defaultBreadcrumbWrapperClassName = 'brand-shell';
 const defaultVideoSrc = '/videos/hero-brand-network-service-loop.mp4';
 
 export default function Hero({
@@ -51,7 +51,7 @@ export default function Hero({
 
             {/* Breadcrumb - Aligned with content below */}
             {breadcrumbItems.length > 0 && (
-                <div className="absolute bottom-8 xs:bottom-10 sm:bottom-12 left-0 right-0" style={{ zIndex: Z_INDEX.STICKY }}>
+                <div className="absolute bottom-8 xs:bottom-10 sm:bottom-12 left-0 right-0 lg:pl-20" style={{ zIndex: Z_INDEX.STICKY }}>
                     <div className={breadcrumbWrapperClassName}>
                         <Breadcrumb items={breadcrumbItems} />
                     </div>

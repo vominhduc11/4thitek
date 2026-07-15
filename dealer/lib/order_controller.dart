@@ -6,182 +6,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import 'api_client_helpers.dart';
 import 'api_config.dart';
 import 'auth_storage.dart';
 import 'dealer_auth_client.dart';
 import 'models.dart';
 import 'utils.dart';
 
-enum OrderMessageCode {
-  apiNotConfigured,
-  unauthenticated,
-  invalidOrderPayload,
-  invalidOrdersPayload,
-  invalidCreateOrderPayload,
-  createOrderFailed,
-  statusUpdateFailed,
-  paymentFailed,
-  syncFailed,
-}
-
-const String _orderMessageTokenPrefix = 'order.message.';
-const String _stockConflictMessage =
-    'Stock is being updated by another request; please retry';
-const String _optimisticConflictMessage =
-    'The record was modified by another request; please retry';
-const String _roundedPaymentAmountMessage =
-    'Payment amount must round to at least 1 VND';
-final RegExp _insufficientStockPattern = RegExp(
-  r'^Insufficient stock for product (.+)$',
-);
-
-String orderControllerMessageToken(OrderMessageCode code) =>
-    '$_orderMessageTokenPrefix${code.name}';
-
-String? _resolveDynamicOrderMessage(
-  String normalized, {
-  required bool isEnglish,
-}) {
-  final insufficientStockMatch = _insufficientStockPattern.firstMatch(
-    normalized,
-  );
-  if (insufficientStockMatch != null) {
-    final productName = insufficientStockMatch.group(1)?.trim();
-    if (productName == null || productName.isEmpty) {
-      return isEnglish
-          ? 'Insufficient stock. Please refresh and try again.'
-          : 'Tồn kho không còn đủ. Vui lòng làm mới và thử lại.';
-    }
-    return isEnglish
-        ? 'Insufficient stock for $productName. Please refresh and try again.'
-        : 'Tồn kho của $productName không còn đủ. Vui lòng làm mới và thử lại.';
-  }
-
-  switch (normalized) {
-    case _stockConflictMessage:
-    case _optimisticConflictMessage:
-      return isEnglish
-          ? 'Stock changed while your request was being processed. Please refresh and try again.'
-          : 'Tồn kho vừa thay đổi trong lúc xử lý. Vui lòng làm mới và thử lại.';
-    case _roundedPaymentAmountMessage:
-      return isEnglish
-          ? 'The rounded payment amount must be at least 1 VND.'
-          : 'Số tiền sau khi làm tròn phải từ 1 VND trở lên.';
-    default:
-      return null;
-  }
-}
-
-String resolveOrderControllerMessage(
-  String? message, {
-  required bool isEnglish,
-}) {
-  final normalized = message?.trim();
-  final dynamicMessage = normalized == null
-      ? null
-      : _resolveDynamicOrderMessage(normalized, isEnglish: isEnglish);
-  if (!isEnglish) {
-    if (normalized == null || normalized.isEmpty) {
-      return 'Không thể đồng bộ dữ liệu đơn hàng.';
-    }
-    final dynamicMessage = _resolveDynamicOrderMessage(
-      normalized,
-      isEnglish: false,
-    );
-    switch (normalized) {
-      case 'order.message.apiNotConfigured':
-        return 'API đơn hàng chưa được cấu hình.';
-      case 'order.message.unauthenticated':
-        return 'Bạn cần đăng nhập trước khi thao tác đơn hàng.';
-      case 'order.message.invalidOrderPayload':
-        return 'Dữ liệu đơn hàng không hợp lệ.';
-      case 'order.message.invalidOrdersPayload':
-        return 'Dữ liệu danh sách đơn hàng không hợp lệ.';
-      case 'order.message.invalidCreateOrderPayload':
-        return 'Dữ liệu đơn hàng vừa tạo không hợp lệ.';
-      case 'order.message.createOrderFailed':
-        return 'Không thể tạo đơn hàng. Vui lòng thử lại.';
-      case 'order.message.statusUpdateFailed':
-        return 'Không thể cập nhật trạng thái đơn hàng. Vui lòng thử lại.';
-      case 'order.message.paymentFailed':
-        return 'Không thể ghi nhận thanh toán. Vui lòng kiểm tra lại.';
-      case 'order.message.syncFailed':
-        return 'Không thể đồng bộ dữ liệu đơn hàng.';
-      default:
-        if (dynamicMessage != null) {
-          return dynamicMessage;
-        }
-        break;
-    }
-  }
-  if (normalized == null || normalized.isEmpty) {
-    return isEnglish
-        ? 'Unable to sync order data.'
-        : 'Không thể đồng bộ dữ liệu đơn hàng.';
-  }
-
-  switch (normalized) {
-    case 'order.message.apiNotConfigured':
-      return isEnglish
-          ? 'Order API is not configured.'
-          : 'API đơn hàng chưa được cấu hình.';
-    case 'order.message.unauthenticated':
-      return isEnglish
-          ? 'You need to sign in before managing orders.'
-          : 'Bạn cần đăng nhập trước khi thao tác đơn hàng.';
-    case 'order.message.invalidOrderPayload':
-      return isEnglish
-          ? 'Order data is invalid.'
-          : 'Dữ liệu đơn hàng không hợp lệ.';
-    case 'order.message.invalidOrdersPayload':
-      return isEnglish
-          ? 'Orders data is invalid.'
-          : 'Dữ liệu danh sách đơn hàng không hợp lệ.';
-    case 'order.message.invalidCreateOrderPayload':
-      return isEnglish
-          ? 'Created order data is invalid.'
-          : 'Dữ liệu đơn hàng vừa tạo không hợp lệ.';
-    case 'order.message.createOrderFailed':
-      return isEnglish
-          ? 'Unable to create the order. Please try again.'
-          : 'Không thể tạo đơn hàng. Vui lòng thử lại.';
-    case 'order.message.statusUpdateFailed':
-      return isEnglish
-          ? 'Unable to update the order status. Please try again.'
-          : 'Không thể cập nhật trạng thái đơn hàng. Vui lòng thử lại.';
-    case 'order.message.paymentFailed':
-      return isEnglish
-          ? 'Unable to record the payment. Please check again.'
-          : 'Không thể ghi nhận thanh toán. Vui lòng kiểm tra lại.';
-    case 'order.message.syncFailed':
-      return isEnglish
-          ? 'Unable to sync order data.'
-          : 'Không thể đồng bộ dữ liệu đơn hàng.';
-    default:
-      if (dynamicMessage != null) {
-        return dynamicMessage;
-      }
-      return normalized;
-  }
-}
-
-String orderControllerErrorMessage(Object? error, {required bool isEnglish}) {
-  final message = switch (error) {
-    OrderControllerException() => error.message,
-    String() => error,
-    _ => error?.toString(),
-  };
-  return resolveOrderControllerMessage(message, isEnglish: isEnglish);
-}
-
-class OrderControllerException implements Exception {
-  const OrderControllerException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => message;
-}
+part 'order_controller_messages.dart';
 
 class OrderController extends ChangeNotifier {
   static const Duration _requestTimeout = Duration(seconds: 15);
@@ -427,20 +259,20 @@ class OrderController extends ChangeNotifier {
     if (remoteOrderId != null && await _canUseRemoteApi()) {
       return _trackCriticalMutation(() async {
         try {
-      final response = await _withRequestTimeout(
-        _client.patch(
-        DealerApiConfig.resolveApiUri(
-          '/dealer/orders/$remoteOrderId/status',
-        ),
-        headers: await _authorizedJsonHeaders(),
-        body: jsonEncode(<String, dynamic>{
-          'status': _toRemoteOrderStatus(status),
-          if (cancelReason != null && cancelReason.trim().isNotEmpty)
-            'reason': cancelReason.trim(),
-        }),
-        ),
-      );
-          final payload = _decodeBody(response.body);
+          final response = await _withRequestTimeout(
+            _client.patch(
+              DealerApiConfig.resolveApiUri(
+                '/dealer/orders/$remoteOrderId/status',
+              ),
+              headers: await _authorizedJsonHeaders(),
+              body: jsonEncode(<String, dynamic>{
+                'status': _toRemoteOrderStatus(status),
+                if (cancelReason != null && cancelReason.trim().isNotEmpty)
+                  'reason': cancelReason.trim(),
+              }),
+            ),
+          );
+          final payload = decodeJsonBody(response.body);
           if (response.statusCode >= 400) {
             throw OrderControllerException(
               _extractErrorMessageWithFallback(
@@ -547,21 +379,21 @@ class OrderController extends ChangeNotifier {
       try {
         final response = await _withRequestTimeout(
           _client.post(
-          DealerApiConfig.resolveApiUri(
-            '/dealer/orders/$remoteOrderId/payments',
-          ),
-          headers: await _authorizedJsonHeaders(),
-          body: jsonEncode(<String, dynamic>{
-            'amount': safeAmount,
-            if (method != null) 'method': _toRemotePaymentMethod(method),
-            'channel': channel.trim(),
-            if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
-            if (proofFileName != null && proofFileName.trim().isNotEmpty)
-              'proofFileName': proofFileName.trim(),
-          }),
+            DealerApiConfig.resolveApiUri(
+              '/dealer/orders/$remoteOrderId/payments',
+            ),
+            headers: await _authorizedJsonHeaders(),
+            body: jsonEncode(<String, dynamic>{
+              'amount': safeAmount,
+              if (method != null) 'method': _toRemotePaymentMethod(method),
+              'channel': channel.trim(),
+              if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+              if (proofFileName != null && proofFileName.trim().isNotEmpty)
+                'proofFileName': proofFileName.trim(),
+            }),
           ),
         );
-        final payload = _decodeBody(response.body);
+        final payload = decodeJsonBody(response.body);
         if (response.statusCode >= 400) {
           throw OrderControllerException(
             _extractErrorMessageWithFallback(
@@ -621,11 +453,11 @@ class OrderController extends ChangeNotifier {
     try {
       final response = await _withRequestTimeout(
         _client.get(
-        DealerApiConfig.resolveApiUri('/dealer/orders'),
-        headers: await _authorizedHeaders(),
+          DealerApiConfig.resolveApiUri('/dealer/orders'),
+          headers: await _authorizedHeaders(),
         ),
       );
-      final payload = _decodeBody(response.body);
+      final payload = decodeJsonBody(response.body);
       if (response.statusCode >= 400) {
         throw OrderControllerException(
           _extractErrorMessageWithFallback(
@@ -667,48 +499,48 @@ class OrderController extends ChangeNotifier {
     headers['X-Idempotency-Key'] = _generateIdempotencyKey();
     final response = await _withRequestTimeout(
       _client.post(
-      DealerApiConfig.resolveApiUri('/dealer/orders'),
-      headers: headers,
-      body: jsonEncode(<String, dynamic>{
-        'paymentMethod': _toRemotePaymentMethod(order.paymentMethod),
-        'receiverName': order.receiverName,
-        'receiverAddress': order.receiverAddress,
-        'receiverPhone': order.receiverPhone,
-        if (order.note != null && order.note!.trim().isNotEmpty)
-          'note': order.note!.trim(),
-        'items': () {
-          final mapped = order.items
-              .map(
-                (item) => <String, dynamic>{
-                  'productId': int.tryParse(item.product.id),
-                  'quantity': item.quantity,
-                  '_rawId': item.product.id,
-                },
-              )
-              .toList(growable: false);
-          final dropped = mapped
-              .where((item) => item['productId'] == null)
-              .toList();
-          if (dropped.isNotEmpty) {
-            debugPrint(
-              'OrderController: dropping ${dropped.length} item(s) with non-numeric product ids: '
-              '${dropped.map((item) => item['_rawId']).join(', ')}',
-            );
-          }
-          return mapped
-              .where((item) => item['productId'] != null)
-              .map(
-                (item) => <String, dynamic>{
-                  'productId': item['productId'],
-                  'quantity': item['quantity'],
-                },
-              )
-              .toList(growable: false);
-        }(),
-      }),
+        DealerApiConfig.resolveApiUri('/dealer/orders'),
+        headers: headers,
+        body: jsonEncode(<String, dynamic>{
+          'paymentMethod': _toRemotePaymentMethod(order.paymentMethod),
+          'receiverName': order.receiverName,
+          'receiverAddress': order.receiverAddress,
+          'receiverPhone': order.receiverPhone,
+          if (order.note != null && order.note!.trim().isNotEmpty)
+            'note': order.note!.trim(),
+          'items': () {
+            final mapped = order.items
+                .map(
+                  (item) => <String, dynamic>{
+                    'productId': int.tryParse(item.product.id),
+                    'quantity': item.quantity,
+                    '_rawId': item.product.id,
+                  },
+                )
+                .toList(growable: false);
+            final dropped = mapped
+                .where((item) => item['productId'] == null)
+                .toList();
+            if (dropped.isNotEmpty) {
+              debugPrint(
+                'OrderController: dropping ${dropped.length} item(s) with non-numeric product ids: '
+                '${dropped.map((item) => item['_rawId']).join(', ')}',
+              );
+            }
+            return mapped
+                .where((item) => item['productId'] != null)
+                .map(
+                  (item) => <String, dynamic>{
+                    'productId': item['productId'],
+                    'quantity': item['quantity'],
+                  },
+                )
+                .toList(growable: false);
+          }(),
+        }),
       ),
     );
-    final payload = _decodeBody(response.body);
+    final payload = decodeJsonBody(response.body);
     if (response.statusCode >= 400) {
       throw OrderControllerException(
         _extractErrorMessageWithFallback(
@@ -734,11 +566,11 @@ class OrderController extends ChangeNotifier {
   Future<void> _reloadRemoteOrder(int remoteOrderId) async {
     final response = await _withRequestTimeout(
       _client.get(
-      DealerApiConfig.resolveApiUri('/dealer/orders/$remoteOrderId'),
-      headers: await _authorizedHeaders(),
+        DealerApiConfig.resolveApiUri('/dealer/orders/$remoteOrderId'),
+        headers: await _authorizedHeaders(),
       ),
     );
-    final payload = _decodeBody(response.body);
+    final payload = decodeJsonBody(response.body);
     if (response.statusCode >= 400) {
       throw OrderControllerException(
         _extractErrorMessageWithFallback(
@@ -760,11 +592,13 @@ class OrderController extends ChangeNotifier {
     try {
       final response = await _withRequestTimeout(
         _client.get(
-        DealerApiConfig.resolveApiUri('/dealer/orders/$remoteOrderId/payments'),
-        headers: await _authorizedHeaders(),
+          DealerApiConfig.resolveApiUri(
+            '/dealer/orders/$remoteOrderId/payments',
+          ),
+          headers: await _authorizedHeaders(),
         ),
       );
-      final payload = _decodeBody(response.body);
+      final payload = decodeJsonBody(response.body);
       if (response.statusCode >= 400) {
         return null;
       }
@@ -776,7 +610,8 @@ class OrderController extends ChangeNotifier {
           .whereType<Map<String, dynamic>>()
           .map(_mapRemotePayment)
           .toList(growable: false);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[OrderController] _fetchRemotePaymentsForOrder failed: $e');
       return null;
     }
   }
@@ -811,9 +646,8 @@ class OrderController extends ChangeNotifier {
     if (json['id'] == null) {
       throw const OrderControllerException('order.message.invalidOrderPayload');
     }
-    final remoteId = _parseInt(json['id']);
-    final orderCode =
-        _normalizeString(json['orderCode']) ?? remoteId.toString();
+    final remoteId = parseInt(json['id']);
+    final orderCode = normalizeString(json['orderCode']) ?? remoteId.toString();
     _remoteOrderIds[orderCode] = remoteId;
     _remoteOrderCodes[remoteId] = orderCode;
 
@@ -830,35 +664,34 @@ class OrderController extends ChangeNotifier {
       status: _mapRemoteOrderStatus(json['status']?.toString()),
       paymentMethod: _mapRemotePaymentMethod(json['paymentMethod']?.toString()),
       paymentStatus: _mapRemotePaymentStatus(json['paymentStatus']?.toString()),
-      receiverName: _normalizeString(json['receiverName']) ?? '',
-      receiverAddress: _normalizeString(json['receiverAddress']) ?? '',
-      receiverPhone: _normalizeString(json['receiverPhone']) ?? '',
+      receiverName: normalizeString(json['receiverName']) ?? '',
+      receiverAddress: normalizeString(json['receiverAddress']) ?? '',
+      receiverPhone: normalizeString(json['receiverPhone']) ?? '',
       items: items,
-      paidAmount: _parsePrice(json['paidAmount']),
-      note: _normalizeString(json['note']),
-      subtotalOverride: _parsePrice(json['subtotal']),
-      discountPercentOverride: _parseInt(json['discountPercent']),
-      discountAmountOverride: _parsePrice(json['discountAmount']),
-      vatPercentOverride: _parseInt(json['vatPercent'], fallback: kVatPercent),
-      vatAmountOverride: _parsePrice(json['vatAmount']),
-      totalAmountOverride: _parsePrice(json['totalAmount']),
+      paidAmount: parsePrice(json['paidAmount']),
+      note: normalizeString(json['note']),
+      subtotalOverride: parsePrice(json['subtotal']),
+      discountPercentOverride: parseInt(json['discountPercent']),
+      discountAmountOverride: parsePrice(json['discountAmount']),
+      vatPercentOverride: parseInt(json['vatPercent'], fallback: kVatPercent),
+      vatAmountOverride: parsePrice(json['vatAmount']),
+      totalAmountOverride: parsePrice(json['totalAmount']),
     );
   }
 
   OrderLineItem? _mapRemoteOrderItem(Map<String, dynamic> json) {
     final productId = json['productId']?.toString();
-    final quantity = _parseInt(json['quantity']);
+    final quantity = parseInt(json['quantity']);
     if (productId == null || productId.isEmpty || quantity <= 0) {
       return null;
     }
     final fallback = _findProductById(productId);
     final product = Product(
       id: productId,
-      name:
-          _normalizeString(json['productName']) ?? fallback?.name ?? 'Product',
-      sku: _normalizeString(json['productSku']) ?? fallback?.sku ?? productId,
+      name: normalizeString(json['productName']) ?? fallback?.name ?? 'Product',
+      sku: normalizeString(json['productSku']) ?? fallback?.sku ?? productId,
       shortDescription: fallback?.shortDescription ?? '',
-      price: _parsePrice(json['unitPrice'], fallback: fallback?.price ?? 0),
+      price: parsePrice(json['unitPrice'], fallback: fallback?.price ?? 0),
       stock: fallback?.stock ?? quantity,
       warrantyMonths: fallback?.warrantyMonths ?? 12,
       imageUrl: fallback?.imageUrl,
@@ -871,17 +704,17 @@ class OrderController extends ChangeNotifier {
   }
 
   OrderPaymentRecord _mapRemotePayment(Map<String, dynamic> json) {
-    final remoteOrderId = _parseInt(json['orderId']);
+    final remoteOrderId = parseInt(json['orderId']);
     final orderCode =
         _remoteOrderCodes[remoteOrderId] ?? remoteOrderId.toString();
     return OrderPaymentRecord(
       id: json['id']?.toString() ?? '',
       orderId: orderCode,
-      amount: _parsePrice(json['amount']),
+      amount: parsePrice(json['amount']),
       paidAt: parseApiDateTime(json['paidAt']) ?? DateTime.now(),
-      channel: _normalizeString(json['channel']) ?? '',
-      note: _normalizeString(json['note']),
-      proofFileName: _normalizeString(json['proofFileName']),
+      channel: normalizeString(json['channel']) ?? '',
+      note: normalizeString(json['note']),
+      proofFileName: normalizeString(json['proofFileName']),
     );
   }
 
@@ -970,15 +803,17 @@ class OrderController extends ChangeNotifier {
         orderControllerMessageToken(OrderMessageCode.unauthenticated),
       );
     }
-    return <String, String>{
-      'Accept': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
+    return buildAuthorizedHeaders(token);
   }
 
   Future<Map<String, String>> _authorizedJsonHeaders() async {
-    final headers = await _authorizedHeaders();
-    return <String, String>{...headers, 'Content-Type': 'application/json'};
+    final token = await _readAccessToken();
+    if (token == null) {
+      throw OrderControllerException(
+        orderControllerMessageToken(OrderMessageCode.unauthenticated),
+      );
+    }
+    return buildAuthorizedJsonHeaders(token);
   }
 
   Future<T> _withRequestTimeout<T>(Future<T> future) {
@@ -994,17 +829,6 @@ class OrderController extends ChangeNotifier {
     return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-'
         '${hex.substring(12, 16)}-${hex.substring(16, 20)}-'
         '${hex.substring(20)}';
-  }
-
-  Map<String, dynamic> _decodeBody(String body) {
-    if (body.trim().isEmpty) {
-      return const <String, dynamic>{};
-    }
-    final decoded = jsonDecode(body);
-    if (decoded is Map<String, dynamic>) {
-      return decoded;
-    }
-    return const <String, dynamic>{};
   }
 
   String _extractErrorMessage(Map<String, dynamic> payload) {
@@ -1062,31 +886,6 @@ class OrderController extends ChangeNotifier {
       return orderControllerMessageToken(OrderMessageCode.unauthenticated);
     }
     return normalized;
-  }
-
-  int _parseInt(Object? value, {int fallback = 0}) {
-    if (value is int) {
-      return value;
-    }
-    if (value is double) {
-      return value.round();
-    }
-    return int.tryParse(value?.toString() ?? '') ?? fallback;
-  }
-
-  int _parsePrice(Object? value, {int fallback = 0}) {
-    if (value is int) {
-      return value;
-    }
-    if (value is double) {
-      return value.round();
-    }
-    return double.tryParse(value?.toString() ?? '')?.round() ?? fallback;
-  }
-
-  String? _normalizeString(Object? value) {
-    final text = value?.toString().trim() ?? '';
-    return text.isEmpty ? null : text;
   }
 
   void _replaceOrders(Iterable<Order> orders) {

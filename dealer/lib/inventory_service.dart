@@ -1,6 +1,6 @@
-import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+import 'api_client_helpers.dart';
 import 'api_config.dart';
 import 'auth_storage.dart';
 import 'dealer_auth_client.dart';
@@ -139,7 +139,7 @@ class InventoryService {
       DealerApiConfig.resolveApiUri('/dealer/inventory/summary'),
       headers: await _authorizedHeaders(),
     );
-    final payload = _decodeBody(response.body);
+    final payload = decodeJsonBody(response.body);
     if (response.statusCode >= 400) {
       throw InventoryException(_extractErrorMessage(payload));
     }
@@ -163,7 +163,7 @@ class InventoryService {
       ).replace(queryParameters: <String, String>{'productId': productId}),
       headers: await _authorizedHeaders(),
     );
-    final payload = _decodeBody(response.body);
+    final payload = decodeJsonBody(response.body);
     if (response.statusCode >= 400) {
       throw InventoryException(_extractErrorMessage(payload));
     }
@@ -186,7 +186,7 @@ class InventoryService {
       DealerApiConfig.resolveApiUri('/dealer/inventory/serials/$serialId'),
       headers: await _authorizedHeaders(),
     );
-    final payload = _decodeBody(response.body);
+    final payload = decodeJsonBody(response.body);
     if (response.statusCode >= 400) {
       throw InventoryException(_extractErrorMessage(payload));
     }
@@ -230,10 +230,7 @@ class InventoryService {
         inventoryServiceMessageToken(InventoryMessageCode.unauthenticated),
       );
     }
-    return <String, String>{
-      'Accept': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
+    return buildAuthorizedHeaders(token);
   }
 
   Future<String?> _readAccessToken() async {
@@ -245,17 +242,6 @@ class InventoryService {
       return null;
     }
     return token.trim();
-  }
-
-  Map<String, dynamic> _decodeBody(String body) {
-    if (body.trim().isEmpty) {
-      return const <String, dynamic>{};
-    }
-    final decoded = jsonDecode(body);
-    if (decoded is Map<String, dynamic>) {
-      return decoded;
-    }
-    return const <String, dynamic>{};
   }
 
   String _extractErrorMessage(Map<String, dynamic> payload) {

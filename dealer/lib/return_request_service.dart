@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
+import 'api_client_helpers.dart';
 import 'api_config.dart';
 import 'auth_storage.dart';
 import 'dealer_auth_client.dart';
@@ -808,15 +809,17 @@ class ReturnRequestService {
         returnServiceMessageToken(ReturnMessageCode.unauthenticated),
       );
     }
-    return <String, String>{
-      'Accept': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
+    return buildAuthorizedHeaders(token);
   }
 
   Future<Map<String, String>> _authorizedJsonHeaders() async {
-    final headers = await _authorizedHeaders();
-    return <String, String>{...headers, 'Content-Type': 'application/json'};
+    final token = await _readAccessToken();
+    if (token == null) {
+      throw ReturnRequestException(
+        returnServiceMessageToken(ReturnMessageCode.unauthenticated),
+      );
+    }
+    return buildAuthorizedJsonHeaders(token);
   }
 
   Future<String?> _readAccessToken() async {

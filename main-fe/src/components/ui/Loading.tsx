@@ -29,14 +29,14 @@ export default function Loading({
         md: {
             spinner: 'h-16 w-16',
             container: 'p-8 sm:p-12',
-            title: 'text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl 3xl:text-7xl',
-            message: 'text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl 3xl:text-4xl'
+            title: 'text-xl sm:text-2xl md:text-3xl lg:text-4xl',
+            message: 'text-sm sm:text-base md:text-lg lg:text-xl'
         },
         lg: {
             spinner: 'h-20 w-20',
             container: 'p-12 sm:p-16',
-            title: 'text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl 3xl:text-8xl',
-            message: 'text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl 2xl:text-4xl 3xl:text-5xl'
+            title: 'text-2xl sm:text-3xl md:text-4xl lg:text-5xl',
+            message: 'text-base sm:text-lg md:text-xl lg:text-2xl'
         }
     };
 

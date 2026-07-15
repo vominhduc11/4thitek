@@ -1,19 +1,30 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:stomp_dart_client/stomp_dart_client.dart';
 
+import 'api_client_helpers.dart';
 import 'api_config.dart';
 import 'auth_storage.dart';
 import 'dealer_auth_client.dart';
+import 'message_resolver.dart';
 import 'models.dart';
 import 'utils.dart';
 
 const String _notificationSyncUnavailableMarker =
     'notification.sync.unavailable';
+
+enum NotificationMessageCode { syncUnavailable }
+
+String notificationControllerMessageToken(NotificationMessageCode code) {
+  switch (code) {
+    case NotificationMessageCode.syncUnavailable:
+      return _notificationSyncUnavailableMarker;
+  }
+}
+
 @visibleForTesting
 const String dealerNotificationsRealtimeDestination =
     '/user/queue/notifications';
@@ -25,12 +36,18 @@ const Duration dealerNotificationFallbackRefreshInterval = Duration(
 );
 
 String notificationSyncErrorMessage(String error, {required bool isEnglish}) {
-  if (error == _notificationSyncUnavailableMarker) {
-    return isEnglish
-        ? 'Unable to sync notifications.'
-        : 'Không thể đồng bộ thông báo.';
-  }
-  return error;
+  return resolveMessageCode(
+    message: error,
+    isEnglish: isEnglish,
+    messages: {
+      notificationControllerMessageToken(
+        NotificationMessageCode.syncUnavailable,
+      ): (
+        'Unable to sync notifications.',
+        'Không thể đồng bộ thông báo.',
+      ),
+    },
+  );
 }
 
 class NotificationController extends ChangeNotifier {
@@ -213,34 +230,34 @@ class NotificationController extends ChangeNotifier {
     try {
       final response = await _client.get(
         DealerApiConfig.resolveApiUri('/dealer/notifications'),
-        headers: _authorizedHeaders(token),
+        headers: buildAuthorizedHeaders(token),
       );
-      final payload = _decodeBody(response.body);
+      final payload = decodeJsonBody(response.body);
       if (response.statusCode >= 400) {
-        throw Exception(_extractErrorMessage(payload));
+        return false;
       }
 
       final data = payload['data'];
       if (data is! List) {
-        throw Exception('Invalid notifications payload');
+        return false;
       }
 
       final remoteNotices = <DistributorNotice>[];
       final remoteReadIds = <String>{};
       _remoteNoticeIds.clear();
       for (final entry in data.whereType<Map<String, dynamic>>()) {
-        final remoteId = _parseInt(entry['id']);
+        final remoteId = parseInt(entry['id']);
         final noticeId = remoteId.toString();
         _remoteNoticeIds[noticeId] = remoteId;
         remoteNotices.add(
           DistributorNotice(
             id: noticeId,
             type: _mapRemoteType(entry['type']?.toString()),
-            title: _normalizeString(entry['title']) ?? 'Thông báo',
-            message: _normalizeString(entry['body']) ?? '',
+            title: normalizeString(entry['title']) ?? 'Thông báo',
+            message: normalizeString(entry['body']) ?? '',
             createdAt: parseApiDateTime(entry['createdAt']) ?? DateTime.now(),
-            link: _normalizeString(entry['link']),
-            deepLink: _normalizeString(entry['deepLink']),
+            link: normalizeString(entry['link']),
+            deepLink: normalizeString(entry['deepLink']),
           ),
         );
         if (_parseBool(entry['isRead'])) {
@@ -258,6 +275,7 @@ class NotificationController extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (_) {
+      // Offline or malformed response: keep the current notices unchanged.
       return false;
     }
   }
@@ -268,12 +286,13 @@ class NotificationController extends ChangeNotifier {
         DealerApiConfig.resolveApiUri('/dealer/notifications/$remoteId/read'),
         headers: await _authorizedJsonHeaders(),
       );
-      final payload = _decodeBody(response.body);
+      final payload = decodeJsonBody(response.body);
       if (response.statusCode >= 400) {
         return _extractErrorMessage(payload);
       }
       return null;
     } catch (_) {
+      // Offline or transient failure: report sync-unavailable to the caller.
       return _notificationSyncUnavailableMarker;
     }
   }
@@ -284,12 +303,13 @@ class NotificationController extends ChangeNotifier {
         DealerApiConfig.resolveApiUri('/dealer/notifications/$remoteId/unread'),
         headers: await _authorizedJsonHeaders(),
       );
-      final payload = _decodeBody(response.body);
+      final payload = decodeJsonBody(response.body);
       if (response.statusCode >= 400) {
         return _extractErrorMessage(payload);
       }
       return null;
     } catch (_) {
+      // Offline or transient failure: report sync-unavailable to the caller.
       return _notificationSyncUnavailableMarker;
     }
   }
@@ -300,12 +320,13 @@ class NotificationController extends ChangeNotifier {
         DealerApiConfig.resolveApiUri('/dealer/notifications/read-all'),
         headers: await _authorizedJsonHeaders(),
       );
-      final payload = _decodeBody(response.body);
+      final payload = decodeJsonBody(response.body);
       if (response.statusCode >= 400) {
         return _extractErrorMessage(payload);
       }
       return null;
     } catch (_) {
+      // Offline or transient failure: report sync-unavailable to the caller.
       return _notificationSyncUnavailableMarker;
     }
   }
@@ -483,8 +504,8 @@ class NotificationController extends ChangeNotifier {
       return;
     }
 
-    final payload = _decodeBody(frame.body ?? '');
-    final remoteId = _parseInt(payload['id'], fallback: -1);
+    final payload = decodeJsonBody(frame.body ?? '');
+    final remoteId = parseInt(payload['id'], fallback: -1);
     if (remoteId <= 0) {
       unawaited(_loadRemoteNotifications());
       return;
@@ -493,11 +514,11 @@ class NotificationController extends ChangeNotifier {
     final notice = DistributorNotice(
       id: remoteId.toString(),
       type: _mapRemoteType(payload['type']?.toString()),
-      title: _normalizeString(payload['title']) ?? 'Thông báo',
-      message: _normalizeString(payload['body']) ?? '',
+      title: normalizeString(payload['title']) ?? 'Thông báo',
+      message: normalizeString(payload['body']) ?? '',
       createdAt: parseApiDateTime(payload['createdAt']) ?? DateTime.now(),
-      link: _normalizeString(payload['link']),
-      deepLink: _normalizeString(payload['deepLink']),
+      link: normalizeString(payload['link']),
+      deepLink: normalizeString(payload['deepLink']),
     );
 
     final existingIndex = _notices.indexWhere((entry) => entry.id == notice.id);
@@ -540,7 +561,7 @@ class NotificationController extends ChangeNotifier {
       return;
     }
 
-    final payload = _decodeBody(frame.body ?? '');
+    final payload = decodeJsonBody(frame.body ?? '');
     final orderCode = payload['orderCode']?.toString();
     final status = payload['status']?.toString();
     final paymentStatus = payload['paymentStatus']?.toString();
@@ -631,33 +652,15 @@ class NotificationController extends ChangeNotifier {
     return await _readAccessToken() != null;
   }
 
-  Map<String, String> _authorizedHeaders(String token) {
-    return <String, String>{
-      'Accept': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
-  }
-
   Future<Map<String, String>> _authorizedJsonHeaders() async {
     final token = await _readAccessToken();
     if (token == null) {
       throw StateError('Unauthenticated request');
     }
     return <String, String>{
-      ..._authorizedHeaders(token),
+      ...buildAuthorizedHeaders(token),
       'Content-Type': 'application/json',
     };
-  }
-
-  Map<String, dynamic> _decodeBody(String body) {
-    if (body.trim().isEmpty) {
-      return const <String, dynamic>{};
-    }
-    final decoded = jsonDecode(body);
-    if (decoded is Map<String, dynamic>) {
-      return decoded;
-    }
-    return const <String, dynamic>{};
   }
 
   String _extractErrorMessage(Map<String, dynamic> payload) {
@@ -682,16 +685,6 @@ class NotificationController extends ChangeNotifier {
     }
   }
 
-  int _parseInt(Object? value, {int fallback = 0}) {
-    if (value is int) {
-      return value;
-    }
-    if (value is double) {
-      return value.round();
-    }
-    return int.tryParse(value?.toString() ?? '') ?? fallback;
-  }
-
   bool _parseBool(Object? value) {
     if (value is bool) {
       return value;
@@ -699,7 +692,7 @@ class NotificationController extends ChangeNotifier {
     return value?.toString().toLowerCase() == 'true';
   }
 
-  String? _normalizeString(Object? value) {
+  String? normalizeString(Object? value) {
     final text = value?.toString().trim() ?? '';
     return text.isEmpty ? null : text;
   }

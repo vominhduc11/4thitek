@@ -24,7 +24,7 @@ export default function AboutMission() {
                 <div className="brand-shell">
                     <div className="grid grid-cols-1 items-center gap-8 md:gap-12 lg:grid-cols-2">
                         <motion.div
-                            className="brand-card relative h-[400px] overflow-hidden rounded-[30px]"
+                            className="brand-card relative h-[260px] overflow-hidden rounded-[30px] sm:h-[320px] lg:h-[400px]"
                             initial={{ opacity: 0, x: -50 }}
                             whileInView={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.7 }}

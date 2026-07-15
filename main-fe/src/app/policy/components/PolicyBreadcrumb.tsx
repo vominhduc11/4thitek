@@ -44,7 +44,7 @@ const PolicyBreadcrumb = ({ selectedPolicy = 'warranty', onPolicyClick, policyCo
 
                         {/* Policy Navigation Breadcrumb */}
                         <motion.div
-                            className="mb-8 relative -mx-12 sm:-mx-16 lg:-mx-20"
+                            className="mb-8 relative -mx-4 sm:-mx-6 lg:-mx-8"
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6, delay: 0.5 }}
@@ -58,7 +58,7 @@ const PolicyBreadcrumb = ({ selectedPolicy = 'warranty', onPolicyClick, policyCo
                             />
 
                             {/* Policy Navigation - aligned left */}
-                            <div className="flex items-center gap-1 relative z-10 pl-12 sm:pl-16 lg:pl-20">
+                            <div className="flex items-center gap-1 relative z-10 pl-4 sm:pl-6 lg:pl-8 overflow-x-auto scrollbar-none">
                                 <div className="bg-[#06111B] px-2 flex items-center gap-1">
                                     {policyList.map((policy, index) => (
                                         <motion.div
@@ -70,7 +70,7 @@ const PolicyBreadcrumb = ({ selectedPolicy = 'warranty', onPolicyClick, policyCo
                                         >
                                             <motion.button
                                                 onClick={() => onPolicyClick?.(policy.key)}
-                                                className={`px-2 py-2 text-sm font-medium transition-all duration-300 bg-[#06111B] whitespace-nowrap ${
+                                                className={`px-2 py-2 min-h-[40px] text-sm font-medium transition-all duration-300 bg-[#06111B] whitespace-nowrap ${
                                                     selectedPolicy === policy.key
                                                         ? 'text-[var(--brand-blue)] font-semibold'
                                                         : 'text-[var(--text-secondary)] hover:text-white'

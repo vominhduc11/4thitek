@@ -219,7 +219,7 @@ class _LaunchRouteScreen extends StatelessWidget {
     final isEnglish = Localizations.localeOf(context).languageCode == 'en';
     final statusLabel = isEnglish
         ? 'Preparing the dealer workspace...'
-        : 'Äang chuáº©n bá»‹ khĂ´ng gian lĂ m viá»‡c cho Ä‘áº¡i lĂ½...';
+        : 'Đang chuẩn bị không gian làm việc cho đại lý...';
     return Scaffold(
       body: DecoratedBox(
         decoration: BoxDecoration(
@@ -331,13 +331,11 @@ class _RouteNotFoundScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isEnglish = Localizations.localeOf(context).languageCode == 'en';
-    final title = isEnglish
-        ? 'Content not found'
-        : 'KhĂ´ng tĂ¬m tháº¥y ná»™i dung';
+    final title = isEnglish ? 'Content not found' : 'Không tìm thấy nội dung';
     final message = isEnglish
         ? 'The destination may have changed or is no longer available.'
-        : 'Äiá»ƒm Ä‘áº¿n cĂ³ thá»ƒ Ä‘Ă£ thay Ä‘á»•i hoáº·c hiá»‡n khĂ´ng cĂ²n kháº£ dá»¥ng.';
-    final actionLabel = isEnglish ? 'Back to home' : 'Quay vá» trang chĂ­nh';
+        : 'Điểm đến có thể đã thay đổi hoặc hiện không còn khả dụng.';
+    final actionLabel = isEnglish ? 'Back to home' : 'Quay về trang chính';
 
     return Scaffold(
       appBar: AppBar(title: const BrandAppBarTitle(BusinessProfile.brandName)),

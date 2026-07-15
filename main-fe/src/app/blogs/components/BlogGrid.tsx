@@ -54,7 +54,7 @@ const BlogGrid = memo(function BlogGrid({ blogs }: BlogGridProps) {
     return (
         <AvoidSidebar>
             <div className="brand-shell py-8">
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 4xl:grid-cols-5">
                     {processedBlogs.map((blog, index) => (
                         <motion.article
                             key={blog.id}

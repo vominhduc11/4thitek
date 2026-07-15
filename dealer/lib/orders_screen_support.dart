@@ -168,7 +168,7 @@ extension _OrdersScreenSupport on _OrdersScreenState {
       }
       final result = await repository.fetchPage(
         _query,
-        QueryPageRequest(offset: pageKey, limit: _OrdersScreenState._pageSize),
+        QueryPageRequest(offset: pageKey, limit: _pageSize),
       );
       if (!mounted || requestRevision != _queryRevision) {
         return;
@@ -389,7 +389,9 @@ class _OrdersFilterSheetState extends State<_OrdersFilterSheet> {
           selectedColor: colors.primaryContainer.withValues(alpha: 0.9),
           labelStyle: textTheme.bodyMedium?.copyWith(
             fontWeight: FontWeight.w600,
-            color: isSelected ? colors.onPrimaryContainer : colors.onSurfaceVariant,
+            color: isSelected
+                ? colors.onPrimaryContainer
+                : colors.onSurfaceVariant,
           ),
           visualDensity: const VisualDensity(horizontal: -1, vertical: -1),
           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -466,14 +468,19 @@ class _OrdersFilterSheetState extends State<_OrdersFilterSheet> {
                           : colors.outlineVariant.withValues(alpha: 0.45),
                     ),
                     backgroundColor: colors.surface.withValues(alpha: 0.72),
-                    selectedColor: colors.primaryContainer.withValues(alpha: 0.9),
+                    selectedColor: colors.primaryContainer.withValues(
+                      alpha: 0.9,
+                    ),
                     labelStyle: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                       color: isSelected
                           ? colors.onPrimaryContainer
                           : colors.onSurfaceVariant,
                     ),
-                    visualDensity: const VisualDensity(horizontal: -1, vertical: -1),
+                    visualDensity: const VisualDensity(
+                      horizontal: -1,
+                      vertical: -1,
+                    ),
                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   );
                 }).toList(),
@@ -485,7 +492,9 @@ class _OrdersFilterSheetState extends State<_OrdersFilterSheet> {
               _buildChips<OrderStatus>(
                 widget.statusFilters,
                 _pending.status,
-                (s) => s == null ? texts.allFilterOption : texts.orderStatusLabel(s),
+                (s) => s == null
+                    ? texts.allFilterOption
+                    : texts.orderStatusLabel(s),
                 (s) => _pending = _pending.copyWith(status: s),
                 colors,
                 theme.textTheme,
@@ -497,7 +506,9 @@ class _OrdersFilterSheetState extends State<_OrdersFilterSheet> {
               _buildChips<OrderPaymentStatus>(
                 widget.paymentFilters,
                 _pending.paymentStatus,
-                (s) => s == null ? texts.allFilterOption : texts.orderPaymentStatusLabel(s),
+                (s) => s == null
+                    ? texts.allFilterOption
+                    : texts.orderPaymentStatusLabel(s),
                 (s) => _pending = _pending.copyWith(paymentStatus: s),
                 colors,
                 theme.textTheme,

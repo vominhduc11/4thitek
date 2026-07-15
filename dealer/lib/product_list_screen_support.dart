@@ -119,6 +119,7 @@ extension _ProductListScreenSupport on _ProductListScreenState {
     try {
       return await catalog.fetchDetail(baseProduct.id);
     } catch (_) {
+      // Detail fetch failed: fall back to the base product snapshot.
       return baseProduct;
     }
   }
@@ -179,10 +180,7 @@ extension _ProductListScreenSupport on _ProductListScreenState {
         return;
       }
 
-      final didAdd = await cart.addWithApiSimulation(
-        latestProduct,
-        quantity: addQuantity,
-      );
+      final didAdd = await cart.add(latestProduct, quantity: addQuantity);
       if (!mounted) {
         return;
       }

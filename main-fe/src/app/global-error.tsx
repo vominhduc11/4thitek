@@ -69,13 +69,13 @@ export default function GlobalError({ reset }: { reset: () => void }) {
                 >
                     <button
                         onClick={() => reset()}
-                        className="brand-button-primary w-full rounded-full py-2 text-center text-sm font-semibold text-[var(--text-primary)] transition xs:flex-1 xs:py-2.5 xs:text-base"
+                        className="brand-button-primary w-full rounded-full py-2 text-center text-sm font-semibold text-[var(--text-primary)] transition min-h-[40px] xs:flex-1 xs:py-2.5 xs:text-base"
                     >
                         {t('errors.global.tryAgain')}
                     </button>
                     <Link
                         href="/"
-                        className="brand-button-secondary w-full rounded-full py-2 text-center text-sm font-semibold text-[var(--text-primary)] transition xs:flex-1 xs:py-2.5 xs:text-base"
+                        className="brand-button-secondary w-full rounded-full py-2 text-center text-sm font-semibold text-[var(--text-primary)] transition min-h-[40px] xs:flex-1 xs:py-2.5 xs:text-base"
                     >
                         {t('errors.global.goHome')}
                     </Link>

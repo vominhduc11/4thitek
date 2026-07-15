@@ -30,9 +30,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Send cancellation request').first);
+    // Trigger a primary status-update action; the fake controller reports it as
+    // failed, so the screen surfaces the localized error message.
+    final primaryAction = find.byType(FilledButton).last;
+    await tester.ensureVisible(primaryAction);
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(FilledButton).last);
+    await tester.tap(primaryAction);
     await tester.pumpAndSettle();
 
     expect(

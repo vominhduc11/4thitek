@@ -100,6 +100,7 @@ export default function LottieLoader({
   const lottieStyle = {
     width: typeof width === 'number' ? `${width}px` : width,
     height: typeof height === 'number' ? `${height}px` : height,
+    maxWidth: '100%',
   };
 
   const content = (
@@ -111,7 +112,7 @@ export default function LottieLoader({
         style={lottieStyle}
       />
       {message && (
-        <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base text-center animate-pulse">
+        <p className="text-[var(--text-secondary)] text-sm sm:text-base text-center animate-pulse">
           {message}
         </p>
       )}
@@ -120,7 +121,7 @@ export default function LottieLoader({
 
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm z-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-[rgba(9,17,27,0.9)] backdrop-blur-sm z-50 flex items-center justify-center">
         {content}
       </div>
     );
