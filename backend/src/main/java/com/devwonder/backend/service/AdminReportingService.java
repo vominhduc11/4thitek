@@ -97,8 +97,8 @@ public class AdminReportingService {
         return switch (type) {
             case ORDERS -> buildOrdersReport(activeDiscountRules, vatPercent, from, to);
             case REVENUE -> buildRevenueReport(activeDiscountRules, vatPercent, from, to);
-            case WARRANTIES -> buildWarrantiesReport();
-            case SERIALS -> buildSerialsReport();
+            case WARRANTIES -> buildWarrantiesReport(from, to);
+            case SERIALS -> buildSerialsReport(from, to);
         };
     }
 
@@ -206,8 +206,11 @@ public class AdminReportingService {
         );
     }
 
-    private TableReport buildWarrantiesReport() {
+    // Cột ngày nghiệp vụ: createdAt = thời điểm đăng ký bảo hành (DATA_CONTRACT §4a).
+    private TableReport buildWarrantiesReport(Instant from, Instant to) {
         List<List<String>> rows = warrantyRegistrationRepository.findAll().stream()
+                .filter(r -> from == null || (r.getCreatedAt() != null && !r.getCreatedAt().isBefore(from)))
+                .filter(r -> to == null || (r.getCreatedAt() != null && !r.getCreatedAt().isAfter(to)))
                 .sorted(Comparator.comparing(WarrantyRegistration::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
                 .map(registration -> {
                     ProductSerial productSerial = registration.getProductSerial();
@@ -232,8 +235,11 @@ public class AdminReportingService {
         );
     }
 
-    private TableReport buildSerialsReport() {
+    // Cột ngày nghiệp vụ: importedAt = thời điểm nhập kho serial (DATA_CONTRACT §4a).
+    private TableReport buildSerialsReport(Instant from, Instant to) {
         List<List<String>> rows = productSerialRepository.findAll().stream()
+                .filter(s -> from == null || (s.getImportedAt() != null && !s.getImportedAt().isBefore(from)))
+                .filter(s -> to == null || (s.getImportedAt() != null && !s.getImportedAt().isAfter(to)))
                 .sorted(Comparator.comparing(ProductSerial::getImportedAt, Comparator.nullsLast(Comparator.reverseOrder())))
                 .map(serial -> {
                     Product product = serial.getProduct();

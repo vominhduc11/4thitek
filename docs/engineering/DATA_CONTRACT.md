@@ -92,6 +92,15 @@ non-fulfilled orders legitimately have `null` values.
 `OrderItem` snapshots `productNameSnapshot`, `productSkuSnapshot`, `unitPrice`, `quantity`.
 `V34` added order financial + item snapshots. Status: `CONFIRMED_FROM_CODE`.
 
+## 4a. Report business-date columns
+
+`GET /admin/reports/export` filters every report type by its business date
+(`AdminReportingService`): Orders/Revenue → `Order.createdAt`; Warranties →
+`WarrantyRegistration.createdAt` (registration timestamp, `@CreationTimestamp`);
+Serials → `ProductSerial.importedAt` (the entity's only temporal column, warehouse
+import time). `from`/`to` are optional, inclusive, null-safe; `from > to` yields an
+empty report. Status: `CONFIRMED_FROM_CODE`.
+
 ## 5. Enum catalog
 
 All from `entity/enums/`. Status: `CONFIRMED_FROM_CODE`.

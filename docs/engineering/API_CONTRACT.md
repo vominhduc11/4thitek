@@ -131,7 +131,7 @@ Shared helpers live in `AdminControllerSupport` (not a controller). Summary by d
 | Content | `GET/PUT /content/{section}`, `GET/POST/PUT/DELETE /blogs*` ; `POST /blogs/preview` | `content.write`, `blogs.write` (preview: `blogs.write`) |
 | Media | `AdminMediaController` mutations | `media.write` |
 | Discounts | `GET/POST/PUT/PATCH /discount-rules*` | `discounts.write` |
-| Reports/Dashboard | `GET /reports/export`, `GET /dashboard`, `GET /notifications/page` | `reports.read`, `dashboard.read`, `notifications.read` |
+| Reports/Dashboard | `GET /reports/export?type=ORDERS\|REVENUE\|WARRANTIES\|SERIALS&format=XLSX\|PDF&from=&to=` (`from`/`to` optional ISO date-time — applied to **all four** report types: Orders/Revenue filter on `Order.createdAt`, Warranties on `WarrantyRegistration.createdAt`, Serials on `ProductSerial.importedAt`), `GET /dashboard`, `GET /notifications/page` | `reports.read`, `dashboard.read`, `notifications.read` |
 | Users / Settings / Audit | `/users**`, `/settings`, `GET /audit-logs` | `SUPER_ADMIN` only (URL-level) |
 
 ### 5.1a Order fulfillment fields
