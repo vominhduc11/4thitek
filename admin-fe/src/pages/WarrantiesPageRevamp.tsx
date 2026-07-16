@@ -14,6 +14,7 @@ import { useToast } from "../context/ToastContext";
 import { formatDateOnly } from "../lib/formatters";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useAdminList } from "../hooks/useAdminList";
+import { usePermissionGate } from "../hooks/usePermissionGate";
 import { AdminTable, type AdminTableColumn } from "../components/AdminTable";
 import {
   ErrorState,
@@ -98,6 +99,8 @@ function WarrantiesPageRevamp() {
   const { accessToken } = useAuth();
   const { notify } = useToast();
   const { confirm, confirmDialog } = useConfirmDialog();
+  const warrantiesWriteGate = usePermissionGate("warranties.write");
+  const noPermissionTitle = t("Bạn không có quyền thực hiện thao tác này");
 
   // Paged source (server pagination). The paged endpoint takes no filter params,
   // so filtering runs client-side against `allItems` below.
@@ -420,7 +423,11 @@ function WarrantiesPageRevamp() {
                 item.status !== "VOID" ? (
                   <button
                     type="button"
-                    title={copy.voidWarranty}
+                    disabled={!warrantiesWriteGate.allowed}
+                    aria-disabled={!warrantiesWriteGate.allowed || undefined}
+                    title={
+                      warrantiesWriteGate.allowed ? copy.voidWarranty : noPermissionTitle
+                    }
                     onClick={() => void handleVoidWarranty(item)}
                     className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950"
                   >

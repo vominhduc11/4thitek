@@ -21,6 +21,7 @@ import { useLanguage } from "../context/LanguageContext";
 import { useToast } from "../context/ToastContext";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useAdminList } from "../hooks/useAdminList";
+import { usePermissionGate } from "../hooks/usePermissionGate";
 import {
   dealerStatusDescription,
   dealerStatusLabel,
@@ -79,6 +80,7 @@ function DealersPageRevamp() {
   const { accessToken } = useAuth();
   const { updateDealerStatus } = useAdminData();
   const { confirm, prompt, confirmDialog, promptDialog } = useConfirmDialog();
+  const dealersWriteGate = usePermissionGate("dealers.write");
 
   const [stats, setStats] = useState({ total: 0, active: 0, underReview: 0, suspended: 0, totalRevenue: 0 });
   const [query, setQuery] = useState("");
@@ -274,6 +276,7 @@ function DealersPageRevamp() {
         {copy.detail}
       </Link>
       <select
+        {...dealersWriteGate.disabledProps}
         aria-label={`${copy.status} ${dealer.id}`}
         className={`w-full sm:w-auto ${tableActionSelectClass}`}
         onChange={(event) =>

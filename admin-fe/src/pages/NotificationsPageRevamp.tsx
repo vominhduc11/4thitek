@@ -12,6 +12,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useToast } from "../context/ToastContext";
+import { usePermissionGate } from "../hooks/usePermissionGate";
 import {
   EmptyState,
   ErrorState,
@@ -163,6 +164,7 @@ function NotificationsPageRevamp() {
   const typeLabels = translateCopy(typeLabelsKeys, t);
   const { accessToken } = useAuth();
   const { notify } = useToast();
+  const notificationsWriteGate = usePermissionGate("notifications.write");
 
   const [items, setItems] = useState<BackendNotificationResponse[]>([]);
   const [page, setPage] = useState(0);
@@ -603,8 +605,9 @@ function NotificationsPageRevamp() {
 
         <div className="mt-4">
           <PrimaryButton
+            {...notificationsWriteGate.disabledProps}
             aria-label={copy.send}
-            disabled={isSending}
+            disabled={isSending || !notificationsWriteGate.allowed}
             icon={<Send className="h-4 w-4" />}
             onClick={() => void handleSend()}
             type="button"

@@ -10,17 +10,20 @@ const {
   notifyMock,
   deleteOrderMock,
   updateOrderStatusMock,
+  hasPermissionMock,
 } = vi.hoisted(() => ({
   fetchAdminOrdersPagedMock: vi.fn(),
   fetchAdminOrderSummaryMock: vi.fn(),
   notifyMock: vi.fn(),
   deleteOrderMock: vi.fn(),
   updateOrderStatusMock: vi.fn(),
+  hasPermissionMock: vi.fn(),
 }));
 
 vi.mock("../context/AuthContext", () => ({
   useAuth: () => ({
     accessToken: "admin-token",
+    hasPermission: hasPermissionMock,
   }),
 }));
 
@@ -94,6 +97,8 @@ describe("OrdersPageRevamp", () => {
     notifyMock.mockReset();
     deleteOrderMock.mockReset();
     updateOrderStatusMock.mockReset();
+    hasPermissionMock.mockReset();
+    hasPermissionMock.mockReturnValue(true);
 
     fetchAdminOrdersPagedMock.mockResolvedValue({
       items: [orderPayload],
@@ -146,6 +151,35 @@ describe("OrdersPageRevamp", () => {
         },
       );
     });
+  });
+
+  it("disables the status action menu with a tooltip when transition permissions are missing", async () => {
+    hasPermissionMock.mockImplementation(
+      (code: string) =>
+        !["orders.approve", "orders.process", "orders.cancel.review"].includes(
+          code,
+        ),
+    );
+
+    renderPage();
+
+    const [statusMenuButton] = await screen.findAllByRole("button", {
+      name: "Trạng thái 101",
+    });
+    expect(statusMenuButton.hasAttribute("disabled")).toBe(true);
+    expect(statusMenuButton.getAttribute("title")).toBe(
+      "Bạn không có quyền thực hiện thao tác này",
+    );
+  });
+
+  it("keeps the status action menu enabled when transition permissions are granted", async () => {
+    renderPage();
+
+    const [statusMenuButton] = await screen.findAllByRole("button", {
+      name: "Trạng thái 101",
+    });
+    expect(statusMenuButton.hasAttribute("disabled")).toBe(false);
+    expect(statusMenuButton.getAttribute("title")).toBeNull();
   });
 
   it("hydrates status filter from the URL query string", async () => {

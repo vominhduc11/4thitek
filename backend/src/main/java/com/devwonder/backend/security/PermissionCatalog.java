@@ -3,7 +3,7 @@ package com.devwonder.backend.security;
 import java.util.Set;
 
 /**
- * Canonical catalog of granular permission codes (kept in sync with migration V42).
+ * Canonical catalog of granular permission codes (kept in sync with migrations V42 + V46).
  * <p>
  * {@code ADMIN} and {@code SUPER_ADMIN} are full-access roles: rather than depending on
  * the {@code role_permissions} seed being present, {@link com.devwonder.backend.entity.Account}
@@ -18,7 +18,8 @@ public final class PermissionCatalog {
             "warranties.read", "warranties.write", "returns.read", "returns.write",
             "dealers.read", "dealers.write", "support.read", "support.write",
             "products.write", "blogs.write", "content.write", "media.write",
-            "discounts.write", "reports.read", "notifications.read", "dashboard.read"
+            "discounts.write", "reports.read", "notifications.read", "notifications.write",
+            "dashboard.read"
     );
 
     /** Roles that implicitly hold every permission code. */

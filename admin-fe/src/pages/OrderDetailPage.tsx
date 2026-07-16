@@ -25,6 +25,7 @@ import {
   tableValueClass,
 } from '../components/ui-kit'
 import { useConfirmDialog } from '../hooks/useConfirmDialog'
+import { usePermissionGate } from '../hooks/usePermissionGate'
 import {
   assignAdminOrderSerials,
   fetchAdminOrderAdjustments,
@@ -49,6 +50,27 @@ function OrderDetailPage() {
   const { orders, ordersState, updateOrderStatus, recordOrderPayment, deleteOrder, reloadResource } =
     useAdminData()
   const { accessToken } = useAuth()
+  const ordersApproveGate = usePermissionGate('orders.approve')
+  const ordersProcessGate = usePermissionGate('orders.process')
+  const ordersCancelReviewGate = usePermissionGate('orders.cancel.review')
+  const paymentConfirmGate = usePermissionGate('orders.payment.confirm')
+  const serialsAssignGate = usePermissionGate('serials.assign')
+  const noPermissionTitle = t('Bạn không có quyền thực hiện thao tác này')
+  // Gate theo transition đích (PERMISSION_MATRIX §6): PENDING→CONFIRMED cần
+  // orders.approve; tiến trình xử lý cần orders.process; mọi transition sang
+  // CANCELLED/CANCEL_REJECTED và resume từ CANCEL_REJECTED cần orders.cancel.review.
+  const canTransition = (current: OrderStatus, next: OrderStatus) => {
+    if (next === 'cancelled' || next === 'cancel_rejected' || current === 'cancel_rejected') {
+      return ordersCancelReviewGate.allowed
+    }
+    if (next === 'confirmed') {
+      return ordersApproveGate.allowed
+    }
+    if (next === 'processing' || next === 'shipping' || next === 'completed') {
+      return ordersProcessGate.allowed
+    }
+    return true
+  }
   const [paymentAmount, setPaymentAmount] = useState('')
   const [transactionCode, setTransactionCode] = useState('')
   const [paymentNote, setPaymentNote] = useState('')
@@ -277,6 +299,16 @@ function OrderDetailPage() {
     )
   }
 
+  const statusSelectOptions = resolveAllowedOrderStatuses(order.status, order.allowedTransitions)
+  const permittedStatusSelectOptions = statusSelectOptions.filter(
+    (status) => status === order.status || canTransition(order.status, status),
+  )
+  const hasAnyTransition = statusSelectOptions.some((status) => status !== order.status)
+  const hasPermittedTransition = permittedStatusSelectOptions.some(
+    (status) => status !== order.status,
+  )
+  const isStatusSelectLocked = hasAnyTransition && !hasPermittedTransition
+
   const paymentMethodLabel =
     order.paymentMethod === 'bank_transfer'
       ? 'Bank transfer'
@@ -400,6 +432,8 @@ function OrderDetailPage() {
             <select
               aria-label={t('Trạng thái đơn {id}', { id: order.id })}
               className={inputClass}
+              disabled={isStatusSelectLocked}
+              title={isStatusSelectLocked ? noPermissionTitle : undefined}
               onChange={async (event) => {
                 const next = event.target.value as OrderStatus
                 if (next === order.status) {
@@ -450,11 +484,13 @@ function OrderDetailPage() {
               }}
               value={order.status}
             >
-              {resolveAllowedOrderStatuses(order.status, order.allowedTransitions).map((status) => (
-                <option key={status} value={status}>
-                  {t(orderStatusLabel[status])}
-                </option>
-              ))}
+              {(isStatusSelectLocked ? statusSelectOptions : permittedStatusSelectOptions).map(
+                (status) => (
+                  <option key={status} value={status}>
+                    {t(orderStatusLabel[status])}
+                  </option>
+                ),
+              )}
             </select>
           </div>
 
@@ -595,6 +631,7 @@ function OrderDetailPage() {
               </div>
               <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                 <PrimaryButton
+                  {...paymentConfirmGate.disabledProps}
                   onClick={async () => {
                     const nextPaymentError = validatePaymentAmount(paymentAmount)
                     if (nextPaymentError) {
@@ -664,6 +701,7 @@ function OrderDetailPage() {
                 {t('Hành động này sẽ xóa đơn khỏi danh sách.')}
               </p>
               <GhostButton
+                {...ordersCancelReviewGate.disabledProps}
                 className="mt-3 border-rose-200 text-rose-700 hover:border-rose-500 hover:text-rose-700"
                 onClick={async () => {
                   const approved = await confirm({
@@ -814,7 +852,8 @@ function OrderDetailPage() {
         {order.status === 'confirmed' ? (
           <div className="mt-4">
             <PrimaryButton
-              disabled={serialSubmitting}
+              disabled={serialSubmitting || !serialsAssignGate.allowed}
+              title={serialsAssignGate.allowed ? undefined : noPermissionTitle}
               onClick={() => void handleAssignSerials()}
               type="button"
             >
@@ -976,7 +1015,8 @@ function OrderDetailPage() {
 
             <div className="mt-3">
               <PrimaryButton
-                disabled={adjSubmitting}
+                disabled={adjSubmitting || !paymentConfirmGate.allowed}
+                title={paymentConfirmGate.allowed ? undefined : noPermissionTitle}
                 type="button"
                 onClick={async () => {
                   if (!accessToken) return

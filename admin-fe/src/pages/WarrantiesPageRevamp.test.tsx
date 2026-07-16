@@ -18,6 +18,7 @@ const {
 vi.mock("../context/AuthContext", () => ({
   useAuth: () => ({
     accessToken: "admin-token",
+    hasPermission: () => true,
   }),
 }));
 

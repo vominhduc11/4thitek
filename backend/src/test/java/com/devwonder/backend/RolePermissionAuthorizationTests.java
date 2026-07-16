@@ -50,7 +50,8 @@ class RolePermissionAuthorizationTests {
             "warranties.read", "warranties.write", "returns.read", "returns.write",
             "dealers.read", "dealers.write", "support.read", "support.write",
             "products.write", "blogs.write", "content.write", "media.write",
-            "discounts.write", "reports.read", "notifications.read", "dashboard.read");
+            "discounts.write", "reports.read", "notifications.read", "notifications.write",
+            "dashboard.read");
 
     private static final Map<String, List<String>> ROLE_PERMISSIONS = buildRolePermissions();
 
@@ -186,6 +187,39 @@ class RolePermissionAuthorizationTests {
         mockMvc.perform(get("/api/v1/admin/dealers")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void notificationComposeRequiresNotificationsWriteCode() throws Exception {
+        String payload = """
+                {
+                  "audience": "DEALERS",
+                  "title": "Thông báo kiểm thử",
+                  "body": "Nội dung kiểm thử phân quyền.",
+                  "type": "SYSTEM"
+                }
+                """;
+
+        // SALES có notifications.read nhưng không có notifications.write → 403
+        String salesToken = staffToken("sales.notify@example.com", "SALES");
+        mockMvc.perform(post("/api/v1/admin/notifications")
+                        .header("Authorization", "Bearer " + salesToken)
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isForbidden());
+
+        // ADMIN synthesize đủ code (gồm notifications.write) → không 403
+        String adminToken = staffToken("admin.notify@example.com", "ADMIN");
+        mockMvc.perform(post("/api/v1/admin/notifications")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(result -> {
+                    int status = result.getResponse().getStatus();
+                    if (status == 403) {
+                        throw new AssertionError("ADMIN không được nhận 403 khi POST /notifications, thực tế: " + status);
+                    }
+                });
     }
 
     @Test

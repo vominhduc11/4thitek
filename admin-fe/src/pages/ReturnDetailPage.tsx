@@ -17,6 +17,7 @@ import {
 } from "../components/ui-kit";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
+import { usePermissionGate } from "../hooks/usePermissionGate";
 import {
   completeAdminReturnRequest,
   fetchAdminReturnDetail,
@@ -292,6 +293,7 @@ function ReturnDetailPage() {
   const navigate = useNavigate();
   const { accessToken } = useAuth();
   const { notify } = useToast();
+  const returnsWriteGate = usePermissionGate("returns.write");
   const requestId = Number(id);
 
   const [detail, setDetail] = useState<BackendReturnRequestDetailResponse | null>(
@@ -784,8 +786,11 @@ function ReturnDetailPage() {
           </div>
           <div className="mt-3 flex justify-end">
             <PrimaryButton
+              {...returnsWriteGate.disabledProps}
               type="button"
-              disabled={isSaving || reviewableItems.length === 0}
+              disabled={
+                isSaving || reviewableItems.length === 0 || !returnsWriteGate.allowed
+              }
               onClick={() => void submitReview()}
             >
               Save Review
@@ -831,8 +836,11 @@ function ReturnDetailPage() {
           </div>
           <div className="mt-3 flex justify-end">
             <PrimaryButton
+              {...returnsWriteGate.disabledProps}
               type="button"
-              disabled={isSaving || receivableItems.length === 0}
+              disabled={
+                isSaving || receivableItems.length === 0 || !returnsWriteGate.allowed
+              }
               onClick={() => void submitReceive()}
             >
               Mark Received
@@ -1094,8 +1102,9 @@ function ReturnDetailPage() {
                     />
                     <div className="mt-3 flex justify-end">
                       <PrimaryButton
+                        {...returnsWriteGate.disabledProps}
                         type="button"
-                        disabled={isSaving}
+                        disabled={isSaving || !returnsWriteGate.allowed}
                         onClick={() => void submitInspect(item.id!)}
                       >
                         Apply Inspection
@@ -1122,8 +1131,9 @@ function ReturnDetailPage() {
           />
           <div className="mt-3 flex justify-end">
             <PrimaryButton
+              {...returnsWriteGate.disabledProps}
               type="button"
-              disabled={isSaving || hasUnresolvedItems}
+              disabled={isSaving || hasUnresolvedItems || !returnsWriteGate.allowed}
               onClick={() => void submitComplete()}
             >
               Complete

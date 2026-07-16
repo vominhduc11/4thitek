@@ -41,9 +41,9 @@ Staff accounts created via `POST /api/v1/admin/users` may be assigned one of
 **not** assignable through that endpoint. Status: `CONFIRMED_FROM_CODE`
 (`AdminManagementService.resolveAssignableSystemRole`).
 
-## 3. Permission code catalog (24 codes)
+## 3. Permission code catalog (25 codes)
 
-Defined in migration `V42` and mirrored in `security/PermissionCatalog.ALL_CODES`.
+Defined in migrations `V42` + `V46` and mirrored in `security/PermissionCatalog.ALL_CODES`.
 
 | Code | Grants |
 |---|---|
@@ -70,12 +70,13 @@ Defined in migration `V42` and mirrored in `security/PermissionCatalog.ALL_CODES
 | `discounts.write` | Mutate wholesale discount rules |
 | `reports.read` | View / export reports |
 | `notifications.read` | View admin notifications |
+| `notifications.write` | Compose / dispatch admin notifications (`V46`) |
 | `dashboard.read` | View the admin dashboard |
 
 ## 4. Role × permission matrix
 
-`●` = granted. `SUPER_ADMIN` and `ADMIN` hold all 24 (synthesized in Java). Status:
-`CONFIRMED_FROM_CODE` (`V42` seed).
+`●` = granted. `SUPER_ADMIN` and `ADMIN` hold all 25 (synthesized in Java). Status:
+`CONFIRMED_FROM_CODE` (`V42` + `V46` seed).
 
 | Permission | SUPER_ADMIN | ADMIN | SALES | WAREHOUSE | ACCOUNTANT | CONTENT_EDITOR |
 |---|:--:|:--:|:--:|:--:|:--:|:--:|
@@ -102,6 +103,7 @@ Defined in migration `V42` and mirrored in `security/PermissionCatalog.ALL_CODES
 | discounts.write | ● | ● | ● | | | |
 | reports.read | ● | ● | ● | | ● | |
 | notifications.read | ● | ● | ● | ● | ● | ● |
+| notifications.write | ● | ● | | | | |
 | dashboard.read | ● | ● | ● | ● | ● | ● |
 
 ## 5. SUPER_ADMIN-only surfaces
@@ -161,7 +163,7 @@ this fine-grained check; the HTTP endpoint is still gated by the coarse `@PreAut
 | `GET /financial-settlements`, `PATCH /financial-settlements/{id}`, `GET /payments/recent`, `GET/PATCH /unmatched-payments*` | `orders.payment.confirm` |
 | `GET /dashboard` | `dashboard.read` |
 | `GET /notifications/page` | `notifications.read` |
-| `POST /notifications` | `SUPER_ADMIN` / `ADMIN` only |
+| `POST /notifications` | `notifications.write` (`V46` — replaces the former `SUPER_ADMIN`/`ADMIN` role-hardcoded gate; policy unchanged: only those two roles hold the code) |
 | `GET /content*`, `/blogs`, `/categories` | none (any staff role) |
 
 Status: `CONFIRMED_FROM_CODE`.
@@ -174,7 +176,7 @@ codes above — not by role name (except the SUPER_ADMIN-only surfaces, which st
 - **Login / refresh return the resolved codes.** `AuthUserResponse` carries
   `permissions: string[]` (`dto/auth/AuthUserResponse.java`), built in `AuthService.buildAuthResponse`
   by filtering `Account.getAuthorities()` against `security/PermissionCatalog.ALL_CODES`. Role-name
-  authorities are dropped; only real codes remain. `ADMIN` / `SUPER_ADMIN` receive **all 24 codes
+  authorities are dropped; only real codes remain. `ADMIN` / `SUPER_ADMIN` receive **all 25 codes
   explicitly** (not a `*` wildcard token) because `getAuthorities()` already synthesizes them.
   The FE `hasPermission` helper still treats a literal `*` as "all" defensively, but the backend
   never emits it. Status: `CONFIRMED_FROM_CODE`.

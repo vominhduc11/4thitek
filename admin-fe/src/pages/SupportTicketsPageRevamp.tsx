@@ -23,6 +23,7 @@ import {
 } from "../lib/adminApi";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
+import { usePermissionGate } from "../hooks/usePermissionGate";
 import { translateCopy } from "../lib/i18n";
 import { useToast } from "../context/ToastContext";
 import { formatDateTime } from "../lib/formatters";
@@ -71,6 +72,8 @@ function SupportTicketsPageRevamp() {
   const copy = translateCopy(copyKeys, t);
   const { accessToken } = useAuth();
   const { notify } = useToast();
+  const supportWriteGate = usePermissionGate("support.write");
+  const noPermissionTitle = t("Bạn không có quyền thực hiện thao tác này");
   const location = useLocation();
   const navigate = useNavigate();
   const [tickets, setTickets] = useState<BackendSupportTicketResponse[]>([]);
@@ -1071,7 +1074,10 @@ function SupportTicketsPageRevamp() {
                       </p>
                     </div>
                     <PrimaryButton
-                      disabled={isSaving || isDeletingAttachment}
+                      disabled={
+                        isSaving || isDeletingAttachment || !supportWriteGate.allowed
+                      }
+                      title={supportWriteGate.allowed ? undefined : noPermissionTitle}
                       onClick={() => void handleSave()}
                       type="button"
                     >
@@ -1222,7 +1228,10 @@ function SupportTicketsPageRevamp() {
                       <span className={tableMetaClass}>
                         {t("Tệp đính kèm cho nội dung này")}
                       </span>
-                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--ink)] hover:border-[var(--accent)]">
+                      <label
+                        className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--ink)] hover:border-[var(--accent)]"
+                        title={supportWriteGate.allowed ? undefined : noPermissionTitle}
+                      >
                         <Upload className="h-4 w-4" />
                         <span>
                           {isUploadingAttachment
@@ -1235,7 +1244,8 @@ function SupportTicketsPageRevamp() {
                           disabled={
                             isUploadingAttachment ||
                             isSaving ||
-                            isDeletingAttachment
+                            isDeletingAttachment ||
+                            !supportWriteGate.allowed
                           }
                           onChange={(event) => {
                             const file = event.target.files?.[0] ?? null;
@@ -1282,8 +1292,10 @@ function SupportTicketsPageRevamp() {
                       disabled={
                         isSaving ||
                         isDeletingAttachment ||
-                        !selectedDraft.replyDraft.trim()
+                        !selectedDraft.replyDraft.trim() ||
+                        !supportWriteGate.allowed
                       }
+                      title={supportWriteGate.allowed ? undefined : noPermissionTitle}
                       onClick={() => void handleSendMessage()}
                       type="button"
                     >

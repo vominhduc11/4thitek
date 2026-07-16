@@ -42,6 +42,7 @@ import { useToast } from "../context/ToastContext";
 import { formatDateTime } from "../lib/formatters";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useAdminList } from "../hooks/useAdminList";
+import { usePermissionGate } from "../hooks/usePermissionGate";
 import { AdminTable, type AdminTableColumn } from "../components/AdminTable";
 import { buildSkippedSerialRetryValue } from "./serialImportViewState";
 import {
@@ -224,6 +225,8 @@ function SerialsPageRevamp() {
   const { notify } = useToast();
   const { products } = useProducts();
   const { confirm, confirmDialog } = useConfirmDialog();
+  const serialsWriteGate = usePermissionGate("serials.write");
+  const noPermissionTitle = t("Bạn không có quyền thực hiện thao tác này");
   const [qrItem, setQrItem] = useState<BackendSerialResponse | null>(null);
   const qrRef = useRef<HTMLDivElement>(null);
   const qrModalRef = useRef<HTMLDivElement | null>(null);
@@ -711,7 +714,8 @@ function SerialsPageRevamp() {
         !item.pendingDealerName && (
           <button
             type="button"
-            title={copy.markDefective}
+            disabled={!serialsWriteGate.allowed}
+            title={serialsWriteGate.allowed ? copy.markDefective : noPermissionTitle}
             onClick={() => void handleSerialAction(item, "DEFECTIVE")}
             className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950"
           >
@@ -722,7 +726,8 @@ function SerialsPageRevamp() {
       {item.status === "DEFECTIVE" && (
         <button
           type="button"
-          title={copy.markAvailable}
+          disabled={!serialsWriteGate.allowed}
+          title={serialsWriteGate.allowed ? copy.markAvailable : noPermissionTitle}
           onClick={() => void handleSerialAction(item, "AVAILABLE")}
           className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
         >
@@ -733,7 +738,8 @@ function SerialsPageRevamp() {
       {(item.status === "DEFECTIVE" || item.status === "RETURNED") && (
         <button
           type="button"
-          title={copy.rmaStartInspectionBtn}
+          disabled={!serialsWriteGate.allowed}
+          title={serialsWriteGate.allowed ? copy.rmaStartInspectionBtn : noPermissionTitle}
           onClick={() => openRmaModal(item, "START_INSPECTION")}
           className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950"
         >
@@ -745,7 +751,8 @@ function SerialsPageRevamp() {
         <>
           <button
             type="button"
-            title={copy.rmaPassQcBtn}
+            disabled={!serialsWriteGate.allowed}
+            title={serialsWriteGate.allowed ? copy.rmaPassQcBtn : noPermissionTitle}
             onClick={() => openRmaModal(item, "PASS_QC")}
             className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950"
           >
@@ -754,7 +761,8 @@ function SerialsPageRevamp() {
           </button>
           <button
             type="button"
-            title={copy.rmaScrapBtn}
+            disabled={!serialsWriteGate.allowed}
+            title={serialsWriteGate.allowed ? copy.rmaScrapBtn : noPermissionTitle}
             onClick={() => openRmaModal(item, "SCRAP")}
             className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
           >
@@ -767,8 +775,9 @@ function SerialsPageRevamp() {
         <button
           aria-label={copy.deleteSerial}
           className={`${iconButtonClass} min-h-9 min-w-9 rounded-xl border-transparent bg-transparent text-slate-400 shadow-none hover:border-[var(--destructive-border)] hover:bg-[var(--destructive-soft)] hover:text-[var(--destructive-text)]`}
+          disabled={!serialsWriteGate.allowed}
           onClick={() => void handleDeleteSerial(item)}
-          title={copy.deleteSerial}
+          title={serialsWriteGate.allowed ? copy.deleteSerial : noPermissionTitle}
           type="button"
         >
           <Trash2 className="h-3.5 w-3.5" />
@@ -839,6 +848,7 @@ function SerialsPageRevamp() {
               {copy.reload}
             </GhostButton>
             <PrimaryButton
+              {...serialsWriteGate.disabledProps}
               aria-label={copy.import}
               icon={<Upload className="h-4 w-4" />}
               onClick={() => {
@@ -1006,7 +1016,8 @@ function SerialsPageRevamp() {
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
             <PrimaryButton
               className="w-full sm:w-auto"
-              disabled={isImporting}
+              disabled={isImporting || !serialsWriteGate.allowed}
+              title={serialsWriteGate.allowed ? undefined : noPermissionTitle}
               onClick={() => void handleImport()}
               type="button"
             >

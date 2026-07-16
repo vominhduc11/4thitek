@@ -166,7 +166,7 @@ public class AdminMiscController {
     }
 
     @PostMapping("/notifications")
-    @PreAuthorize("hasAnyAuthority('SUPER_ADMIN','ADMIN')")
+    @PreAuthorize("hasAuthority('notifications.write')")
     public ResponseEntity<ApiResponse<AdminNotificationDispatchResponse>> createNotification(
             @Valid @RequestBody CreateAdminNotificationRequest request
     ) {

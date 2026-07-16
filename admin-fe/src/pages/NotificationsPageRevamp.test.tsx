@@ -10,17 +10,20 @@ const {
   createAdminNotificationDispatchMock,
   subscribeAdminRealtimeNotificationMock,
   notifyMock,
+  hasPermissionMock,
 } = vi.hoisted(() => ({
   fetchAdminNotificationsMock: vi.fn(),
   fetchAllAdminNotificationsMock: vi.fn(),
   createAdminNotificationDispatchMock: vi.fn(),
   subscribeAdminRealtimeNotificationMock: vi.fn(),
   notifyMock: vi.fn(),
+  hasPermissionMock: vi.fn(),
 }));
 
 vi.mock("../context/AuthContext", () => ({
   useAuth: () => ({
     accessToken: "admin-token",
+    hasPermission: hasPermissionMock,
   }),
 }));
 
@@ -79,6 +82,8 @@ describe("NotificationsPageRevamp", () => {
     createAdminNotificationDispatchMock.mockReset();
     subscribeAdminRealtimeNotificationMock.mockReset();
     notifyMock.mockReset();
+    hasPermissionMock.mockReset();
+    hasPermissionMock.mockReturnValue(true);
 
     fetchAdminNotificationsMock.mockResolvedValue({
       items: [notificationPayload],
@@ -120,6 +125,32 @@ describe("NotificationsPageRevamp", () => {
     expect(screen.getAllByRole("link", { name: "Mở liên kết" })).not.toHaveLength(0);
     expect(screen.queryByText(/Liên kết:/i)).toBeNull();
     expect(screen.queryByText(/Deep link:/i)).toBeNull();
+  });
+
+  it("disables the send button with a tooltip when notifications.write is missing", async () => {
+    hasPermissionMock.mockImplementation(
+      (code: string) => code !== "notifications.write",
+    );
+
+    renderPage();
+
+    const sendButton = await screen.findByRole("button", {
+      name: "Gửi thông báo",
+    });
+    expect(sendButton.hasAttribute("disabled")).toBe(true);
+    expect(sendButton.getAttribute("title")).toBe(
+      "Bạn không có quyền thực hiện thao tác này",
+    );
+  });
+
+  it("keeps the send button enabled when notifications.write is granted", async () => {
+    renderPage();
+
+    const sendButton = await screen.findByRole("button", {
+      name: "Gửi thông báo",
+    });
+    expect(sendButton.hasAttribute("disabled")).toBe(false);
+    expect(sendButton.getAttribute("title")).toBeNull();
   });
 
   it("uses fetch-all only after a search query is entered", async () => {

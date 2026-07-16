@@ -19,6 +19,7 @@ import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useToast } from "../context/ToastContext";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
+import { usePermissionGate } from "../hooks/usePermissionGate";
 import {
   orderStatusLabel,
   orderStatusTone,
@@ -99,12 +100,14 @@ function StatusActionMenu({
   disabled,
   label,
   buttonLabel,
+  title,
 }: {
   options: Array<{ value: OrderStatus; label: string }>;
   onSelect: (status: OrderStatus) => void;
   disabled: boolean;
   label: string;
   buttonLabel: string;
+  title?: string;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -127,6 +130,7 @@ function StatusActionMenu({
         className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full border border-[var(--border)] px-3.5 text-sm font-semibold text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1"
         disabled={disabled}
         onClick={() => setOpen((v) => !v)}
+        title={title}
         type="button"
       >
         <span>{buttonLabel}</span>
@@ -172,6 +176,36 @@ function OrdersPageRevamp() {
   const { accessToken } = useAuth();
   const { deleteOrder, updateOrderStatus } = useAdminData();
   const { confirm, prompt, confirmDialog, promptDialog } = useConfirmDialog();
+  const ordersApproveGate = usePermissionGate("orders.approve");
+  const ordersProcessGate = usePermissionGate("orders.process");
+  const ordersCancelReviewGate = usePermissionGate("orders.cancel.review");
+  const noPermissionTitle = t("Bạn không có quyền thực hiện thao tác này");
+  // Gate theo transition đích (PERMISSION_MATRIX §6): PENDING→CONFIRMED cần
+  // orders.approve; tiến trình xử lý cần orders.process; mọi transition sang
+  // CANCELLED/CANCEL_REJECTED và resume từ CANCEL_REJECTED cần orders.cancel.review.
+  const canTransition = useCallback(
+    (current: OrderStatus, next: OrderStatus) => {
+      if (
+        next === "cancelled" ||
+        next === "cancel_rejected" ||
+        current === "cancel_rejected"
+      ) {
+        return ordersCancelReviewGate.allowed;
+      }
+      if (next === "confirmed") {
+        return ordersApproveGate.allowed;
+      }
+      if (next === "processing" || next === "shipping" || next === "completed") {
+        return ordersProcessGate.allowed;
+      }
+      return true;
+    },
+    [
+      ordersApproveGate.allowed,
+      ordersCancelReviewGate.allowed,
+      ordersProcessGate.allowed,
+    ],
+  );
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [page, setPage] = useState(0);
@@ -327,6 +361,17 @@ function OrdersPageRevamp() {
       .filter((s) => s !== firstStatus)
       .map((s) => ({ value: s, label: t(orderStatusLabel[s]) }));
   }, [orders, selectedIds, t]);
+
+  const permittedBatchStatusOptions = useMemo(
+    () =>
+      batchStatusOptions.filter((option) => {
+        const selected = orders.find((o) => selectedIds.has(o.id));
+        return !selected || canTransition(selected.status, option.value);
+      }),
+    [batchStatusOptions, canTransition, orders, selectedIds],
+  );
+  const isBatchMenuLocked =
+    batchStatusOptions.length > 0 && permittedBatchStatusOptions.length === 0;
 
   const handleStatusChange = async (
     orderId: string,
@@ -503,6 +548,18 @@ function OrdersPageRevamp() {
 
   const renderRowActions = (order: Order) => {
     const isUpdating = updatingOrderId === order.id;
+    const statusOptions = resolveAllowedOrderStatuses(
+      order.status,
+      order.allowedTransitions,
+    )
+      .filter((s) => s !== order.status)
+      .map((s) => ({ value: s, label: t(orderStatusLabel[s]) }));
+    const permittedStatusOptions = statusOptions.filter((option) =>
+      canTransition(order.status, option.value),
+    );
+    const isStatusMenuLocked =
+      statusOptions.length > 0 && permittedStatusOptions.length === 0;
+    const canDelete = canDeleteOrder(order.status);
     return (
       <div className="flex flex-wrap items-center gap-2">
         <Link
@@ -513,18 +570,14 @@ function OrdersPageRevamp() {
         </Link>
         <div className="flex items-center gap-2">
           <StatusActionMenu
-            disabled={!!updatingOrderId}
+            disabled={!!updatingOrderId || isStatusMenuLocked}
             label={`${copy.status} ${order.id}`}
             buttonLabel={copy.changeStatusLabel}
+            title={isStatusMenuLocked ? noPermissionTitle : undefined}
             onSelect={(nextStatus) =>
               void handleStatusChange(order.id, order.status, nextStatus)
             }
-            options={resolveAllowedOrderStatuses(
-              order.status,
-              order.allowedTransitions,
-            )
-              .filter((s) => s !== order.status)
-              .map((s) => ({ value: s, label: t(orderStatusLabel[s]) }))}
+            options={isStatusMenuLocked ? statusOptions : permittedStatusOptions}
           />
           {isUpdating ? (
             <LoaderCircle
@@ -534,10 +587,16 @@ function OrdersPageRevamp() {
           ) : null}
         </div>
         <GhostButton
-          disabled={!canDeleteOrder(order.status)}
+          disabled={!canDelete || !ordersCancelReviewGate.allowed}
           icon={<Trash2 className="h-4 w-4" />}
           onClick={() => void handleDeleteOrder(order.id)}
-          title={canDeleteOrder(order.status) ? undefined : copy.deleteMessage}
+          title={
+            ordersCancelReviewGate.allowed
+              ? canDelete
+                ? undefined
+                : copy.deleteMessage
+              : noPermissionTitle
+          }
           type="button"
         >
           {copy.deleteLabel}
@@ -612,11 +671,14 @@ function OrdersPageRevamp() {
           </span>
           {batchStatusOptions.length > 0 ? (
             <StatusActionMenu
-              disabled={isBatchUpdating || !!updatingOrderId}
+              disabled={isBatchUpdating || !!updatingOrderId || isBatchMenuLocked}
               label={copy.batchChangeStatus}
               buttonLabel={copy.batchChangeStatus}
+              title={isBatchMenuLocked ? noPermissionTitle : undefined}
               onSelect={(s) => void handleBatchStatusChange(s)}
-              options={batchStatusOptions}
+              options={
+                isBatchMenuLocked ? batchStatusOptions : permittedBatchStatusOptions
+              }
             />
           ) : (
             <span className="text-xs text-[var(--muted)]">{copy.mixedStatusHint}</span>
