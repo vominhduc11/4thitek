@@ -20,6 +20,17 @@ Evidence: `entity/Account.java`, `entity/Admin.java`, `entity/Dealer.java`.
 Status: `CONFIRMED_FROM_CODE`. The `dealers` table no longer has `credit_limit` (`V41`); there
 is no dealer credit/debt ledger.
 
+## 1a. Product identity
+
+- `Product.id` (Long, IDENTITY) is the **technical PK**; admin write endpoints address it
+  (`PUT/DELETE /admin/products/{id}`).
+- `Product.sku` (unique, ≤100 chars) is the **business identifier**: **required on create**
+  (`AdminWriteSupport.applyProduct` rejects a missing SKU; duplicate → 409 Conflict
+  "SKU already exists"), and the admin-fe detail route is `/products/:sku`.
+- admin-fe may **suggest** a SKU from the product name (strip Vietnamese diacritics →
+  `A-Z0-9`, hyphen-joined, plus a short uniqueness suffix); the user can edit the suggestion
+  before submit. The backend never generates SKUs. Status: `CONFIRMED_FROM_CODE`.
+
 ## 2. Money & price
 
 | Field | Type in entity/DTO | Notes |

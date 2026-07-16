@@ -63,6 +63,8 @@ function ProductsPage() {
   const [showQuickAdd, setShowQuickAdd] = useState(false)
   const [isQuickAdding, setIsQuickAdding] = useState(false)
   const [quickAddName, setQuickAddName] = useState('')
+  const [quickAddSku, setQuickAddSku] = useState('')
+  const [quickAddSkuError, setQuickAddSkuError] = useState('')
   const [quickAddPrice, setQuickAddPrice] = useState('')
   const [quickAddDesc, setQuickAddDesc] = useState('')
   const quickAddNameRef = useRef<HTMLInputElement>(null)
@@ -179,11 +181,28 @@ function ProductsPage() {
 
   const openQuickAdd = useCallback(() => {
     setQuickAddName('')
+    setQuickAddSku('')
+    setQuickAddSkuError('')
     setQuickAddPrice('')
     setQuickAddDesc('')
     setShowQuickAdd(true)
     window.requestAnimationFrame(() => quickAddNameRef.current?.focus())
   }, [])
+
+  const generateQuickAddSku = useCallback(() => {
+    const base = quickAddName
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/[đĐ]/g, 'd')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40)
+      .replace(/-+$/g, '')
+    const suffix = Date.now().toString(36).slice(-4).toUpperCase()
+    setQuickAddSku(base ? `${base}-${suffix}` : `SP-${suffix}`)
+    setQuickAddSkuError('')
+  }, [quickAddName])
 
   const closeQuickAdd = useCallback(() => setShowQuickAdd(false), [])
 
@@ -200,30 +219,44 @@ function ProductsPage() {
     async (e: FormEvent) => {
       e.preventDefault()
       const name = quickAddName.trim()
+      const sku = quickAddSku.trim()
       if (!name) return
+      if (!sku) {
+        setQuickAddSkuError(t('SKU là bắt buộc. Nhập tay hoặc bấm "Tạo từ tên".'))
+        return
+      }
       setIsQuickAdding(true)
+      setQuickAddSkuError('')
       try {
+        // shortDescription là optional nhưng backend từ chối chuỗi rỗng — chỉ gửi khi có nội dung.
+        const desc = quickAddDesc.trim()
         const created = await addProduct({
           name,
+          sku,
           retailPrice: Number(quickAddPrice) || 0,
-          shortDescription: quickAddDesc.trim(),
+          ...(desc ? { shortDescription: desc } : {}),
           publishStatus: 'DRAFT',
         })
         closeQuickAdd()
         notify(t('Đã tạo sản phẩm "{name}".', { name }), { title: pageTitle, variant: 'success' })
-        if (created?.id) {
-          navigate(`/products/${created.id}`)
+        if (created?.sku) {
+          navigate(`/products/${encodeURIComponent(created.sku)}`)
         }
       } catch (err) {
-        notify(err instanceof Error ? err.message : t('Không thể tạo sản phẩm'), {
-          title: pageTitle,
-          variant: 'error',
-        })
+        const message = err instanceof Error ? err.message : ''
+        if (/sku/i.test(message)) {
+          setQuickAddSkuError(t('SKU "{sku}" đã tồn tại. Hãy chọn SKU khác.', { sku }))
+        } else {
+          notify(message || t('Không thể tạo sản phẩm'), {
+            title: pageTitle,
+            variant: 'error',
+          })
+        }
       } finally {
         setIsQuickAdding(false)
       }
     },
-    [addProduct, closeQuickAdd, navigate, notify, pageTitle, quickAddDesc, quickAddName, quickAddPrice, t],
+    [addProduct, closeQuickAdd, navigate, notify, pageTitle, quickAddDesc, quickAddName, quickAddPrice, quickAddSku, t],
   )
 
   const clearInventoryAlertContext = useCallback(() => {
@@ -562,6 +595,46 @@ function ProductsPage() {
                   type="text"
                   value={quickAddName}
                 />
+              </div>
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-[var(--ink)]" htmlFor="qa-sku">
+                    SKU <span className="text-rose-500">*</span>
+                  </label>
+                  <button
+                    className="text-xs font-semibold text-[var(--accent)] underline underline-offset-2 transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={!quickAddName.trim()}
+                    onClick={generateQuickAddSku}
+                    type="button"
+                  >
+                    {t('Tạo từ tên')}
+                  </button>
+                </div>
+                <input
+                  aria-describedby={quickAddSkuError ? 'qa-sku-error' : undefined}
+                  aria-invalid={quickAddSkuError ? true : undefined}
+                  autoComplete="off"
+                  className={`w-full rounded-xl border bg-[var(--surface)] px-3 py-2 text-sm text-[var(--ink)] outline-none transition focus:ring-2 ${
+                    quickAddSkuError
+                      ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/20'
+                      : 'border-[var(--border)] focus:border-[var(--accent)] focus:ring-[var(--accent)]/20'
+                  }`}
+                  id="qa-sku"
+                  maxLength={100}
+                  onChange={(e) => {
+                    setQuickAddSku(e.target.value)
+                    if (quickAddSkuError) setQuickAddSkuError('')
+                  }}
+                  placeholder={t('VD: SCS-S9-PRO')}
+                  required
+                  type="text"
+                  value={quickAddSku}
+                />
+                {quickAddSkuError ? (
+                  <p className="mt-1 text-xs font-medium text-rose-500" id="qa-sku-error" role="alert">
+                    {quickAddSkuError}
+                  </p>
+                ) : null}
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold text-[var(--ink)]" htmlFor="qa-price">
