@@ -98,9 +98,10 @@ After a business-contract change, keep the tests in `BUSINESS_LOGIC.md` §7 prot
 ## Docker / operations
 
 - Allowed to read running containers for diagnosis (`docker ps`, `docker logs`, `docker exec`
-  read-only, `SELECT`). If a needed container is not running, **ask the user to start it** —
-  do not run `up/down/restart/rm/prune` (shared state).
-- Any write/destructive DB or container operation needs explicit user approval.
+  read-only, `SELECT`).
+- Allowed to run `docker compose up/down/restart/build` (localhost or VPS) directly when asked.
+- Destructive DB operations (`DELETE`, `DROP`, `TRUNCATE`, `docker compose down -v`, `prune`)
+  still need explicit user approval before running.
 
 ## Prohibited
 

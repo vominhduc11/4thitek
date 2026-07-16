@@ -83,6 +83,20 @@ public class DealerSupportTicketService {
         }
     }
 
+    /**
+     * Creates a support ticket that is auto-linked to a caller's aggregate (e.g. a return request),
+     * joining the caller's transaction ({@code REQUIRES} propagation) so the ticket and its FK link
+     * commit atomically with the caller. Unlike {@link #createTicketBestEffort}, it must NOT open a
+     * new transaction: the caller may hold pessimistic {@code FOR UPDATE} row locks, and a separate
+     * transaction touching those same rows (the ticket's order FK, the admin notification insert)
+     * would deadlock. Side-effect (websocket/notification) failures are still suppressed so they
+     * never fail the caller.
+     */
+    @Transactional
+    public DealerSupportTicketResponse createTicketLinked(String username, CreateDealerSupportTicketRequest request) {
+        return createTicketInternal(username, request, true);
+    }
+
     private DealerSupportTicketResponse createTicketInternal(
             String username,
             CreateDealerSupportTicketRequest request,

@@ -1233,7 +1233,7 @@ public class ReturnRequestService {
                 .limit(1)
                 .findFirst()
                 .orElse(null);
-        var support = dealerSupportTicketService.createTicketBestEffort(username, new CreateDealerSupportTicketRequest(
+        var support = dealerSupportTicketService.createTicketLinked(username, new CreateDealerSupportTicketRequest(
                 DealerSupportCategory.RETURN,
                 DealerSupportPriority.NORMAL,
                 subject,

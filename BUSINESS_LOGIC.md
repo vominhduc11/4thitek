@@ -264,6 +264,10 @@ Forgot-password must not leak account existence. Reset validation and completion
 - `ReturnRequestItem` stores per-serial decision, inspection, and final outcome state.
 - `ProductSerial` inventory status changes tied to returns are backend-controlled and occur through return processing steps.
 - `SupportTicket` linkage is optional and advisory; return validity does not depend on support ticket status.
+  The auto-linked ticket for a newly submitted dealer return is created within the same transaction as the
+  return (so it is linked synchronously in the create response). Its creation must not run in a separate
+  transaction while the return holds `FOR UPDATE` locks — that deadlocks — so it uses `REQUIRES`
+  propagation; ticket notification/websocket side-effect failures are suppressed and never fail the return.
 - Admin RMA records are technical inspection artifacts and do not replace return request status.
 
 High-level state progression (non-exhaustive):
