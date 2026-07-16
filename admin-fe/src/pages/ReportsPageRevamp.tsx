@@ -91,7 +91,7 @@ const copyKeys = {
     {
       type: "REVENUE",
       title: "Báo cáo doanh thu",
-      description: "Xuất doanh thu đại lý, tiền đã thu và dư nợ còn lại.",
+      description: "Xuất doanh thu đại lý, tiền đã thu và phần còn phải thu theo đơn.",
       icon: LineChart,
     },
     {

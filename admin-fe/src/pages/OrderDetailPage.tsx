@@ -328,7 +328,7 @@ function OrderDetailPage() {
           : 'neutral' as const
   const adjTypeLabel: Record<BackendOrderAdjustmentType, string> = {
     CORRECTION: t('Điều chỉnh'),
-    WRITE_OFF: t('Xóa nợ'),
+    WRITE_OFF: t('Xóa sổ phần còn phải thu theo đơn'),
     CREDIT_NOTE: t('Ghi có'),
     REFUND_RECORD: t("Ghi nhận hoàn tiền"),
   }
@@ -404,13 +404,7 @@ function OrderDetailPage() {
               <p className="mt-1 font-semibold text-[var(--tone-success-ink,#16a34a)]">{formatCurrency(order.paidAmount)}</p>
             </div>
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Còn lại')}</p>
-              <p className={`mt-1 font-semibold ${order.outstandingAmount > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-[var(--ink)]'}`}>
-                {formatCurrency(order.outstandingAmount)}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Remaining balance')}</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Còn phải thu theo đơn')}</p>
               <p className={`mt-1 font-semibold ${order.outstandingAmount > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-[var(--ink)]'}`}>
                 {formatCurrency(order.outstandingAmount)}
               </p>
@@ -963,7 +957,7 @@ function OrderDetailPage() {
                   onChange={(e) => setAdjType(e.target.value as BackendOrderAdjustmentType)}
                 >
                   <option value="CORRECTION">{t('Điều chỉnh')}</option>
-                  <option value="WRITE_OFF">{t('Xóa nợ')}</option>
+                  <option value="WRITE_OFF">{t('Xóa sổ phần còn phải thu theo đơn')}</option>
                   <option value="CREDIT_NOTE">{t('Ghi có')}</option>
                   <option value="REFUND_RECORD">{t('Ghi nhận hoàn tiền')}</option>
                 </select>

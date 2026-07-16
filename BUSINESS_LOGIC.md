@@ -224,6 +224,11 @@ Forgot-password must not leak account existence. Reset validation and completion
 ### 5.1 Orders and payments
 
 - Order idempotency must remain intact.
+- `outstandingAmount` is the **per-order receivable balance** (order total minus
+  recorded payments and adjustments). It is not — and must not be presented as —
+  a dealer credit/debt ledger (no such module exists, §"Runtime invariants" in
+  `CLAUDE.md`). UI wording: "còn phải thu theo đơn"; a `WRITE_OFF` adjustment is
+  "xóa sổ phần còn phải thu theo đơn", scoped to one order.
 - Exact-match payment reconciliation rules must not regress.
 - Stale orders with financial evidence must not be cancelled blindly.
 - `OrderStatus` values: `PENDING`, `CONFIRMED`, `PROCESSING`, `SHIPPING`, `COMPLETED`,

@@ -839,6 +839,8 @@ export const translations: Record<Language, TranslationMap> = {
     "Chưa đọc": "Unread",
     Co: "Yes",
     "Còn lại": "Remaining",
+    "Còn phải thu theo đơn": "Order receivable balance",
+    "Xóa sổ phần còn phải thu theo đơn": "Write off order receivable",
     "Cửa sổ thời gian": "Time window",
     "Cửa sổ thời gian phải là số nguyên trong khoảng từ 1 đến 86.400 giây.":
       "Time window must be an integer between 1 and 86,400 seconds.",
