@@ -37,6 +37,7 @@ import {
 import { translateCopy } from "../lib/i18n";
 import { useToast } from "../context/ToastContext";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
+import { useUnsavedChanges } from "../hooks/useUnsavedChanges";
 import { blogStatusTone } from "../lib/adminLabels";
 import { resolveBackendAssetUrl } from "../lib/backendApi";
 import { formatDateTime } from "../lib/formatters";
@@ -266,6 +267,17 @@ function BlogsPageRevamp() {
     },
     [accessToken],
   );
+
+  // Composer đang mở và có nội dung khác bản khởi tạo → coi là draft chưa lưu:
+  // guard trung tâm + beforeunload chặn rời trang làm mất draft. Sau khi tạo
+  // thành công, resetComposer đưa form về khởi tạo nên guard tự gỡ.
+  const isComposerDirty = useMemo(
+    () =>
+      showCreate && JSON.stringify(form) !== JSON.stringify(createInitialForm()),
+    [form, showCreate],
+  );
+  const { confirmDialog: unsavedChangesDialog } =
+    useUnsavedChanges(isComposerDirty);
 
   const resetComposer = (options?: { cleanupUploads?: boolean }) => {
     if (options?.cleanupUploads !== false) {
@@ -835,6 +847,7 @@ function BlogsPageRevamp() {
         )}
       </div>
       {confirmDialog}
+      {unsavedChangesDialog}
     </PagePanel>
   );
 }

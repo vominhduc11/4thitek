@@ -1,10 +1,10 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { BrowserRouter } from 'react-router-dom'
+import { RouterProvider } from 'react-router-dom'
 import Modal from 'react-modal'
 import './index.css'
-import App from './App.tsx'
+import appRouter from './App.tsx'
 import { AuthProvider } from './context/AuthContext'
 import { LanguageProvider } from './context/LanguageContext'
 import { ToastProvider } from './context/ToastContext'
@@ -44,15 +44,16 @@ if (typeof window !== 'undefined') {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <LanguageProvider>
-          <ToastProvider>
-            <AuthProvider>
-              <App />
-            </AuthProvider>
-          </ToastProvider>
-        </LanguageProvider>
-      </BrowserRouter>
+      <LanguageProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <RouterProvider
+              router={appRouter}
+              future={{ v7_startTransition: true }}
+            />
+          </AuthProvider>
+        </ToastProvider>
+      </LanguageProvider>
     </QueryClientProvider>
   </StrictMode>,
 )

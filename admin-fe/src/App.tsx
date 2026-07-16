@@ -1,6 +1,12 @@
 import { lazy, Suspense, type ComponentType, type LazyExoticComponent } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import {
+  createBrowserRouter,
+  createRoutesFromElements,
+  Navigate,
+  Route,
+} from 'react-router-dom'
 import RouteErrorBoundary from './components/RouteErrorBoundary'
+import { NavigationGuardRoot } from './context/NavigationGuardContext'
 import RouteFallback from './components/RouteFallback'
 import {
   PermissionRoute,
@@ -61,9 +67,12 @@ const AdminShell = () => (
   </AdminDataProvider>
 )
 
-function App() {
-  return (
-    <Routes>
+// Data router (createBrowserRouter) thay cho <BrowserRouter>+<Routes> để
+// NavigationGuardRoot dùng được useBlocker — guard trung tâm chặn điều hướng
+// khi form còn thay đổi chưa lưu (Link/sidebar, navigate(), browser back).
+const appRouter = createBrowserRouter(
+  createRoutesFromElements(
+    <Route element={<NavigationGuardRoot />}>
       <Route element={<PublicOnlyRoute />}>
         <Route path="/login" element={renderLazyElement(LoginPage)} />
         <Route path="/forgot-password" element={renderLazyElement(ForgotPasswordPage)} />
@@ -181,8 +190,9 @@ function App() {
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
-  )
-}
+    </Route>,
+  ),
+  { future: { v7_relativeSplatPath: true } },
+)
 
-export default App
+export default appRouter

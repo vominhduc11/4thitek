@@ -9,6 +9,8 @@ import { useProducts } from "../context/ProductsContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useToast } from "../context/ToastContext";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
+import { useUnsavedChanges } from "../hooks/useUnsavedChanges";
+import { useNavigationGuardBypass } from "../context/NavigationGuardContext";
 import { previewAdminProduct } from "../lib/admin-api/products";
 import { useLivePreview } from "../hooks/useLivePreview";
 import { WEB_ORIGIN } from "../lib/webOrigin";
@@ -224,6 +226,12 @@ function CreateProductPage() {
       JSON.stringify(newProduct) !== JSON.stringify(createInitialNewProduct()),
     [newProduct],
   );
+
+  // Guard trung tâm: chặn Link/sidebar/navigate()/browser back khi form còn draft
+  // chưa lưu (beforeunload cho tab close đã nằm trong useUnsavedChanges).
+  const { confirmDiscard, confirmDialog: unsavedChangesDialog } =
+    useUnsavedChanges(isCreateFormDirty && !isCreating);
+  const bypassNavigationGuard = useNavigationGuardBypass();
 
   const createTabHasError = useMemo(
     () => ({
@@ -755,16 +763,10 @@ function CreateProductPage() {
 
   const requestNavigateAway = async () => {
     if (isFormLocked) return;
-    if (isCreateFormDirty) {
-      const approved = await confirm({
-        title: t("Rời khỏi trang?"),
-        message: t("Mọi thay đổi chưa lưu sẽ bị mất."),
-        confirmLabel: t("Rời đi"),
-        cancelLabel: t("Ở lại"),
-        tone: "warning",
-      });
-      if (!approved) return;
-    }
+    // confirmDiscard hỏi xác nhận khi dirty và bypass guard trung tâm sau khi
+    // user đồng ý — tránh bị hỏi hai lần cho cùng một lần rời trang.
+    const approved = await confirmDiscard();
+    if (!approved) return;
     await cleanupUploadedAssets(Array.from(uploadedAssetUrlsRef.current));
     navigate("/products");
   };
@@ -918,6 +920,8 @@ function CreateProductPage() {
           title: t("Sản phẩm"),
           variant: "success",
         });
+        // Đã lưu thành công — bỏ qua guard cho lần điều hướng này.
+        bypassNavigationGuard();
         navigate("/products");
       } catch (error) {
         notify(
@@ -1081,6 +1085,7 @@ function CreateProductPage() {
         </div>
       </fieldset>
       {confirmDialog}
+      {unsavedChangesDialog}
     </PagePanel>
   );
 }
