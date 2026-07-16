@@ -210,6 +210,51 @@ function BlogDetailPageRevamp() {
     return () => document.removeEventListener("keydown", handler);
   }, [isEditing]);
 
+  // Payload cho dry-run: khi đang sửa dùng state form (xem trước bản nháp), ngược lại
+  // dùng dữ liệu bài đã lưu. Backend previewBlog chỉ đọc các field dưới đây.
+  // Hai hook dưới đây phải đứng TRƯỚC mọi early return (loading/error/not-found) —
+  // gọi hook sau return có điều kiện làm lệch số hook giữa các render (React #310).
+  const livePreviewPayload = useMemo(
+    () =>
+      isEditing
+        ? {
+            title: editTitle || undefined,
+            description: editExcerpt || undefined,
+            image: editImageUrl || undefined,
+            introduction: serializeBlogIntroduction(editBlocks),
+            categoryName: editCategory || undefined,
+            showOnHomepage: editShowOnHomepage,
+          }
+        : {
+            title: post?.title || undefined,
+            description: post?.excerpt || undefined,
+            image: post?.imageUrl || undefined,
+            introduction: post?.content || undefined,
+            categoryName: post?.category || undefined,
+            showOnHomepage: Boolean(post?.showOnHomepage),
+          },
+    [
+      isEditing,
+      editTitle,
+      editExcerpt,
+      editImageUrl,
+      editBlocks,
+      editCategory,
+      editShowOnHomepage,
+      post,
+    ],
+  );
+
+  const {
+    data: livePreviewData,
+    error: livePreviewError,
+    loading: livePreviewLoading,
+  } = useLivePreview({
+    open: showLivePreview && Boolean(post) && Boolean(accessToken),
+    payload: livePreviewPayload,
+    previewFn: (body) => previewAdminBlog(accessToken as string, body),
+  });
+
   if (postsState.status === "loading" || postsState.status === "idle") {
     return (
       <PagePanel>
@@ -288,49 +333,6 @@ function BlogDetailPageRevamp() {
     }
   };
   handleSaveRef.current = handleSave;
-
-  // Payload cho dry-run: khi đang sửa dùng state form (xem trước bản nháp), ngược lại
-  // dùng dữ liệu bài đã lưu. Backend previewBlog chỉ đọc các field dưới đây.
-  const livePreviewPayload = useMemo(
-    () =>
-      isEditing
-        ? {
-            title: editTitle || undefined,
-            description: editExcerpt || undefined,
-            image: editImageUrl || undefined,
-            introduction: serializeBlogIntroduction(editBlocks),
-            categoryName: editCategory || undefined,
-            showOnHomepage: editShowOnHomepage,
-          }
-        : {
-            title: post.title || undefined,
-            description: post.excerpt || undefined,
-            image: post.imageUrl || undefined,
-            introduction: post.content || undefined,
-            categoryName: post.category || undefined,
-            showOnHomepage: Boolean(post.showOnHomepage),
-          },
-    [
-      isEditing,
-      editTitle,
-      editExcerpt,
-      editImageUrl,
-      editBlocks,
-      editCategory,
-      editShowOnHomepage,
-      post,
-    ],
-  );
-
-  const {
-    data: livePreviewData,
-    error: livePreviewError,
-    loading: livePreviewLoading,
-  } = useLivePreview({
-    open: showLivePreview && Boolean(accessToken),
-    payload: livePreviewPayload,
-    previewFn: (body) => previewAdminBlog(accessToken as string, body),
-  });
 
   return (
     <PagePanel>
