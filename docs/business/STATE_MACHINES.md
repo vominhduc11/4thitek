@@ -172,9 +172,14 @@ pass `Account.isEnabled()` and may sign in. An `ACTIVE → PENDING` downgrade is
 
 ## 9. Publish status — `PublishStatus` (products) & `BlogStatus` (blogs)
 
-`PublishStatus` (product / public content): `DRAFT`, `PUBLISHED`, `ARCHIVED`. Public surfaces
+`PublishStatus` (product only): `DRAFT`, `PUBLISHED`, `ARCHIVED`. Public surfaces
 show only `PUBLISHED`. Status: `CONFIRMED_FROM_CODE` (enum); transition guards
-`NEEDS_VERIFICATION`.
+`NEEDS_VERIFICATION`. `ARCHIVED` is currently referenced nowhere in `src/main/java` —
+no code reads or writes it.
+
+Public content is **not** driven by `PublishStatus`: `PublicContentEntry` uses a Boolean
+`published` flag (`entity/PublicContentEntry.java`, column `published`, default `true`).
+Its only states are published / unpublished. Status: `CONFIRMED_FROM_CODE`.
 
 `BlogStatus`: `DRAFT`, `SCHEDULED`, `PUBLISHED`. `BlogPublishJob` promotes `SCHEDULED → PUBLISHED`
 when `scheduledAt` (`V18`) is reached. Status: `CONFIRMED_FROM_CODE`.
@@ -183,9 +188,12 @@ when `scheduledAt` (`V18`) is reached. Status: `CONFIRMED_FROM_CODE`.
 
 ## 10. Media asset status — `MediaStatus`
 
-States observed in `MediaAssetService`: `PENDING` (upload session created), `ACTIVE`
-(finalized), `DELETED` (soft delete), `ORPHANED` (cleanup sweep finds no linked entity).
-`MediaAssetCleanupJob` drives `ACTIVE/PENDING → ORPHANED/DELETED`. Status: `NEEDS_VERIFICATION`
+Enum states (`entity/enums/MediaStatus.java`): `PENDING` (upload session created), `ACTIVE`
+(finalized), `DELETED` (soft delete), `ORPHANED` (cleanup sweep finds no linked entity),
+`QUARANTINED`. `MediaAssetCleanupJob` drives `ACTIVE/PENDING → ORPHANED/DELETED`.
+`QUARANTINED` is a **placeholder**: the enum value and its filter exist, but no scanner or
+service currently sets this state — do not present quarantine as an operating capability
+until a real scanning integration writes it. Status: `NEEDS_VERIFICATION`
 — states `CONFIRMED_FROM_CODE`, exact transition rules in `MediaAssetService`.
 
 ---

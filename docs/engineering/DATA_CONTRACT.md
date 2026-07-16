@@ -88,7 +88,7 @@ All from `entity/enums/`. Status: `CONFIRMED_FROM_CODE`.
 | `ProductSerialStatus` | `AVAILABLE`, `RESERVED`, `ASSIGNED`, `WARRANTY`, `DEFECTIVE`, `RETURNED`, `INSPECTING`, `SCRAPPED`, `WARRANTY_REPLACED` |
 | `WarrantyStatus` | `ACTIVE`, `EXPIRED`, `VOID` |
 | `ReturnRequestStatus` | `SUBMITTED`, `UNDER_REVIEW`, `APPROVED`, `REJECTED`, `AWAITING_RECEIPT`, `RECEIVED`, `INSPECTING`, `PARTIALLY_RESOLVED`, `COMPLETED`, `CANCELLED` |
-| `PublishStatus` | product/blog publish states — see `entity/enums/PublishStatus.java` |
+| `PublishStatus` | **product only** (blogs use `BlogStatus`; public content uses Boolean `PublicContentEntry.published`) — see `entity/enums/PublishStatus.java` |
 | `BlogStatus` | `PUBLISHED`, `SCHEDULED`, `DRAFT` (per blog publish job) |
 | `DealerSupportTicketStatus` | `OPEN`, `IN_PROGRESS`, `RESOLVED`, `CLOSED` |
 | `StaffUserStatus` | `ACTIVE`, `PENDING` (+ others — see file) |
@@ -96,7 +96,8 @@ All from `entity/enums/`. Status: `CONFIRMED_FROM_CODE`.
 | `FinancialSettlementType` | `CANCELLATION_REFUND`, `STALE_ORDER_REVIEW` |
 | `FinancialSettlementStatus` | settlement lifecycle |
 | `UnmatchedPaymentStatus` / `UnmatchedPaymentReason` | SePay reconciliation |
-| Others | `DiscountRuleStatus`, `MediaCategory/Status/Type`, `StorageProvider`, `NotifyType`, `OrderAdjustmentType`, `ReturnRequest*` sub-enums, `SupportTicketMessageAuthorRole` |
+| `MediaStatus` | `PENDING`, `ACTIVE`, `DELETED`, `ORPHANED`, `QUARANTINED` (placeholder — no scanner/service sets it yet; see `STATE_MACHINES.md` §10) |
+| Others | `DiscountRuleStatus`, `MediaCategory/Type`, `StorageProvider`, `NotifyType`, `OrderAdjustmentType`, `ReturnRequest*` sub-enums, `SupportTicketMessageAuthorRole` |
 
 Enum values surface verbatim in JSON. The frontends mirror them as lowercase strings — see
 `admin-fe/src/context/adminDataTypes.ts` and `dealer/lib/models.dart`. Adding an enum value is

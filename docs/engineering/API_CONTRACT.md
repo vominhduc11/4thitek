@@ -102,10 +102,21 @@ starts the request (`BUSINESS_LOGIC.md` §0.3).
 | GET/POST | `/support-tickets*`, `/support-tickets/{id}/messages` | Support ticket thread |
 | PATCH | `/password` | Change own password |
 
-## 5. Admin — `/api/v1/admin` (`AdminController`, `AdminMediaController`)
+## 5. Admin — `/api/v1/admin` (13 `Admin*Controller` classes)
 
-Endpoints are gated by **granular permission codes** (`@PreAuthorize`). Summary by domain;
-full endpoint list in `AdminController.java`.
+Endpoints are gated by **granular permission codes** (`@PreAuthorize`). The former monolithic
+`AdminController` was split into 13 controllers under `controller/` — the full endpoint list
+lives in these files:
+
+`AdminProductController` (products, categories), `AdminOrderController` (orders, serial
+assignment, payments), `AdminSerialController` (serial inventory, import, RMA),
+`AdminWarrantyController` (warranty registrations), `AdminReturnController` (return requests),
+`AdminDealerAccountController` (dealers, dealer accounts), `AdminSupportTicketController`
+(support tickets), `AdminFinancialController` (settlements, recent/unmatched payments, order adjustments),
+`AdminDiscountRuleController` (discount rules), `AdminStaffUserController` (staff users),
+`AdminSettingsController` (settings, audit logs), `AdminMiscController` (dashboard, reports,
+notifications, content, blogs), `AdminMediaController` (media, base `/api/v1/admin/media`).
+Shared helpers live in `AdminControllerSupport` (not a controller). Summary by domain:
 
 | Domain | Endpoints (representative) | Permission code |
 |---|---|---|

@@ -1,8 +1,9 @@
 # Permission Matrix — 4thitek
 
-> Generated: 2026-05-17 from `config/SecurityConfig.java`, `controller/AdminController.java`,
+> Generated: 2026-05-17 from `config/SecurityConfig.java`, the 13 `controller/Admin*Controller.java`
+> classes (the former `AdminController` was split — see `API_CONTRACT.md` §5 for the list),
 > `entity/Account.java`, `security/PermissionCatalog.java`, and migration
-> `V42__create_permissions_and_seed_internal_roles.sql`.
+> `V42__create_permissions_and_seed_internal_roles.sql`. Updated: 2026-07-16.
 > Evidence markers: `CONFIRMED_FROM_CODE`, `NEEDS_VERIFICATION`. When code and this doc
 > disagree, treat the drift as a defect and reconcile in the same change.
 
@@ -131,7 +132,7 @@ depends on the transition (enforced in `AdminManagementService.assertOrderTransi
 Status: `CONFIRMED_FROM_CODE`. A non-HTTP / system caller (no authenticated principal) skips
 this fine-grained check; the HTTP endpoint is still gated by the coarse `@PreAuthorize`.
 
-## 7. Endpoint → permission map (`AdminController`, `AdminMediaController`)
+## 7. Endpoint → permission map (13 `Admin*Controller` classes — see `API_CONTRACT.md` §5)
 
 | Endpoint group | Code |
 |---|---|
