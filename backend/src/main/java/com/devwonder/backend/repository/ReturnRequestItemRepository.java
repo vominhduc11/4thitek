@@ -13,6 +13,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ReturnRequestItemRepository extends JpaRepository<ReturnRequestItem, Long> {
+    boolean existsByProductId(Long productId);
 
     Optional<ReturnRequestItem> findByIdAndRequestId(Long id, Long requestId);
 

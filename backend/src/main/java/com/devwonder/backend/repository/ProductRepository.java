@@ -24,6 +24,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Optional<Product> findByIdAndIsDeletedFalseAndPublishStatus(Long id, PublishStatus publishStatus);
     List<Product> findByIsDeletedFalseOrderByUpdatedAtDesc();
     Page<Product> findByIsDeletedFalse(Pageable pageable);
+    List<Product> findAllByOrderByUpdatedAtDesc();
     boolean existsBySkuAndIdNot(String sku, Long id);
     @Query("""
             select count(p)

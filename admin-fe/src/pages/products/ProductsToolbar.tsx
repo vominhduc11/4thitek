@@ -73,7 +73,7 @@ function ProductsToolbar({
     { value: 'lowStock', label: 'Tồn kho thấp' },
     { value: 'outOfStock', label: 'Hết hàng' },
     { value: 'draft', label: 'Bản nháp' },
-    { value: 'deleted', label: 'Đã xóa' },
+    { value: 'deleted', label: 'Thùng rác' },
   ]
 
   return (

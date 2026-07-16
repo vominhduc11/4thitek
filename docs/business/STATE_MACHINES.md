@@ -172,10 +172,17 @@ pass `Account.isEnabled()` and may sign in. An `ACTIVE → PENDING` downgrade is
 
 ## 9. Publish status — `PublishStatus` (products) & `BlogStatus` (blogs)
 
-`PublishStatus` (product only): `DRAFT`, `PUBLISHED`, `ARCHIVED`. Public surfaces
-show only `PUBLISHED`. Status: `CONFIRMED_FROM_CODE` (enum); transition guards
-`NEEDS_VERIFICATION`. `ARCHIVED` is currently referenced nowhere in `src/main/java` —
-no code reads or writes it.
+`PublishStatus` (product only): `DRAFT`, `PUBLISHED`. Public surfaces show only
+`PUBLISHED`. Status: `CONFIRMED_FROM_CODE`. The former `ARCHIVED` value was removed
+(2026-07-16): it was referenced nowhere in `src/main/java`; migration `V45` normalizes any
+stray `ARCHIVED` rows to `DRAFT`.
+
+**Product trash lifecycle — canonical flag is `Product.isDeleted`** (not a `PublishStatus`
+state): admin lists hide trashed rows by default (`?includeDeleted=true` opts in);
+`DELETE /admin/products/{id}` **moves to trash** (`isDeleted=true`, `publishStatus=DRAFT`);
+restore = `PUT` with `isDeleted=false` (record returns as `DRAFT`);
+`DELETE /admin/products/{id}/permanent` hard-deletes **only** a record already in trash and
+**409s** while order items, serials, cart items, or return items still reference it.
 
 Public content is **not** driven by `PublishStatus`: `PublicContentEntry` uses a Boolean
 `published` flag (`entity/PublicContentEntry.java`, column `published`, default `true`).

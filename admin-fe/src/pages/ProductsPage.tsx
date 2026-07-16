@@ -43,10 +43,10 @@ function ProductsPage() {
     products,
     isLoading: isProductsLoading,
     error: productsError,
-    archiveProduct,
     restoreProduct,
     togglePublishStatus,
     deleteProduct,
+    hardDeleteProduct,
     addProduct,
   } = useProducts()
 
@@ -300,13 +300,14 @@ function ProductsPage() {
     URL.revokeObjectURL(url)
   }
 
+  // "Xóa" ở hàng đang hoạt động = chuyển vào thùng rác (soft delete, khôi phục được).
   const handleDelete = useCallback(
     async (sku: string) => {
       const approved = await confirm({
-        title: t('Xóa vĩnh viễn sản phẩm'),
-        message: t('Xóa vĩnh viễn sản phẩm này?'),
-        tone: 'danger',
-        confirmLabel: t('Xóa'),
+        title: t('Chuyển vào thùng rác'),
+        message: t('Chuyển sản phẩm này vào thùng rác? Bạn có thể khôi phục sau.'),
+        tone: 'warning',
+        confirmLabel: t('Chuyển vào thùng rác'),
       })
 
       if (!approved) {
@@ -315,7 +316,7 @@ function ProductsPage() {
 
       try {
         await deleteProduct(sku)
-        showSuccess(t('Đã xóa vĩnh viễn sản phẩm.'))
+        showSuccess(t('Đã chuyển sản phẩm vào thùng rác.'))
       } catch (error) {
         notify(error instanceof Error ? error.message : t('Không thể xóa sản phẩm'), {
           title: pageTitle,
@@ -326,26 +327,31 @@ function ProductsPage() {
     [confirm, deleteProduct, notify, pageTitle, showSuccess, t],
   )
 
-  const handleArchiveToggle = useCallback(
+  const handleRestore = useCallback(
     async (product: Product) => {
-      if (product.isDeleted) {
-        try {
-          await restoreProduct(product.sku)
-          showSuccess(t('Đã khôi phục sản phẩm về bản nháp.'))
-        } catch (error) {
-          notify(error instanceof Error ? error.message : t('Không thể khôi phục sản phẩm'), {
-            title: pageTitle,
-            variant: 'error',
-          })
-        }
-        return
+      try {
+        await restoreProduct(product.sku)
+        showSuccess(t('Đã khôi phục sản phẩm về bản nháp.'))
+      } catch (error) {
+        notify(error instanceof Error ? error.message : t('Không thể khôi phục sản phẩm'), {
+          title: pageTitle,
+          variant: 'error',
+        })
       }
+    },
+    [notify, pageTitle, restoreProduct, showSuccess, t],
+  )
 
+  // Xóa vĩnh viễn chỉ khả dụng trong thùng rác; backend chặn 409 khi còn tham chiếu.
+  const handleHardDelete = useCallback(
+    async (product: Product) => {
       const approved = await confirm({
-        title: t('Ẩn sản phẩm'),
-        message: t('Ẩn sản phẩm này khỏi danh mục?'),
-        tone: 'warning',
-        confirmLabel: t('Ẩn sản phẩm'),
+        title: t('Xóa vĩnh viễn sản phẩm'),
+        message: t('Xóa vĩnh viễn sản phẩm "{name}"? Hành động này không thể hoàn tác.', {
+          name: product.name,
+        }),
+        tone: 'danger',
+        confirmLabel: t('Xóa vĩnh viễn'),
       })
 
       if (!approved) {
@@ -353,16 +359,22 @@ function ProductsPage() {
       }
 
       try {
-        await archiveProduct(product.sku)
-        showSuccess(t('Đã ẩn sản phẩm khỏi danh mục.'))
+        await hardDeleteProduct(product.sku)
+        showSuccess(t('Đã xóa vĩnh viễn sản phẩm.'))
       } catch (error) {
-        notify(error instanceof Error ? error.message : t('Không thể ẩn sản phẩm'), {
-          title: pageTitle,
-          variant: 'error',
-        })
+        const message = error instanceof Error ? error.message : ''
+        notify(
+          /referenced/i.test(message)
+            ? t('Không thể xóa vĩnh viễn: sản phẩm còn dữ liệu tham chiếu (đơn hàng, serial, giỏ hàng hoặc đổi trả).')
+            : message || t('Không thể xóa vĩnh viễn sản phẩm'),
+          {
+            title: pageTitle,
+            variant: 'error',
+          },
+        )
       }
     },
-    [archiveProduct, confirm, notify, pageTitle, restoreProduct, showSuccess, t],
+    [confirm, hardDeleteProduct, notify, pageTitle, showSuccess, t],
   )
 
   const handlePublishToggle = useCallback(
@@ -536,8 +548,9 @@ function ProductsPage() {
           t={t}
           highlightedProductId={highlightedProductId}
           inventoryAlertTone={inventoryAlertTone}
-          onArchiveToggle={handleArchiveToggle}
           onDelete={handleDelete}
+          onRestore={handleRestore}
+          onHardDelete={handleHardDelete}
           onPublishToggle={handlePublishToggle}
         />
       </div>

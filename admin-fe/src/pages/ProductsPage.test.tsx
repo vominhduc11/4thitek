@@ -10,13 +10,14 @@ function ProductDetailStub() {
   return <div>Sản phẩm {sku}</div>
 }
 
-const { notifyMock, archiveProductMock, restoreProductMock, togglePublishStatusMock, deleteProductMock, addProductMock } = vi.hoisted(() => ({
+const { notifyMock, restoreProductMock, togglePublishStatusMock, deleteProductMock, hardDeleteProductMock, addProductMock, confirmMock } = vi.hoisted(() => ({
   notifyMock: vi.fn(),
-  archiveProductMock: vi.fn(),
   restoreProductMock: vi.fn(),
   togglePublishStatusMock: vi.fn(),
   deleteProductMock: vi.fn(),
+  hardDeleteProductMock: vi.fn(),
   addProductMock: vi.fn(),
+  confirmMock: vi.fn(),
 }))
 
 vi.mock('../context/LanguageContext', () => ({
@@ -34,7 +35,7 @@ vi.mock('../context/ToastContext', () => ({
 
 vi.mock('../hooks/useConfirmDialog', () => ({
   useConfirmDialog: () => ({
-    confirm: vi.fn(),
+    confirm: confirmMock,
     confirmDialog: null,
   }),
 }))
@@ -102,13 +103,33 @@ vi.mock('../context/ProductsContext', () => ({
         createdAt: '2026-04-01T00:00:00.000Z',
         updatedAt: '2026-04-10T00:00:00.000Z',
       },
+      {
+        id: '45',
+        name: 'San pham trong thung rac',
+        sku: 'SKU-45',
+        shortDescription: 'Trashed product',
+        status: 'Draft',
+        publishStatus: 'DRAFT',
+        availableStock: 0,
+        retailPrice: 100000,
+        warrantyPeriod: 12,
+        image: '{"imageUrl":"/uploads/p45.png"}',
+        descriptions: '[]',
+        videos: '[]',
+        specifications: '[]',
+        showOnHomepage: false,
+        isFeatured: false,
+        isDeleted: true,
+        createdAt: '2026-04-01T00:00:00.000Z',
+        updatedAt: '2026-04-10T00:00:00.000Z',
+      },
     ],
     isLoading: false,
     error: null,
-    archiveProduct: archiveProductMock,
     restoreProduct: restoreProductMock,
     togglePublishStatus: togglePublishStatusMock,
     deleteProduct: deleteProductMock,
+    hardDeleteProduct: hardDeleteProductMock,
     addProduct: addProductMock,
   }),
 }))
@@ -126,11 +147,13 @@ const renderPage = (initialEntry = '/products?inventoryAlert=urgent&productId=42
 describe('ProductsPage', () => {
   beforeEach(() => {
     notifyMock.mockReset()
-    archiveProductMock.mockReset()
     restoreProductMock.mockReset()
     togglePublishStatusMock.mockReset()
     deleteProductMock.mockReset()
+    hardDeleteProductMock.mockReset()
     addProductMock.mockReset()
+    confirmMock.mockReset()
+    confirmMock.mockResolvedValue(true)
   })
 
   afterEach(() => {
@@ -146,6 +169,44 @@ describe('ProductsPage', () => {
     expect(screen.getByText('Pin du phong 42')).toBeTruthy()
     expect(screen.queryByText('Pin du phong 43')).toBeNull()
     expect(screen.queryByText('Pin du phong 44')).toBeNull()
+  })
+
+  describe('Thùng rác (trash)', () => {
+    it('tab Thùng rác hiển thị record đã xóa với nút Khôi phục và Xóa vĩnh viễn', async () => {
+      const user = userEvent.setup()
+      renderPage('/products')
+
+      await user.click(screen.getByRole('button', { name: /Thùng rác\s*1/ }))
+
+      expect(screen.getByText('San pham trong thung rac')).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Khôi phục' })).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Xóa vĩnh viễn' })).toBeTruthy()
+    })
+
+    it('hàng đang hoạt động chỉ có nút chuyển thùng rác (soft delete)', async () => {
+      const user = userEvent.setup()
+      renderPage('/products')
+
+      const trashButtons = screen.getAllByRole('button', { name: 'Chuyển vào thùng rác' })
+      expect(trashButtons.length).toBeGreaterThan(0)
+
+      await user.click(trashButtons[0])
+      expect(deleteProductMock).toHaveBeenCalled()
+      expect(hardDeleteProductMock).not.toHaveBeenCalled()
+    })
+
+    it('Khôi phục gọi restoreProduct; Xóa vĩnh viễn gọi hardDeleteProduct sau confirm', async () => {
+      const user = userEvent.setup()
+      renderPage('/products')
+
+      await user.click(screen.getByRole('button', { name: /Thùng rác\s*1/ }))
+      await user.click(screen.getByRole('button', { name: 'Khôi phục' }))
+      expect(restoreProductMock).toHaveBeenCalledWith('SKU-45')
+
+      await user.click(screen.getByRole('button', { name: 'Xóa vĩnh viễn' }))
+      expect(confirmMock).toHaveBeenCalled()
+      expect(hardDeleteProductMock).toHaveBeenCalledWith('SKU-45')
+    })
   })
 
   describe('Quick Add', () => {

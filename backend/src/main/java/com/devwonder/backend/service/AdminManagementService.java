@@ -45,6 +45,7 @@ import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.PaymentStatus;
 import com.devwonder.backend.entity.enums.ProductSerialStatus;
 import com.devwonder.backend.entity.enums.StaffUserStatus;
+import com.devwonder.backend.entity.enums.PublishStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ConflictException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
@@ -55,9 +56,12 @@ import com.devwonder.backend.repository.BulkDiscountRepository;
 import com.devwonder.backend.repository.CategoryBlogRepository;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.FinancialSettlementRepository;
+import com.devwonder.backend.repository.OrderItemRepository;
 import com.devwonder.backend.repository.OrderRepository;
+import com.devwonder.backend.repository.ProductOfCartRepository;
 import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
+import com.devwonder.backend.repository.ReturnRequestItemRepository;
 import com.devwonder.backend.repository.RoleRepository;
 import com.devwonder.backend.service.support.AdminIdentitySupport;
 import com.devwonder.backend.service.support.AdminOrderNotificationSupport;
@@ -107,6 +111,9 @@ public class AdminManagementService {
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final ProductRepository productRepository;
+    private final OrderItemRepository orderItemRepository;
+    private final ProductOfCartRepository productOfCartRepository;
+    private final ReturnRequestItemRepository returnRequestItemRepository;
     private final OrderRepository orderRepository;
     private final DealerRepository dealerRepository;
     private final ProductSerialRepository productSerialRepository;
@@ -146,15 +153,30 @@ public class AdminManagementService {
 
     @Transactional(readOnly = true)
     public List<AdminProductResponse> getProducts() {
-        return productRepository.findByIsDeletedFalseOrderByUpdatedAtDesc().stream()
+        return getProducts(false);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminProductResponse> getProducts(boolean includeDeleted) {
+        List<Product> products = includeDeleted
+                ? productRepository.findAllByOrderByUpdatedAtDesc()
+                : productRepository.findByIsDeletedFalseOrderByUpdatedAtDesc();
+        return products.stream()
                 .map(p -> AdminResponseMapper.toProductResponse(p, safeStock(p)))
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public Page<AdminProductResponse> getProducts(Pageable pageable) {
-        return productRepository.findByIsDeletedFalse(pageable)
-                .map(p -> AdminResponseMapper.toProductResponse(p, safeStock(p)));
+        return getProducts(pageable, false);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AdminProductResponse> getProducts(Pageable pageable, boolean includeDeleted) {
+        Page<Product> products = includeDeleted
+                ? productRepository.findAll(pageable)
+                : productRepository.findByIsDeletedFalse(pageable);
+        return products.map(p -> AdminResponseMapper.toProductResponse(p, safeStock(p)));
     }
 
     @Transactional
@@ -206,7 +228,42 @@ public class AdminManagementService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
         product.setIsDeleted(true);
+        product.setPublishStatus(PublishStatus.DRAFT);
         productRepository.save(product);
+        publishRevalidate("products", "product:" + id);
+    }
+
+    @Transactional
+    @CacheEvict(cacheNames = {
+            CacheNames.PUBLIC_PRODUCTS,
+            CacheNames.PUBLIC_HOMEPAGE_PRODUCTS,
+            CacheNames.PUBLIC_FEATURED_PRODUCTS,
+            CacheNames.PUBLIC_PRODUCT_BY_ID
+    }, allEntries = true)
+    public void hardDeleteProduct(Long id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+        if (!Boolean.TRUE.equals(product.getIsDeleted())) {
+            throw new BadRequestException("Product must be moved to trash before permanent deletion");
+        }
+        if (orderItemRepository.existsByProductId(id)) {
+            throw new ConflictException("Product is referenced by order items and cannot be permanently deleted");
+        }
+        if (productSerialRepository.existsByProductId(id)) {
+            throw new ConflictException("Product is referenced by serials and cannot be permanently deleted");
+        }
+        if (productOfCartRepository.existsByProductId(id)) {
+            throw new ConflictException("Product is referenced by dealer carts and cannot be permanently deleted");
+        }
+        if (returnRequestItemRepository.existsByProductId(id)) {
+            throw new ConflictException("Product is referenced by return requests and cannot be permanently deleted");
+        }
+        try {
+            productRepository.delete(product);
+            productRepository.flush();
+        } catch (org.springframework.dao.DataIntegrityViolationException ex) {
+            throw new ConflictException("Product is still referenced by other records and cannot be permanently deleted");
+        }
         publishRevalidate("products", "product:" + id);
     }
 

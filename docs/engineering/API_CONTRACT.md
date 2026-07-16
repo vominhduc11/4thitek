@@ -120,7 +120,7 @@ Shared helpers live in `AdminControllerSupport` (not a controller). Summary by d
 
 | Domain | Endpoints (representative) | Permission code |
 |---|---|---|
-| Products | `GET/POST/PUT/DELETE /products*` ; `POST /products/preview` — `POST /products` **requires `sku`** (unique, ≤100 chars; duplicate → 409); admin-fe detail route is `/products/:sku` | read: open to staff; write & preview: `products.write` |
+| Products | `GET /products`, `GET /products/page` (both accept `includeDeleted=true` to include trashed rows; default hides them) ; `POST /products` (**requires `sku`** — unique, ≤100 chars; duplicate → 409; admin-fe detail route is `/products/:sku`) ; `PUT /products/{id}` ; `DELETE /products/{id}` = **move to trash** (`isDeleted=true`, `publishStatus=DRAFT`) ; `DELETE /products/{id}/permanent` = hard delete (record must already be in trash; 409 while order items / serials / cart items / return items reference it) ; `POST /products/preview` | read: open to staff; write & preview: `products.write` |
 | Orders | `GET /orders*` ; `PATCH /orders/{id}/status` ; `POST /orders/{id}/assign-serials` ; `POST /orders/{id}/payments` | `orders.read`, `orders.approve` / `orders.process` / `orders.cancel.review` (per transition), `serials.assign`, `orders.payment.confirm` |
 | Serials | `GET/POST/PATCH/DELETE /serials*`, `PATCH /serials/{id}/rma` | read `serials.read`, write `serials.write` |
 | Warranties | `GET /warranties`, `PATCH /warranties/{id}/status` | `warranties.read` / `warranties.write` |

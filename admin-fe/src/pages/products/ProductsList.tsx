@@ -9,8 +9,9 @@ type TranslationFunction = (key: string, vars?: Record<string, string | number>)
 type ProductsListProps = {
   products: Product[]
   t: TranslationFunction
-  onArchiveToggle: (product: Product) => void
   onDelete: (sku: string) => void
+  onRestore: (product: Product) => void
+  onHardDelete: (product: Product) => void
   onPublishToggle: (product: Product) => void
   highlightedProductId?: string | null
   inventoryAlertTone?: 'low' | 'urgent' | null
@@ -29,8 +30,9 @@ const publishToneClass = (product: Product) => {
 function ProductsList({
   products,
   t,
-  onArchiveToggle,
   onDelete,
+  onRestore,
+  onHardDelete,
   onPublishToggle,
   highlightedProductId = null,
   inventoryAlertTone = null,
@@ -159,46 +161,42 @@ function ProductsList({
               <span className="hidden sm:inline">{t('Chi tiết')}</span>
             </Link>
 
-            <button
-              aria-label={product.isDeleted ? t('Khôi phục') : t('Ẩn sản phẩm')}
-              className={
-                product.isDeleted
-                  ? 'inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-2xl border border-emerald-200 px-2 text-emerald-700 transition hover:border-emerald-400'
-                  : 'inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-2xl border border-amber-200 px-2 text-amber-700 transition hover:border-amber-400'
-              }
-              onClick={() => onArchiveToggle(product)}
-              title={product.isDeleted ? t('Khôi phục') : t('Ẩn sản phẩm')}
-              type="button"
-            >
-              {product.isDeleted ? (
-                <RotateCcw className="h-4 w-4" />
-              ) : (
-                <Archive className="h-4 w-4" />
-              )}
-              <span className="hidden sm:inline">
-                {product.isDeleted ? t('Khôi phục') : t('Ẩn')}
-              </span>
-            </button>
+            {product.isDeleted ? (
+              <>
+                <button
+                  aria-label={t('Khôi phục')}
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-2xl border border-emerald-200 px-2 text-emerald-700 transition hover:border-emerald-400"
+                  onClick={() => onRestore(product)}
+                  title={t('Khôi phục')}
+                  type="button"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  <span className="hidden sm:inline">{t('Khôi phục')}</span>
+                </button>
 
-            <button
-              aria-label={t('Xóa')}
-              className={
-                product.isDeleted
-                  ? 'inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-2xl border border-rose-200 px-2 text-rose-700 transition hover:border-rose-400'
-                  : 'inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-2xl border border-[var(--border)] px-2 text-slate-400'
-              }
-              disabled={!product.isDeleted}
-              onClick={() => onDelete(product.sku)}
-              title={
-                product.isDeleted
-                  ? t('Xóa vĩnh viễn')
-                  : t('Cần ẩn sản phẩm trước khi xóa vĩnh viễn')
-              }
-              type="button"
-            >
-              <Trash2 className="h-4 w-4" />
-              <span className="hidden sm:inline">{t('Xóa')}</span>
-            </button>
+                <button
+                  aria-label={t('Xóa vĩnh viễn')}
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-2xl border border-rose-200 px-2 text-rose-700 transition hover:border-rose-400"
+                  onClick={() => onHardDelete(product)}
+                  title={t('Xóa vĩnh viễn')}
+                  type="button"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span className="hidden sm:inline">{t('Xóa vĩnh viễn')}</span>
+                </button>
+              </>
+            ) : (
+              <button
+                aria-label={t('Chuyển vào thùng rác')}
+                className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-2xl border border-amber-200 px-2 text-amber-700 transition hover:border-amber-400"
+                onClick={() => onDelete(product.sku)}
+                title={t('Chuyển vào thùng rác')}
+                type="button"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span className="hidden sm:inline">{t('Thùng rác')}</span>
+              </button>
+            )}
           </div>
         </article>
       ))}

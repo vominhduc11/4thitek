@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
-  Archive,
   ArrowLeft,
   CheckCircle,
   MonitorSmartphone,
@@ -62,11 +61,11 @@ function ProductDetailPage() {
   const { confirm, confirmDialog } = useConfirmDialog();
   const {
     products,
-    archiveProduct,
     restoreProduct,
     togglePublishStatus,
     updateProduct,
     deleteProduct,
+    hardDeleteProduct,
   } = useProducts();
   const product = products.find((item) => item.sku === sku);
   const toastTitle = t("Sản phẩm");
@@ -454,20 +453,21 @@ function ProductDetailPage() {
     }
   };
 
+  // "Xóa" ở record đang hoạt động = chuyển vào thùng rác (soft delete, khôi phục được).
   const handleDelete = async () => {
-    if (!product.isDeleted) {
+    if (product.isDeleted) {
       return;
     }
     const confirmed = await confirm({
-      title: t("Xóa vĩnh viễn sản phẩm"),
-      message: t("Xóa vĩnh viễn sản phẩm này? Hành động không thể hoàn tác."),
-      tone: "danger",
-      confirmLabel: t("Xóa"),
+      title: t("Chuyển vào thùng rác"),
+      message: t("Chuyển sản phẩm này vào thùng rác? Bạn có thể khôi phục sau."),
+      tone: "warning",
+      confirmLabel: t("Chuyển vào thùng rác"),
     });
     if (confirmed) {
       try {
         await deleteProduct(product.sku);
-        navigate("/products");
+        setActionMessage(t("Đã chuyển sản phẩm vào thùng rác."));
       } catch (error) {
         notify(
           error instanceof Error ? error.message : t("Không thể xóa sản phẩm"),
@@ -480,41 +480,48 @@ function ProductDetailPage() {
     }
   };
 
-  const handleArchiveToggle = async () => {
-    if (product.isDeleted) {
+  // Xóa vĩnh viễn chỉ khả dụng khi record đã ở thùng rác; backend 409 nếu còn tham chiếu.
+  const handleHardDelete = async () => {
+    if (!product.isDeleted) {
+      return;
+    }
+    const confirmed = await confirm({
+      title: t("Xóa vĩnh viễn sản phẩm"),
+      message: t("Xóa vĩnh viễn sản phẩm này? Hành động không thể hoàn tác."),
+      tone: "danger",
+      confirmLabel: t("Xóa vĩnh viễn"),
+    });
+    if (confirmed) {
       try {
-        await restoreProduct(product.sku);
-        setActionMessage(t("Đã khôi phục sản phẩm về bản nháp."));
+        await hardDeleteProduct(product.sku);
+        navigate("/products");
       } catch (error) {
+        const message = error instanceof Error ? error.message : "";
         notify(
-          error instanceof Error
-            ? error.message
-            : t("Không thể khôi phục sản phẩm"),
+          /referenced/i.test(message)
+            ? t("Không thể xóa vĩnh viễn: sản phẩm còn dữ liệu tham chiếu (đơn hàng, serial, giỏ hàng hoặc đổi trả).")
+            : message || t("Không thể xóa vĩnh viễn sản phẩm"),
           {
             title: toastTitle,
             variant: "error",
           },
         );
       }
+    }
+  };
+
+  const handleRestore = async () => {
+    if (!product.isDeleted) {
       return;
     }
-
-    const confirmed = await confirm({
-      title: t("Ẩn sản phẩm"),
-      message: t("Ẩn sản phẩm này khỏi danh mục hiện hành?"),
-      tone: "warning",
-      confirmLabel: t("Ẩn sản phẩm"),
-    });
-    if (!confirmed) {
-      return;
-    }
-
     try {
-      await archiveProduct(product.sku);
-      setActionMessage("");
+      await restoreProduct(product.sku);
+      setActionMessage(t("Đã khôi phục sản phẩm về bản nháp."));
     } catch (error) {
       notify(
-        error instanceof Error ? error.message : t("Không thể ẩn sản phẩm"),
+        error instanceof Error
+          ? error.message
+          : t("Không thể khôi phục sản phẩm"),
         {
           title: toastTitle,
           variant: "error",
@@ -985,45 +992,37 @@ function ProductDetailPage() {
               t={t}
             />
             <div className="mt-2.5 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-              <button
-                className={
-                  product.isDeleted
-                    ? "inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-emerald-200 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-400"
-                    : "inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-amber-200 px-4 py-2 text-sm font-semibold text-amber-700 transition hover:border-amber-400"
-                }
-                type="button"
-                onClick={handleArchiveToggle}
-              >
-                {product.isDeleted ? (
-                  <>
+              {product.isDeleted ? (
+                <>
+                  <button
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-emerald-200 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-400"
+                    type="button"
+                    onClick={handleRestore}
+                  >
                     <RotateCcw className="h-4 w-4" />
                     {t("Khôi phục")}
-                  </>
-                ) : (
-                  <>
-                    <Archive className="h-4 w-4" />
-                    {t("Ẩn sản phẩm")}
-                  </>
-                )}
-              </button>
-              <button
-                className={
-                  product.isDeleted
-                    ? "inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:border-rose-400 sm:self-start"
-                    : "inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-400 sm:self-start"
-                }
-                type="button"
-                onClick={handleDelete}
-                disabled={!product.isDeleted}
-                title={
-                  product.isDeleted
-                    ? t("Xóa vĩnh viễn")
-                    : t("Chỉ xóa vĩnh viễn được khi đã ẩn sản phẩm")
-                }
-              >
-                <Trash2 className="h-4 w-4" />
-                {t("Xóa")}
-              </button>
+                  </button>
+                  <button
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:border-rose-400 sm:self-start"
+                    type="button"
+                    onClick={handleHardDelete}
+                    title={t("Xóa vĩnh viễn")}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    {t("Xóa vĩnh viễn")}
+                  </button>
+                </>
+              ) : (
+                <button
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-amber-200 px-4 py-2 text-sm font-semibold text-amber-700 transition hover:border-amber-400"
+                  type="button"
+                  onClick={handleDelete}
+                  title={t("Chuyển vào thùng rác")}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {t("Chuyển vào thùng rác")}
+                </button>
+              )}
             </div>
           </div>
         </div>

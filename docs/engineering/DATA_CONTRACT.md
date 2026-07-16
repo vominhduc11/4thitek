@@ -30,6 +30,11 @@ is no dealer credit/debt ledger.
 - admin-fe may **suggest** a SKU from the product name (strip Vietnamese diacritics →
   `A-Z0-9`, hyphen-joined, plus a short uniqueness suffix); the user can edit the suggestion
   before submit. The backend never generates SKUs. Status: `CONFIRMED_FROM_CODE`.
+- `Product.isDeleted` is the **canonical soft-delete/trash flag** (see `STATE_MACHINES.md`
+  §9): default admin lists filter it out, `DELETE /admin/products/{id}` only sets it (plus
+  `publishStatus=DRAFT`), restore clears it. Hard delete is a separate endpoint
+  (`…/{id}/permanent`) guarded by reference checks (order items, serials, cart items,
+  return items → 409).
 
 ## 2. Money & price
 
@@ -99,7 +104,7 @@ All from `entity/enums/`. Status: `CONFIRMED_FROM_CODE`.
 | `ProductSerialStatus` | `AVAILABLE`, `RESERVED`, `ASSIGNED`, `WARRANTY`, `DEFECTIVE`, `RETURNED`, `INSPECTING`, `SCRAPPED`, `WARRANTY_REPLACED` |
 | `WarrantyStatus` | `ACTIVE`, `EXPIRED`, `VOID` |
 | `ReturnRequestStatus` | `SUBMITTED`, `UNDER_REVIEW`, `APPROVED`, `REJECTED`, `AWAITING_RECEIPT`, `RECEIVED`, `INSPECTING`, `PARTIALLY_RESOLVED`, `COMPLETED`, `CANCELLED` |
-| `PublishStatus` | **product only** (blogs use `BlogStatus`; public content uses Boolean `PublicContentEntry.published`) — see `entity/enums/PublishStatus.java` |
+| `PublishStatus` | `DRAFT`, `PUBLISHED` — **product only** (blogs use `BlogStatus`; public content uses Boolean `PublicContentEntry.published`). `ARCHIVED` removed 2026-07-16 (`V45` normalizes old rows to `DRAFT`); trash is `Product.isDeleted`, not a publish state |
 | `BlogStatus` | `PUBLISHED`, `SCHEDULED`, `DRAFT` (per blog publish job) |
 | `DealerSupportTicketStatus` | `OPEN`, `IN_PROGRESS`, `RESOLVED`, `CLOSED` |
 | `StaffUserStatus` | `ACTIVE`, `PENDING` (+ others — see file) |

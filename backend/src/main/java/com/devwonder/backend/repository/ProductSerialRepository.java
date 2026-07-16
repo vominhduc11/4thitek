@@ -17,6 +17,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ProductSerialRepository extends JpaRepository<ProductSerial, Long> {
+    boolean existsByProductId(Long productId);
     Optional<ProductSerial> findBySerialIgnoreCase(String serial);
 
     Optional<ProductSerial> findByIdAndDealerId(Long id, Long dealerId);

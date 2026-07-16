@@ -36,9 +36,9 @@ export type BackendProductUpsertRequest = {
   publishStatus?: BackendPublishStatus
 }
 
-export const fetchAdminProducts = (token: string) =>
+export const fetchAdminProducts = (token: string, options?: { includeDeleted?: boolean }) =>
   authorizedJsonRequest<BackendProductResponse[]>({
-    path: '/admin/products',
+    path: options?.includeDeleted ? '/admin/products?includeDeleted=true' : '/admin/products',
     token,
   })
 
@@ -65,6 +65,15 @@ export const updateAdminProduct = (
 export const deleteAdminProduct = (token: string, id: number) =>
   authorizedJsonRequest<{ status: string }>({
     path: `/admin/products/${id}`,
+    token,
+    method: 'DELETE',
+  })
+
+// Xóa vĩnh viễn: record phải đang ở thùng rác (isDeleted=true); backend trả 409
+// khi sản phẩm còn được đơn hàng/serial/giỏ hàng/yêu cầu đổi trả tham chiếu.
+export const hardDeleteAdminProduct = (token: string, id: number) =>
+  authorizedJsonRequest<{ status: string }>({
+    path: `/admin/products/${id}/permanent`,
     token,
     method: 'DELETE',
   })

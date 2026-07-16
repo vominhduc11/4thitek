@@ -35,8 +35,10 @@ public class AdminProductController {
     private final PublicApiService publicApiService;
 
     @GetMapping("/products")
-    public ResponseEntity<ApiResponse<List<AdminProductResponse>>> products() {
-        return ResponseEntity.ok(ApiResponse.success(adminManagementService.getProducts()));
+    public ResponseEntity<ApiResponse<List<AdminProductResponse>>> products(
+            @RequestParam(name = "includeDeleted", required = false, defaultValue = "false") boolean includeDeleted
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(adminManagementService.getProducts(includeDeleted)));
     }
 
     @GetMapping("/products/page")
@@ -44,10 +46,11 @@ public class AdminProductController {
             @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false) Integer size,
             @RequestParam(name = "sortBy", required = false) String sortBy,
-            @RequestParam(name = "sortDir", required = false) String sortDir
+            @RequestParam(name = "sortDir", required = false) String sortDir,
+            @RequestParam(name = "includeDeleted", required = false, defaultValue = "false") boolean includeDeleted
     ) {
         Pageable pageable = PaginationUtils.toPageable(page, size, sortBy, sortDir, "updatedAt");
-        Page<AdminProductResponse> result = adminManagementService.getProducts(pageable);
+        Page<AdminProductResponse> result = adminManagementService.getProducts(pageable, includeDeleted);
         return ResponseEntity.ok(ApiResponse.success(PagedResponse.from(result, "updatedAt")));
     }
 
@@ -81,6 +84,13 @@ public class AdminProductController {
     public ResponseEntity<ApiResponse<Map<String, String>>> deleteProduct(@PathVariable("id") Long id) {
         adminManagementService.deleteProduct(id);
         return ResponseEntity.ok(ApiResponse.success(Map.of("status", "deleted")));
+    }
+
+    @DeleteMapping("/products/{id}/permanent")
+    @PreAuthorize("hasAuthority('products.write')")
+    public ResponseEntity<ApiResponse<Map<String, String>>> hardDeleteProduct(@PathVariable("id") Long id) {
+        adminManagementService.hardDeleteProduct(id);
+        return ResponseEntity.ok(ApiResponse.success(Map.of("status", "permanently_deleted")));
     }
 
     @GetMapping("/categories")

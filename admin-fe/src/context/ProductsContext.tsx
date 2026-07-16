@@ -8,6 +8,7 @@ import {
   createAdminProduct,
   deleteAdminProduct,
   fetchAdminProducts,
+  hardDeleteAdminProduct,
   type BackendProductResponse,
   type BackendProductUpsertRequest,
   updateAdminProduct,
@@ -18,11 +19,11 @@ type ProductsContextValue = {
   products: Product[]
   isLoading: boolean
   error: string | null
-  archiveProduct: (sku: string) => Promise<void>
   restoreProduct: (sku: string) => Promise<void>
   publishProduct: (sku: string) => Promise<void>
   updateProduct: (sku: string, updates: Partial<Product>) => Promise<void>
   deleteProduct: (sku: string) => Promise<void>
+  hardDeleteProduct: (sku: string) => Promise<void>
   addProduct: (payload?: Partial<Product>) => Promise<Product | undefined>
   togglePublishStatus: (sku: string) => Promise<void>
 }
@@ -201,7 +202,8 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
           setIsLoading(true)
           setError(null)
         }
-        const response = await fetchAdminProducts(accessToken)
+        // Lấy cả record trong thùng rác — tab "Thùng rác" lọc client-side theo isDeleted.
+        const response = await fetchAdminProducts(accessToken, { includeDeleted: true })
         if (!cancelled) {
           setProducts(response.map(mapResponseToProduct))
         }
@@ -228,19 +230,6 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
       cancelled = true
     }
   }, [accessToken, notify, t, useRemoteData])
-
-  const archiveProduct = async (sku: string) => {
-    if (!useRemoteData || !accessToken) return
-
-    const target = products.find((product) => product.sku === sku)
-    if (!target) return
-
-    const updated = await updateAdminProduct(accessToken, Number(target.id), {
-      isDeleted: true,
-      publishStatus: 'DRAFT',
-    })
-    setProducts((prev) => replaceProduct(prev, mapResponseToProduct(updated)))
-  }
 
   const restoreProduct = async (sku: string) => {
     if (!useRemoteData || !accessToken) return
@@ -278,6 +267,8 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
     setProducts((prev) => replaceProduct(prev, mapResponseToProduct(updated)))
   }
 
+  // "Xóa" = chuyển vào thùng rác (backend DELETE chỉ set isDeleted=true + DRAFT).
+  // Giữ record trong state với cờ isDeleted để tab Thùng rác hiển thị và restore được.
   const deleteProduct = async (sku: string) => {
     if (!useRemoteData || !accessToken) return
 
@@ -285,6 +276,22 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
     if (!target) return
 
     await deleteAdminProduct(accessToken, Number(target.id))
+    setProducts((prev) =>
+      prev.map((product) =>
+        product.sku === sku
+          ? normalizeProduct({ ...product, isDeleted: true, publishStatus: 'DRAFT' })
+          : product,
+      ),
+    )
+  }
+
+  const hardDeleteProduct = async (sku: string) => {
+    if (!useRemoteData || !accessToken) return
+
+    const target = products.find((product) => product.sku === sku)
+    if (!target) return
+
+    await hardDeleteAdminProduct(accessToken, Number(target.id))
     setProducts((prev) => prev.filter((product) => product.sku !== sku))
   }
 
@@ -314,11 +321,11 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
     products,
     isLoading,
     error,
-    archiveProduct,
     restoreProduct,
     publishProduct,
     updateProduct,
     deleteProduct,
+    hardDeleteProduct,
     addProduct,
     togglePublishStatus,
   }
